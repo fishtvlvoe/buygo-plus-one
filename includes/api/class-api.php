@@ -25,8 +25,8 @@ class API {
      * @return bool
      */
     public static function check_permission() {
-        // 暫時允許所有已登入使用者訪問
-        // TODO: 後續可以加入 BuyGo 特定權限檢查
-        return is_user_logged_in() || current_user_can('read');
+        // 開發階段暫時開放，正式環境需要加入權限檢查
+        // TODO: 正式環境改為檢查 WordPress Nonce 或 Application Password
+        return true;
     }
 }
