@@ -31,11 +31,18 @@ $current_page = get_query_var('buygo_page', 'dashboard');
 </head>
 <body class="bg-gray-50">
     <div id="buygo-app">
-        <div class="min-h-screen flex items-center justify-center">
-            <div class="text-center">
-                <h1 class="text-3xl font-bold text-gray-900">BuyGo+1 載入中...</h1>
-                <p class="mt-2 text-gray-600">當前頁面：{{ currentPage }}</p>
-            </div>
+        <!-- 載入側邊導航元件 -->
+        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/side-nav.php'; ?>
+        
+        <!-- 主內容區 -->
+        <div class="md:ml-64 min-h-screen">
+            <!-- 頁面內容 -->
+            <main class="p-6">
+                <div class="max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1>
+                    <p class="text-gray-600">當前頁面：{{ currentPage }}</p>
+                </div>
+            </main>
         </div>
     </div>
     
@@ -45,12 +52,31 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <script>
     const { createApp } = Vue;
     
+    // 載入側邊導航元件
+    const sideNavComponent = <?php echo $component_name; ?>Component;
+    
     createApp({
+        components: {
+            SideNav: sideNavComponent
+        },
         data() {
             return {
                 currentPage: '<?php echo esc_js($current_page); ?>'
             }
-        }
+        },
+        template: `
+            <div>
+                <SideNav :currentPage="currentPage" />
+                <div class="md:ml-64 min-h-screen">
+                    <main class="p-6">
+                        <div class="max-w-7xl mx-auto">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1>
+                            <p class="text-gray-600">當前頁面：{{ currentPage }}</p>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        `
     }).mount('#buygo-app');
     </script>
 </body>
