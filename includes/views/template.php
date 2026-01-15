@@ -77,14 +77,14 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         $page_component_name = $component_map[$current_page] ?? null;
     }
     ?>
-    <?php if ($page_component_name && isset(${$page_component_name})): ?>
+    <?php if ($page_component_name): ?>
     const pageComponent = <?php echo $page_component_name; ?>;
     <?php endif; ?>
     
     // 建立主 App
     const app = createApp({
         components: {
-            SideNav: sideNavComponent<?php echo ($page_component_name && isset(${$page_component_name})) ? ', PageContent: pageComponent' : ''; ?>
+            SideNav: sideNavComponent<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
         },
         data() {
             return {
@@ -95,7 +95,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             <div>
                 <SideNav :currentPage="currentPage" />
                 <div class="md:ml-64 min-h-screen">
-                    <?php if ($page_component_name && isset(${$page_component_name})): ?>
+                    <?php if ($page_component_name): ?>
                     <PageContent />
                     <?php else: ?>
                     <main class="p-6">
