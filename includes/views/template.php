@@ -49,7 +49,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';
     $has_page_component = false;
     if (file_exists($page_file)) {
-        require_once $page_file;
+        require $page_file;
         $has_page_component = true;
     }
     ?>
