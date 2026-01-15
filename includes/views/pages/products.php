@@ -9,6 +9,19 @@ $products_component_template = <<<'HTML'
 
     <!-- 商品列表容器 -->
     <div class="p-6">
+        <!-- 載入狀態 -->
+        <div v-if="loading" class="text-center py-8">
+            <p class="text-gray-600">載入中...</p>
+        </div>
+        
+        <!-- 錯誤訊息 -->
+        <div v-else-if="error" class="text-center py-8">
+            <p class="text-red-600">{{ error }}</p>
+            <button @click="loadProducts" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">重新載入</button>
+        </div>
+        
+        <!-- 商品列表 -->
+        <div v-else>
         <!-- 桌面版表格 -->
         <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
@@ -146,16 +159,10 @@ $products_component_template = <<<'HTML'
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </main>
 HTML;
-
-// 假資料
-$mock_products = [
-    ['id' => 1, 'name' => '測試商品 A', 'image' => null, 'price' => 1000, 'currency' => 'TWD', 'status' => 'published', 'ordered' => 10, 'purchased' => 5],
-    ['id' => 2, 'name' => '測試商品 B', 'image' => null, 'price' => 2000, 'currency' => 'TWD', 'status' => 'published', 'ordered' => 20, 'purchased' => 15],
-    ['id' => 3, 'name' => '測試商品 C', 'image' => null, 'price' => 3000, 'currency' => 'TWD', 'status' => 'private', 'ordered' => 5, 'purchased' => 3],
-];
 ?>
 
 <script>
@@ -163,10 +170,32 @@ const ProductsPageComponent = {
     name: 'ProductsPage',
     template: `<?php echo $products_component_template; ?>`,
     setup() {
-        const { ref } = Vue;
-        const products = ref(<?php echo json_encode($mock_products); ?>);
+        const { ref, onMounted } = Vue;
+        
+        const products = ref([]);
         const selectedItems = ref([]);
-
+        const loading = ref(true);
+        const error = ref(null);
+        
+        // 載入商品
+        const loadProducts = async () => {
+            loading.value = true;
+            error.value = null;
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/products');
+                const result = await response.json();
+                if (result.success) {
+                    products.value = result.data;
+                } else {
+                    error.value = '載入商品失敗';
+                }
+            } catch (err) {
+                error.value = '網路錯誤：' + err.message;
+            } finally {
+                loading.value = false;
+            }
+        };
+        
         const formatPrice = (price, currency) => {
             return `${price.toLocaleString()} ${currency}`;
         };
@@ -183,15 +212,51 @@ const ProductsPageComponent = {
             }
         };
 
-        const toggleStatus = (product) => {
-            product.status = product.status === 'published' ? 'private' : 'published';
-            // TODO: API 整合時呼叫更新狀態 API
-            console.log('切換狀態:', product.id, product.status);
+        // 切換狀態
+        const toggleStatus = async (product) => {
+            const newStatus = product.status === 'published' ? 'private' : 'published';
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        status: newStatus
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    product.status = newStatus;
+                } else {
+                    console.error('更新狀態失敗:', result);
+                }
+            } catch (err) {
+                console.error('更新狀態失敗:', err);
+            }
         };
 
-        const savePurchased = (product) => {
-            // TODO: API 整合時呼叫更新已採購數量 API
-            console.log('儲存已採購數量:', product.id, product.purchased);
+        // 儲存已採購數量
+        const savePurchased = async (product) => {
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        purchased: product.purchased
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log('已採購數量更新成功');
+                } else {
+                    console.error('更新失敗:', result);
+                }
+            } catch (err) {
+                console.error('更新失敗:', err);
+            }
         };
 
         const deleteProduct = (id) => {
@@ -201,16 +266,23 @@ const ProductsPageComponent = {
                 console.log('刪除商品:', id);
             }
         };
+        
+        onMounted(() => {
+            loadProducts();
+        });
 
         return {
             products,
             selectedItems,
+            loading,
+            error,
             formatPrice,
             calculateReserved,
             toggleSelectAll,
             toggleStatus,
             savePurchased,
-            deleteProduct
+            deleteProduct,
+            loadProducts
         };
     }
 };
