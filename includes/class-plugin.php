@@ -27,10 +27,11 @@ class Plugin {
     
     private function load_dependencies() {
         // 載入其他類別
-        // require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
     }
     
     private function register_hooks() {
-        // 註冊 WordPress hooks
+        // 初始化 Routes
+        new Routes();
     }
 }
