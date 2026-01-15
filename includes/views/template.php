@@ -37,12 +37,15 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         <!-- 主內容區 -->
         <div class="md:ml-64 min-h-screen">
             <!-- 頁面內容 -->
-            <main class="p-6">
-                <div class="max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1>
-                    <p class="text-gray-600">當前頁面：{{ currentPage }}</p>
-                </div>
-            </main>
+            <?php
+            $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';
+            if (file_exists($page_file)) {
+                require_once $page_file;
+            } else {
+                // 預設內容
+                echo '<main class="p-6"><div class="max-w-7xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1><p class="text-gray-600">當前頁面：' . esc_html($current_page) . '</p></div></main>';
+            }
+            ?>
         </div>
     </div>
     
