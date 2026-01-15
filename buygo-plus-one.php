@@ -29,4 +29,4 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 // Initialize plugin
 add_action('plugins_loaded', function() {
     \BuyGoPlus\Plugin::instance()->init();
-}, 20); // Load after BuyGo (priority 20)
+}, 20);
