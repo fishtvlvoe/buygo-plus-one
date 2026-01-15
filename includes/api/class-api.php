@@ -25,12 +25,8 @@ class API {
      * @return bool
      */
     public static function check_permission() {
-        // 檢查使用者是否登入
-        if (!is_user_logged_in()) {
-            return false;
-        }
-        
-        // 檢查使用者權限（可以擴展為檢查 BuyGo 特定權限）
-        return current_user_can('read');
+        // 暫時允許所有已登入使用者訪問
+        // TODO: 後續可以加入 BuyGo 特定權限檢查
+        return is_user_logged_in() || current_user_can('read');
     }
 }
