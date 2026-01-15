@@ -1,7 +1,6 @@
 <?php
-// 商品管理頁面
-?>
-
+// 商品管理頁面元件
+$products_component_template = <<<'HTML'
 <main class="min-h-screen bg-gray-50">
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
@@ -9,7 +8,7 @@
     </div>
 
     <!-- 商品列表容器 -->
-    <div id="products-app" class="p-6">
+    <div class="p-6">
         <!-- 桌面版表格 -->
         <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
@@ -149,47 +148,23 @@
         </div>
     </div>
 </main>
-
-<script>
-const { createApp, ref, computed } = Vue;
+HTML;
 
 // 假資料
-const mockProducts = [
-    {
-        id: 1,
-        name: '測試商品 A',
-        image: null,
-        price: 1000,
-        currency: 'TWD',
-        status: 'published',
-        ordered: 10,
-        purchased: 5
-    },
-    {
-        id: 2,
-        name: '測試商品 B',
-        image: null,
-        price: 2000,
-        currency: 'TWD',
-        status: 'published',
-        ordered: 20,
-        purchased: 15
-    },
-    {
-        id: 3,
-        name: '測試商品 C',
-        image: null,
-        price: 3000,
-        currency: 'TWD',
-        status: 'private',
-        ordered: 5,
-        purchased: 3
-    }
+$mock_products = [
+    ['id' => 1, 'name' => '測試商品 A', 'image' => null, 'price' => 1000, 'currency' => 'TWD', 'status' => 'published', 'ordered' => 10, 'purchased' => 5],
+    ['id' => 2, 'name' => '測試商品 B', 'image' => null, 'price' => 2000, 'currency' => 'TWD', 'status' => 'published', 'ordered' => 20, 'purchased' => 15],
+    ['id' => 3, 'name' => '測試商品 C', 'image' => null, 'price' => 3000, 'currency' => 'TWD', 'status' => 'private', 'ordered' => 5, 'purchased' => 3],
 ];
+?>
 
-createApp({
+<script>
+const ProductsPageComponent = {
+    name: 'ProductsPage',
+    template: `<?php echo $products_component_template; ?>`,
     setup() {
-        const products = ref([...mockProducts]);
+        const { ref } = Vue;
+        const products = ref(<?php echo json_encode($mock_products); ?>);
         const selectedItems = ref([]);
 
         const formatPrice = (price, currency) => {
@@ -238,5 +213,5 @@ createApp({
             deleteProduct
         };
     }
-}).mount('#products-app');
+};
 </script>

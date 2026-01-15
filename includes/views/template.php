@@ -36,21 +36,23 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         
         <!-- 主內容區 -->
         <div class="md:ml-64 min-h-screen">
-            <!-- 頁面內容 -->
-            <?php
-            $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';
-            if (file_exists($page_file)) {
-                require_once $page_file;
-            } else {
-                // 預設內容
-                echo '<main class="p-6"><div class="max-w-7xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1><p class="text-gray-600">當前頁面：' . esc_html($current_page) . '</p></div></main>';
-            }
-            ?>
+            <!-- 頁面內容容器（由 Vue 動態渲染） -->
+            <div id="page-content"></div>
         </div>
     </div>
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <?php
+    // 載入頁面元件（如果存在）
+    $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';
+    $has_page_component = false;
+    if (file_exists($page_file)) {
+        require_once $page_file;
+        $has_page_component = true;
+    }
+    ?>
     
     <script>
     const { createApp } = Vue;
@@ -58,9 +60,15 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     // 載入側邊導航元件
     const sideNavComponent = <?php echo $component_name; ?>Component;
     
-    createApp({
+    // 載入頁面元件（如果存在）
+    <?php if ($has_page_component): ?>
+    const pageComponent = ProductsPageComponent;
+    <?php endif; ?>
+    
+    // 建立主 App
+    const app = createApp({
         components: {
-            SideNav: sideNavComponent
+            SideNav: sideNavComponent<?php echo $has_page_component ? ', PageContent: pageComponent' : ''; ?>
         },
         data() {
             return {
@@ -71,16 +79,22 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             <div>
                 <SideNav :currentPage="currentPage" />
                 <div class="md:ml-64 min-h-screen">
+                    <?php if ($has_page_component): ?>
+                    <PageContent />
+                    <?php else: ?>
                     <main class="p-6">
                         <div class="max-w-7xl mx-auto">
                             <h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1>
                             <p class="text-gray-600">當前頁面：{{ currentPage }}</p>
                         </div>
                     </main>
+                    <?php endif; ?>
                 </div>
             </div>
         `
-    }).mount('#buygo-app');
+    });
+    
+    app.mount('#buygo-app');
     </script>
 </body>
 </html>
