@@ -61,14 +61,30 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     const sideNavComponent = <?php echo $component_name; ?>Component;
     
     // 載入頁面元件（如果存在）
-    <?php if ($has_page_component): ?>
-    const pageComponent = ProductsPageComponent;
+    <?php 
+    $page_component_name = null;
+    if ($has_page_component) {
+        // 根據頁面名稱決定元件名稱
+        $component_map = [
+            'products' => 'ProductsPageComponent',
+            'orders' => 'OrdersPageComponent',
+            'shipment-products' => 'ShipmentProductsPageComponent',
+            'shipment-details' => 'ShipmentDetailsPageComponent',
+            'customers' => 'CustomersPageComponent',
+            'settings' => 'SettingsPageComponent',
+            'dashboard' => null
+        ];
+        $page_component_name = $component_map[$current_page] ?? null;
+    }
+    ?>
+    <?php if ($page_component_name && isset(${$page_component_name})): ?>
+    const pageComponent = <?php echo $page_component_name; ?>;
     <?php endif; ?>
     
     // 建立主 App
     const app = createApp({
         components: {
-            SideNav: sideNavComponent<?php echo $has_page_component ? ', PageContent: pageComponent' : ''; ?>
+            SideNav: sideNavComponent<?php echo ($page_component_name && isset(${$page_component_name})) ? ', PageContent: pageComponent' : ''; ?>
         },
         data() {
             return {
@@ -79,7 +95,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             <div>
                 <SideNav :currentPage="currentPage" />
                 <div class="md:ml-64 min-h-screen">
-                    <?php if ($has_page_component): ?>
+                    <?php if ($page_component_name && isset(${$page_component_name})): ?>
                     <PageContent />
                     <?php else: ?>
                     <main class="p-6">
