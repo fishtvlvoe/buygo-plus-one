@@ -589,7 +589,10 @@ const ProductsPageComponent = {
         
         // 幣別狀態
         const currentCurrency = ref('JPY'); // 預設日幣
-        const exchangeRate = 4.5; // 1 TWD = 4.5 JPY
+        const baseCurrency = 'JPY'; // 基準幣別（商品原始價格的幣別）
+        const exchangeRates = ref({}); // 儲存所有匯率 { TWD: 0.22, USD: 0.0067, KRW: 9.2, THB: 0.24 }
+        const rateLoading = ref(false);
+        const rateLastUpdated = ref(null); // 最後更新時間
         
         // Modal 狀態
         const showEditModal = ref(false);
@@ -686,17 +689,109 @@ const ProductsPageComponent = {
             }
         };
         
-        // 金額轉換函數
+        // 取得匯率
+        const fetchExchangeRate = async () => {
+            rateLoading.value = true;
+            try {
+                // 檢查 LocalStorage 快取（24 小時內有效）
+                const cachedRates = localStorage.getItem('buygo_exchange_rates');
+                const cachedTime = localStorage.getItem('buygo_rates_updated');
+                
+                if (cachedRates && cachedTime) {
+                    const cacheAge = Date.now() - new Date(cachedTime).getTime();
+                    const hours24 = 24 * 60 * 60 * 1000;
+                    
+                    // 如果快取在 24 小時內，直接使用
+                    if (cacheAge < hours24) {
+                        exchangeRates.value = JSON.parse(cachedRates);
+                        rateLastUpdated.value = cachedTime;
+                        console.log('使用快取匯率:', exchangeRates.value);
+                        rateLoading.value = false;
+                        return;
+                    }
+                }
+                
+                // 使用免費 API 取得 JPY 對所有幣別的匯率
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/JPY');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.rates) {
+                    // 儲存所有支援的幣別匯率（相對於 JPY）
+                    exchangeRates.value = {
+                        JPY: 1, // 基準幣別
+                        TWD: data.rates.TWD || 0.22,
+                        USD: data.rates.USD || 0.0067,
+                        KRW: data.rates.KRW || 9.2,
+                        THB: data.rates.THB || 0.24
+                    };
+                    
+                    rateLastUpdated.value = new Date().toISOString();
+                    
+                    console.log('匯率已更新:', exchangeRates.value);
+                    console.log('更新時間:', rateLastUpdated.value);
+                    
+                    // 儲存到 LocalStorage（避免每次都呼叫 API）
+                    localStorage.setItem('buygo_exchange_rates', JSON.stringify(exchangeRates.value));
+                    localStorage.setItem('buygo_rates_updated', rateLastUpdated.value);
+                }
+            } catch (err) {
+                console.error('匯率讀取失敗，嘗試從 LocalStorage 讀取:', err);
+                
+                // 失敗時從 LocalStorage 讀取
+                const cachedRates = localStorage.getItem('buygo_exchange_rates');
+                const cachedTime = localStorage.getItem('buygo_rates_updated');
+                
+                if (cachedRates) {
+                    exchangeRates.value = JSON.parse(cachedRates);
+                    rateLastUpdated.value = cachedTime;
+                    console.log('使用快取匯率:', exchangeRates.value);
+                } else {
+                    // 使用預設值
+                    exchangeRates.value = {
+                        JPY: 1,
+                        TWD: 0.22,
+                        USD: 0.0067,
+                        KRW: 9.2,
+                        THB: 0.24
+                    };
+                    console.log('使用預設匯率');
+                }
+            } finally {
+                rateLoading.value = false;
+            }
+        };
+        
+        // 金額轉換函數（支援任意幣別轉換）
         const convertPrice = (price, fromCurrency, toCurrency) => {
             if (fromCurrency === toCurrency) return price;
             
-            if (fromCurrency === 'TWD' && toCurrency === 'JPY') {
-                return Math.round(price * exchangeRate);
-            } else if (fromCurrency === 'JPY' && toCurrency === 'TWD') {
-                return Math.round(price / exchangeRate);
+            // 如果匯率還沒載入，回傳原價
+            if (Object.keys(exchangeRates.value).length === 0) {
+                return price;
             }
             
-            return price;
+            // 先轉換為基準幣別 (JPY)
+            let priceInBase = price;
+            if (fromCurrency !== baseCurrency) {
+                const fromRate = exchangeRates.value[fromCurrency];
+                if (!fromRate) return price; // 找不到匯率，回傳原價
+                priceInBase = price / fromRate;
+            }
+            
+            // 再從基準幣別轉換為目標幣別
+            let convertedPrice = priceInBase;
+            if (toCurrency !== baseCurrency) {
+                const toRate = exchangeRates.value[toCurrency];
+                if (!toRate) return price; // 找不到匯率，回傳原價
+                convertedPrice = priceInBase * toRate;
+            }
+            
+            return Math.round(convertedPrice);
         };
         
         const formatPrice = (price, originalCurrency) => {
@@ -895,13 +990,19 @@ const ProductsPageComponent = {
         };
 
         // 處理幣別切換
-        const handleCurrencyChange = (currency) => {
+        const handleCurrencyChange = async (currency) => {
             console.log('切換幣別:', currency);
+            
+            // 如果匯率還沒載入，先嘗試獲取
+            if (Object.keys(exchangeRates.value).length === 0) {
+                await fetchExchangeRate();
+            }
             
             // 更新當前幣別
             currentCurrency.value = currency;
             
-            // 不需要修改 products 陣列，因為 formatPrice 會自動轉換顯示
+            // 不需要修改 products 陣列，formatPrice 會自動轉換顯示
+            console.log('當前匯率表:', exchangeRates.value);
         };
         
         // 上一頁
@@ -1176,7 +1277,8 @@ const ProductsPageComponent = {
             buyersError.value = null;
         };
         
-        onMounted(() => {
+        onMounted(async () => {
+            await fetchExchangeRate();
             loadProducts();
         });
 
@@ -1211,6 +1313,10 @@ const ProductsPageComponent = {
             searchFilter,
             searchFilterName,
             currentCurrency,
+            exchangeRates,
+            rateLoading,
+            rateLastUpdated,
+            fetchExchangeRate,
             // Modal
             showEditModal,
             editingProduct,
