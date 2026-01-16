@@ -164,6 +164,7 @@ const BuyGoSmartSearchBox = {
                     </li>
                 </ul>
             </div>
+            </div>
         </div>
     `,
 
