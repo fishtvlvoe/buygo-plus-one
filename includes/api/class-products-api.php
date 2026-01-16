@@ -598,6 +598,8 @@ class Products_API {
             
             error_log('找到商品: ' . $product->variation_title);
             
+            // 建立 ProductService 實例
+            $productService = new ProductService();
             $result = $productService->getProductBuyers($product_id);
             
             if (!$result['success']) {
