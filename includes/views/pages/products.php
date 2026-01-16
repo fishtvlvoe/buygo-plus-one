@@ -4,17 +4,40 @@ $products_component_template = <<<'HTML'
 <main class="min-h-screen bg-gray-50">
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-        <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-gray-900">商品管理</h1>
-            <button 
-                @click="exportCSV"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                匯出 CSV
-            </button>
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">商品管理</h1>
+                    <p class="text-sm text-slate-500">管理您的庫存、價格與訂單分配</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- 匯出 CSV 按鈕 -->
+                    <button 
+                        @click="exportCSV"
+                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition shadow-sm flex items-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        匯出 CSV
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 智慧搜尋框 -->
+            <div class="mb-6">
+                <smart-search-box
+                    api-endpoint="/wp-json/buygo-plus-one/v1/products"
+                    :search-fields="['name', 'id']"
+                    placeholder="搜尋商品、客戶名字或訂單編號"
+                    display-field="name"
+                    display-sub-field="id"
+                    @select="handleSearchSelect"
+                    @search="handleSearchInput"
+                    @clear="handleSearchClear"
+                />
+            </div>
         </div>
     </div>
 
@@ -191,6 +214,9 @@ HTML;
 <script>
 const ProductsPageComponent = {
     name: 'ProductsPage',
+    components: {
+        'smart-search-box': BuyGoSmartSearchBox
+    },
     template: `<?php echo $products_component_template; ?>`,
     setup() {
         const { ref, onMounted } = Vue;
@@ -377,6 +403,29 @@ const ProductsPageComponent = {
                 button.disabled = false;
             }
         };
+
+        // 處理搜尋選擇
+        const handleSearchSelect = (item) => {
+            console.log('選擇商品:', item);
+            // 可以選擇：
+            // 選項 1：直接打開編輯 Modal
+            // 選項 2：設定搜尋條件並重新載入列表
+            // 目前使用選項 2
+            loadProducts();
+        };
+
+        // 處理搜尋輸入
+        const handleSearchInput = (query) => {
+            console.log('搜尋:', query);
+            // 這個事件會在使用者輸入時觸發
+            // 智慧搜尋框會自動處理建議列表
+        };
+
+        // 處理清除搜尋
+        const handleSearchClear = () => {
+            console.log('清除搜尋');
+            loadProducts();
+        };
         
         onMounted(() => {
             loadProducts();
@@ -395,7 +444,10 @@ const ProductsPageComponent = {
             deleteProduct,
             loadProducts,
             batchDelete,
-            exportCSV
+            exportCSV,
+            handleSearchSelect,
+            handleSearchInput,
+            handleSearchClear
         };
     }
 };
