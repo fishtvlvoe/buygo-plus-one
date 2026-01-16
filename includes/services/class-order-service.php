@@ -17,10 +17,12 @@ use FluentCart\App\Models\OrderItem;
 class OrderService
 {
     private $debugService;
+    private $shippingStatusService;
 
     public function __construct()
     {
         $this->debugService = new DebugService();
+        $this->shippingStatusService = new ShippingStatusService();
     }
 
     /**
@@ -200,6 +202,73 @@ class OrderService
     }
 
     /**
+     * 更新運送狀態（使用新的 ShippingStatusService）
+     * 
+     * @param string $orderId 訂單 ID
+     * @param string $status 新狀態
+     * @param string $reason 變更原因
+     * @return bool
+     */
+    public function updateShippingStatus(string $orderId, string $status, string $reason = ''): bool
+    {
+        $this->debugService->log('OrderService', '開始更新運送狀態', [
+            'order_id' => $orderId,
+            'new_status' => $status,
+            'reason' => $reason
+        ]);
+
+        try {
+            // 驗證狀態有效性
+            if (!$this->shippingStatusService->isValidStatus($status)) {
+                throw new \Exception("無效的運送狀態：{$status}");
+            }
+
+            $order = Order::find($orderId);
+            if (!$order) {
+                throw new \Exception("訂單不存在：ID {$orderId}");
+            }
+
+            $oldStatus = $order->shipping_status ?? 'pending';
+            
+            // 檢查異常狀態變更
+            if ($this->shippingStatusService->isAbnormalStatusChange($oldStatus, $status)) {
+                $this->debugService->log('OrderService', '異常狀態變更警告', [
+                    'order_id' => $orderId,
+                    'old_status' => $oldStatus,
+                    'new_status' => $status
+                ], 'warning');
+            }
+
+            // 更新狀態
+            $order->shipping_status = $status;
+            if ($status === 'completed' && !$order->completed_at) {
+                $order->completed_at = current_time('mysql');
+            }
+            $order->save();
+
+            // 記錄狀態變更歷史
+            $this->shippingStatusService->logStatusChange($orderId, $oldStatus, $status, $reason);
+
+            $this->debugService->log('OrderService', '運送狀態更新成功', [
+                'order_id' => $orderId,
+                'old_status' => $oldStatus,
+                'new_status' => $status
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('OrderService', '運送狀態更新失敗', [
+                'error' => $e->getMessage(),
+                'order_id' => $orderId,
+                'status' => $status
+            ], 'error');
+
+            throw new \Exception('運送狀態更新失敗：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 執行訂單出貨（使用已分配的配額）
      * 
      * @param int $order_id 訂單 ID
@@ -219,137 +288,188 @@ class OrderService
             'items' => $items
         ]);
         
-        // 1. 驗證訂單存在
-        $order = Order::find($order_id);
-        if (!$order) {
-            $this->debugService->log('OrderService', '訂單不存在', [
-                'order_id' => $order_id
-            ], 'error');
-            return new \WP_Error('ORDER_NOT_FOUND', '訂單不存在');
-        }
+        // 開始 Transaction
+        $wpdb->query('START TRANSACTION');
         
-        if (empty($items)) {
-            return new \WP_Error('NO_ITEMS', '請選擇要出貨的商品');
-        }
-        
-        // 2. 驗證每個商品的 allocated_quantity 足夠
-        $table_items = $wpdb->prefix . 'fct_order_items';
-        foreach ($items as $item) {
-            $order_item_id = (int)($item['order_item_id'] ?? 0);
-            $quantity = (int)($item['quantity'] ?? 0);
-            
-            if ($order_item_id <= 0 || $quantity <= 0) {
-                return new \WP_Error('INVALID_ITEM', '訂單項目 ID 或數量無效');
+        try {
+            // 1. 驗證訂單存在且狀態正確
+            $order = Order::find($order_id);
+            if (!$order) {
+                $wpdb->query('ROLLBACK');
+                $this->debugService->log('OrderService', '訂單不存在', [
+                    'order_id' => $order_id
+                ], 'error');
+                return new \WP_Error('ORDER_NOT_FOUND', '訂單不存在');
             }
             
-            // 取得訂單項目
-            $order_item = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table_items} WHERE id = %d AND order_id = %d",
-                $order_item_id,
-                $order_id
-            ), ARRAY_A);
-            
-            if (!$order_item) {
-                return new \WP_Error('ORDER_ITEM_NOT_FOUND', "訂單項目 #{$order_item_id} 不存在");
+            if (in_array($order->status, ['cancelled', 'refunded', 'completed'])) {
+                $wpdb->query('ROLLBACK');
+                return new \WP_Error('INVALID_ORDER_STATUS', '訂單狀態不允許出貨');
             }
             
-            // 檢查 meta_data 中的 _allocated_qty
-            $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
-            $allocated_qty = (int)($meta_data['_allocated_qty'] ?? 0);
-            
-            if ($quantity > $allocated_qty) {
-                return new \WP_Error('INSUFFICIENT_ALLOCATION', 
-                    "商品 #{$order_item['post_id']} 的分配數量不足。需要: {$quantity}, 已分配: {$allocated_qty}");
+            if (empty($items)) {
+                $wpdb->query('ROLLBACK');
+                return new \WP_Error('NO_ITEMS', '請選擇要出貨的商品');
             }
-        }
         
-        // 3. 取得賣家 ID
-        $seller_id = $this->getSellerId($items, $order_id);
-        if ($seller_id === 0) {
-            return new \WP_Error('SELLER_NOT_FOUND', '無法取得賣家資訊');
-        }
-        
-        // 4. 準備出貨單明細
-        $shipment_items = [];
-        foreach ($items as $item) {
-            $order_item_id = (int)($item['order_item_id'] ?? 0);
-            $quantity = (int)($item['quantity'] ?? 0);
-            $product_id = (int)($item['product_id'] ?? 0);
-            
-            // 如果沒有提供 product_id，從訂單項目中取得
-            if ($product_id === 0) {
+            // 2. 驗證每個商品的 allocated_quantity 足夠
+            $table_items = $wpdb->prefix . 'fct_order_items';
+            foreach ($items as $item) {
+                $order_item_id = (int)($item['order_item_id'] ?? 0);
+                $quantity = (int)($item['quantity'] ?? 0);
+                
+                if ($order_item_id <= 0 || $quantity <= 0) {
+                    $wpdb->query('ROLLBACK');
+                    return new \WP_Error('INVALID_ITEM', '訂單項目 ID 或數量無效');
+                }
+                
+                // 取得訂單項目
                 $order_item = $wpdb->get_row($wpdb->prepare(
-                    "SELECT post_id, product_id FROM {$table_items} WHERE id = %d",
+                    "SELECT * FROM {$table_items} WHERE id = %d AND order_id = %d",
+                    $order_item_id,
+                    $order_id
+                ), ARRAY_A);
+                
+                if (!$order_item) {
+                    $wpdb->query('ROLLBACK');
+                    return new \WP_Error('ORDER_ITEM_NOT_FOUND', "訂單項目 #{$order_item_id} 不存在");
+                }
+                
+                // 檢查 meta_data 中的 _allocated_qty
+                $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
+                $allocated_qty = (int)($meta_data['_allocated_qty'] ?? 0);
+                
+                if ($quantity > $allocated_qty) {
+                    $wpdb->query('ROLLBACK');
+                    return new \WP_Error('INSUFFICIENT_ALLOCATION', 
+                        "商品 #{$order_item['post_id']} 的分配數量不足。需要: {$quantity}, 已分配: {$allocated_qty}");
+                }
+            }
+            
+            // 3. 取得賣家 ID
+            $seller_id = $this->getSellerId($items, $order_id);
+            if ($seller_id === 0) {
+                $wpdb->query('ROLLBACK');
+                return new \WP_Error('SELLER_NOT_FOUND', '無法取得賣家資訊');
+            }
+        
+            // 4. 準備出貨單明細
+            $shipment_items = [];
+            foreach ($items as $item) {
+                $order_item_id = (int)($item['order_item_id'] ?? 0);
+                $quantity = (int)($item['quantity'] ?? 0);
+                $product_id = (int)($item['product_id'] ?? 0);
+                
+                // 如果沒有提供 product_id，從訂單項目中取得
+                if ($product_id === 0) {
+                    $order_item = $wpdb->get_row($wpdb->prepare(
+                        "SELECT post_id, product_id FROM {$table_items} WHERE id = %d",
+                        $order_item_id
+                    ), ARRAY_A);
+                    
+                    if ($order_item) {
+                        $product_id = (int)($order_item['post_id'] ?? $order_item['product_id'] ?? 0);
+                    }
+                }
+                
+                $shipment_items[] = [
+                    'order_id' => $order_id,
+                    'order_item_id' => $order_item_id,
+                    'product_id' => $product_id,
+                    'quantity' => $quantity
+                ];
+            }
+            
+            // 5. 建立出貨單（呼叫 ShipmentService）
+            $shipmentService = new ShipmentService();
+            $shipment_id = $shipmentService->create_shipment(
+                (int)$order->customer_id,
+                $seller_id,
+                $shipment_items
+            );
+            
+            if (is_wp_error($shipment_id)) {
+                $wpdb->query('ROLLBACK');
+                return $shipment_id;
+            }
+            
+            // 6. 更新 allocated_quantity（扣除已出貨數量）
+            foreach ($items as $item) {
+                $order_item_id = (int)($item['order_item_id'] ?? 0);
+                $quantity = (int)($item['quantity'] ?? 0);
+                
+                // 取得訂單項目
+                $order_item = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM {$table_items} WHERE id = %d",
                     $order_item_id
                 ), ARRAY_A);
                 
                 if ($order_item) {
-                    $product_id = (int)($order_item['post_id'] ?? $order_item['product_id'] ?? 0);
+                    // 讀取現有的 meta_data
+                    $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
+                    $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+                    
+                    // 扣除已出貨數量
+                    $new_allocated = max(0, $current_allocated - $quantity);
+                    $meta_data['_allocated_qty'] = $new_allocated;
+                    
+                    // 更新已出貨數量
+                    $current_shipped = (int)($meta_data['_shipped_qty'] ?? 0);
+                    $meta_data['_shipped_qty'] = $current_shipped + $quantity;
+                    
+                    // 更新資料庫
+                    $wpdb->update(
+                        $table_items,
+                        ['meta_data' => json_encode($meta_data)],
+                        ['id' => $order_item_id],
+                        ['%s'],
+                        ['%d']
+                    );
                 }
             }
             
-            $shipment_items[] = [
-                'order_id' => $order_id,
-                'order_item_id' => $order_item_id,
-                'product_id' => $product_id,
-                'quantity' => $quantity
-            ];
-        }
-        
-        // 5. 建立出貨單（呼叫 ShipmentService）
-        $shipmentService = new ShipmentService();
-        $shipment_id = $shipmentService->create_shipment(
-            (int)$order->customer_id,
-            $seller_id,
-            $shipment_items
-        );
-        
-        if (is_wp_error($shipment_id)) {
-            return $shipment_id;
-        }
-        
-        // 6. 更新 allocated_quantity（扣除已出貨數量）
-        foreach ($items as $item) {
-            $order_item_id = (int)($item['order_item_id'] ?? 0);
-            $quantity = (int)($item['quantity'] ?? 0);
+            // 7. 更新訂單狀態（如果訂單中所有商品都已出貨）
+            $allOrderItems = OrderItem::where('order_id', $order_id)->get();
+            $totalOrdered = 0;
+            $totalShipped = 0;
             
-            // 取得訂單項目
-            $order_item = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table_items} WHERE id = %d",
-                $order_item_id
-            ), ARRAY_A);
-            
-            if ($order_item) {
-                // 讀取現有的 meta_data
-                $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
-                $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+            foreach ($allOrderItems as $orderItem) {
+                $totalOrdered += (int)$orderItem->quantity;
                 
-                // 扣除已出貨數量
-                $new_allocated = max(0, $current_allocated - $quantity);
-                $meta_data['_allocated_qty'] = $new_allocated;
-                
-                // 更新已出貨數量
-                $current_shipped = (int)($meta_data['_shipped_qty'] ?? 0);
-                $meta_data['_shipped_qty'] = $current_shipped + $quantity;
-                
-                // 更新資料庫
-                $wpdb->update(
-                    $table_items,
-                    ['meta_data' => json_encode($meta_data)],
-                    ['id' => $order_item_id],
-                    ['%s'],
-                    ['%d']
-                );
+                // 計算已出貨數量
+                $shipped = $wpdb->get_var($wpdb->prepare(
+                    "SELECT SUM(quantity) 
+                     FROM {$wpdb->prefix}buygo_shipment_items 
+                     WHERE order_item_id = %d",
+                    $orderItem->id
+                ));
+                $totalShipped += (int)($shipped ?? 0);
             }
+            
+            // 如果所有商品都已出貨，更新訂單運送狀態為 shipped
+            if ($totalShipped >= $totalOrdered) {
+                $this->updateShippingStatus((string)$order_id, 'shipped', '所有商品已出貨');
+            }
+            
+            // 提交 Transaction
+            $wpdb->query('COMMIT');
+            
+            $this->debugService->log('OrderService', '訂單出貨成功', [
+                'order_id' => $order_id,
+                'shipment_id' => $shipment_id,
+                'items_count' => count($items)
+            ]);
+            
+            return $shipment_id;
+            
+        } catch (\Exception $e) {
+            $wpdb->query('ROLLBACK');
+            $this->debugService->log('OrderService', '訂單出貨失敗', [
+                'order_id' => $order_id,
+                'error' => $e->getMessage()
+            ], 'error');
+            return new \WP_Error('SHIP_ORDER_FAILED', '出貨失敗：' . $e->getMessage());
         }
-        
-        $this->debugService->log('OrderService', '訂單出貨成功', [
-            'order_id' => $order_id,
-            'shipment_id' => $shipment_id,
-            'items_count' => count($items)
-        ]);
-        
-        return $shipment_id;
     }
     
     /**
@@ -419,6 +539,41 @@ class OrderService
         }
         
         return 0;
+    }
+
+    /**
+     * 計算出貨進度
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $orderItems 訂單商品集合
+     * @return array
+     */
+    private function calculateShipmentProgress($orderItems): array
+    {
+        global $wpdb;
+        $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+        
+        $total_quantity = 0;
+        $shipped_quantity = 0;
+        
+        foreach ($orderItems as $item) {
+            $item_quantity = (int)($item->quantity ?? 0);
+            $total_quantity += $item_quantity;
+            
+            // 取得該商品的已出貨數量
+            $shipped = $wpdb->get_var($wpdb->prepare(
+                "SELECT SUM(quantity) 
+                 FROM {$table_shipment_items} 
+                 WHERE order_item_id = %d",
+                $item->id
+            ));
+            
+            $shipped_quantity += (int)($shipped ?? 0);
+        }
+        
+        return [
+            'total_quantity' => $total_quantity,
+            'shipped_quantity' => $shipped_quantity
+        ];
     }
 
     /**
