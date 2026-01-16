@@ -13,10 +13,15 @@ class API {
     public function register_routes() {
         // 載入所有 API 控制器
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-products-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-orders-api.php';
         
         // 註冊商品 API
         $products_api = new Products_API();
         $products_api->register_routes();
+        
+        // 註冊訂單 API
+        $orders_api = new Orders_API();
+        $orders_api->register_routes();
     }
     
     /**
