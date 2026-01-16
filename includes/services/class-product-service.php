@@ -166,29 +166,74 @@ class ProductService
      */
     public function updateProduct(int $productId, array $updateData): bool
     {
+        error_log('===== ProductService::updateProduct =====');
+        error_log('ID: ' . $productId);
+        error_log('Data: ' . print_r($updateData, true));
+        
         $this->debugService->log('ProductService', '更新商品資料', [
             'product_id' => $productId,
             'update_data' => $updateData
         ]);
 
         try {
+            error_log('嘗試取得商品: ProductVariation::find(' . $productId . ')');
             $product = ProductVariation::find($productId);
             
             if (!$product) {
+                error_log('錯誤：商品不存在，ID: ' . $productId);
                 return false;
+            }
+            
+            error_log('找到商品: post_id=' . $product->post_id . ', item_title=' . ($product->variation_title ?? 'N/A'));
+
+            // 更新商品名稱（WordPress Post Title）
+            if (isset($updateData['name'])) {
+                error_log('更新商品名稱: ' . $updateData['name']);
+                $result = wp_update_post([
+                    'ID' => $product->post_id,
+                    'post_title' => $updateData['name']
+                ]);
+                if (is_wp_error($result)) {
+                    error_log('wp_update_post 失敗: ' . $result->get_error_message());
+                } else {
+                    error_log('wp_update_post 成功: ' . $result);
+                }
+            }
+
+            // 更新價格（轉換為分）
+            if (isset($updateData['price'])) {
+                $priceInCents = (int) ($updateData['price'] * 100);
+                error_log('更新價格: ' . $updateData['price'] . ' 元 = ' . $priceInCents . ' 分');
+                $product->item_price = $priceInCents;
             }
 
             // 更新已採購數量（儲存到 post_meta）
             if (isset($updateData['purchased'])) {
+                error_log('更新已採購數量: ' . $updateData['purchased']);
                 update_post_meta($product->post_id, '_buygo_purchased', (int) $updateData['purchased']);
             }
 
             // 更新狀態
             if (isset($updateData['status'])) {
-                wp_update_post([
+                error_log('更新狀態: ' . $updateData['status']);
+                $result = wp_update_post([
                     'ID' => $product->post_id,
                     'post_status' => $updateData['status']
                 ]);
+                if (is_wp_error($result)) {
+                    error_log('wp_update_post (status) 失敗: ' . $result->get_error_message());
+                } else {
+                    error_log('wp_update_post (status) 成功: ' . $result);
+                }
+            }
+
+            // 儲存 ProductVariation 變更
+            error_log('嘗試儲存 ProductVariation...');
+            $result = $product->save();
+            error_log('儲存結果: ' . ($result ? '成功' : '失敗'));
+            
+            if (!$result) {
+                error_log('ProductVariation::save() 返回 false');
             }
 
             $this->debugService->log('ProductService', '商品更新成功', [
@@ -198,11 +243,15 @@ class ProductService
             return true;
 
         } catch (\Exception $e) {
+            error_log('ProductService::updateProduct 錯誤: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
             $this->debugService->log('ProductService', '商品更新失敗', [
                 'product_id' => $productId,
                 'error' => $e->getMessage()
-            ]);
-            return false;
+            ], 'error');
+            
+            throw $e;
         }
     }
 

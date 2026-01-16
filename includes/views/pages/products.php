@@ -141,7 +141,11 @@ $products_component_template = <<<'HTML'
                             {{ calculateReserved(product) }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <button class="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">編輯</button>
+                            <button 
+                                @click="openEditModal(product)"
+                                class="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                                編輯
+                            </button>
                             <button @click="deleteProduct(product.id)" class="ml-3 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
                         </td>
                     </tr>
@@ -201,7 +205,11 @@ $products_component_template = <<<'HTML'
                 </div>
                 
                 <div class="flex gap-2">
-                    <button class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">編輯</button>
+                    <button 
+                        @click="openEditModal(product)"
+                        class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                        編輯
+                    </button>
                     <button @click="deleteProduct(product.id)" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
                 </div>
             </div>
@@ -294,6 +302,107 @@ $products_component_template = <<<'HTML'
         </footer>
         </div>
     </div>
+    
+    <!-- 編輯商品 Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <!-- 標題列 -->
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-slate-900 font-title">編輯商品</h2>
+                    <button @click="closeEditModal" class="text-slate-400 hover:text-slate-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading 狀態 -->
+            <div v-if="editLoading" class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-slate-600">載入中...</span>
+            </div>
+            
+            <!-- Error 狀態 -->
+            <div v-else-if="editError" class="p-6">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800">{{ editError }}</p>
+                </div>
+            </div>
+            
+            <!-- 編輯表單 -->
+            <div v-else-if="editingProduct" class="p-6">
+                <form @submit.prevent="saveProduct" class="space-y-4">
+                    <!-- 商品名稱 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">商品名稱</label>
+                        <input
+                            v-model="editingProduct.name"
+                            type="text"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                            required
+                        />
+                    </div>
+                    
+                    <!-- 價格 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">價格（台幣）</label>
+                        <input
+                            v-model.number="editingProduct.price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                            required
+                        />
+                    </div>
+                    
+                    <!-- 已採購 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">已採購</label>
+                        <input
+                            v-model.number="editingProduct.purchased"
+                            type="number"
+                            min="0"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                        />
+                    </div>
+                    
+                    <!-- 狀態 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">狀態</label>
+                        <select
+                            v-model="editingProduct.status"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                        >
+                            <option value="published">已上架</option>
+                            <option value="private">已下架</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 按鈕列 -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                        <button
+                            type="button"
+                            @click="closeEditModal"
+                            class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="saving"
+                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                            :class="saving ? 'opacity-50 cursor-not-allowed' : ''"
+                        >
+                            {{ saving ? '儲存中...' : '儲存' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </main>
 HTML;
 ?>
@@ -317,6 +426,13 @@ const ProductsPageComponent = {
         const currentPage = ref(1);
         const perPage = ref(10);
         const totalProducts = ref(0);
+        
+        // Modal 狀態
+        const showEditModal = ref(false);
+        const editingProduct = ref(null);
+        const editLoading = ref(false);
+        const editError = ref(null);
+        const saving = ref(false);
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -602,6 +718,75 @@ const ProductsPageComponent = {
             loadProducts();
         };
         
+        // 打開編輯 Modal
+        const openEditModal = (product) => {
+            showEditModal.value = true;
+            editingProduct.value = { ...product }; // 複製商品資料
+            editError.value = null;
+        };
+        
+        // 關閉編輯 Modal
+        const closeEditModal = () => {
+            showEditModal.value = false;
+            editingProduct.value = null;
+            editError.value = null;
+        };
+        
+        // 儲存商品
+        const saveProduct = async () => {
+            saving.value = true;
+            editError.value = null;
+            
+            try {
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products/${editingProduct.value.id}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            name: editingProduct.value.name,
+                            price: editingProduct.value.price,
+                            purchased: editingProduct.value.purchased,
+                            status: editingProduct.value.status
+                        }),
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 更新本地資料
+                    const index = products.value.findIndex(p => p.id === editingProduct.value.id);
+                    if (index !== -1) {
+                        products.value[index] = { 
+                            ...products.value[index], 
+                            name: editingProduct.value.name,
+                            price: editingProduct.value.price,
+                            purchased: editingProduct.value.purchased,
+                            status: editingProduct.value.status
+                        };
+                    }
+                    
+                    closeEditModal();
+                    console.log('商品更新成功');
+                } else {
+                    throw new Error(result.message || '儲存失敗');
+                }
+            } catch (err) {
+                console.error('儲存商品錯誤:', err);
+                editError.value = err.message || '儲存時發生錯誤';
+            } finally {
+                saving.value = false;
+            }
+        };
+        
         onMounted(() => {
             loadProducts();
         });
@@ -633,7 +818,16 @@ const ProductsPageComponent = {
             handleSearchSelect,
             handleSearchInput,
             handleSearchClear,
-            handleCurrencyChange
+            handleCurrencyChange,
+            // Modal
+            showEditModal,
+            editingProduct,
+            editLoading,
+            editError,
+            saving,
+            openEditModal,
+            closeEditModal,
+            saveProduct
         };
     }
 };

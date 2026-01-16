@@ -36,7 +36,7 @@ class Products_API {
         ]);
         
         // PUT /products/{id} - 更新商品
-        register_rest_route($this->namespace, '/products/(?P<id>\d+)', [
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_product'],
             'permission_callback' => [__CLASS__, 'check_permission'],
@@ -45,6 +45,17 @@ class Products_API {
                     'required' => true,
                     'validate_callback' => function($param) {
                         return is_numeric($param);
+                    }
+                ],
+                'name' => [
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'price' => [
+                    'sanitize_callback' => function($value) {
+                        return floatval($value);
+                    },
+                    'validate_callback' => function($param) {
+                        return $param === null || (is_numeric($param) && $param >= 0);
                     }
                 ],
                 'purchased' => [
@@ -161,21 +172,48 @@ class Products_API {
      * 更新商品
      */
     public function update_product($request) {
+        error_log('===== API update_product =====');
+        error_log('ID: ' . $request->get_param('id'));
+        
         try {
             $id = $request->get_param('id');
             $params = $request->get_json_params();
             
+            error_log('參數: ' . print_r($params, true));
+            
             $productService = new ProductService();
             
             $updateData = [];
-            if (isset($params['purchased'])) {
-                $updateData['purchased'] = (int) $params['purchased'];
-            }
-            if (isset($params['status'])) {
-                $updateData['status'] = $params['status'] === 'published' ? 'publish' : 'private';
+            
+            // 商品名稱
+            if (isset($params['name'])) {
+                $updateData['name'] = sanitize_text_field($params['name']);
+                error_log('準備更新名稱: ' . $updateData['name']);
             }
             
+            // 商品價格
+            if (isset($params['price'])) {
+                $updateData['price'] = (float) $params['price'];
+                error_log('準備更新價格: ' . $updateData['price']);
+            }
+            
+            // 已採購數量
+            if (isset($params['purchased'])) {
+                $updateData['purchased'] = (int) $params['purchased'];
+                error_log('準備更新已採購: ' . $updateData['purchased']);
+            }
+            
+            // 商品狀態
+            if (isset($params['status'])) {
+                $updateData['status'] = $params['status'] === 'published' ? 'publish' : 'private';
+                error_log('準備更新狀態: ' . $params['status'] . ' -> ' . $updateData['status']);
+            }
+            
+            error_log('更新資料: ' . print_r($updateData, true));
+            
             $result = $productService->updateProduct($id, $updateData);
+            
+            error_log('updateProduct 返回: ' . ($result ? 'true' : 'false'));
             
             if ($result) {
                 return new \WP_REST_Response([
@@ -183,11 +221,14 @@ class Products_API {
                     'message' => '商品更新成功',
                     'data' => [
                         'id' => $id,
+                        'name' => $params['name'] ?? null,
+                        'price' => $params['price'] ?? null,
                         'purchased' => $params['purchased'] ?? null,
                         'status' => $params['status'] ?? null
                     ]
                 ], 200);
             } else {
+                error_log('商品更新失敗：updateProduct 返回 false');
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '商品更新失敗'
@@ -195,6 +236,9 @@ class Products_API {
             }
             
         } catch (\Exception $e) {
+            error_log('API update_product 錯誤: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
