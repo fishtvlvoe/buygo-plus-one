@@ -206,6 +206,85 @@ $products_component_template = <<<'HTML'
                 </div>
             </div>
         </div>
+        
+        <!-- 桌面版分頁 -->
+        <footer class="hidden md:flex items-center justify-between px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
+            <div class="flex items-center gap-4">
+                <span class="text-xs text-slate-500 font-medium">
+                    顯示 {{ products.length }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalProducts) }} 筆
+                </span>
+                <select 
+                    v-model="perPage" 
+                    @change="changePerPage"
+                    class="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-primary outline-none">
+                    <option :value="5">5 / 頁</option>
+                    <option :value="10">10 / 頁</option>
+                    <option :value="20">20 / 頁</option>
+                    <option :value="50">50 / 頁</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button 
+                    @click="previousPage"
+                    :disabled="currentPage === 1"
+                    :class="currentPage === 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-50'"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs transition">
+                    上一頁
+                </button>
+                <button 
+                    v-for="page in visiblePages" 
+                    :key="page"
+                    @click="goToPage(page)"
+                    :class="page === currentPage ? 'bg-primary text-white border-primary font-bold shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                    class="px-3 py-1.5 border rounded-lg text-xs transition">
+                    {{ page }}
+                </button>
+                <button 
+                    @click="nextPage"
+                    :disabled="currentPage === totalPages"
+                    :class="currentPage === totalPages ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-50'"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs transition">
+                    下一頁
+                </button>
+            </div>
+        </footer>
+        
+        <!-- 手機版分頁 -->
+        <footer class="flex md:hidden items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500 font-medium">
+                    第 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalProducts) }} 筆
+                </span>
+                <select 
+                    v-model="perPage" 
+                    @change="changePerPage"
+                    class="text-xs px-2 py-1.5 border border-slate-200 rounded-lg bg-white outline-none">
+                    <option :value="10">10/頁</option>
+                    <option :value="20">20/頁</option>
+                    <option :value="50">50/頁</option>
+                </select>
+            </div>
+            <div class="flex gap-1.5">
+                <button 
+                    @click="previousPage"
+                    :disabled="currentPage === 1"
+                    class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg bg-white transition"
+                    :class="currentPage === 1 ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-50'">
+                    ◀
+                </button>
+                <button 
+                    class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-lg text-xs font-bold shadow-sm">
+                    {{ currentPage }}
+                </button>
+                <button 
+                    @click="nextPage"
+                    :disabled="currentPage === totalPages"
+                    class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg bg-white transition"
+                    :class="currentPage === totalPages ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-50'">
+                    ▶
+                </button>
+            </div>
+        </footer>
         </div>
     </div>
 </main>
@@ -227,20 +306,73 @@ const ProductsPageComponent = {
         const loading = ref(true);
         const error = ref(null);
         
+        // 分頁狀態
+        const currentPage = ref(1);
+        const perPage = ref(10);
+        const totalProducts = ref(0);
+        
+        // 總頁數
+        const totalPages = Vue.computed(() => {
+            return Math.ceil(totalProducts.value / perPage.value);
+        });
+        
+        // 可見的頁碼（最多顯示 5 頁）
+        const visiblePages = Vue.computed(() => {
+            const pages = [];
+            const total = totalPages.value;
+            const current = currentPage.value;
+            
+            if (total <= 5) {
+                for (let i = 1; i <= total; i++) {
+                    pages.push(i);
+                }
+            } else {
+                if (current <= 3) {
+                    pages.push(1, 2, 3, 4, 5);
+                } else if (current >= total - 2) {
+                    for (let i = total - 4; i <= total; i++) {
+                        pages.push(i);
+                    }
+                } else {
+                    for (let i = current - 2; i <= current + 2; i++) {
+                        pages.push(i);
+                    }
+                }
+            }
+            
+            return pages;
+        });
+        
         // 載入商品
         const loadProducts = async () => {
             loading.value = true;
             error.value = null;
+            
             try {
-                const response = await fetch('/wp-json/buygo-plus-one/v1/products');
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}`,
+                    {
+                        credentials: 'include',
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
-                if (result.success) {
+                
+                if (result.success && result.data) {
                     products.value = result.data;
+                    // 假設 API 回傳 total
+                    totalProducts.value = result.total || result.data.length;
                 } else {
-                    error.value = '載入商品失敗';
+                    throw new Error(result.message || '載入商品失敗');
                 }
             } catch (err) {
-                error.value = '網路錯誤：' + err.message;
+                console.error('載入商品錯誤:', err);
+                error.value = err.message;
+                products.value = [];
             } finally {
                 loading.value = false;
             }
@@ -434,6 +566,34 @@ const ProductsPageComponent = {
             // TODO: 實作幣別轉換邏輯
         };
         
+        // 上一頁
+        const previousPage = () => {
+            if (currentPage.value > 1) {
+                currentPage.value--;
+                loadProducts();
+            }
+        };
+        
+        // 下一頁
+        const nextPage = () => {
+            if (currentPage.value < totalPages.value) {
+                currentPage.value++;
+                loadProducts();
+            }
+        };
+        
+        // 跳到指定頁
+        const goToPage = (page) => {
+            currentPage.value = page;
+            loadProducts();
+        };
+        
+        // 改變每頁數量
+        const changePerPage = () => {
+            currentPage.value = 1;
+            loadProducts();
+        };
+        
         onMounted(() => {
             loadProducts();
         });
@@ -443,6 +603,16 @@ const ProductsPageComponent = {
             selectedItems,
             loading,
             error,
+            // 分頁
+            currentPage,
+            perPage,
+            totalProducts,
+            totalPages,
+            visiblePages,
+            previousPage,
+            nextPage,
+            goToPage,
+            changePerPage,
             formatPrice,
             calculateReserved,
             toggleSelectAll,

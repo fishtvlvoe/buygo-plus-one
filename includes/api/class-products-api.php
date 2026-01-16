@@ -121,13 +121,23 @@ class Products_API {
                 ];
             }
             
+            // 分頁處理
+            $page = max(1, (int) ($request->get_param('page') ?? 1));
+            $per_page = max(1, min(100, (int) ($request->get_param('per_page') ?? 10)));
+            $total = count($formattedProducts);
+            $total_pages = max(1, ceil($total / $per_page));
+            
+            // 計算分頁範圍
+            $offset = ($page - 1) * $per_page;
+            $paged_products = array_slice($formattedProducts, $offset, $per_page);
+            
             return new \WP_REST_Response([
                 'success' => true,
-                'data' => $formattedProducts,
-                'total' => count($formattedProducts),
-                'page' => $request->get_param('page'),
-                'per_page' => $request->get_param('per_page'),
-                'pages' => 1 // TODO: 後續加入分頁
+                'data' => $paged_products,
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $per_page,
+                'pages' => $total_pages
             ], 200);
             
         } catch (\Exception $e) {
