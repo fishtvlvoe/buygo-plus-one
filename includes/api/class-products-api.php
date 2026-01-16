@@ -598,9 +598,15 @@ class Products_API {
             
             error_log('找到商品: ' . $product->variation_title);
             
-            // 查詢訂單項目
+            // 臨時：查詢資料表結構（確認欄位名稱）
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'fct_order_items';
+            $columns = $wpdb->get_col("DESCRIBE {$table_name}", 0);
+            error_log('OrderItem 資料表欄位: ' . print_r($columns, true));
+            
+            // 查詢訂單項目（使用正確的欄位名稱 object_id）
             error_log('查詢訂單項目...');
-            $orderItems = \FluentCart\App\Models\OrderItem::where('product_variation_id', $product_id)
+            $orderItems = \FluentCart\App\Models\OrderItem::where('object_id', $product_id)
                 ->with(['order', 'order.customer'])
                 ->get();
             
