@@ -99,6 +99,7 @@ $products_component_template = <<<'HTML'
                         <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">狀態</th>
                         <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已下單</th>
                         <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已採購</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已分配</th>
                         <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">預訂</th>
                         <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">操作</th>
                     </tr>
@@ -154,16 +155,24 @@ $products_component_template = <<<'HTML'
                                 min="0"
                             />
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {{ product.allocated || 0 }}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-orange-600">
                             {{ calculateReserved(product) }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <button 
+                                @click="openAllocationModal(product)"
+                                class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                                分配庫存
+                            </button>
+                            <button 
                                 @click="openEditModal(product)"
-                                class="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                                class="ml-2 px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
                                 編輯
                             </button>
-                            <button @click="deleteProduct(product.id)" class="ml-3 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
+                            <button @click="deleteProduct(product.id)" class="ml-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
                         </td>
                     </tr>
                 </tbody>
@@ -200,13 +209,10 @@ $products_component_template = <<<'HTML'
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-3 gap-3 mb-3">
+                <div class="grid grid-cols-4 gap-2 mb-3">
                     <div class="text-center">
                         <div class="text-xs text-slate-500 mb-1">已下單</div>
-                        <div 
-                            @click="openBuyersModal(product)"
-                            class="text-base font-semibold text-slate-900 cursor-pointer hover:text-primary hover:underline transition"
-                        >
+                        <div class="text-base font-semibold text-slate-900">
                             {{ product.ordered }}
                         </div>
                     </div>
@@ -221,12 +227,23 @@ $products_component_template = <<<'HTML'
                         />
                     </div>
                     <div class="text-center">
+                        <div class="text-xs text-slate-500 mb-1">已分配</div>
+                        <div class="text-base font-semibold text-slate-900">
+                            {{ product.allocated || 0 }}
+                        </div>
+                    </div>
+                    <div class="text-center">
                         <div class="text-xs text-slate-500 mb-1">預訂</div>
                         <div class="text-base font-semibold text-orange-600">{{ calculateReserved(product) }}</div>
                     </div>
                 </div>
                 
                 <div class="flex gap-2">
+                    <button 
+                        @click="openAllocationModal(product)"
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                        分配庫存
+                    </button>
                     <button 
                         @click="openEditModal(product)"
                         class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
@@ -459,6 +476,126 @@ $products_component_template = <<<'HTML'
         </div>
     </div>
     
+    <!-- 分配庫存 Modal -->
+    <div v-if="showAllocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeAllocationModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <!-- 標題列 -->
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 font-title">庫存分配 - {{ selectedProduct?.name }}</h2>
+                        <p class="text-sm text-slate-600 mt-1">
+                            剩餘可分配：<strong class="text-blue-600">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</strong> 個
+                        </p>
+                    </div>
+                    <button @click="closeAllocationModal" class="text-slate-400 hover:text-slate-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading 狀態 -->
+            <div v-if="allocationLoading" class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-slate-600">載入中...</span>
+            </div>
+            
+            <!-- Error 狀態 -->
+            <div v-else-if="allocationError" class="p-6">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800">{{ allocationError }}</p>
+                </div>
+            </div>
+            
+            <!-- 訂單列表 -->
+            <div v-else-if="productOrders.length > 0" class="p-6">
+                <div class="mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            @change="toggleAllOrders"
+                            v-model="selectAllOrders"
+                            class="rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span class="text-sm text-slate-600">全選</span>
+                    </div>
+                    <span class="text-sm text-slate-600">
+                        已選擇 {{ selectedOrderIds.length }} 筆訂單
+                    </span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500"></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">訂單編號</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">客戶</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">需求數量</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">已分配</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">已出貨</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="order in productOrders" :key="order.order_id" class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-3">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="selectedOrderIds" 
+                                        :value="order.order_id"
+                                        class="rounded border-slate-300 text-primary focus:ring-primary"
+                                    />
+                                </td>
+                                <td class="px-4 py-3 text-slate-900 font-medium">#{{ order.order_id }}</td>
+                                <td class="px-4 py-3 text-slate-900">{{ order.customer }}</td>
+                                <td class="px-4 py-3 text-slate-900 text-right">{{ order.required }}</td>
+                                <td class="px-4 py-3 text-blue-600 font-medium text-right">{{ order.allocated }}</td>
+                                <td class="px-4 py-3 text-slate-600 text-right">{{ order.shipped || 0 }}</td>
+                                <td class="px-4 py-3">
+                                    <span 
+                                        :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                        class="px-2 py-1 text-xs font-medium rounded-full"
+                                    >
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 操作按鈕 -->
+                <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button 
+                        @click="closeAllocationModal"
+                        class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        @click="allocateToOrders"
+                        :disabled="selectedOrderIds.length === 0 || allocating"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                        :class="selectedOrderIds.length === 0 || allocating ? 'opacity-50 cursor-not-allowed' : ''"
+                    >
+                        {{ allocating ? '分配中...' : '分配現貨配額 →' }}
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 無資料 -->
+            <div v-else class="p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="mt-4 text-slate-600">目前沒有訂單</p>
+            </div>
+        </div>
+    </div>
+    
     <!-- 編輯商品 Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -615,6 +752,16 @@ const ProductsPageComponent = {
         const buyers = ref([]);
         const buyersLoading = ref(false);
         const buyersError = ref(null);
+        
+        // 分配庫存 Modal 狀態
+        const showAllocationModal = ref(false);
+        const selectedProduct = ref(null);
+        const productOrders = ref([]);
+        const selectedOrderIds = ref([]);
+        const selectAllOrders = ref(false);
+        const allocationLoading = ref(false);
+        const allocationError = ref(null);
+        const allocating = ref(false);
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -804,7 +951,10 @@ const ProductsPageComponent = {
         };
 
         const calculateReserved = (product) => {
-            return Math.max(0, product.ordered - product.purchased);
+            const ordered = product.ordered || 0;
+            const purchased = product.purchased || 0;
+            const allocated = product.allocated || 0;
+            return Math.max(0, ordered - purchased - allocated);
         };
 
         const toggleSelectAll = (event) => {
@@ -1277,6 +1427,101 @@ const ProductsPageComponent = {
             buyersError.value = null;
         };
         
+        // 打開分配庫存 Modal
+        const openAllocationModal = async (product) => {
+            selectedProduct.value = product;
+            showAllocationModal.value = true;
+            selectedOrderIds.value = [];
+            selectAllOrders.value = false;
+            allocationLoading.value = true;
+            allocationError.value = null;
+            productOrders.value = [];
+            
+            try {
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products/${product.id}/orders`,
+                    {
+                        credentials: 'include'
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    productOrders.value = result.data;
+                } else {
+                    throw new Error(result.message || '載入失敗');
+                }
+            } catch (err) {
+                console.error('載入訂單列表錯誤:', err);
+                allocationError.value = err.message || '載入時發生錯誤';
+            } finally {
+                allocationLoading.value = false;
+            }
+        };
+        
+        // 關閉分配庫存 Modal
+        const closeAllocationModal = () => {
+            showAllocationModal.value = false;
+            selectedProduct.value = null;
+            productOrders.value = [];
+            selectedOrderIds.value = [];
+            selectAllOrders.value = false;
+            allocationError.value = null;
+        };
+        
+        // 全選/取消全選訂單
+        const toggleAllOrders = () => {
+            if (selectAllOrders.value) {
+                selectedOrderIds.value = productOrders.value.map(o => o.order_id);
+            } else {
+                selectedOrderIds.value = [];
+            }
+        };
+        
+        // 分配庫存給訂單
+        const allocateToOrders = async () => {
+            if (selectedOrderIds.value.length === 0) {
+                return;
+            }
+            
+            allocating.value = true;
+            allocationError.value = null;
+            
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/products/allocate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        product_id: selectedProduct.value.id,
+                        order_ids: selectedOrderIds.value
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('分配成功！配額已更新至各訂單。');
+                    closeAllocationModal();
+                    await loadProducts(); // 重新載入商品列表
+                } else {
+                    allocationError.value = result.message || '分配失敗';
+                }
+            } catch (err) {
+                console.error('分配失敗:', err);
+                allocationError.value = err.message || '分配時發生錯誤';
+            } finally {
+                allocating.value = false;
+            }
+        };
+        
         onMounted(async () => {
             await fetchExchangeRate();
             loadProducts();
@@ -1347,7 +1592,20 @@ const ProductsPageComponent = {
             buyersLoading,
             buyersError,
             openBuyersModal,
-            closeBuyersModal
+            closeBuyersModal,
+            // 分配庫存 Modal
+            showAllocationModal,
+            selectedProduct,
+            productOrders,
+            selectedOrderIds,
+            selectAllOrders,
+            allocationLoading,
+            allocationError,
+            allocating,
+            openAllocationModal,
+            closeAllocationModal,
+            toggleAllOrders,
+            allocateToOrders
         };
     }
 };
