@@ -165,7 +165,7 @@ $products_component_template = <<<'HTML'
                             <button 
                                 @click="openAllocationModal(product)"
                                 class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
-                                分配庫存
+                                分配
                             </button>
                             <button 
                                 @click="openEditModal(product)"
@@ -242,7 +242,7 @@ $products_component_template = <<<'HTML'
                     <button 
                         @click="openAllocationModal(product)"
                         class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
-                        分配庫存
+                        分配
                     </button>
                     <button 
                         @click="openEditModal(product)"
@@ -511,52 +511,76 @@ $products_component_template = <<<'HTML'
             
             <!-- 訂單列表 -->
             <div v-else-if="productOrders.length > 0" class="p-6">
-                <div class="mb-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <input 
-                            type="checkbox" 
-                            @change="toggleAllOrders"
-                            v-model="selectAllOrders"
-                            class="rounded border-slate-300 text-primary focus:ring-primary"
-                        />
-                        <span class="text-sm text-slate-600">全選</span>
+                <!-- 商品資訊區塊 -->
+                <div class="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0">
+                            <img 
+                                v-if="selectedProduct?.image" 
+                                :src="selectedProduct.image" 
+                                :alt="selectedProduct.name"
+                                class="w-20 h-20 object-cover rounded-lg"
+                            />
+                            <div v-else class="w-20 h-20 bg-slate-200 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">📦</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-slate-900">{{ selectedProduct?.name }}</h3>
+                            <div class="mt-1 text-sm text-slate-500">
+                                總數量：<span class="font-medium text-slate-700">{{ selectedProduct?.purchased || 0 }}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
+                                <div class="text-xs text-pink-600 mb-1">已出貨數量(所有出貨)</div>
+                                <div class="text-lg font-bold text-green-600">{{ totalShipped }}</div>
+                            </div>
+                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
+                                <div class="text-xs text-pink-600 mb-1">本次可出貨數量</div>
+                                <div class="text-lg font-bold text-green-600">{{ totalAllocated }}</div>
+                            </div>
+                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
+                                <div class="text-xs text-pink-600 mb-1">未出貨數量</div>
+                                <div class="text-lg font-bold text-green-600">{{ totalPending }}</div>
+                            </div>
+                        </div>
                     </div>
-                    <span class="text-sm text-slate-600">
-                        已選擇 {{ selectedOrderIds.length }} 筆訂單
-                    </span>
                 </div>
                 
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500"></th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">訂單編號</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">客戶</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">需求數量</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">已分配</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">已出貨</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">未出貨</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">狀態</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr v-for="order in productOrders" :key="order.order_id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3">
-                                    <input 
-                                        type="checkbox" 
-                                        v-model="selectedOrderIds" 
-                                        :value="order.order_id"
-                                        class="rounded border-slate-300 text-primary focus:ring-primary"
-                                    />
-                                </td>
                                 <td class="px-4 py-3 text-slate-900 font-medium">#{{ order.order_id }}</td>
                                 <td class="px-4 py-3 text-slate-900">{{ order.customer }}</td>
                                 <td class="px-4 py-3 text-slate-900 text-right">{{ order.required }}</td>
-                                <td class="px-4 py-3 text-blue-600 font-medium text-right">{{ order.allocated }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <input 
+                                        type="number" 
+                                        v-model.number="order.allocated"
+                                        @input="updateOrderStatus(order)"
+                                        :min="0"
+                                        :max="order.required"
+                                        class="w-20 px-2 py-1 text-right border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium"
+                                    />
+                                </td>
                                 <td class="px-4 py-3 text-slate-600 text-right">{{ order.shipped || 0 }}</td>
+                                <td class="px-4 py-3 text-slate-600 text-right">{{ order.pending || 0 }}</td>
                                 <td class="px-4 py-3">
                                     <span 
-                                        :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                        :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
                                         class="px-2 py-1 text-xs font-medium rounded-full"
                                     >
                                         {{ order.status }}
@@ -576,12 +600,11 @@ $products_component_template = <<<'HTML'
                         取消
                     </button>
                     <button 
-                        @click="allocateToOrders"
-                        :disabled="selectedOrderIds.length === 0 || allocating"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
-                        :class="selectedOrderIds.length === 0 || allocating ? 'opacity-50 cursor-not-allowed' : ''"
+                        @click="confirmAllocation"
+                        :disabled="updatingAllocation || hasUnsavedChanges === false"
+                        class="px-6 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
-                        {{ allocating ? '分配中...' : '分配現貨配額 →' }}
+                        {{ updatingAllocation ? '保存中...' : '確認分配' }}
                     </button>
                 </div>
             </div>
@@ -757,11 +780,10 @@ const ProductsPageComponent = {
         const showAllocationModal = ref(false);
         const selectedProduct = ref(null);
         const productOrders = ref([]);
-        const selectedOrderIds = ref([]);
-        const selectAllOrders = ref(false);
+        const originalAllocations = ref({}); // 儲存原始分配數量，用於檢測變更
         const allocationLoading = ref(false);
         const allocationError = ref(null);
-        const allocating = ref(false);
+        const updatingAllocation = ref(false);
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -1427,12 +1449,23 @@ const ProductsPageComponent = {
             buyersError.value = null;
         };
         
+        // 計算總數量（computed）
+        const totalShipped = Vue.computed(() => {
+            return productOrders.value.reduce((sum, order) => sum + (order.shipped || 0), 0);
+        });
+        
+        const totalAllocated = Vue.computed(() => {
+            return productOrders.value.reduce((sum, order) => sum + (order.allocated || 0), 0);
+        });
+        
+        const totalPending = Vue.computed(() => {
+            return productOrders.value.reduce((sum, order) => sum + (order.pending || 0), 0);
+        });
+        
         // 打開分配庫存 Modal
         const openAllocationModal = async (product) => {
             selectedProduct.value = product;
             showAllocationModal.value = true;
-            selectedOrderIds.value = [];
-            selectAllOrders.value = false;
             allocationLoading.value = true;
             allocationError.value = null;
             productOrders.value = [];
@@ -1453,6 +1486,11 @@ const ProductsPageComponent = {
                 
                 if (result.success) {
                     productOrders.value = result.data;
+                    // 儲存原始分配數量，用於檢測變更
+                    originalAllocations.value = {};
+                    productOrders.value.forEach(order => {
+                        originalAllocations.value[order.order_id] = order.allocated || 0;
+                    });
                 } else {
                     throw new Error(result.message || '載入失敗');
                 }
@@ -1469,30 +1507,43 @@ const ProductsPageComponent = {
             showAllocationModal.value = false;
             selectedProduct.value = null;
             productOrders.value = [];
-            selectedOrderIds.value = [];
-            selectAllOrders.value = false;
+            originalAllocations.value = {};
             allocationError.value = null;
         };
         
-        // 全選/取消全選訂單
-        const toggleAllOrders = () => {
-            if (selectAllOrders.value) {
-                selectedOrderIds.value = productOrders.value.map(o => o.order_id);
-            } else {
-                selectedOrderIds.value = [];
-            }
+        // 檢測是否有未保存的變更
+        const hasUnsavedChanges = Vue.computed(() => {
+            if (productOrders.value.length === 0) return false;
+            return productOrders.value.some(order => {
+                const current = order.allocated || 0;
+                const original = originalAllocations.value[order.order_id] || 0;
+                return current !== original;
+            });
+        });
+        
+        // 更新訂單狀態（僅本地顯示，不保存）
+        const updateOrderStatus = (order) => {
+            // 驗證輸入值
+            const newAllocated = Math.max(0, Math.min(Math.floor(order.allocated || 0), order.required));
+            order.allocated = newAllocated;
+            order.pending = order.required - newAllocated;
+            order.status = newAllocated >= order.required ? '已分配' : (newAllocated > 0 ? '部分分配' : '未分配');
         };
         
-        // 分配庫存給訂單
-        const allocateToOrders = async () => {
-            if (selectedOrderIds.value.length === 0) {
-                return;
-            }
+        // 確認並保存所有分配
+        const confirmAllocation = async () => {
+            if (updatingAllocation.value || !hasUnsavedChanges.value) return;
             
-            allocating.value = true;
+            updatingAllocation.value = true;
             allocationError.value = null;
             
             try {
+                // 準備所有變更的分配數量
+                const allocations = {};
+                productOrders.value.forEach(order => {
+                    allocations[order.order_id] = order.allocated || 0;
+                });
+                
                 const response = await fetch('/wp-json/buygo-plus-one/v1/products/allocate', {
                     method: 'POST',
                     headers: {
@@ -1501,24 +1552,47 @@ const ProductsPageComponent = {
                     credentials: 'include',
                     body: JSON.stringify({
                         product_id: selectedProduct.value.id,
-                        order_ids: selectedOrderIds.value
+                        order_ids: Object.keys(allocations).map(id => parseInt(id)),
+                        allocations: allocations
                     })
                 });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch (e) {
+                        errorData = { message: errorText || `HTTP ${response.status} 錯誤` };
+                    }
+                    throw new Error(errorData.message || `HTTP ${response.status} 錯誤`);
+                }
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('分配成功！配額已更新至各訂單。');
+                    // 更新原始分配數量
+                    productOrders.value.forEach(order => {
+                        originalAllocations.value[order.order_id] = order.allocated || 0;
+                    });
+                    
+                    // 重新載入商品列表以更新總分配數量
+                    await loadProducts();
+                    
+                    // 關閉 Modal
                     closeAllocationModal();
-                    await loadProducts(); // 重新載入商品列表
+                    
+                    // 顯示成功訊息
+                    alert('分配成功！配額已更新至各訂單。');
                 } else {
                     allocationError.value = result.message || '分配失敗';
+                    console.error('分配失敗:', result);
                 }
             } catch (err) {
                 console.error('分配失敗:', err);
                 allocationError.value = err.message || '分配時發生錯誤';
             } finally {
-                allocating.value = false;
+                updatingAllocation.value = false;
             }
         };
         
@@ -1597,15 +1671,17 @@ const ProductsPageComponent = {
             showAllocationModal,
             selectedProduct,
             productOrders,
-            selectedOrderIds,
-            selectAllOrders,
             allocationLoading,
             allocationError,
-            allocating,
+            updatingAllocation,
+            hasUnsavedChanges,
+            totalShipped,
+            totalAllocated,
+            totalPending,
             openAllocationModal,
             closeAllocationModal,
-            toggleAllOrders,
-            allocateToOrders
+            updateOrderStatus,
+            confirmAllocation
         };
     }
 };

@@ -741,6 +741,7 @@ class Products_API {
             
             $product_id = (int)$params['product_id'];
             $order_ids = (array)$params['order_ids'];
+            $allocations = $params['allocations'] ?? []; // 可選：指定每個訂單的分配數量
             
             // 驗證 order_ids 都是數字
             $order_ids = array_map('intval', $order_ids);
@@ -756,12 +757,24 @@ class Products_API {
             }
             
             $allocationService = new \BuyGoPlus\Services\AllocationService();
-            $result = $allocationService->allocateStock($product_id, $order_ids);
+            
+            // 如果有指定 allocations，使用新的方法來更新分配數量
+            if (!empty($allocations) && is_array($allocations)) {
+                $result = $allocationService->updateOrderAllocations($product_id, $allocations);
+            } else {
+                // 否則使用舊的自動分配邏輯
+                $result = $allocationService->allocateStock($product_id, $order_ids);
+            }
             
             if (is_wp_error($result)) {
+                // 記錄錯誤詳情
+                error_log('Allocation API Error: ' . $result->get_error_code() . ' - ' . $result->get_error_message());
+                error_log('Request params: ' . print_r($params, true));
+                
                 return new \WP_REST_Response([
                     'success' => false,
-                    'message' => $result->get_error_message()
+                    'message' => $result->get_error_message(),
+                    'error_code' => $result->get_error_code()
                 ], 400);
             }
             
@@ -771,9 +784,13 @@ class Products_API {
             ], 200);
             
         } catch (\Exception $e) {
+            // 記錄異常詳情
+            error_log('Allocation API Exception: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
             return new \WP_REST_Response([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => '分配時發生錯誤：' . $e->getMessage()
             ], 500);
         }
     }

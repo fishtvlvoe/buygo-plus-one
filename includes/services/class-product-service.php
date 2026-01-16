@@ -275,8 +275,11 @@ class ProductService
     public function getProductBuyers(int $productId): array
     {
         try {
-            // 查詢訂單項目
+            // 查詢訂單項目（只包含未完成、未取消、未退款的訂單）
             $orderItems = OrderItem::where('object_id', $productId)
+                ->whereHas('order', function($query) {
+                    $query->whereNotIn('status', ['cancelled', 'refunded', 'completed']);
+                })
                 ->with(['order', 'order.customer'])
                 ->get();
             
