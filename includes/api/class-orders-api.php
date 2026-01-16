@@ -82,6 +82,21 @@ class Orders_API {
             ]
         ]);
         
+        // PUT /orders/{id}/shipping-status - 更新運送狀態
+        register_rest_route($this->namespace, '/orders/(?P<id>\d+)/shipping-status', [
+            'methods' => 'PUT',
+            'callback' => [$this, 'update_shipping_status'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+        
         // POST /orders/{id}/ship - 執行出貨
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/ship', [
             'methods' => 'POST',
@@ -202,6 +217,45 @@ class Orders_API {
             return new \WP_REST_Response([
                 'success' => true,
                 'message' => '訂單狀態已更新'
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 更新運送狀態
+     */
+    public function update_shipping_status($request) {
+        try {
+            $order_id = (string)$request['id'];
+            $body = json_decode($request->get_body(), true);
+            $status = $body['status'] ?? '';
+            $reason = $body['reason'] ?? '';
+            
+            if (empty($status)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '運送狀態不能為空'
+                ], 400);
+            }
+            
+            $result = $this->orderService->updateShippingStatus($order_id, $status, $reason);
+            
+            if (!$result) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '運送狀態更新失敗'
+                ], 500);
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '運送狀態已更新'
             ], 200);
             
         } catch (\Exception $e) {
