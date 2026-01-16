@@ -16,6 +16,22 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind 自訂配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        accent: '#F97316',
+                        bgMain: '#F8FAFC',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -29,7 +45,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-slate-50">
     <div id="buygo-app">
         <!-- 載入側邊導航元件 -->
         <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/side-nav.php'; ?>
