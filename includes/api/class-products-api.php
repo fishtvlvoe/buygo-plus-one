@@ -598,70 +598,19 @@ class Products_API {
             
             error_log('找到商品: ' . $product->variation_title);
             
-            // 臨時：查詢資料表結構（確認欄位名稱）
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'fct_order_items';
-            $columns = $wpdb->get_col("DESCRIBE {$table_name}", 0);
-            error_log('OrderItem 資料表欄位: ' . print_r($columns, true));
+            $result = $productService->getProductBuyers($product_id);
             
-            // 查詢訂單項目（使用正確的欄位名稱 object_id）
-            error_log('查詢訂單項目...');
-            $orderItems = \FluentCart\App\Models\OrderItem::where('object_id', $product_id)
-                ->with(['order', 'order.customer'])
-                ->get();
-            
-            error_log('找到訂單項目數量: ' . $orderItems->count());
-            
-            // 整理客戶資料
-            $buyers = [];
-            $buyerMap = [];
-            
-            foreach ($orderItems as $item) {
-                error_log('處理訂單項目 ID: ' . $item->id);
-                
-                if (!$item->order) {
-                    error_log('警告：訂單項目沒有關聯訂單');
-                    continue;
-                }
-                
-                if (!$item->order->customer) {
-                    error_log('警告：訂單沒有關聯客戶');
-                    continue;
-                }
-                
-                $customer = $item->order->customer;
-                $customerId = $customer->id;
-                
-                error_log('客戶 ID: ' . $customerId . ', 名稱: ' . ($customer->full_name ?? $customer->email));
-                
-                // 如果客戶已存在，累加數量
-                if (isset($buyerMap[$customerId])) {
-                    $buyerMap[$customerId]['quantity'] += $item->quantity;
-                    $buyerMap[$customerId]['order_count']++;
-                } else {
-                    $buyerMap[$customerId] = [
-                        'customer_id' => $customerId,
-                        'customer_name' => $customer->full_name ?? $customer->email,
-                        'customer_email' => $customer->email,
-                        'quantity' => $item->quantity,
-                        'order_count' => 1,
-                        'latest_order_date' => $item->order->created_at
-                    ];
-                }
+            if (!$result['success']) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 500);
             }
-            
-            // 轉換為陣列並排序
-            $buyers = array_values($buyerMap);
-            usort($buyers, function($a, $b) {
-                return $b['quantity'] - $a['quantity'];
-            });
-            
-            error_log('最終客戶數量: ' . count($buyers));
             
             return new \WP_REST_Response([
                 'success' => true,
-                'data' => $buyers,
-                'total' => count($buyers)
+                'data' => $result['data'],
+                'total' => count($result['data'])
             ], 200);
             
         } catch (\Exception $e) {

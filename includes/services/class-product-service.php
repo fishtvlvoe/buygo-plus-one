@@ -256,6 +256,71 @@ class ProductService
     }
 
     /**
+     * 取得商品的下單客戶列表
+     * 
+     * @param int $productId 商品 ID
+     * @return array
+     */
+    public function getProductBuyers(int $productId): array
+    {
+        try {
+            // 查詢訂單項目
+            $orderItems = OrderItem::where('object_id', $productId)
+                ->with(['order', 'order.customer'])
+                ->get();
+            
+            // 整理客戶資料
+            $buyerMap = [];
+            
+            foreach ($orderItems as $item) {
+                if (!$item->order || !$item->order->customer) {
+                    continue;
+                }
+                
+                $customer = $item->order->customer;
+                $customerId = $customer->id;
+                
+                // 如果客戶已存在，累加數量
+                if (isset($buyerMap[$customerId])) {
+                    $buyerMap[$customerId]['quantity'] += $item->quantity;
+                    $buyerMap[$customerId]['order_count']++;
+                } else {
+                    $buyerMap[$customerId] = [
+                        'customer_id' => $customerId,
+                        'customer_name' => $customer->full_name ?? $customer->email,
+                        'customer_email' => $customer->email,
+                        'quantity' => $item->quantity,
+                        'order_count' => 1,
+                        'latest_order_date' => $item->order->created_at
+                    ];
+                }
+            }
+            
+            // 轉換為陣列並排序
+            $buyers = array_values($buyerMap);
+            usort($buyers, function($a, $b) {
+                return $b['quantity'] - $a['quantity'];
+            });
+
+            return [
+                'success' => true,
+                'data' => $buyers
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得下單客戶列表失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * 計算商品的下單數量
      * 
      * @param array $productVariationIds 商品變化 ID 陣列
