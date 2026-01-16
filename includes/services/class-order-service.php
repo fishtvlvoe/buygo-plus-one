@@ -335,8 +335,9 @@ class OrderService
                     return new \WP_Error('ORDER_ITEM_NOT_FOUND', "訂單項目 #{$order_item_id} 不存在");
                 }
                 
-                // 檢查 meta_data 中的 _allocated_qty
-                $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
+                // 檢查 line_meta 或 meta_data 中的 _allocated_qty
+                // 優先讀取 line_meta（FluentCart 標準欄位），其次讀取 meta_data（相容性）
+                $meta_data = json_decode($order_item['line_meta'] ?? $order_item['meta_data'] ?? '{}', true) ?: [];
                 $allocated_qty = (int)($meta_data['_allocated_qty'] ?? 0);
                 
                 if ($quantity > $allocated_qty) {
@@ -405,8 +406,9 @@ class OrderService
                 ), ARRAY_A);
                 
                 if ($order_item) {
-                    // 讀取現有的 meta_data
-                    $meta_data = json_decode($order_item['meta_data'] ?? '{}', true) ?: [];
+                    // 讀取現有的 line_meta 或 meta_data
+                    // 優先讀取 line_meta（FluentCart 標準欄位），其次讀取 meta_data（相容性）
+                    $meta_data = json_decode($order_item['line_meta'] ?? $order_item['meta_data'] ?? '{}', true) ?: [];
                     $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
                     
                     // 扣除已出貨數量
@@ -417,10 +419,10 @@ class OrderService
                     $current_shipped = (int)($meta_data['_shipped_qty'] ?? 0);
                     $meta_data['_shipped_qty'] = $current_shipped + $quantity;
                     
-                    // 更新資料庫
+                    // 更新資料庫（寫入 line_meta，因為這是 FluentCart 的標準欄位）
                     $wpdb->update(
                         $table_items,
-                        ['meta_data' => json_encode($meta_data)],
+                        ['line_meta' => json_encode($meta_data)],
                         ['id' => $order_item_id],
                         ['%s'],
                         ['%d']
@@ -595,14 +597,30 @@ class OrderService
 
         if (isset($order['order_items']) && is_array($order['order_items'])) {
             foreach ($order['order_items'] as $item) {
+                // 確保 $item 是陣列格式
+                if (is_object($item)) {
+                    $item = (array) $item;
+                }
+                
                 $quantity = $item['quantity'] ?? 0;
                 $total_items += $quantity;
 
                 // 取得商品名稱（優先使用 title，其次使用 post_title）
                 $product_name = $item['title'] ?? $item['post_title'] ?? '未知商品';
                 
-                // 讀取 meta_data 中的 allocated_quantity 和 shipped_quantity
-                $meta_data = json_decode($item['meta_data'] ?? '{}', true) ?: [];
+                // 讀取 line_meta 或 meta_data 中的 allocated_quantity 和 shipped_quantity
+                // 注意：FluentCart Model 會自動將 line_meta 解碼成 Array，所以需要檢查類型
+                $line_meta_value = $item['line_meta'] ?? $item['meta_data'] ?? '{}';
+                
+                // 如果已經是 array，直接使用；如果是 string，才需要 json_decode
+                if (is_array($line_meta_value)) {
+                    $meta_data = $line_meta_value;
+                } elseif (is_string($line_meta_value)) {
+                    $meta_data = json_decode($line_meta_value, true) ?: [];
+                } else {
+                    $meta_data = [];
+                }
+                
                 $allocated_quantity = (int)($meta_data['_allocated_qty'] ?? 0);
                 $shipped_quantity = (int)($meta_data['_shipped_qty'] ?? 0);
                 
