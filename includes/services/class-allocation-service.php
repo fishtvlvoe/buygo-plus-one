@@ -45,11 +45,19 @@ class AllocationService
         $wpdb->query('START TRANSACTION');
         
         try {
+            // 0. 先取得商品的 post_id（因為 product_id 是 FluentCart variation ID，而 meta 儲存在 WordPress Post 上）
+            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            if (!$product) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('PRODUCT_NOT_FOUND', '商品不存在');
+            }
+            $post_id = $product->post_id;
+            
             // 1. 取得商品的「已採購」數量
-            $purchased = (int)get_post_meta($product_id, '_buygo_purchased', true);
+            $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
             
             // 2. 取得商品的「已分配」數量
-            $allocated = (int)get_post_meta($product_id, '_buygo_allocated', true);
+            $allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
             
             // 3. 計算剩餘可分配數量
             $available = $purchased - $allocated;
@@ -118,9 +126,9 @@ class AllocationService
             
             // 7. 更新商品的「已分配」總數
             $new_allocated = $allocated + $allocated_count;
-            $result = update_post_meta($product_id, '_buygo_allocated', $new_allocated);
+            $result = update_post_meta($post_id, '_buygo_allocated', $new_allocated);
             
-            if (!$result) {
+            if ($result === false) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
             }
@@ -235,11 +243,19 @@ class AllocationService
         $wpdb->query('START TRANSACTION');
         
         try {
+            // 0. 先取得商品的 post_id（因為 product_id 是 FluentCart variation ID，而 meta 儲存在 WordPress Post 上）
+            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            if (!$product) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('PRODUCT_NOT_FOUND', '商品不存在');
+            }
+            $post_id = $product->post_id;
+            
             // 1. 取得商品的「已採購」數量
-            $purchased = (int)get_post_meta($product_id, '_buygo_purchased', true);
+            $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
             
             // 2. 取得商品的「已分配」數量
-            $current_allocated = (int)get_post_meta($product_id, '_buygo_allocated', true);
+            $current_allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
             
             // 3. 查詢所有相關的訂單項目
             $order_ids = array_keys($allocations);
@@ -329,9 +345,9 @@ class AllocationService
             // 7. 更新商品的「已分配」總數
             $new_product_allocated = $total_allocated;
             
-            $result = update_post_meta($product_id, '_buygo_allocated', $new_product_allocated);
+            $result = update_post_meta($post_id, '_buygo_allocated', $new_product_allocated);
             
-            if (!$result) {
+            if ($result === false) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
             }

@@ -311,7 +311,7 @@ $orders_component_template = <<<'HTML'
                                 class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm font-medium"
                                 :class="shipping ? 'opacity-50 cursor-not-allowed' : ''"
                             >
-                                {{ shipping ? '出貨中...' : `執行出貨 (${item.allocated_quantity} 個)` }}
+                                {{ shipping ? '出貨中...' : ('執行出貨 (' + item.allocated_quantity + ' 個)') }}
                             </button>
                             <div v-else class="text-sm text-slate-500 text-center py-2">
                                 本商品尚未分配現貨配額，請先至商品管理分配。
