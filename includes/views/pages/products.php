@@ -336,12 +336,12 @@ $products_component_template = <<<'HTML'
     </div>
     
     <!-- 圖片編輯 Modal -->
-    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeImageModal">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4">
+    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeImageModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 animate-in">
             <!-- 標題列 -->
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-slate-900 font-title">編輯商品圖片</h2>
+            <div class="px-4 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 font-title">編輯商品圖片</h2>
                     <button @click="closeImageModal" class="text-slate-400 hover:text-slate-600 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -408,12 +408,12 @@ $products_component_template = <<<'HTML'
     </div>
     
     <!-- 下單客戶 Modal -->
-    <div v-if="showBuyersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeBuyersModal">
-        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div v-if="showBuyersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeBuyersModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] md:max-h-[85vh] overflow-y-auto animate-in">
             <!-- 標題列 -->
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-slate-900 font-title">下單客戶列表</h2>
+            <div class="px-4 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 font-title">下單客戶列表</h2>
                     <button @click="closeBuyersModal" class="text-slate-400 hover:text-slate-600 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -470,23 +470,21 @@ $products_component_template = <<<'HTML'
     </div>
     
     <!-- 分配庫存 Modal -->
-    <div v-if="showAllocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeAllocationModal">
-        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div v-if="showAllocationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeAllocationModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] md:max-h-[85vh] overflow-y-auto animate-in">
             <!-- 標題列 -->
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 font-title">庫存分配 - {{ selectedProduct?.name }}</h2>
-                        <p class="text-sm text-slate-600 mt-1">
-                            剩餘可分配：<strong class="text-blue-600">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</strong> 個
-                        </p>
-                    </div>
-                    <button @click="closeAllocationModal" class="text-slate-400 hover:text-slate-600 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+            <div class="px-4 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
+                <div>
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 font-title">庫存分配 - {{ selectedProduct?.name }}</h2>
+                    <p class="text-xs md:text-sm text-slate-600 mt-1">
+                        剩餘可分配：<strong class="text-blue-600">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</strong> 個
+                    </p>
                 </div>
+                <button @click="closeAllocationModal" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
             
             <!-- Loading 狀態 -->
@@ -503,45 +501,47 @@ $products_component_template = <<<'HTML'
             </div>
             
             <!-- 訂單列表 -->
-            <div v-else-if="productOrders.length > 0" class="p-6">
+            <div v-else-if="productOrders.length > 0" class="p-4 md:p-6">
                 <!-- 商品資訊區塊 -->
-                <div class="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0">
+                <div class="mb-4 md:mb-6 p-3 md:p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                        <div class="flex items-center gap-3 md:flex-shrink-0">
                             <img 
                                 v-if="selectedProduct?.image" 
                                 :src="selectedProduct.image" 
                                 :alt="selectedProduct.name"
-                                class="w-20 h-20 object-cover rounded-lg"
+                                class="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg"
                             />
-                            <div v-else class="w-20 h-20 bg-slate-200 rounded-lg flex items-center justify-center">
-                                <span class="text-2xl">📦</span>
+                            <div v-else class="w-16 h-16 md:w-20 md:h-20 bg-slate-200 rounded-lg flex items-center justify-center">
+                                <span class="text-xl md:text-2xl">📦</span>
+                            </div>
+                            <div class="flex-1 md:flex-none">
+                                <h3 class="text-base md:text-lg font-semibold text-slate-900">{{ selectedProduct?.name }}</h3>
+                                <div class="mt-1 text-xs md:text-sm text-slate-500">
+                                    總數量：<span class="font-medium text-slate-700">{{ selectedProduct?.purchased || 0 }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-slate-900">{{ selectedProduct?.name }}</h3>
-                            <div class="mt-1 text-sm text-slate-500">
-                                總數量：<span class="font-medium text-slate-700">{{ selectedProduct?.purchased || 0 }}</span>
+                        <!-- 統計面板：手機版橫排 Grid，桌面版保持 3 欄 -->
+                        <div class="grid grid-cols-3 gap-2 md:gap-3 flex-1">
+                            <div class="bg-white border border-pink-200 rounded-lg p-2 md:p-3 text-center">
+                                <div class="text-[10px] md:text-xs text-pink-600 mb-1">已出貨數量(所有出貨)</div>
+                                <div class="text-base md:text-lg font-bold text-green-600">{{ totalShipped }}</div>
                             </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
-                                <div class="text-xs text-pink-600 mb-1">已出貨數量(所有出貨)</div>
-                                <div class="text-lg font-bold text-green-600">{{ totalShipped }}</div>
+                            <div class="bg-white border border-pink-200 rounded-lg p-2 md:p-3 text-center">
+                                <div class="text-[10px] md:text-xs text-pink-600 mb-1">本次可出貨數量</div>
+                                <div class="text-base md:text-lg font-bold text-green-600">{{ totalAllocated }}</div>
                             </div>
-                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
-                                <div class="text-xs text-pink-600 mb-1">本次可出貨數量</div>
-                                <div class="text-lg font-bold text-green-600">{{ totalAllocated }}</div>
-                            </div>
-                            <div class="bg-white border border-pink-200 rounded-lg p-3 text-center">
-                                <div class="text-xs text-pink-600 mb-1">未出貨數量</div>
-                                <div class="text-lg font-bold text-green-600">{{ totalPending }}</div>
+                            <div class="bg-white border border-pink-200 rounded-lg p-2 md:p-3 text-center">
+                                <div class="text-[10px] md:text-xs text-pink-600 mb-1">未出貨數量</div>
+                                <div class="text-base md:text-lg font-bold text-green-600">{{ totalPending }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto">
+                <!-- 桌面版表格 -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
@@ -584,18 +584,68 @@ $products_component_template = <<<'HTML'
                     </table>
                 </div>
                 
+                <!-- 手機版卡片式布局 -->
+                <div class="md:hidden space-y-3">
+                    <div 
+                        v-for="order in productOrders" 
+                        :key="order.order_id"
+                        class="bg-white border border-slate-200 rounded-xl p-4 space-y-3"
+                    >
+                        <!-- 訂單編號和客戶 -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">#{{ order.order_id }}</div>
+                                <div class="text-xs text-slate-600 mt-0.5">{{ order.customer }}</div>
+                            </div>
+                            <span 
+                                :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
+                                class="px-2 py-1 text-xs font-medium rounded-full"
+                            >
+                                {{ order.status }}
+                            </span>
+                        </div>
+                        
+                        <!-- 數量資訊 Grid -->
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">需求數量</div>
+                                <div class="font-semibold text-slate-900">{{ order.required }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">已分配</div>
+                                <input 
+                                    type="number" 
+                                    v-model.number="order.allocated"
+                                    @input="updateOrderStatus(order)"
+                                    :min="0"
+                                    :max="order.required"
+                                    class="w-full px-2 py-1 text-sm text-right border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium"
+                                />
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">已出貨</div>
+                                <div class="font-semibold text-slate-600">{{ order.shipped || 0 }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">未出貨</div>
+                                <div class="font-semibold text-slate-600">{{ order.pending || 0 }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 操作按鈕 -->
-                <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <div class="mt-4 md:mt-6 flex flex-col md:flex-row justify-end gap-2 md:gap-3 pt-4 border-t border-slate-200 shrink-0">
                     <button 
                         @click="closeAllocationModal"
-                        class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                        class="w-full md:w-auto px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm"
                     >
                         取消
                     </button>
                     <button 
                         @click="confirmAllocation"
                         :disabled="updatingAllocation || hasUnsavedChanges === false"
-                        class="px-6 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        class="w-full md:w-auto px-6 py-2 bg-accent text-white rounded-lg text-xs md:text-sm font-bold shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                         {{ updatingAllocation ? '保存中...' : '確認分配' }}
                     </button>
@@ -613,12 +663,12 @@ $products_component_template = <<<'HTML'
     </div>
     
     <!-- 編輯商品 Modal -->
-    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
-        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeEditModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-in">
             <!-- 標題列 -->
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-slate-900 font-title">編輯商品</h2>
+            <div class="px-4 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 font-title">編輯商品</h2>
                     <button @click="closeEditModal" class="text-slate-400 hover:text-slate-600 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
