@@ -87,9 +87,17 @@ $orders_component_template = <<<'HTML'
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(order.created_at) }}</td>
                             <td class="px-4 py-3">
-                                <button @click="viewOrderDetails(order)" class="text-primary hover:text-primary-dark text-sm font-medium">
-                                    查看詳情
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button @click="viewOrderDetails(order)" class="text-primary hover:text-primary-dark text-sm font-medium">
+                                        查看詳情
+                                    </button>
+                                    <button 
+                                        v-if="hasAllocatedItems(order)"
+                                        @click="shipOrder(order)" 
+                                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        執行出貨
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -128,9 +136,17 @@ $orders_component_template = <<<'HTML'
                         </div>
                     </div>
                     
-                    <button @click="viewOrderDetails(order)" class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">
-                        查看詳情
-                    </button>
+                    <div class="flex gap-2">
+                        <button @click="viewOrderDetails(order)" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium">
+                            查看詳情
+                        </button>
+                        <button 
+                            v-if="hasAllocatedItems(order)"
+                            @click="shipOrder(order)" 
+                            class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                            執行出貨
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -443,6 +459,72 @@ const OrdersPageComponent = {
             currentOrder.value = null;
         };
         
+        // 檢查訂單是否有可出貨的商品
+        const hasAllocatedItems = (order) => {
+            if (!order.items || !Array.isArray(order.items)) {
+                return false;
+            }
+            return order.items.some(item => (item.allocated_quantity || 0) > 0);
+        };
+        
+        // 執行訂單出貨
+        const shipOrder = async (order) => {
+            // 如果訂單沒有 items，先載入詳情
+            if (!order.items || !Array.isArray(order.items)) {
+                await loadOrderDetail(order.id);
+                order = currentOrder.value || order;
+            }
+            
+            // 收集所有可出貨的商品
+            const itemsToShip = (order.items || []).filter(item => (item.allocated_quantity || 0) > 0);
+            
+            if (itemsToShip.length === 0) {
+                alert('此訂單沒有可出貨的商品');
+                return;
+            }
+            
+            // 確認出貨
+            const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.allocated_quantity || 0), 0);
+            if (!confirm(`確定要出貨 ${totalQuantity} 個商品嗎？`)) {
+                return;
+            }
+            
+            shipping.value = true;
+            
+            try {
+                // 準備 items 陣列
+                const items = itemsToShip.map(item => ({
+                    order_item_id: item.id,
+                    quantity: item.allocated_quantity,
+                    product_id: item.product_id
+                }));
+                
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/ship`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ items })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`出貨成功！出貨單號：SH-${result.shipment_id}`);
+                    // 刷新列表
+                    await loadOrders();
+                } else {
+                    alert('出貨失敗：' + result.message);
+                }
+            } catch (err) {
+                console.error('出貨失敗:', err);
+                alert('出貨失敗：' + err.message);
+            } finally {
+                shipping.value = false;
+            }
+        };
+        
         // 執行出貨
         const shipOrderItem = async (item) => {
             if (!confirm(`確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`)) {
@@ -608,6 +690,8 @@ const OrdersPageComponent = {
             getStatusText,
             viewOrderDetails,
             closeOrderModal,
+            hasAllocatedItems,
+            shipOrder,
             shipOrderItem,
             loadOrderDetail,
             shipping,
