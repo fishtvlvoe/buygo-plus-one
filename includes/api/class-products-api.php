@@ -578,34 +578,55 @@ class Products_API {
      * 取得商品的下單客戶列表
      */
     public function get_buyers($request) {
+        error_log('===== get_buyers API =====');
+        
         try {
             $product_id = $request->get_param('id');
+            error_log('Product ID: ' . $product_id);
             
             // 檢查商品是否存在
+            error_log('檢查商品是否存在...');
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            
             if (!$product) {
+                error_log('錯誤：商品不存在');
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '商品不存在'
                 ], 404);
             }
             
+            error_log('找到商品: ' . $product->variation_title);
+            
             // 查詢訂單項目
+            error_log('查詢訂單項目...');
             $orderItems = \FluentCart\App\Models\OrderItem::where('product_variation_id', $product_id)
                 ->with(['order', 'order.customer'])
                 ->get();
+            
+            error_log('找到訂單項目數量: ' . $orderItems->count());
             
             // 整理客戶資料
             $buyers = [];
             $buyerMap = [];
             
             foreach ($orderItems as $item) {
-                if (!$item->order || !$item->order->customer) {
+                error_log('處理訂單項目 ID: ' . $item->id);
+                
+                if (!$item->order) {
+                    error_log('警告：訂單項目沒有關聯訂單');
+                    continue;
+                }
+                
+                if (!$item->order->customer) {
+                    error_log('警告：訂單沒有關聯客戶');
                     continue;
                 }
                 
                 $customer = $item->order->customer;
                 $customerId = $customer->id;
+                
+                error_log('客戶 ID: ' . $customerId . ', 名稱: ' . ($customer->full_name ?? $customer->email));
                 
                 // 如果客戶已存在，累加數量
                 if (isset($buyerMap[$customerId])) {
@@ -623,11 +644,13 @@ class Products_API {
                 }
             }
             
-            // 轉換為陣列並排序（按數量降序）
+            // 轉換為陣列並排序
             $buyers = array_values($buyerMap);
             usort($buyers, function($a, $b) {
                 return $b['quantity'] - $a['quantity'];
             });
+            
+            error_log('最終客戶數量: ' . count($buyers));
             
             return new \WP_REST_Response([
                 'success' => true,
@@ -637,6 +660,8 @@ class Products_API {
             
         } catch (\Exception $e) {
             error_log('get_buyers 錯誤: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
