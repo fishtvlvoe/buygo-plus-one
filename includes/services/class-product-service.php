@@ -103,6 +103,15 @@ class ProductService
 
                 // 取得已採購數量（從 post_meta）
                 $purchased = (int) get_post_meta($product->post_id, '_buygo_purchased', true);
+                
+                // 取得已分配數量（從 post_meta）
+                $allocated = (int) get_post_meta($product->post_id, '_buygo_allocated', true);
+                
+                // 計算已下單數量
+                $ordered = $orderCounts[$product->id] ?? 0;
+                
+                // 計算預訂數量（ordered - purchased - allocated）
+                $reserved = max(0, $ordered - $purchased - $allocated);
 
                 $productData = [
                     'id' => $product->id,
@@ -118,9 +127,11 @@ class ProductService
                     'total_stock' => $product->total_stock ?? 0,
                     'committed' => $product->committed ?? 0,
                     'on_hold' => $product->on_hold ?? 0,
-                    'ordered' => $orderCounts[$product->id] ?? 0,
+                    'ordered' => $ordered,
                     'purchased' => $purchased,
-                    'order_count' => $orderCounts[$product->id] ?? 0,
+                    'allocated' => $allocated,
+                    'reserved' => $reserved,
+                    'order_count' => $ordered,
                     'stock_status' => $product->stock_status,
                     'status' => $product->product->post_status ?? 'draft',
                     'procurement_status' => get_post_meta($product->post_id, '_procurement_status', true) ?: 'pending',
