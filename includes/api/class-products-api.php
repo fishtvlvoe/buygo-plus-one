@@ -121,6 +121,21 @@ class Products_API {
                 ]
             ]
         ]);
+        
+        // GET /products/{id}/buyers - 取得下單客戶列表
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/buyers', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_buyers'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -552,6 +567,76 @@ class Products_API {
             ], 200);
             
         } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 取得商品的下單客戶列表
+     */
+    public function get_buyers($request) {
+        try {
+            $product_id = $request->get_param('id');
+            
+            // 檢查商品是否存在
+            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            if (!$product) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+            
+            // 查詢訂單項目
+            $orderItems = \FluentCart\App\Models\OrderItem::where('product_variation_id', $product_id)
+                ->with(['order', 'order.customer'])
+                ->get();
+            
+            // 整理客戶資料
+            $buyers = [];
+            $buyerMap = [];
+            
+            foreach ($orderItems as $item) {
+                if (!$item->order || !$item->order->customer) {
+                    continue;
+                }
+                
+                $customer = $item->order->customer;
+                $customerId = $customer->id;
+                
+                // 如果客戶已存在，累加數量
+                if (isset($buyerMap[$customerId])) {
+                    $buyerMap[$customerId]['quantity'] += $item->quantity;
+                    $buyerMap[$customerId]['order_count']++;
+                } else {
+                    $buyerMap[$customerId] = [
+                        'customer_id' => $customerId,
+                        'customer_name' => $customer->full_name ?? $customer->email,
+                        'customer_email' => $customer->email,
+                        'quantity' => $item->quantity,
+                        'order_count' => 1,
+                        'latest_order_date' => $item->order->created_at
+                    ];
+                }
+            }
+            
+            // 轉換為陣列並排序（按數量降序）
+            $buyers = array_values($buyerMap);
+            usort($buyers, function($a, $b) {
+                return $b['quantity'] - $a['quantity'];
+            });
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $buyers,
+                'total' => count($buyers)
+            ], 200);
+            
+        } catch (\Exception $e) {
+            error_log('get_buyers 錯誤: ' . $e->getMessage());
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()

@@ -126,7 +126,12 @@ $products_component_template = <<<'HTML'
                             </button>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                            {{ product.ordered }}
+                            <span 
+                                @click="openBuyersModal(product)"
+                                class="cursor-pointer hover:text-primary hover:underline transition"
+                            >
+                                {{ product.ordered }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <input 
@@ -186,7 +191,12 @@ $products_component_template = <<<'HTML'
                 <div class="grid grid-cols-3 gap-3 mb-3">
                     <div class="text-center">
                         <div class="text-xs text-slate-500 mb-1">已下單</div>
-                        <div class="text-base font-semibold text-slate-900">{{ product.ordered }}</div>
+                        <div 
+                            @click="openBuyersModal(product)"
+                            class="text-base font-semibold text-slate-900 cursor-pointer hover:text-primary hover:underline transition"
+                        >
+                            {{ product.ordered }}
+                        </div>
                     </div>
                     <div class="text-center">
                         <div class="text-xs text-slate-500 mb-1">已採購</div>
@@ -375,6 +385,68 @@ $products_component_template = <<<'HTML'
         </div>
     </div>
     
+    <!-- 下單客戶 Modal -->
+    <div v-if="showBuyersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeBuyersModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <!-- 標題列 -->
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-slate-900 font-title">下單客戶列表</h2>
+                    <button @click="closeBuyersModal" class="text-slate-400 hover:text-slate-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading 狀態 -->
+            <div v-if="buyersLoading" class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-slate-600">載入中...</span>
+            </div>
+            
+            <!-- Error 狀態 -->
+            <div v-else-if="buyersError" class="p-6">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800">{{ buyersError }}</p>
+                </div>
+            </div>
+            
+            <!-- 客戶列表 -->
+            <div v-else-if="buyers.length > 0" class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">客戶名稱</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">Email</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">訂單數</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">總數量</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="buyer in buyers" :key="buyer.customer_id" class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-3 text-sm text-slate-900">{{ buyer.customer_name }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">{{ buyer.customer_email }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ buyer.order_count }}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-primary text-right">{{ buyer.quantity }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 無資料 -->
+            <div v-else class="p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+                <p class="mt-4 text-slate-600">目前沒有客戶下單</p>
+            </div>
+        </div>
+    </div>
+    
     <!-- 編輯商品 Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -514,6 +586,12 @@ const ProductsPageComponent = {
         const isDragging = ref(false);
         const imageError = ref(null);
         const fileInput = ref(null);
+        
+        // 下單客戶 Modal 狀態
+        const showBuyersModal = ref(false);
+        const buyers = ref([]);
+        const buyersLoading = ref(false);
+        const buyersError = ref(null);
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -1002,6 +1080,47 @@ const ProductsPageComponent = {
             }
         };
         
+        // 打開下單客戶 Modal
+        const openBuyersModal = async (product) => {
+            showBuyersModal.value = true;
+            buyersLoading.value = true;
+            buyersError.value = null;
+            buyers.value = [];
+            
+            try {
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products/${product.id}/buyers`,
+                    {
+                        credentials: 'include'
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    buyers.value = result.data;
+                } else {
+                    throw new Error(result.message || '載入失敗');
+                }
+            } catch (err) {
+                console.error('載入下單客戶錯誤:', err);
+                buyersError.value = err.message || '載入時發生錯誤';
+            } finally {
+                buyersLoading.value = false;
+            }
+        };
+        
+        // 關閉下單客戶 Modal
+        const closeBuyersModal = () => {
+            showBuyersModal.value = false;
+            buyers.value = [];
+            buyersError.value = null;
+        };
+        
         onMounted(() => {
             loadProducts();
         });
@@ -1057,7 +1176,14 @@ const ProductsPageComponent = {
             handleFileSelect,
             handleDrop,
             uploadImage,
-            removeImage
+            removeImage,
+            // 下單客戶 Modal
+            showBuyersModal,
+            buyers,
+            buyersLoading,
+            buyersError,
+            openBuyersModal,
+            closeBuyersModal
         };
     }
 };
