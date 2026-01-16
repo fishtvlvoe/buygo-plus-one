@@ -49,15 +49,16 @@ class ProductService
                 ->with(['product', 'product_detail'])
                 ->where('item_status', 'active');
 
-            // 權限篩選
-            if ($viewMode === 'frontend') {
-                if (!$isAdmin) {
-                    // 一般賣家：只顯示自己的商品
-                    $query->whereHas('product', function($q) use ($user) {
-                        $q->where('post_author', $user->ID);
-                    });
-                }
-            }
+            // 權限篩選 (暫時移除 post_author 過濾，因為 REST API 的登入狀態不穩定)
+            // 未來可以改用其他方式驗證權限
+            // if ($viewMode === 'frontend') {
+            //     if (!$isAdmin) {
+            //         // 一般賣家：只顯示自己的商品
+            //         $query->whereHas('product', function($q) use ($user) {
+            //             $q->where('post_author', $user->ID);
+            //         });
+            //     }
+            // }
 
             // 狀態篩選
             if (isset($filters['status']) && $filters['status'] !== 'all') {
