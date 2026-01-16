@@ -4,7 +4,18 @@ $products_component_template = <<<'HTML'
 <main class="min-h-screen bg-gray-50">
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-        <h1 class="text-2xl font-bold text-gray-900">商品管理</h1>
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900">商品管理</h1>
+            <button 
+                @click="exportCSV"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                匯出 CSV
+            </button>
+        </div>
     </div>
 
     <!-- 商品列表容器 -->
@@ -315,6 +326,57 @@ const ProductsPageComponent = {
                 alert('批次刪除失敗');
             }
         };
+
+        // 匯出 CSV
+        const exportCSV = async (event) => {
+            try {
+                // 顯示載入中
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> 匯出中...';
+                button.disabled = true;
+                
+                const response = await fetch('/wp-json/buygo-plus-one/v1/products/export', {
+                    method: 'GET',
+                });
+                
+                if (!response.ok) {
+                    throw new Error('匯出失敗');
+                }
+                
+                // 取得 blob
+                const blob = await response.blob();
+                
+                // 建立下載連結
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // 檔案名稱：buygo_products_2026-01-16.csv
+                const today = new Date().toISOString().split('T')[0];
+                a.download = `buygo_products_${today}.csv`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                console.log('CSV 匯出成功');
+                
+                // 恢復按鈕狀態
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+            } catch (err) {
+                console.error('匯出 CSV 錯誤:', err);
+                alert('匯出失敗');
+                
+                // 恢復按鈕狀態
+                const button = event.target.closest('button');
+                button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> 匯出 CSV';
+                button.disabled = false;
+            }
+        };
         
         onMounted(() => {
             loadProducts();
@@ -332,7 +394,8 @@ const ProductsPageComponent = {
             savePurchased,
             deleteProduct,
             loadProducts,
-            batchDelete
+            batchDelete,
+            exportCSV
         };
     }
 };

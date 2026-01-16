@@ -253,31 +253,77 @@ class Products_API {
      * 匯出 CSV
      */
     public function export_csv($request) {
-        // TODO: 從資料庫或 FluentCart API 取得商品並匯出 CSV
-        // 目前先回傳假資料
-        
-        $mock_products = [
-            ['商品名稱', 'ID', '價格', '已下單', '已採購', '預訂'],
-            ['測試商品 A', 1, 1000, 10, 5, 5],
-            ['測試商品 B', 2, 2000, 20, 15, 5],
-            ['測試商品 C', 3, 3000, 5, 3, 2]
-        ];
-        
-        // 設定 CSV 標頭
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="buygo_products_' . date('Y-m-d') . '.csv"');
-        
-        $output = fopen('php://output', 'w');
-        
-        // 輸出 BOM（讓 Excel 正確顯示中文）
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-        
-        foreach ($mock_products as $row) {
-            fputcsv($output, $row);
+        try {
+            $productService = new ProductService();
+            
+            // 取得所有商品（不篩選）
+            $filters = [
+                'status' => 'all',
+                'search' => ''
+            ];
+            
+            $viewMode = 'frontend';
+            $products = $productService->getProductsWithOrderCount($filters, $viewMode);
+            
+            // 設定 CSV 標頭
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="buygo_products_' . date('Y-m-d') . '.csv"');
+            
+            $output = fopen('php://output', 'w');
+            
+            // 輸出 BOM（讓 Excel 正確顯示中文）
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // CSV 標題列
+            $headers = [
+                'ID',
+                '商品名稱',
+                '價格',
+                '幣別',
+                '庫存',
+                '已下單',
+                '已採購',
+                '預訂',
+                '狀態',
+                '建立時間',
+                '更新時間'
+            ];
+            fputcsv($output, $headers);
+            
+            // 資料行
+            foreach ($products as $product) {
+                $purchased = (int) get_post_meta($product['post_id'], '_buygo_purchased', true);
+                $reserved = max(0, ($product['ordered'] ?? 0) - $purchased);
+                $status = $product['status'] === 'publish' ? '已上架' : '已下架';
+                
+                $row = [
+                    $product['id'],
+                    $product['name'],
+                    $product['price'], // 已經是元
+                    $product['currency'],
+                    $product['inventory'] ?? 0,
+                    $product['ordered'] ?? 0,
+                    $purchased,
+                    $reserved,
+                    $status,
+                    $product['created_at'] ?? '',
+                    $product['updated_at'] ?? ''
+                ];
+                fputcsv($output, $row);
+            }
+            
+            fclose($output);
+            exit;
+            
+        } catch (\Exception $e) {
+            // 如果發生錯誤，回傳 JSON 錯誤訊息
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => '匯出失敗：' . $e->getMessage()
+            ]);
+            exit;
         }
-        
-        fclose($output);
-        exit;
     }
     
     /**
