@@ -34,6 +34,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         <!-- 載入側邊導航元件 -->
         <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/side-nav.php'; ?>
         
+        <!-- 載入智慧搜尋框元件 -->
+        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
+        
         <!-- 主內容區 -->
         <div class="md:ml-64 min-h-screen">
             <!-- 頁面內容容器（由 Vue 動態渲染） -->
