@@ -91,6 +91,36 @@ class Products_API {
             'callback' => [$this, 'export_csv'],
             'permission_callback' => [__CLASS__, 'check_permission'],
         ]);
+        
+        // POST /products/{id}/image - 上傳商品圖片
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/image', [
+            'methods' => 'POST',
+            'callback' => [$this, 'upload_image'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+        
+        // DELETE /products/{id}/image - 刪除商品圖片
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/image', [
+            'methods' => 'DELETE',
+            'callback' => [$this, 'delete_image'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -386,6 +416,146 @@ class Products_API {
                 'message' => '匯出失敗：' . $e->getMessage()
             ]);
             exit;
+        }
+    }
+    
+    /**
+     * 上傳商品圖片
+     */
+    public function upload_image($request) {
+        try {
+            $id = $request->get_param('id');
+            
+            // 檢查是否有上傳檔案
+            if (empty($_FILES['image'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '沒有上傳檔案'
+                ], 400);
+            }
+            
+            $file = $_FILES['image'];
+            
+            // 檢查檔案大小（最大 5MB）
+            $max_size = 5 * 1024 * 1024; // 5MB
+            if ($file['size'] > $max_size) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '檔案大小超過 5MB'
+                ], 400);
+            }
+            
+            // 檢查檔案類型
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'webp'];
+            $file_type = wp_check_filetype($file['name']);
+            
+            if (empty($file_type['ext']) || !in_array(strtolower($file_type['ext']), $allowed_extensions)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '不支援的檔案格式，僅支援 JPG、PNG、WebP'
+                ], 400);
+            }
+            
+            // 也檢查 MIME 類型
+            $allowed_mimes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!empty($file['type']) && !in_array($file['type'], $allowed_mimes)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '不支援的檔案格式，僅支援 JPG、PNG、WebP'
+                ], 400);
+            }
+            
+            // 載入 WordPress 檔案處理函數
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            
+            // 上傳檔案到 WordPress Media Library
+            $attachment_id = media_handle_upload('image', 0);
+            
+            if (is_wp_error($attachment_id)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '上傳失敗：' . $attachment_id->get_error_message()
+                ], 500);
+            }
+            
+            // 取得商品的 post_id
+            $product = \FluentCart\App\Models\ProductVariation::find($id);
+            if (!$product) {
+                // 刪除剛上傳的圖片
+                wp_delete_attachment($attachment_id, true);
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+            
+            // 設定為商品的特色圖片
+            set_post_thumbnail($product->post_id, $attachment_id);
+            
+            // 取得圖片 URL
+            $image_url = wp_get_attachment_image_url($attachment_id, 'medium');
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '圖片上傳成功',
+                'data' => [
+                    'image_url' => $image_url,
+                    'attachment_id' => $attachment_id
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 刪除商品圖片
+     */
+    public function delete_image($request) {
+        try {
+            $id = $request->get_param('id');
+            
+            // 取得商品
+            $product = \FluentCart\App\Models\ProductVariation::find($id);
+            if (!$product) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+            
+            // 取得特色圖片 ID
+            $thumbnail_id = get_post_thumbnail_id($product->post_id);
+            
+            if (!$thumbnail_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品沒有圖片'
+                ], 400);
+            }
+            
+            // 刪除特色圖片設定
+            delete_post_thumbnail($product->post_id);
+            
+            // 刪除圖片檔案
+            wp_delete_attachment($thumbnail_id, true);
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '圖片刪除成功'
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
     

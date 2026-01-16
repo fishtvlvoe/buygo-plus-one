@@ -103,7 +103,7 @@ $products_component_template = <<<'HTML'
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center bg-slate-100 rounded-lg mr-3">
+                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center bg-slate-100 rounded-lg mr-3 cursor-pointer hover:opacity-80 transition" @click="openImageModal(product)">
                                     <span v-if="!product.image" class="text-2xl">📦</span>
                                     <img v-else :src="product.image" :alt="product.name" class="h-12 w-12 object-cover rounded-lg">
                                 </div>
@@ -160,9 +160,9 @@ $products_component_template = <<<'HTML'
                 :key="product.id"
                 class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4 transition hover:shadow-md"
             >
-                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center flex-1">
-                        <div class="flex-shrink-0 h-16 w-16 flex items-center justify-center bg-slate-100 rounded-lg mr-3">
+                        <div class="flex-shrink-0 h-16 w-16 flex items-center justify-center bg-slate-100 rounded-lg mr-3 cursor-pointer hover:opacity-80 transition" @click="openImageModal(product)">
                             <span v-if="!product.image" class="text-3xl">📦</span>
                             <img v-else :src="product.image" :alt="product.name" class="h-16 w-16 object-cover rounded-lg">
                         </div>
@@ -303,6 +303,78 @@ $products_component_template = <<<'HTML'
         </div>
     </div>
     
+    <!-- 圖片編輯 Modal -->
+    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeImageModal">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4">
+            <!-- 標題列 -->
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-slate-900 font-title">編輯商品圖片</h2>
+                    <button @click="closeImageModal" class="text-slate-400 hover:text-slate-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 內容區域 -->
+            <div class="p-6">
+                <!-- 當前圖片預覽 -->
+                <div v-if="currentImage" class="mb-4">
+                    <img :src="currentImage" class="w-full h-48 object-cover rounded-lg border border-slate-200">
+                    <button 
+                        @click="removeImage"
+                        :disabled="uploading"
+                        class="mt-2 w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        :class="uploading ? 'opacity-50 cursor-not-allowed' : ''"
+                    >
+                        移除圖片
+                    </button>
+                </div>
+                
+                <!-- 上傳區域 -->
+                <div 
+                    @click="triggerFileInput"
+                    @dragover.prevent="isDragging = true"
+                    @dragleave.prevent="isDragging = false"
+                    @drop.prevent="handleDrop"
+                    class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition"
+                    :class="isDragging ? 'border-primary bg-blue-50' : 'border-slate-300 hover:border-primary'"
+                >
+                    <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <p class="mt-2 text-sm text-slate-600">
+                        <span class="font-medium text-primary">點擊上傳</span> 或拖放圖片到這裡
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">支援 JPG、PNG、WebP，最大 5MB</p>
+                </div>
+                
+                <input 
+                    ref="fileInput"
+                    type="file" 
+                    accept="image/jpeg,image/png,image/webp"
+                    @change="handleFileSelect"
+                    class="hidden"
+                >
+                
+                <!-- 上傳進度 -->
+                <div v-if="uploading" class="mt-4">
+                    <div class="flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span class="ml-3 text-slate-600">上傳中...</span>
+                    </div>
+                </div>
+                
+                <!-- 錯誤訊息 -->
+                <div v-if="imageError" class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800 text-sm">{{ imageError }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- 編輯商品 Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeEditModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -433,6 +505,15 @@ const ProductsPageComponent = {
         const editLoading = ref(false);
         const editError = ref(null);
         const saving = ref(false);
+        
+        // 圖片 Modal 狀態
+        const showImageModal = ref(false);
+        const currentProduct = ref(null);
+        const currentImage = ref(null);
+        const uploading = ref(false);
+        const isDragging = ref(false);
+        const imageError = ref(null);
+        const fileInput = ref(null);
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -787,6 +868,140 @@ const ProductsPageComponent = {
             }
         };
         
+        // 打開圖片 Modal
+        const openImageModal = (product) => {
+            showImageModal.value = true;
+            currentProduct.value = product;
+            currentImage.value = product.image;
+            imageError.value = null;
+        };
+        
+        // 關閉圖片 Modal
+        const closeImageModal = () => {
+            showImageModal.value = false;
+            currentProduct.value = null;
+            currentImage.value = null;
+            imageError.value = null;
+        };
+        
+        // 觸發檔案選擇
+        const triggerFileInput = () => {
+            fileInput.value.click();
+        };
+        
+        // 處理檔案選擇
+        const handleFileSelect = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                uploadImage(file);
+            }
+        };
+        
+        // 處理拖放
+        const handleDrop = (event) => {
+            isDragging.value = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                uploadImage(file);
+            }
+        };
+        
+        // 上傳圖片
+        const uploadImage = async (file) => {
+            // 檢查檔案大小
+            if (file.size > 5 * 1024 * 1024) {
+                imageError.value = '檔案大小超過 5MB';
+                return;
+            }
+            
+            // 檢查檔案類型
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                imageError.value = '不支援的檔案格式';
+                return;
+            }
+            
+            uploading.value = true;
+            imageError.value = null;
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`,
+                    {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData
+                    }
+                );
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 更新當前圖片
+                    currentImage.value = result.data.image_url;
+                    
+                    // 更新商品列表中的圖片
+                    const index = products.value.findIndex(p => p.id === currentProduct.value.id);
+                    if (index !== -1) {
+                        products.value[index].image = result.data.image_url;
+                    }
+                    
+                    console.log('圖片上傳成功');
+                } else {
+                    imageError.value = result.message || '上傳失敗';
+                }
+            } catch (err) {
+                console.error('上傳圖片錯誤:', err);
+                imageError.value = '上傳時發生錯誤';
+            } finally {
+                uploading.value = false;
+            }
+        };
+        
+        // 移除圖片
+        const removeImage = async () => {
+            if (!confirm('確定要移除圖片嗎？')) {
+                return;
+            }
+            
+            uploading.value = true;
+            imageError.value = null;
+            
+            try {
+                const response = await fetch(
+                    `/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`,
+                    {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    }
+                );
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 清除當前圖片
+                    currentImage.value = null;
+                    
+                    // 更新商品列表中的圖片
+                    const index = products.value.findIndex(p => p.id === currentProduct.value.id);
+                    if (index !== -1) {
+                        products.value[index].image = null;
+                    }
+                    
+                    console.log('圖片移除成功');
+                } else {
+                    imageError.value = result.message || '移除失敗';
+                }
+            } catch (err) {
+                console.error('移除圖片錯誤:', err);
+                imageError.value = '移除時發生錯誤';
+            } finally {
+                uploading.value = false;
+            }
+        };
+        
         onMounted(() => {
             loadProducts();
         });
@@ -827,7 +1042,22 @@ const ProductsPageComponent = {
             saving,
             openEditModal,
             closeEditModal,
-            saveProduct
+            saveProduct,
+            // 圖片 Modal
+            showImageModal,
+            currentProduct,
+            currentImage,
+            uploading,
+            isDragging,
+            imageError,
+            fileInput,
+            openImageModal,
+            closeImageModal,
+            triggerFileInput,
+            handleFileSelect,
+            handleDrop,
+            uploadImage,
+            removeImage
         };
     }
 };
