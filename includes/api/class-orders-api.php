@@ -81,6 +81,21 @@ class Orders_API {
                 ]
             ]
         ]);
+        
+        // POST /orders/{id}/ship - 執行出貨
+        register_rest_route($this->namespace, '/orders/(?P<id>\d+)/ship', [
+            'methods' => 'POST',
+            'callback' => [$this, 'ship_order'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -188,6 +203,61 @@ class Orders_API {
                 'success' => true,
                 'message' => '訂單狀態已更新'
             ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 執行訂單出貨
+     */
+    public function ship_order($request) {
+        try {
+            $order_id = (int)$request->get_param('id');
+            $params = $request->get_json_params();
+            
+            if (empty($params['items']) || !is_array($params['items'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '請選擇要出貨的商品'
+                ], 400);
+            }
+            
+            // 驗證 items 格式
+            $items = [];
+            foreach ($params['items'] as $item) {
+                if (empty($item['order_item_id']) || empty($item['quantity'])) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => '訂單項目 ID 或數量無效'
+                    ], 400);
+                }
+                
+                $items[] = [
+                    'order_item_id' => (int)$item['order_item_id'],
+                    'quantity' => (int)$item['quantity'],
+                    'product_id' => isset($item['product_id']) ? (int)$item['product_id'] : 0
+                ];
+            }
+            
+            $shipment_id = $this->orderService->shipOrder($order_id, $items);
+            
+            if (is_wp_error($shipment_id)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $shipment_id->get_error_message()
+                ], 400);
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'shipment_id' => $shipment_id,
+                'message' => '出貨成功'
+            ], 201);
             
         } catch (\Exception $e) {
             return new \WP_REST_Response([
