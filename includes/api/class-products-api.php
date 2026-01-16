@@ -31,6 +31,10 @@ class Products_API {
                 'search' => [
                     'default' => '',
                     'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'id' => [
+                    'default' => null,
+                    'sanitize_callback' => 'absint',
                 ]
             ]
         ]);
@@ -144,6 +148,47 @@ class Products_API {
     public function get_products($request) {
         try {
             $productService = new ProductService();
+            
+            // 如果有 ID 參數，只取得單一商品
+            $productId = $request->get_param('id');
+            if (!empty($productId)) {
+                $product = $productService->getProductById((int) $productId);
+                
+                if (!$product) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => '商品不存在'
+                    ], 404);
+                }
+                
+                // 轉換 status：WordPress 使用 'publish'，前端需要 'published'
+                $status = 'private';
+                if ($product['status'] === 'publish') {
+                    $status = 'published';
+                } elseif ($product['status'] === 'private' || $product['status'] === 'draft') {
+                    $status = 'private';
+                }
+                
+                $formattedProduct = [
+                    'id' => $product['id'],
+                    'name' => $product['name'],
+                    'image' => $product['image'],
+                    'price' => $product['price'],
+                    'currency' => $product['currency'],
+                    'status' => $status,
+                    'ordered' => $product['ordered'] ?? 0,
+                    'purchased' => $product['purchased'] ?? 0
+                ];
+                
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'data' => [$formattedProduct],
+                    'total' => 1,
+                    'page' => 1,
+                    'per_page' => 1,
+                    'pages' => 1
+                ], 200);
+            }
             
             $filters = [
                 'status' => $request->get_param('status') ?? 'all',

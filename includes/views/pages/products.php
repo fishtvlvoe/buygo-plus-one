@@ -9,6 +9,18 @@ $products_component_template = <<<'HTML'
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">商品管理</h1>
                     <p class="text-sm text-slate-500">管理您的庫存、價格與訂單分配</p>
+                    
+                    <!-- 篩選提示 -->
+                    <div v-if="searchFilter" class="mt-2 flex items-center gap-2">
+                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
+                            篩選：{{ searchFilterName }}
+                        </span>
+                        <button 
+                            @click="handleSearchClear"
+                            class="text-xs text-slate-500 hover:text-slate-700 underline">
+                            清除篩選
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="flex items-center gap-3">
@@ -571,6 +583,14 @@ const ProductsPageComponent = {
         const perPage = ref(10);
         const totalProducts = ref(0);
         
+        // 搜尋篩選狀態
+        const searchFilter = ref(null);
+        const searchFilterName = ref('');
+        
+        // 幣別狀態
+        const currentCurrency = ref('JPY'); // 預設日幣
+        const exchangeRate = 4.5; // 1 TWD = 4.5 JPY
+        
         // Modal 狀態
         const showEditModal = ref(false);
         const editingProduct = ref(null);
@@ -632,12 +652,17 @@ const ProductsPageComponent = {
             error.value = null;
             
             try {
-                const response = await fetch(
-                    `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}`,
-                    {
-                        credentials: 'include',
-                    }
-                );
+                // 建立 API 參數
+                let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}`;
+                
+                // 如果有搜尋篩選，加入 ID 參數
+                if (searchFilter.value) {
+                    url += `&id=${searchFilter.value}`;
+                }
+                
+                const response = await fetch(url, {
+                    credentials: 'include',
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -661,8 +686,26 @@ const ProductsPageComponent = {
             }
         };
         
-        const formatPrice = (price, currency) => {
-            return `${price.toLocaleString()} ${currency}`;
+        // 金額轉換函數
+        const convertPrice = (price, fromCurrency, toCurrency) => {
+            if (fromCurrency === toCurrency) return price;
+            
+            if (fromCurrency === 'TWD' && toCurrency === 'JPY') {
+                return Math.round(price * exchangeRate);
+            } else if (fromCurrency === 'JPY' && toCurrency === 'TWD') {
+                return Math.round(price / exchangeRate);
+            }
+            
+            return price;
+        };
+        
+        const formatPrice = (price, originalCurrency) => {
+            // 如果當前幣別與原始幣別不同，進行轉換
+            let displayPrice = price;
+            if (currentCurrency.value !== originalCurrency) {
+                displayPrice = convertPrice(price, originalCurrency, currentCurrency.value);
+            }
+            return `${displayPrice.toLocaleString()} ${currentCurrency.value}`;
         };
 
         const calculateReserved = (product) => {
@@ -821,13 +864,18 @@ const ProductsPageComponent = {
         };
 
         // 處理搜尋選擇
-        const handleSearchSelect = (item) => {
+        const handleSearchSelect = async (item) => {
             console.log('選擇商品:', item);
-            // 可以選擇：
-            // 選項 1：直接打開編輯 Modal
-            // 選項 2：設定搜尋條件並重新載入列表
-            // 目前使用選項 2
-            loadProducts();
+            
+            // 設定搜尋篩選狀態
+            searchFilter.value = item.id;
+            searchFilterName.value = item.name;
+            
+            // 重置到第一頁
+            currentPage.value = 1;
+            
+            // 重新載入商品（只載入選中的商品）
+            await loadProducts();
         };
 
         // 處理搜尋輸入
@@ -840,13 +888,20 @@ const ProductsPageComponent = {
         // 處理清除搜尋
         const handleSearchClear = () => {
             console.log('清除搜尋');
+            searchFilter.value = null;
+            searchFilterName.value = '';
+            currentPage.value = 1;
             loadProducts();
         };
 
         // 處理幣別切換
         const handleCurrencyChange = (currency) => {
             console.log('切換幣別:', currency);
-            // TODO: 實作幣別轉換邏輯
+            
+            // 更新當前幣別
+            currentCurrency.value = currency;
+            
+            // 不需要修改 products 陣列，因為 formatPrice 會自動轉換顯示
         };
         
         // 上一頁
@@ -1153,6 +1208,9 @@ const ProductsPageComponent = {
             handleSearchInput,
             handleSearchClear,
             handleCurrencyChange,
+            searchFilter,
+            searchFilterName,
+            currentCurrency,
             // Modal
             showEditModal,
             editingProduct,

@@ -377,6 +377,77 @@ class ProductService
     }
 
     /**
+     * 取得單一商品完整資料
+     * 
+     * @param int $productId 商品 ID 
+     * @return array|null
+     */
+    public function getProductById(int $productId): ?array
+    {
+        $this->debugService->log('ProductService', '取得單品資料', [
+            'product_id' => $productId
+        ]);
+
+        try {
+            $product = ProductVariation::query()
+                ->with(['product', 'product_detail'])
+                ->where('id', $productId)
+                ->where('item_status', 'active')
+                ->first();
+
+            if (!$product) {
+                return null;
+            }
+
+            // 取得商品圖片
+            $imageUrl = null;
+            if ($product->product) {
+                $thumbnailId = get_post_thumbnail_id($product->post_id);
+                if ($thumbnailId) {
+                    $imageUrl = wp_get_attachment_image_url($thumbnailId, 'medium');
+                }
+            }
+
+            // 取得幣別資訊
+            $currency = 'TWD';
+            if ($product->product_detail && isset($product->product_detail->currency)) {
+                $currency = $product->product_detail->currency;
+            }
+
+            // 取得已採購數量（從 post_meta）
+            $purchased = (int) get_post_meta($product->post_id, '_buygo_purchased', true);
+
+            // 計算下單數量
+            $productIds = [$product->id];
+            $orderCounts = $this->calculateOrderCounts($productIds);
+
+            return [
+                'id' => $product->id,
+                'post_id' => $product->post_id,
+                'name' => $product->product->post_title ?? '',
+                'variation_title' => $product->variation_title,
+                'price' => (int) ($product->item_price / 100), // 轉換為元
+                'currency' => $currency,
+                'image' => $imageUrl,
+                'inventory' => $product->available ?? 0,
+                'stock' => $product->available ?? 0,
+                'ordered' => $orderCounts[$product->id] ?? 0,
+                'purchased' => $purchased,
+                'status' => $product->product->post_status ?? 'draft',
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得單品資料失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+            return null;
+        }
+    }
+
+    /**
      * 取得賣家名稱
      */
     private function getSellerName(int $userId): string
