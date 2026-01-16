@@ -275,25 +275,48 @@ $orders_component_template = <<<'HTML'
                 <!-- 商品列表 -->
                 <div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-4">商品明細</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full">
-                            <thead class="bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">商品名稱</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">數量</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">單價</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">小計</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <tr v-for="item in currentOrder.items" :key="item.id">
-                                    <td class="px-4 py-3 text-sm text-slate-900">{{ item.product_name }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-600 text-right">{{ item.quantity }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-600 text-right">{{ formatPrice(item.price, currentOrder.currency) }}</td>
-                                    <td class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">{{ formatPrice(item.total, currentOrder.currency) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="space-y-4">
+                        <div v-for="item in currentOrder.items" :key="item.id" class="border-b border-slate-200 pb-4 last:border-b-0">
+                            <!-- 商品基本資訊 -->
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-slate-900">{{ item.product_name }}</h4>
+                                    <div class="text-sm text-slate-600 mt-1">
+                                        數量: {{ item.quantity }} × {{ formatPrice(item.price, currentOrder.currency) }} = {{ formatPrice(item.total, currentOrder.currency) }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 出貨統計 -->
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="bg-gray-100 p-2 rounded text-center">
+                                    <div class="text-xs text-gray-600 mb-1">已出貨</div>
+                                    <div class="font-bold text-slate-900">{{ item.shipped_quantity || 0 }}</div>
+                                </div>
+                                <div class="bg-blue-100 p-2 rounded text-center" v-if="item.allocated_quantity > 0">
+                                    <div class="text-xs text-blue-600 mb-1">本次可出貨</div>
+                                    <div class="font-bold text-blue-700">{{ item.allocated_quantity }}</div>
+                                </div>
+                                <div class="bg-yellow-100 p-2 rounded text-center">
+                                    <div class="text-xs text-yellow-600 mb-1">未出貨</div>
+                                    <div class="font-bold text-yellow-700">{{ item.pending_quantity || 0 }}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- 出貨按鈕 -->
+                            <button 
+                                v-if="item.allocated_quantity > 0"
+                                @click="shipOrderItem(item)" 
+                                :disabled="shipping"
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm font-medium"
+                                :class="shipping ? 'opacity-50 cursor-not-allowed' : ''"
+                            >
+                                {{ shipping ? '出貨中...' : `執行出貨 (${item.allocated_quantity} 個)` }}
+                            </button>
+                            <div v-else class="text-sm text-slate-500 text-center py-2">
+                                本商品尚未分配現貨配額，請先至商品管理分配。
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -330,6 +353,7 @@ const OrdersPageComponent = {
         // Modal 狀態
         const showOrderModal = ref(false);
         const currentOrder = ref(null);
+        const shipping = ref(false);
         
         // 批次操作
         const selectedItems = ref([]);
@@ -408,15 +432,74 @@ const OrdersPageComponent = {
         };
         
         // 查看訂單詳情
-        const viewOrderDetails = (order) => {
-            currentOrder.value = order;
+        const viewOrderDetails = async (order) => {
             showOrderModal.value = true;
+            // 重新載入訂單詳情以取得最新的 allocated_quantity
+            await loadOrderDetail(order.id);
         };
         
         // 關閉訂單詳情 Modal
         const closeOrderModal = () => {
             showOrderModal.value = false;
             currentOrder.value = null;
+        };
+        
+        // 執行出貨
+        const shipOrderItem = async (item) => {
+            if (!confirm(`確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`)) {
+                return;
+            }
+            
+            shipping.value = true;
+            
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${item.order_id}/ship`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        items: [{
+                            order_item_id: item.id,
+                            quantity: item.allocated_quantity,
+                            product_id: item.product_id
+                        }]
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`出貨成功！出貨單號：SH-${result.shipment_id}`);
+                    // 重新載入訂單詳情
+                    await loadOrderDetail(item.order_id);
+                } else {
+                    alert('出貨失敗：' + result.message);
+                }
+            } catch (err) {
+                console.error('出貨失敗:', err);
+                alert('出貨失敗：' + err.message);
+            } finally {
+                shipping.value = false;
+            }
+        };
+        
+        // 載入訂單詳情
+        const loadOrderDetail = async (orderId) => {
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${orderId}`, {
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    currentOrder.value = result.data[0];
+                }
+            } catch (err) {
+                console.error('載入訂單詳情失敗:', err);
+            }
         };
         
         // 搜尋處理
@@ -526,6 +609,9 @@ const OrdersPageComponent = {
             getStatusText,
             viewOrderDetails,
             closeOrderModal,
+            shipOrderItem,
+            loadOrderDetail,
+            shipping,
             handleSearchSelect,
             handleSearchInput,
             handleSearchClear,

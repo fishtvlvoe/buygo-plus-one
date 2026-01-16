@@ -445,13 +445,26 @@ class OrderService
 
                 // 取得商品名稱（優先使用 title，其次使用 post_title）
                 $product_name = $item['title'] ?? $item['post_title'] ?? '未知商品';
+                
+                // 讀取 meta_data 中的 allocated_quantity 和 shipped_quantity
+                $meta_data = json_decode($item['meta_data'] ?? '{}', true) ?: [];
+                $allocated_quantity = (int)($meta_data['_allocated_qty'] ?? 0);
+                $shipped_quantity = (int)($meta_data['_shipped_qty'] ?? 0);
+                
+                // 取得 product_id（優先使用 post_id，其次使用 product_id）
+                $product_id = (int)($item['post_id'] ?? $item['product_id'] ?? 0);
 
                 $items[] = [
                     'id' => $item['id'] ?? 0,
+                    'order_id' => $order['id'] ?? 0,
+                    'product_id' => $product_id,
                     'product_name' => $product_name,
                     'quantity' => $quantity,
                     'price' => isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0, // 轉換為元
-                    'total' => isset($item['line_total']) ? ($item['line_total'] / 100) : 0
+                    'total' => isset($item['line_total']) ? ($item['line_total'] / 100) : 0,
+                    'allocated_quantity' => $allocated_quantity,
+                    'shipped_quantity' => $shipped_quantity,
+                    'pending_quantity' => max(0, $quantity - $allocated_quantity - $shipped_quantity)
                 ];
             }
         }
