@@ -140,6 +140,28 @@ class Products_API {
                 ]
             ]
         ]);
+        
+        // GET /products/{id}/orders - 取得商品訂單列表（用於分配介面）
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/orders', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_product_orders'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+        
+        // POST /products/allocate - 分配庫存
+        register_rest_route($this->namespace, '/products/allocate', [
+            'methods' => 'POST',
+            'callback' => [$this, 'allocate_stock'],
+            'permission_callback' => [__CLASS__, 'check_permission'],
+        ]);
     }
     
     /**
@@ -664,6 +686,91 @@ class Products_API {
             error_log('get_buyers 錯誤: ' . $e->getMessage());
             error_log('Stack trace: ' . $e->getTraceAsString());
             
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 取得商品訂單列表（用於分配介面）
+     */
+    public function get_product_orders($request) {
+        try {
+            $product_id = (int)$request->get_param('id');
+            
+            // 檢查商品是否存在
+            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            if (!$product) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+            
+            $allocationService = new \BuyGoPlus\Services\AllocationService();
+            $orders = $allocationService->getProductOrders($product_id);
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $orders
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 分配庫存給訂單
+     */
+    public function allocate_stock($request) {
+        try {
+            $params = $request->get_json_params();
+            
+            if (empty($params['product_id']) || empty($params['order_ids'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '缺少必要參數'
+                ], 400);
+            }
+            
+            $product_id = (int)$params['product_id'];
+            $order_ids = (array)$params['order_ids'];
+            
+            // 驗證 order_ids 都是數字
+            $order_ids = array_map('intval', $order_ids);
+            $order_ids = array_filter($order_ids, function($id) {
+                return $id > 0;
+            });
+            
+            if (empty($order_ids)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的訂單 ID'
+                ], 400);
+            }
+            
+            $allocationService = new \BuyGoPlus\Services\AllocationService();
+            $result = $allocationService->allocateStock($product_id, $order_ids);
+            
+            if (is_wp_error($result)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result->get_error_message()
+                ], 400);
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '分配成功'
+            ], 200);
+            
+        } catch (\Exception $e) {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
