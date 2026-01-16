@@ -26,7 +26,7 @@ $products_component_template = <<<'HTML'
             </div>
             
             <!-- 智慧搜尋框 -->
-            <div class="mb-6">
+            <div class="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <smart-search-box
                     api-endpoint="/wp-json/buygo-plus-one/v1/products"
                     :search-fields="['name', 'id']"
