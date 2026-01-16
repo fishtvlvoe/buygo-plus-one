@@ -26,6 +26,10 @@ class Plugin {
     }
     
     private function load_dependencies() {
+        // 載入 Services
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
+        
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';

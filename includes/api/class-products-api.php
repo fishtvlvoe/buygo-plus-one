@@ -1,6 +1,8 @@
 <?php
 namespace BuyGoPlus\Api;
 
+use BuyGoPlus\Services\ProductService;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -84,86 +86,101 @@ class Products_API {
      * 取得商品列表
      */
     public function get_products($request) {
-        $page = $request->get_param('page');
-        $per_page = $request->get_param('per_page');
-        $search = $request->get_param('search');
-        
-        // TODO: 從資料庫或 FluentCart API 取得商品
-        // 目前先回傳假資料
-        $mock_products = [
-            [
-                'id' => 1,
-                'name' => '測試商品 A',
-                'image' => null,
-                'price' => 1000,
-                'currency' => 'TWD',
-                'status' => 'published',
-                'ordered' => 10,
-                'purchased' => 5
-            ],
-            [
-                'id' => 2,
-                'name' => '測試商品 B',
-                'image' => null,
-                'price' => 2000,
-                'currency' => 'TWD',
-                'status' => 'published',
-                'ordered' => 20,
-                'purchased' => 15
-            ],
-            [
-                'id' => 3,
-                'name' => '測試商品 C',
-                'image' => null,
-                'price' => 3000,
-                'currency' => 'TWD',
-                'status' => 'private',
-                'ordered' => 5,
-                'purchased' => 3
-            ]
-        ];
-        
-        // 如果有搜尋關鍵字，過濾商品
-        if (!empty($search)) {
-            $mock_products = array_filter($mock_products, function($product) use ($search) {
-                return stripos($product['name'], $search) !== false;
-            });
+        try {
+            $productService = new ProductService();
+            
+            $filters = [
+                'status' => $request->get_param('status') ?? 'all',
+                'search' => $request->get_param('search') ?? ''
+            ];
+            
+            $viewMode = 'frontend'; // BuyGo+1 固定使用 frontend 模式
+            
+            $products = $productService->getProductsWithOrderCount($filters, $viewMode);
+            
+            // 轉換資料格式以符合前端需求
+            $formattedProducts = [];
+            foreach ($products as $product) {
+                // 轉換 status：WordPress 使用 'publish'，前端需要 'published'
+                $status = 'private';
+                if ($product['status'] === 'publish') {
+                    $status = 'published';
+                } elseif ($product['status'] === 'private' || $product['status'] === 'draft') {
+                    $status = 'private';
+                }
+                
+                $formattedProducts[] = [
+                    'id' => $product['id'],
+                    'name' => $product['name'],
+                    'image' => $product['image'],
+                    'price' => $product['price'], // ProductService 已經轉換為元
+                    'currency' => $product['currency'],
+                    'status' => $status,
+                    'ordered' => $product['ordered'] ?? 0,
+                    'purchased' => $product['purchased'] ?? 0
+                ];
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $formattedProducts,
+                'total' => count($formattedProducts),
+                'page' => $request->get_param('page'),
+                'per_page' => $request->get_param('per_page'),
+                'pages' => 1 // TODO: 後續加入分頁
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
-        
-        // 分頁處理
-        $total = count($mock_products);
-        $offset = ($page - 1) * $per_page;
-        $products = array_slice($mock_products, $offset, $per_page);
-        
-        return new \WP_REST_Response([
-            'success' => true,
-            'data' => array_values($products),
-            'total' => $total,
-            'page' => $page,
-            'per_page' => $per_page,
-            'pages' => ceil($total / $per_page)
-        ], 200);
     }
     
     /**
      * 更新商品
      */
     public function update_product($request) {
-        $id = $request->get_param('id');
-        $params = $request->get_json_params();
-        
-        // TODO: 更新資料庫或 FluentCart API
-        // 目前只回傳成功訊息
-        
-        return new \WP_REST_Response([
-            'success' => true,
-            'message' => '商品更新成功',
-            'data' => [
-                'id' => $id,
-                'purchased' => $params['purchased'] ?? null,
-                'status' => $params['status'] ?? null
-            ]
-        ], 200);
+        try {
+            $id = $request->get_param('id');
+            $params = $request->get_json_params();
+            
+            $productService = new ProductService();
+            
+            $updateData = [];
+            if (isset($params['purchased'])) {
+                $updateData['purchased'] = (int) $params['purchased'];
+            }
+            if (isset($params['status'])) {
+                $updateData['status'] = $params['status'] === 'published' ? 'publish' : 'private';
+            }
+            
+            $result = $productService->updateProduct($id, $updateData);
+            
+            if ($result) {
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'message' => '商品更新成功',
+                    'data' => [
+                        'id' => $id,
+                        'purchased' => $params['purchased'] ?? null,
+                        'status' => $params['status'] ?? null
+                    ]
+                ], 200);
+            } else {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品更新失敗'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
     
     /**
@@ -220,6 +237,6 @@ class Products_API {
      * 權限檢查
      */
     public static function check_permission() {
-        return \BuyGoPlus\Api\API::check_permission();
+        return \BuyGoPlus\Api\API::check_permission_for_api();
     }
 }
