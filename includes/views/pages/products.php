@@ -26,18 +26,19 @@ $products_component_template = <<<'HTML'
             </div>
             
             <!-- 智慧搜尋框 -->
-            <div class="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <smart-search-box
-                    api-endpoint="/wp-json/buygo-plus-one/v1/products"
-                    :search-fields="['name', 'id']"
-                    placeholder="搜尋商品、客戶名字或訂單編號"
-                    display-field="name"
-                    display-sub-field="id"
-                    @select="handleSearchSelect"
-                    @search="handleSearchInput"
-                    @clear="handleSearchClear"
-                />
-            </div>
+            <smart-search-box
+                api-endpoint="/wp-json/buygo-plus-one/v1/products"
+                :search-fields="['name', 'id']"
+                placeholder="搜尋商品、客戶名字或訂單編號"
+                display-field="name"
+                display-sub-field="id"
+                :show-currency-toggle="true"
+                default-currency="JPY"
+                @select="handleSearchSelect"
+                @search="handleSearchInput"
+                @clear="handleSearchClear"
+                @currency-change="handleCurrencyChange"
+            />
         </div>
     </div>
 
@@ -426,6 +427,12 @@ const ProductsPageComponent = {
             console.log('清除搜尋');
             loadProducts();
         };
+
+        // 處理幣別切換
+        const handleCurrencyChange = (currency) => {
+            console.log('切換幣別:', currency);
+            // TODO: 實作幣別轉換邏輯
+        };
         
         onMounted(() => {
             loadProducts();
@@ -447,7 +454,8 @@ const ProductsPageComponent = {
             exportCSV,
             handleSearchSelect,
             handleSearchInput,
-            handleSearchClear
+            handleSearchClear,
+            handleCurrencyChange
         };
     }
 };

@@ -70,34 +70,54 @@ const BuyGoSmartSearchBox = {
         maxSuggestions: {
             type: Number,
             default: 5
+        },
+        // 是否顯示幣別切換
+        showCurrencyToggle: {
+            type: Boolean,
+            default: false
+        },
+        // 幣別切換的初始狀態（JPY 或 TWD）
+        defaultCurrency: {
+            type: String,
+            default: 'JPY'
         }
     },
 
     template: `
-        <div class="buygo-smart-search relative flex-1">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-            <input 
-                type="text" 
-                v-model="searchQuery"
-                @input="handleInput"
-                @focus="handleFocus"
-                @blur="handleBlur"
-                class="block w-full rounded-xl border-slate-200 pl-10 pr-10 focus:border-primary focus:ring-primary focus:ring-2 text-sm py-3 placeholder-slate-400 shadow-sm bg-white transition" 
-                :placeholder="placeholder">
-            
-            <!-- Clear Button -->
-            <button 
-                v-if="searchQuery"
-                @click="clearSearch"
-                class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition">
-                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                </svg>
-            </button>
+        <div class="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div class="buygo-smart-search relative">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    v-model="searchQuery"
+                    @input="handleInput"
+                    @focus="handleFocus"
+                    @blur="handleBlur"
+                    :class="showCurrencyToggle ? 'block w-full rounded-xl border-slate-200 pl-10 pr-32 focus:border-primary focus:ring-primary focus:ring-2 text-sm py-3 placeholder-slate-400 shadow-sm bg-white transition' : 'block w-full rounded-xl border-slate-200 pl-10 pr-10 focus:border-primary focus:ring-primary focus:ring-2 text-sm py-3 placeholder-slate-400 shadow-sm bg-white transition'" 
+                    :placeholder="placeholder">
+                
+                <!-- Clear Button -->
+                <button 
+                    v-if="searchQuery"
+                    @click="clearSearch"
+                    :class="showCurrencyToggle ? 'absolute inset-y-0 right-24 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition' : 'absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition'">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+                
+                <!-- 幣別切換（右側） -->
+                <div v-if="showCurrencyToggle" class="absolute inset-y-0 right-2 flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-700">{{ currentCurrency === 'JPY' ? '日幣' : '台幣' }}</span>
+                    <label class="toggle-switch transform scale-90">
+                        <input type="checkbox" v-model="isJPY" @change="handleCurrencyChange">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
 
             <!-- Suggestions Dropdown -->
             <div 
@@ -153,7 +173,9 @@ const BuyGoSmartSearchBox = {
             searchTimeout: null,
             showSuggestions: false,
             searchLoading: false,
-            suggestions: []
+            suggestions: [],
+            currentCurrency: this.defaultCurrency,
+            isJPY: this.defaultCurrency === 'JPY'
         };
     },
 
@@ -272,6 +294,11 @@ const BuyGoSmartSearchBox = {
             this.$emit('search', '');
         },
 
+        handleCurrencyChange() {
+            this.currentCurrency = this.isJPY ? 'JPY' : 'TWD';
+            this.$emit('currency-change', this.currentCurrency);
+        },
+
         formatStatus(status) {
             const statusMap = {
                 'published': '已上架',
@@ -296,3 +323,46 @@ const BuyGoSmartSearchBox = {
     }
 };
 </script>
+<style>
+/* iOS Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #CBD5E1;
+    transition: .4s;
+    border-radius: 34px;
+}
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+input:checked + .toggle-slider {
+    background-color: #10B981;
+}
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+</style>
