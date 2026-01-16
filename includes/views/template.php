@@ -36,6 +36,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <!-- Design System CSS (基於 UI/UX Pro Max 建議 + Demo 設計稿) -->
+    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/assets/design-system.css'); ?>">
+    
     <style>
         body {
             font-family: 'Open Sans', sans-serif;

@@ -1,0 +1,251 @@
+/* BuyGo Plus One Design System
+ * 基於 UI/UX Pro Max 建議 + Demo 設計稿
+ * 建立日期: 2026-01-17
+ */
+
+/* ============================================
+   Google Fonts (基於 Typography 搜尋結果)
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+/* ============================================
+   CSS Variables (基於 Color 搜尋結果 + Demo 設計稿)
+   ============================================ */
+:root {
+    /* 主要顏色系統 (基於 E-commerce Admin 建議) */
+    --color-primary: #2563EB;        /* 主色（藍色）- Demo 設計稿 */
+    --color-accent: #F97316;         /* 強調色（橘色）- Demo 設計稿 */
+    --color-bg-main: #F8FAFC;        /* 背景色（淺灰藍）- Demo 設計稿 */
+    --color-success: #10B981;        /* 成功（綠色）- Demo 設計稿 */
+    --color-warning: #F59E0B;        /* 警告（黃色）- Demo 設計稿 */
+    
+    /* 文字顏色 (基於 UX 對比度建議) */
+    --color-text-primary: #1E293B;    /* 主要文字 - 確保 4.5:1 對比度 */
+    --color-text-secondary: #64748B; /* 次要文字 */
+    --color-text-muted: #94A3B8;      /* 弱化文字 */
+    
+    /* 邊框顏色 */
+    --color-border: #E2E8F0;          /* 標準邊框 */
+    --color-border-light: #F1F5F9;    /* 淺邊框 */
+    
+    /* 字體系統 (基於 Typography 搜尋結果) */
+    --font-title: 'Poppins', sans-serif;    /* 標題字體 */
+    --font-body: 'Open Sans', sans-serif;   /* 內文字體 */
+    
+    /* 圓角系統 (基於 Demo 設計稿) */
+    --radius-sm: 0.5rem;    /* 8px */
+    --radius-md: 0.75rem;   /* 12px */
+    --radius-lg: 1rem;      /* 16px */
+    --radius-xl: 1.5rem;    /* 24px */
+    --radius-2xl: 2rem;     /* 32px */
+    
+    /* 陰影系統 (基於 Style 搜尋結果 - Soft UI Evolution) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-accent: 0 2px 10px -3px rgba(249, 115, 22, 0.5); /* 橘色強調色陰影 */
+    
+    /* 間距系統 (基於 UX 搜尋結果 - 數學化間距) */
+    --spacing-xs: 0.5rem;   /* 8px - 最小觸控間距 */
+    --spacing-sm: 0.75rem;  /* 12px */
+    --spacing-md: 1rem;     /* 16px */
+    --spacing-lg: 1.5rem;   /* 24px */
+    --spacing-xl: 2rem;     /* 32px */
+    --spacing-2xl: 3rem;    /* 48px */
+    
+    /* 動畫時機 (基於 UX 搜尋結果) */
+    --transition-fast: 150ms;
+    --transition-base: 200ms;
+    --transition-slow: 300ms;
+}
+
+/* ============================================
+   基礎樣式
+   ============================================ */
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-bg-main);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6, .font-title {
+    font-family: var(--font-title);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* ============================================
+   Glass Card 效果 (基於 Demo 設計稿)
+   ============================================ */
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   iOS Toggle Switch (基於 Demo 設計稿)
+   ============================================ */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #CBD5E1; /* 預設狀態（台幣）- 灰色 */
+    transition: var(--transition-base);
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: var(--transition-base);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 選中狀態（日幣）- 綠色 */
+input:checked + .toggle-slider {
+    background-color: var(--color-success);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* ============================================
+   自訂滾動條 (基於 Demo 設計稿)
+   ============================================ */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ============================================
+   動畫效果 (基於 UX 搜尋結果 - 200-300ms)
+   ============================================ */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes zoom-in {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-in {
+    animation: fade-in var(--transition-base) ease-out, zoom-in var(--transition-base) ease-out;
+}
+
+/* ============================================
+   響應式工具類別 (基於 Stack 搜尋結果)
+   ============================================ */
+/* 響應式 padding */
+.responsive-padding {
+    padding: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+    .responsive-padding {
+        padding: var(--spacing-lg);
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-padding {
+        padding: var(--spacing-xl);
+    }
+}
+
+/* ============================================
+   無障礙增強 (基於 UX 搜尋結果)
+   ============================================ */
+/* 確保對比度足夠 (4.5:1 最低標準) */
+.text-primary {
+    color: var(--color-text-primary); /* #1E293B on white = 7:1 */
+}
+
+.text-secondary {
+    color: var(--color-text-secondary); /* #64748B on white = 4.8:1 */
+}
+
+/* 減少動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================
+   工具類別
+   ============================================ */
+/* Accent 顏色背景 */
+.bg-accent {
+    background-color: var(--color-accent);
+}
+
+.text-accent {
+    color: var(--color-accent);
+}
+
+/* 平滑過渡 */
+.transition-smooth {
+    transition: all var(--transition-base) ease-out;
+}
+
+/* 觸控間距 (基於 UX 搜尋結果 - 最小 8px gap) */
+.touch-spacing {
+    gap: var(--spacing-xs); /* 8px */
+}
