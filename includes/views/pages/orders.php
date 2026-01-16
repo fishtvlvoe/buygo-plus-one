@@ -308,8 +308,7 @@ $orders_component_template = <<<'HTML'
                                 v-if="item.allocated_quantity > 0"
                                 @click="shipOrderItem(item)" 
                                 :disabled="shipping"
-                                class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm font-medium"
-                                :class="shipping ? 'opacity-50 cursor-not-allowed' : ''"
+                                class="w-full px-4 py-2 bg-accent text-white rounded-lg text-xs font-black shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 uppercase tracking-tighter disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
                                 {{ shipping ? '出貨中...' : ('執行出貨 (' + item.allocated_quantity + ' 個)') }}
                             </button>

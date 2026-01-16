@@ -82,11 +82,11 @@ $products_component_template = <<<'HTML'
                 </button>
             </div>
         <!-- 桌面版表格 -->
-        <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="hidden md:block glass-card rounded-2xl overflow-hidden">
             <table class="min-w-full">
                 <thead class="bg-slate-50/50 border-b border-slate-100">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             <input 
                                 type="checkbox" 
                                 @change="toggleSelectAll"
@@ -94,18 +94,18 @@ $products_component_template = <<<'HTML'
                                 class="rounded border-slate-300 text-primary focus:ring-primary"
                             />
                         </th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">商品</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">價格</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">狀態</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已下單</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已採購</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">已分配</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">預訂</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">操作</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">商品</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">價格</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">狀態</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">已下單</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">已採購</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">已分配</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">預訂</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">操作</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-slate-100">
-                    <tr v-for="product in products" :key="product.id" class="border-b border-slate-100 hover:bg-slate-50/30 transition">
+                <tbody class="divide-y divide-slate-100">
+                    <tr v-for="product in products" :key="product.id" class="hover:bg-slate-50/30 transition">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <input 
                                 type="checkbox" 
@@ -184,7 +184,7 @@ $products_component_template = <<<'HTML'
             <div 
                 v-for="product in products" 
                 :key="product.id"
-                class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4 transition hover:shadow-md"
+                class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition"
             >
                     <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center flex-1">
@@ -209,47 +209,40 @@ $products_component_template = <<<'HTML'
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-4 gap-2 mb-3">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-3 gap-2 mb-4 bg-slate-50/50 p-3 rounded-xl">
                     <div class="text-center">
-                        <div class="text-xs text-slate-500 mb-1">已下單</div>
-                        <div class="text-base font-semibold text-slate-900">
-                            {{ product.ordered }}
-                        </div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">已下單</p>
+                        <p class="font-bold text-slate-700">{{ product.ordered }}</p>
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-slate-500 mb-1">已採購</div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">已採購</p>
                         <input 
                             type="number" 
                             v-model.number="product.purchased"
                             @blur="savePurchased(product)"
-                            class="w-full px-2 py-1 rounded border-0 bg-green-50 text-green-700 text-center text-base font-semibold focus:ring-2 focus:ring-green-500 focus:outline-none"
+                            class="w-full px-2 py-1 text-center text-sm font-bold text-green-600 bg-green-50 border border-green-100 rounded-lg outline-none transition"
                             min="0"
                         />
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-slate-500 mb-1">已分配</div>
-                        <div class="text-base font-semibold text-slate-900">
-                            {{ product.allocated || 0 }}
-                        </div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-xs text-slate-500 mb-1">預訂</div>
-                        <div class="text-base font-semibold text-orange-600">{{ calculateReserved(product) }}</div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">預訂</p>
+                        <p class="font-bold text-orange-600">{{ calculateReserved(product) }}</p>
                     </div>
                 </div>
                 
                 <div class="flex gap-2">
                     <button 
                         @click="openAllocationModal(product)"
-                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-sm transition shadow-sm">
                         分配
                     </button>
                     <button 
                         @click="openEditModal(product)"
-                        class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                        class="flex-1 px-4 py-2 bg-primary text-white rounded-xl hover:bg-blue-700 font-medium text-sm transition shadow-sm">
                         編輯
                     </button>
-                    <button @click="deleteProduct(product.id)" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
+                    <button @click="deleteProduct(product.id)" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium text-sm transition shadow-sm">刪除</button>
                 </div>
             </div>
         </div>

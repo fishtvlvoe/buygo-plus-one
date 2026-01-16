@@ -84,11 +84,11 @@ const BuyGoSmartSearchBox = {
     },
 
     template: `
-        <div class="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
+        <div class="mb-6">
             <div class="buygo-smart-search relative">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
                 <input 
@@ -97,7 +97,7 @@ const BuyGoSmartSearchBox = {
                     @input="handleInput"
                     @focus="handleFocus"
                     @blur="handleBlur"
-                    :class="showCurrencyToggle ? 'block w-full rounded-xl border-slate-200 pl-10 pr-32 focus:border-primary focus:ring-primary focus:ring-2 text-sm py-3 placeholder-slate-400 shadow-sm bg-white transition' : 'block w-full rounded-xl border-slate-200 pl-10 pr-10 focus:border-primary focus:ring-primary focus:ring-2 text-sm py-3 placeholder-slate-400 shadow-sm bg-white transition'" 
+                    :class="showCurrencyToggle ? 'block w-full pl-11 pr-32 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm shadow-sm outline-none' : 'block w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm shadow-sm outline-none'" 
                     :placeholder="placeholder">
                 
                 <!-- Clear Button -->
@@ -122,11 +122,13 @@ const BuyGoSmartSearchBox = {
             <!-- Suggestions Dropdown -->
             <div 
                 v-show="showSuggestions && suggestions.length > 0"
-                class="absolute z-10 mt-1 w-full bg-white shadow-xl max-h-60 rounded-xl py-1 text-base ring-1 ring-slate-200 overflow-auto focus:outline-none sm:text-sm">
+                class="absolute z-10 mt-2 w-full bg-white shadow-xl max-h-60 rounded-xl py-1 text-base ring-1 ring-slate-200 overflow-auto focus:outline-none sm:text-sm">
                 
                 <!-- Title -->
-                <div class="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
-                    {{ searchQuery ? '搜尋結果' : '最近項目' }}
+                <div class="px-4 py-3 bg-slate-50/50 border-b border-slate-100">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                        {{ searchQuery ? '搜尋結果' : '最近項目' }}
+                    </span>
                 </div>
                 
                 <!-- Suggestions List -->
