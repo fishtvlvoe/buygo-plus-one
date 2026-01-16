@@ -29,4 +29,11 @@ class API {
         // TODO: 正式環境改為檢查 WordPress Nonce 或 Application Password
         return true;
     }
+    
+    /**
+     * 權限檢查（給 Products_API 使用）
+     */
+    public static function check_permission_for_api() {
+        return self::check_permission();
+    }
 }

@@ -123,13 +123,22 @@ class Products_API {
             
             // 分頁處理
             $page = max(1, (int) ($request->get_param('page') ?? 1));
-            $per_page = max(1, min(100, (int) ($request->get_param('per_page') ?? 10)));
+            $per_page_param = (int) ($request->get_param('per_page') ?? 10);
             $total = count($formattedProducts);
-            $total_pages = max(1, ceil($total / $per_page));
             
-            // 計算分頁範圍
-            $offset = ($page - 1) * $per_page;
-            $paged_products = array_slice($formattedProducts, $offset, $per_page);
+            // 如果 per_page 為 -1，顯示全部（不分頁）
+            if ($per_page_param === -1) {
+                $per_page = $total;
+                $total_pages = 1;
+                $paged_products = $formattedProducts;
+            } else {
+                $per_page = max(1, min(100, $per_page_param));
+                $total_pages = max(1, ceil($total / $per_page));
+                
+                // 計算分頁範圍
+                $offset = ($page - 1) * $per_page;
+                $paged_products = array_slice($formattedProducts, $offset, $per_page);
+            }
             
             return new \WP_REST_Response([
                 'success' => true,

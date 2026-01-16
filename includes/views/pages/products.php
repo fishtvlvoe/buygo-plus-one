@@ -211,7 +211,8 @@ $products_component_template = <<<'HTML'
         <footer class="hidden md:flex items-center justify-between px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
             <div class="flex items-center gap-4">
                 <span class="text-xs text-slate-500 font-medium">
-                    顯示 {{ totalProducts }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalProducts) }} 筆
+                    <template v-if="perPage === -1">顯示全部 {{ totalProducts }} 筆</template>
+                    <template v-else>顯示 {{ totalProducts }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalProducts) }} 筆</template>
                 </span>
                 <select 
                     v-model="perPage" 
@@ -219,8 +220,10 @@ $products_component_template = <<<'HTML'
                     class="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-primary outline-none">
                     <option :value="5">5 / 頁</option>
                     <option :value="10">10 / 頁</option>
-                    <option :value="20">20 / 頁</option>
+                    <option :value="30">30 / 頁</option>
                     <option :value="50">50 / 頁</option>
+                    <option :value="100">100 / 頁</option>
+                    <option :value="-1">全部</option>
                 </select>
             </div>
             <div class="flex gap-2">
@@ -253,15 +256,19 @@ $products_component_template = <<<'HTML'
         <footer class="flex md:hidden items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
             <div class="flex items-center gap-2">
                 <span class="text-xs text-slate-500 font-medium">
-                    第 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalProducts) }} 筆
+                    <template v-if="perPage === -1">全部 {{ totalProducts }} 筆</template>
+                    <template v-else>第 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalProducts) }} 筆</template>
                 </span>
                 <select 
                     v-model="perPage" 
                     @change="changePerPage"
                     class="text-xs px-2 py-1.5 border border-slate-200 rounded-lg bg-white outline-none">
+                    <option :value="5">5/頁</option>
                     <option :value="10">10/頁</option>
-                    <option :value="20">20/頁</option>
+                    <option :value="30">30/頁</option>
                     <option :value="50">50/頁</option>
+                    <option :value="100">100/頁</option>
+                    <option :value="-1">全部</option>
                 </select>
             </div>
             <div class="flex gap-1.5">
@@ -313,6 +320,7 @@ const ProductsPageComponent = {
         
         // 總頁數
         const totalPages = Vue.computed(() => {
+            if (perPage.value === -1) return 1;
             return Math.ceil(totalProducts.value / perPage.value);
         });
         
