@@ -32,6 +32,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
         
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
