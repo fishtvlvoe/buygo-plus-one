@@ -325,18 +325,19 @@ const BuyGoSmartSearchBox = {
 </script>
 <style>
 /* iOS Toggle Switch */
-.toggle-switch {
+.buygo-smart-search .toggle-switch {
     position: relative;
     display: inline-block;
     width: 50px;
     height: 26px;
 }
-.toggle-switch input {
+.buygo-smart-search .toggle-switch input {
     opacity: 0;
     width: 0;
     height: 0;
+    position: absolute;
 }
-.toggle-slider {
+.buygo-smart-search .toggle-slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -347,7 +348,7 @@ const BuyGoSmartSearchBox = {
     transition: .4s;
     border-radius: 34px;
 }
-.toggle-slider:before {
+.buygo-smart-search .toggle-slider:before {
     position: absolute;
     content: "";
     height: 20px;
@@ -359,10 +360,10 @@ const BuyGoSmartSearchBox = {
     border-radius: 50%;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-input:checked + .toggle-slider {
+.buygo-smart-search input:checked + .toggle-slider {
     background-color: #10B981;
 }
-input:checked + .toggle-slider:before {
+.buygo-smart-search input:checked + .toggle-slider:before {
     transform: translateX(24px);
 }
 </style>
