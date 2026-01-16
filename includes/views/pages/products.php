@@ -22,6 +22,18 @@ $products_component_template = <<<'HTML'
         
         <!-- 商品列表 -->
         <div v-else>
+            <!-- 批次操作工具列 -->
+            <div v-if="selectedItems.length > 0" class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                <div class="text-sm text-blue-700">
+                    已選擇 {{ selectedItems.length }} 個商品
+                </div>
+                <button 
+                    @click="batchDelete"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                >
+                    批次刪除
+                </button>
+            </div>
         <!-- 桌面版表格 -->
         <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
@@ -266,6 +278,43 @@ const ProductsPageComponent = {
                 console.log('刪除商品:', id);
             }
         };
+
+        // 批次刪除
+        const batchDelete = async () => {
+            if (selectedItems.value.length === 0) {
+                return;
+            }
+            
+            if (!confirm(`確定要刪除 ${selectedItems.value.length} 個商品嗎？此操作無法復原。`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/products/batch-delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ids: selectedItems.value
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 從列表中移除已刪除的商品
+                    products.value = products.value.filter(p => !selectedItems.value.includes(p.id));
+                    selectedItems.value = [];
+                    console.log('批次刪除成功');
+                } else {
+                    alert('批次刪除失敗：' + result.message);
+                }
+            } catch (err) {
+                console.error('批次刪除錯誤:', err);
+                alert('批次刪除失敗');
+            }
+        };
         
         onMounted(() => {
             loadProducts();
@@ -282,7 +331,8 @@ const ProductsPageComponent = {
             toggleStatus,
             savePurchased,
             deleteProduct,
-            loadProducts
+            loadProducts,
+            batchDelete
         };
     }
 };

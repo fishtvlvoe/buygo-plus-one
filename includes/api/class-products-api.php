@@ -187,19 +187,66 @@ class Products_API {
      * 批次刪除
      */
     public function batch_delete($request) {
-        $params = $request->get_json_params();
-        $ids = $params['ids'] ?? [];
-        
-        // TODO: 從資料庫或 FluentCart API 刪除商品
-        // 目前只回傳成功訊息
-        
-        return new \WP_REST_Response([
-            'success' => true,
-            'message' => '批次刪除成功',
-            'data' => [
-                'deleted_ids' => $ids
-            ]
-        ], 200);
+        try {
+            $params = $request->get_json_params();
+            $ids = $params['ids'] ?? [];
+            
+            if (empty($ids)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '未選擇任何商品'
+                ], 400);
+            }
+            
+            // 驗證 ID 都是數字
+            $ids = array_map('intval', $ids);
+            $ids = array_filter($ids, function($id) {
+                return $id > 0;
+            });
+            
+            if (empty($ids)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的商品 ID'
+                ], 400);
+            }
+            
+            // 使用 FluentCart ProductVariation Model 刪除商品
+            $deleted_count = 0;
+            $failed_ids = [];
+            
+            foreach ($ids as $id) {
+                try {
+                    $variation = \FluentCart\App\Models\ProductVariation::find($id);
+                    if ($variation) {
+                        // 將商品狀態設為 inactive（軟刪除）
+                        $variation->item_status = 'inactive';
+                        $variation->save();
+                        $deleted_count++;
+                    } else {
+                        $failed_ids[] = $id;
+                    }
+                } catch (\Exception $e) {
+                    $failed_ids[] = $id;
+                }
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '批次刪除成功',
+                'data' => [
+                    'deleted_count' => $deleted_count,
+                    'deleted_ids' => array_diff($ids, $failed_ids),
+                    'failed_ids' => $failed_ids
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '批次刪除失敗：' . $e->getMessage()
+            ], 500);
+        }
     }
     
     /**
