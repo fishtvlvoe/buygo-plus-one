@@ -211,7 +211,7 @@ $products_component_template = <<<'HTML'
         <footer class="hidden md:flex items-center justify-between px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
             <div class="flex items-center gap-4">
                 <span class="text-xs text-slate-500 font-medium">
-                    顯示 {{ products.length }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalProducts) }} 筆
+                    顯示 {{ totalProducts }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalProducts) }} 筆
                 </span>
                 <select 
                     v-model="perPage" 
