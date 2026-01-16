@@ -540,6 +540,18 @@ class OrderService
             }
         }
         
+        // 方法 4：Fallback 到網站管理員（確保功能可用）
+        $this->debugService->log('OrderService', '找不到賣家，使用 Fallback', [
+            'order_id' => $order_id,
+            'current_user_id' => get_current_user_id()
+        ], 'warning');
+        
+        // 取得第一個管理員
+        $admins = get_users(['role' => 'administrator', 'number' => 1]);
+        if (!empty($admins)) {
+            return (int)$admins[0]->ID;
+        }
+        
         return 0;
     }
 
