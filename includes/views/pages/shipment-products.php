@@ -8,56 +8,21 @@ $shipment_products_component_template = <<<'HTML'
         <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">出貨明細</h1>
-                    <p class="text-sm text-slate-500">管理您的出貨單與出貨狀態</p>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">出貨商品</h1>
+                    <p class="text-sm text-slate-500">選擇訂單並建立出貨單</p>
                 </div>
                 
                 <div class="flex items-center gap-3">
-                    <!-- 新增出貨單按鈕（只在「待出貨」分頁顯示） -->
+                    <!-- 建立出貨單按鈕 -->
                     <button 
-                        v-if="activeTab === 'pending'"
                         @click="openCreateModal"
                         class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
-                        新增出貨單
+                        建立出貨單
                     </button>
                 </div>
-            </div>
-            
-            <!-- 分頁 Tabs（取代原本的狀態篩選） -->
-            <div class="flex gap-8">
-                <button 
-                    @click="activeTab = 'pending'"
-                    :class="activeTab === 'pending' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                    class="py-4 px-1 border-b-2 font-medium text-sm transition"
-                >
-                    待出貨 
-                    <span v-if="stats.pending > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
-                        {{ stats.pending }}
-                    </span>
-                </button>
-                <button 
-                    @click="activeTab = 'shipped'"
-                    :class="activeTab === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                    class="py-4 px-1 border-b-2 font-medium text-sm transition"
-                >
-                    已出貨 
-                    <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
-                        {{ stats.shipped }}
-                    </span>
-                </button>
-                <button 
-                    @click="activeTab = 'archived'"
-                    :class="activeTab === 'archived' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                    class="py-4 px-1 border-b-2 font-medium text-sm transition"
-                >
-                    存檔區 
-                    <span v-if="stats.archived > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
-                        {{ stats.archived }}
-                    </span>
-                </button>
             </div>
         </div>
     </div>
@@ -172,23 +137,7 @@ $shipment_products_component_template = <<<'HTML'
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(shipment.created_at) }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
-                                    <!-- 待出貨分頁：顯示「標記已出貨」 -->
-                                    <button 
-                                        v-if="activeTab === 'pending' && shipment.status === 'pending'"
-                                        @click="markShipped(shipment.id)" 
-                                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                                        標記已出貨
-                                    </button>
-                                    
-                                    <!-- 已出貨分頁：顯示「移至存檔」 -->
-                                    <button 
-                                        v-if="activeTab === 'shipped' && shipment.status === 'shipped'"
-                                        @click="archiveShipment(shipment.id)"
-                                        class="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                                        移至存檔
-                                    </button>
-                                    
-                                    <!-- 所有分頁：顯示「查看詳情」 -->
+                                    <!-- 查看詳情 -->
                                     <button 
                                         @click="viewShipmentDetail(shipment.id)" 
                                         class="text-primary hover:text-primary-dark text-sm font-medium">
@@ -282,23 +231,7 @@ $shipment_products_component_template = <<<'HTML'
                     </div>
                     
                     <div class="flex gap-2">
-                        <!-- 待出貨分頁：顯示「標記已出貨」 -->
-                        <button 
-                            v-if="activeTab === 'pending' && shipment.status === 'pending'"
-                            @click="markShipped(shipment.id)" 
-                            class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                            標記已出貨
-                        </button>
-                        
-                        <!-- 已出貨分頁：顯示「移至存檔」 -->
-                        <button 
-                            v-if="activeTab === 'shipped' && shipment.status === 'shipped'"
-                            @click="archiveShipment(shipment.id)"
-                            class="flex-1 px-3 py-2 bg-slate-500 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                            移至存檔
-                        </button>
-                        
-                        <!-- 所有分頁：顯示「查看詳情」 -->
+                        <!-- 查看詳情 -->
                         <button 
                             @click="viewShipmentDetail(shipment.id)" 
                             class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium">
@@ -453,10 +386,6 @@ const ShipmentProductsPageComponent = {
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
         
-        // 分頁狀態（新增）
-        const activeTab = ref('pending');  // 'pending', 'shipped', 'archived'
-        const stats = ref({ pending: 0, shipped: 0, archived: 0 });
-        
         // 狀態變數
         const shipments = ref([]);
         const loading = ref(false);
@@ -504,14 +433,14 @@ const ShipmentProductsPageComponent = {
             }, 3000);
         };
         
-        // 載入出貨單列表（根據 activeTab 載入對應狀態）
+        // 載入出貨單列表
         const loadShipments = async () => {
             loading.value = true;
             error.value = null;
             
             try {
-                // 根據 activeTab 載入對應狀態的出貨單
-                const url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=${activeTab.value}`;
+                // 載入待出貨的出貨單（用於建立出貨單時的參考）
+                const url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
                 
                 const response = await fetch(url, {
                     credentials: 'include',
@@ -535,24 +464,6 @@ const ShipmentProductsPageComponent = {
                 shipments.value = [];
             } finally {
                 loading.value = false;
-            }
-        };
-        
-        // 載入統計數字
-        const loadStats = async () => {
-            try {
-                const statuses = ['pending', 'shipped', 'archived'];
-                for (const status of statuses) {
-                    const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments?status=${status}&per_page=1`, {
-                        credentials: 'include'
-                    });
-                    const result = await response.json();
-                    if (result.success && result.total !== undefined) {
-                        stats.value[status] = result.total;
-                    }
-                }
-            } catch (err) {
-                console.error('載入統計失敗:', err);
             }
         };
         
@@ -617,46 +528,6 @@ const ShipmentProductsPageComponent = {
             return statusTexts[status] || status;
         };
         
-        // 設定狀態篩選（保留以相容舊代碼，但改用 activeTab）
-        const setStatusFilter = (status) => {
-            if (status === 'all') {
-                activeTab.value = 'pending';
-            } else {
-                activeTab.value = status;
-            }
-            currentStatusFilter.value = activeTab.value;
-            currentPage.value = 1;
-            loadShipments();
-        };
-        
-        // 移至存檔
-        const archiveShipment = (shipmentId) => {
-            showConfirm(
-                '確認移至存檔',
-                '確定要將此出貨單移至存檔區嗎？',
-                async () => {
-                    try {
-                        const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/archive`, {
-                            method: 'POST',
-                            credentials: 'include'
-                        });
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            showToast('已移至存檔區', 'success');
-                            await loadShipments();
-                            await loadStats();
-                        } else {
-                            showToast('移至存檔失敗：' + (result.message || '未知錯誤'), 'error');
-                        }
-                    } catch (err) {
-                        console.error('移至存檔失敗:', err);
-                        showToast('移至存檔失敗', 'error');
-                    }
-                }
-            );
-        };
-        
         // 顯示確認 Modal
         const showConfirm = (message, title = '確認操作', onConfirm = null) => {
             confirmModal.value = {
@@ -701,7 +572,6 @@ const ShipmentProductsPageComponent = {
                     if (result.success) {
                         showToast('標記成功！', 'success');
                         await loadShipments();
-                        await loadStats();  // 更新統計數字
                     } else {
                         showToast('標記失敗：' + result.message, 'error');
                     }
@@ -740,7 +610,6 @@ const ShipmentProductsPageComponent = {
                             showToast(`成功標記 ${result.count} 個出貨單為已出貨！`, 'success');
                             selectedItems.value = [];
                             await loadShipments();
-                            await loadStats();  // 更新統計數字
                         } else {
                             showToast('標記失敗：' + result.message, 'error');
                         }
@@ -831,25 +700,13 @@ const ShipmentProductsPageComponent = {
             loadShipments();
         };
         
-        // 監聽分頁切換
-        watch(() => activeTab.value, () => {
-            currentStatusFilter.value = activeTab.value;  // 同步狀態篩選
-            currentPage.value = 1;  // 切換分頁時重置到第一頁
-            loadShipments();
-        });
-        
         // 初始化
         onMounted(() => {
             loadShipments();
-            loadStats();  // 載入統計數字
         });
         
         return {
-            // 分頁相關（新增）
-            activeTab,
-            stats,
-            
-            // 原有狀態
+            // 狀態
             shipments,
             loading,
             error,
@@ -871,7 +728,6 @@ const ShipmentProductsPageComponent = {
             expandedShipments,
             currentStatusFilter,
             statusFilters,
-            setStatusFilter,
             markShipped,
             batchMarkShipped,
             viewShipmentDetail,
@@ -879,10 +735,6 @@ const ShipmentProductsPageComponent = {
             toggleSelectAll,
             selectedItems,
             loadShipments,
-            
-            // 新增方法
-            loadStats,
-            archiveShipment,
             
             // Modal 和 Toast
             showConfirmModal,
