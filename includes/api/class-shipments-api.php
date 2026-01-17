@@ -65,6 +65,15 @@ class Shipments_API
                 'permission_callback' => '__return_true',
             ],
         ]);
+
+        // 移至存檔區
+        register_rest_route('buygo-plus-one/v1', '/shipments/(?P<id>\d+)/archive', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'archive_shipment'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
     }
 
     /**
@@ -342,5 +351,55 @@ class Shipments_API
             'message' => "成功標記 {$result} 個出貨單為已出貨",
             'count' => $result,
         ]);
+    }
+
+    /**
+     * 移至存檔區
+     * 
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function archive_shipment(WP_REST_Request $request)
+    {
+        global $wpdb;
+        
+        try {
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $shipment_id = (int)$request->get_param('id');
+            
+            // 檢查出貨單是否存在
+            $shipment = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, status FROM {$table_shipments} WHERE id = %d",
+                $shipment_id
+            ));
+            
+            if (!$shipment) {
+                return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
+            }
+            
+            // 更新狀態為 archived
+            $result = $wpdb->update(
+                $table_shipments,
+                [
+                    'status' => 'archived',
+                    'updated_at' => current_time('mysql')
+                ],
+                ['id' => $shipment_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            
+            if ($result === false) {
+                return new WP_Error('update_failed', '移至存檔失敗：' . $wpdb->last_error, ['status' => 500]);
+            }
+            
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => '已移至存檔區'
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new WP_Error('archive_failed', '移至存檔失敗：' . $e->getMessage(), ['status' => 500]);
+        }
     }
 }
