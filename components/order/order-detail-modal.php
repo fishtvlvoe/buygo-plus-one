@@ -29,36 +29,32 @@ $order_detail_modal_template = <<<'HTML'
             
             <!-- Order Details -->
             <div v-else-if="orderData">
-                <!-- 訂單基本資訊 -->
+                <!-- 客戶資訊 -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-slate-900 mb-4">訂單資訊</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <h4 class="text-sm font-bold text-slate-900 mb-3 border-l-4 border-slate-900 pl-3">客戶資訊</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-[80px_1fr] gap-y-3 text-sm border-t border-slate-100 pt-3">
+                        <div class="text-slate-500 font-medium">訂單編號</div>
+                        <div class="font-bold text-slate-900">{{ orderData.invoice_no || ('訂單 #' + orderData.id) }}</div>
+                        
+                        <div class="text-slate-500 font-medium">訂單狀態</div>
                         <div>
-                            <span class="text-sm text-slate-500">訂單編號：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ orderData.invoice_no }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">狀態：</span>
                             <span :class="getStatusClass(orderData.status)" class="px-2 py-1 text-xs font-medium rounded-full">
                                 {{ getStatusText(orderData.status) }}
                             </span>
                         </div>
-                        <div>
-                            <span class="text-sm text-slate-500">客戶名稱：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ orderData.customer_name }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">客戶 Email：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ orderData.customer_email }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">總金額：</span>
-                            <span class="text-sm font-bold text-slate-900">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">下單日期：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ formatDate(orderData.created_at) }}</span>
-                        </div>
+                        
+                        <div class="text-slate-500 font-medium">客戶姓名</div>
+                        <div class="font-bold text-slate-900">{{ orderData.customer_name || '-' }}</div>
+                        
+                        <div class="text-slate-500 font-medium">客戶 Email</div>
+                        <div class="text-slate-900 break-all">{{ orderData.customer_email || '-' }}</div>
+                        
+                        <div class="text-slate-500 font-medium">總金額</div>
+                        <div class="text-slate-900 font-bold">{{ formatPrice(orderData.total_amount, orderData.currency) }}</div>
+                        
+                        <div class="text-slate-500 font-medium">下單日期</div>
+                        <div class="text-slate-900">{{ formatDate(orderData.created_at) }}</div>
                     </div>
                 </div>
                 
@@ -134,7 +130,7 @@ const OrderDetailModal = {
     emits: ['close'],
     template: `<?php echo $order_detail_modal_template; ?>`,
     setup(props, { emit }) {
-        const { ref, onMounted, computed } = Vue;
+        const { ref, onMounted, watch } = Vue;
         
         const orderData = ref(null);
         const loading = ref(false);
@@ -143,7 +139,10 @@ const OrderDetailModal = {
         
         // 載入訂單詳情
         const loadOrderDetail = async () => {
-            if (!props.orderId) return;
+            if (!props.orderId) {
+                error.value = '訂單 ID 不存在';
+                return;
+            }
             
             loading.value = true;
             error.value = null;
@@ -153,16 +152,20 @@ const OrderDetailModal = {
                     credentials: 'include'
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success && result.data && result.data.length > 0) {
                     orderData.value = result.data[0];
                 } else {
-                    error.value = '載入訂單失敗';
+                    error.value = result.message || '載入訂單失敗';
                 }
             } catch (err) {
                 console.error('載入訂單詳情失敗:', err);
-                error.value = err.message;
+                error.value = err.message || '載入訂單詳情時發生錯誤';
             } finally {
                 loading.value = false;
             }
@@ -245,9 +248,13 @@ const OrderDetailModal = {
             }
         };
         
-        onMounted(() => {
-            loadOrderDetail();
-        });
+        // 監聽 orderId 變化，重新載入資料
+        watch(() => props.orderId, (newId) => {
+            if (newId) {
+                orderData.value = null;
+                loadOrderDetail();
+            }
+        }, { immediate: true });
         
         return {
             orderData,
