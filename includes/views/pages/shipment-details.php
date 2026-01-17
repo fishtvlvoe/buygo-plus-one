@@ -53,6 +53,43 @@ $shipment_details_template = <<<'HTML'
         </div>
     </div>
     
+    <!-- 批次操作工具列（只在有勾選時顯示） -->
+    <div v-if="selectedShipments.length > 0" class="bg-orange-50 border-b border-orange-200 px-6 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-slate-700">
+                    已選擇 {{ selectedShipments.length }} 個出貨單
+                </span>
+                <button 
+                    @click="clearSelection"
+                    class="text-sm text-slate-600 hover:text-slate-900"
+                >
+                    清除勾選
+                </button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- 待出貨分頁：批次標記已出貨 -->
+                <button 
+                    v-if="activeTab === 'pending'"
+                    @click="batchMarkShipped"
+                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition"
+                >
+                    批次標記已出貨（{{ selectedShipments.length }}）
+                </button>
+                
+                <!-- 已出貨分頁：批次移至存檔 -->
+                <button 
+                    v-if="activeTab === 'shipped'"
+                    @click="batchArchive"
+                    class="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 font-medium transition"
+                >
+                    批次移至存檔（{{ selectedShipments.length }}）
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 出貨單列表 -->
     <div class="p-6">
         <div v-if="loading" class="text-center py-12">
@@ -71,6 +108,14 @@ $shipment_details_template = <<<'HTML'
             <table class="min-w-full divide-y divide-slate-200">
                 <thead class="bg-slate-50">
                     <tr>
+                        <th class="px-6 py-3 text-left">
+                            <input 
+                                type="checkbox" 
+                                @change="toggleSelectAll"
+                                :checked="isAllSelected"
+                                class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+                            >
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">出貨單號</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">客戶</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">商品數量</th>
@@ -80,6 +125,14 @@ $shipment_details_template = <<<'HTML'
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-200">
                     <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input 
+                                type="checkbox" 
+                                :value="shipment.id"
+                                v-model="selectedShipments"
+                                class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+                            >
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                             {{ shipment.shipment_number }}
                         </td>
@@ -93,26 +146,33 @@ $shipment_details_template = <<<'HTML'
                             {{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button 
-                                v-if="activeTab === 'pending'"
-                                @click="markShipped(shipment.id)"
-                                class="text-orange-600 hover:text-orange-900 mr-4"
-                            >
-                                標記已出貨
-                            </button>
-                            <button 
-                                v-if="activeTab === 'shipped'"
-                                @click="archiveShipment(shipment.id)"
-                                class="text-slate-600 hover:text-slate-900 mr-4"
-                            >
-                                移至存檔
-                            </button>
-                            <button 
-                                @click="viewDetail(shipment.id)"
-                                class="text-blue-600 hover:text-blue-900"
-                            >
-                                查看詳情
-                            </button>
+                            <div class="flex justify-end gap-2">
+                                <!-- 待出貨分頁：已出貨按鈕 -->
+                                <button 
+                                    v-if="activeTab === 'pending'"
+                                    @click="markShipped(shipment.id)"
+                                    class="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-medium transition"
+                                >
+                                    已出貨
+                                </button>
+                                
+                                <!-- 已出貨分頁：存檔按鈕 -->
+                                <button 
+                                    v-if="activeTab === 'shipped'"
+                                    @click="archiveShipment(shipment.id)"
+                                    class="px-3 py-1.5 bg-slate-500 text-white rounded-lg hover:bg-slate-600 text-sm font-medium transition"
+                                >
+                                    存檔
+                                </button>
+                                
+                                <!-- 所有分頁：查看按鈕 -->
+                                <button 
+                                    @click="viewDetail(shipment.id)"
+                                    class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium transition"
+                                >
+                                    查看
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -165,6 +225,120 @@ $shipment_details_template = <<<'HTML'
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
     </div>
+    
+    <!-- 查看詳情 Modal -->
+    <div 
+        v-if="detailModal.show"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        @click.self="closeDetailModal"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <!-- Modal 標題 -->
+            <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-slate-900">
+                    出貨明細 - {{ detailModal.shipment?.shipment_number }}
+                </h3>
+                <button 
+                    @click="closeDetailModal"
+                    class="text-slate-400 hover:text-slate-600"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal 內容 -->
+            <div class="p-6">
+                <!-- 客戶資訊 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-semibold text-slate-700 mb-3">客戶資訊</h4>
+                    <div class="bg-slate-50 rounded-lg p-4 space-y-2">
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">姓名</span>
+                            <span class="text-sm text-slate-900 font-medium">{{ detailModal.shipment?.customer_name || '-' }}</span>
+                        </div>
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">電話</span>
+                            <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_phone || '-' }}</span>
+                        </div>
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">地址</span>
+                            <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_address || '-' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 商品明細 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-semibold text-slate-700 mb-3">商品明細</h4>
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">商品名稱</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">數量</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">單價</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">小計</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <tr v-for="item in detailModal.items" :key="item.id">
+                                    <td class="px-4 py-3 text-sm text-slate-900">{{ item.product_name }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">NT$ {{ formatPrice(item.price) }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">NT$ {{ formatPrice(item.quantity * item.price) }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-slate-50">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">總計</td>
+                                    <td class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
+                                        NT$ {{ formatPrice(detailModal.total) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 出貨資訊 -->
+                <div v-if="activeTab === 'shipped' || activeTab === 'archived'" class="mb-6">
+                    <h4 class="text-sm font-semibold text-slate-700 mb-3">出貨資訊</h4>
+                    <div class="bg-slate-50 rounded-lg p-4 space-y-2">
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">出貨日期</span>
+                            <span class="text-sm text-slate-900">{{ formatDate(detailModal.shipment?.shipped_at) }}</span>
+                        </div>
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">物流方式</span>
+                            <span class="text-sm text-slate-900">{{ detailModal.shipment?.shipping_method || '-' }}</span>
+                        </div>
+                        <div class="flex">
+                            <span class="text-sm text-slate-600 w-20">追蹤號碼</span>
+                            <span class="text-sm text-slate-900">{{ detailModal.shipment?.tracking_number || '-' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal 底部 -->
+            <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+                <button 
+                    @click="closeDetailModal"
+                    class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition"
+                >
+                    關閉
+                </button>
+                <button 
+                    @click="printDetail"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition"
+                >
+                    列印收據
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 HTML;
 
@@ -177,14 +351,26 @@ const ShipmentDetailsPageComponent = {
     name: 'ShipmentDetailsPage',
     template: `<?php echo $shipment_details_template; ?>`,
     setup() {
+        const { computed, watch } = Vue;
         const activeTab = ref('pending');
         const shipments = ref([]);
         const loading = ref(false);
         const stats = ref({ pending: 0, shipped: 0, archived: 0 });
         
+        // 勾選狀態
+        const selectedShipments = ref([]);
+        
         // Modal 狀態
         const confirmModal = ref({ show: false, title: '', message: '', onConfirm: null });
         const toastMessage = ref({ show: false, message: '', type: 'success' });
+        
+        // 詳情 Modal 狀態
+        const detailModal = ref({ 
+            show: false, 
+            shipment: null, 
+            items: [], 
+            total: 0 
+        });
         
         // 載入出貨單列表
         const loadShipments = async () => {
@@ -241,6 +427,7 @@ const ShipmentDetailsPageComponent = {
                         
                         if (result.success) {
                             showToast('標記成功！', 'success');
+                            selectedShipments.value = [];
                             await loadShipments();
                             await loadStats();
                         } else {
@@ -268,6 +455,7 @@ const ShipmentDetailsPageComponent = {
                         
                         if (result.success) {
                             showToast('已移至存檔區', 'success');
+                            selectedShipments.value = [];
                             await loadShipments();
                             await loadStats();
                         } else {
@@ -280,9 +468,135 @@ const ShipmentDetailsPageComponent = {
             );
         };
         
-        // 查看詳情（暫時用 alert，之後可改為 Modal）
-        const viewDetail = (shipmentId) => {
-            alert('查看詳情功能開發中，出貨單 ID: ' + shipmentId);
+        // 是否全選
+        const isAllSelected = computed(() => {
+            return shipments.value.length > 0 && 
+                   selectedShipments.value.length === shipments.value.length;
+        });
+
+        // 切換全選
+        const toggleSelectAll = (event) => {
+            if (event.target.checked) {
+                selectedShipments.value = shipments.value.map(s => s.id);
+            } else {
+                selectedShipments.value = [];
+            }
+        };
+
+        // 清除勾選
+        const clearSelection = () => {
+            selectedShipments.value = [];
+        };
+
+        // 批次標記已出貨
+        const batchMarkShipped = () => {
+            if (selectedShipments.value.length === 0) {
+                showToast('請先選擇出貨單', 'error');
+                return;
+            }
+            
+            showConfirm(
+                '確認批次標記已出貨',
+                `確定要將 ${selectedShipments.value.length} 個出貨單標記為已出貨嗎？`,
+                async () => {
+                    try {
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ shipment_ids: selectedShipments.value })
+                        });
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast('批次標記成功！', 'success');
+                            selectedShipments.value = [];
+                            await loadShipments();
+                            await loadStats();
+                        } else {
+                            showToast('批次標記失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('批次標記失敗:', err);
+                        showToast('批次標記失敗', 'error');
+                    }
+                }
+            );
+        };
+
+        // 批次移至存檔
+        const batchArchive = () => {
+            if (selectedShipments.value.length === 0) {
+                showToast('請先選擇出貨單', 'error');
+                return;
+            }
+            
+            showConfirm(
+                '確認批次移至存檔',
+                `確定要將 ${selectedShipments.value.length} 個出貨單移至存檔區嗎？`,
+                async () => {
+                    try {
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-archive', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ shipment_ids: selectedShipments.value })
+                        });
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast('批次移至存檔成功！', 'success');
+                            selectedShipments.value = [];
+                            await loadShipments();
+                            await loadStats();
+                        } else {
+                            showToast('批次移至存檔失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('批次移至存檔失敗:', err);
+                        showToast('批次移至存檔失敗', 'error');
+                    }
+                }
+            );
+        };
+
+        // 查看詳情
+        const viewDetail = async (shipmentId) => {
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`, {
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    detailModal.value = {
+                        show: true,
+                        shipment: result.data.shipment,
+                        items: result.data.items,
+                        total: result.data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+                    };
+                } else {
+                    showToast('載入詳情失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('載入詳情失敗:', err);
+                showToast('載入詳情失敗', 'error');
+            }
+        };
+
+        // 關閉詳情 Modal
+        const closeDetailModal = () => {
+            detailModal.value = { show: false, shipment: null, items: [], total: 0 };
+        };
+
+        // 格式化價格
+        const formatPrice = (price) => {
+            return new Intl.NumberFormat('zh-TW').format(price);
+        };
+
+        // 列印收據
+        const printDetail = () => {
+            window.print();
         };
         
         // Modal 控制
@@ -315,8 +629,9 @@ const ShipmentDetailsPageComponent = {
             return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
         };
         
-        // 監聽分頁切換
+        // 監聽分頁切換，清除勾選
         watch(() => activeTab.value, () => {
+            selectedShipments.value = [];
             loadShipments();
         });
         
@@ -330,14 +645,24 @@ const ShipmentDetailsPageComponent = {
             shipments,
             loading,
             stats,
+            selectedShipments,
+            isAllSelected,
             confirmModal,
             toastMessage,
+            detailModal,
             markShipped,
             archiveShipment,
             viewDetail,
             closeConfirmModal,
             handleConfirm,
-            formatDate
+            formatDate,
+            toggleSelectAll,
+            clearSelection,
+            batchMarkShipped,
+            batchArchive,
+            closeDetailModal,
+            formatPrice,
+            printDetail
         };
     }
 };

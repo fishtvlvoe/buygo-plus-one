@@ -74,6 +74,33 @@ class Shipments_API
                 'permission_callback' => '__return_true',
             ],
         ]);
+
+        // 合併出貨單
+        register_rest_route('buygo-plus-one/v1', '/shipments/merge', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'merge_shipments'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
+
+        // 批次移至存檔
+        register_rest_route('buygo-plus-one/v1', '/shipments/batch-archive', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'batch_archive_shipments'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
+
+        // 取得出貨單詳情
+        register_rest_route('buygo-plus-one/v1', '/shipments/(?P<id>\d+)/detail', [
+            [
+                'methods' => 'GET',
+                'callback' => [$this, 'get_shipment_detail'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
     }
 
     /**
@@ -400,6 +427,224 @@ class Shipments_API
             
         } catch (\Exception $e) {
             return new WP_Error('archive_failed', '移至存檔失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * 合併出貨單
+     * 
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function merge_shipments(WP_REST_Request $request)
+    {
+        global $wpdb;
+        
+        try {
+            $shipment_ids = $request->get_param('shipment_ids');
+            
+            // 驗證輸入
+            if (empty($shipment_ids) || !is_array($shipment_ids)) {
+                return new WP_Error('invalid_input', '請提供有效的出貨單 ID 陣列', ['status' => 400]);
+            }
+            
+            if (count($shipment_ids) < 2) {
+                return new WP_Error('invalid_input', '至少需要選擇 2 個出貨單才能合併', ['status' => 400]);
+            }
+            
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            
+            // 確保所有 ID 都是整數
+            $shipment_ids = array_map('intval', $shipment_ids);
+            $shipment_ids = array_filter($shipment_ids, function($id) { return $id > 0; });
+            
+            if (count($shipment_ids) < 2) {
+                return new WP_Error('invalid_input', '至少需要選擇 2 個有效的出貨單才能合併', ['status' => 400]);
+            }
+            
+            // 檢查所有出貨單是否屬於同一個客戶
+            $ids_placeholder = implode(',', array_fill(0, count($shipment_ids), '%d'));
+            $query = $wpdb->prepare(
+                "SELECT DISTINCT customer_id FROM {$table_shipments} 
+                 WHERE id IN ({$ids_placeholder})",
+                ...$shipment_ids
+            );
+            $customer_ids = $wpdb->get_col($query);
+            
+            if (count($customer_ids) > 1) {
+                return new WP_Error('different_customers', '只能合併相同客戶的出貨單', ['status' => 400]);
+            }
+            
+            // 開始資料庫事務
+            $wpdb->query('START TRANSACTION');
+            
+            try {
+                // 保留第一個出貨單作為主出貨單
+                $main_shipment_id = $shipment_ids[0];
+                $merge_shipment_ids = array_slice($shipment_ids, 1);
+                
+                // 將其他出貨單的商品項目移到主出貨單
+                foreach ($merge_shipment_ids as $merge_id) {
+                    $wpdb->update(
+                        $table_shipment_items,
+                        ['shipment_id' => $main_shipment_id],
+                        ['shipment_id' => $merge_id],
+                        ['%d'],
+                        ['%d']
+                    );
+                }
+                
+                // 刪除被合併的出貨單
+                $merge_ids_placeholder = implode(',', array_fill(0, count($merge_shipment_ids), '%d'));
+                $delete_query = $wpdb->prepare(
+                    "DELETE FROM {$table_shipments} 
+                     WHERE id IN ({$merge_ids_placeholder})",
+                    ...$merge_shipment_ids
+                );
+                $wpdb->query($delete_query);
+                
+                // 更新主出貨單的 updated_at
+                $wpdb->update(
+                    $table_shipments,
+                    ['updated_at' => current_time('mysql')],
+                    ['id' => $main_shipment_id],
+                    ['%s'],
+                    ['%d']
+                );
+                
+                $wpdb->query('COMMIT');
+                
+                return new WP_REST_Response([
+                    'success' => true,
+                    'message' => '合併成功',
+                    'main_shipment_id' => $main_shipment_id
+                ], 200);
+                
+            } catch (\Exception $e) {
+                $wpdb->query('ROLLBACK');
+                throw $e;
+            }
+            
+        } catch (\Exception $e) {
+            return new WP_Error('merge_failed', '合併失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * 批次移至存檔
+     * 
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function batch_archive_shipments(WP_REST_Request $request)
+    {
+        global $wpdb;
+        
+        try {
+            $shipment_ids = $request->get_param('shipment_ids');
+            
+            if (empty($shipment_ids) || !is_array($shipment_ids)) {
+                return new WP_Error('invalid_input', '請提供有效的出貨單 ID 陣列', ['status' => 400]);
+            }
+            
+            // 確保所有 ID 都是整數
+            $shipment_ids = array_map('intval', $shipment_ids);
+            $shipment_ids = array_filter($shipment_ids, function($id) { return $id > 0; });
+            
+            if (empty($shipment_ids)) {
+                return new WP_Error('invalid_input', '請提供有效的出貨單 ID', ['status' => 400]);
+            }
+            
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            
+            // 批次更新狀態
+            $ids_placeholder = implode(',', array_fill(0, count($shipment_ids), '%d'));
+            $update_query = $wpdb->prepare(
+                "UPDATE {$table_shipments} 
+                 SET status = 'archived', updated_at = %s 
+                 WHERE id IN ({$ids_placeholder})",
+                current_time('mysql'),
+                ...$shipment_ids
+            );
+            $result = $wpdb->query($update_query);
+            
+            if ($result === false) {
+                throw new \Exception($wpdb->last_error);
+            }
+            
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => "已將 {$result} 個出貨單移至存檔區",
+                'count' => $result
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new WP_Error('batch_archive_failed', '批次移至存檔失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * 取得出貨單詳情
+     * 
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function get_shipment_detail(WP_REST_Request $request)
+    {
+        global $wpdb;
+        
+        try {
+            $shipment_id = (int)$request->get_param('id');
+            
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            $table_customers = $wpdb->prefix . 'fct_customers';
+            $table_order_items = $wpdb->prefix . 'fct_order_items';
+            
+            // 取得出貨單基本資訊
+            $shipment = $wpdb->get_row($wpdb->prepare(
+                "SELECT s.*, 
+                        CONCAT(c.first_name, ' ', c.last_name) as customer_name, 
+                        c.phone as customer_phone, 
+                        c.address as customer_address
+                 FROM {$table_shipments} s
+                 LEFT JOIN {$table_customers} c ON s.customer_id = c.id
+                 WHERE s.id = %d",
+                $shipment_id
+            ), ARRAY_A);
+            
+            if (!$shipment) {
+                return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
+            }
+            
+            // 取得出貨單商品項目
+            $items = $wpdb->get_results($wpdb->prepare(
+                "SELECT si.*, 
+                        COALESCE(oi.title, oi.post_title, '未知商品') as product_name,
+                        oi.price
+                 FROM {$table_shipment_items} si
+                 LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
+                 WHERE si.shipment_id = %d",
+                $shipment_id
+            ), ARRAY_A);
+            
+            // 處理價格（如果沒有價格，預設為 0）
+            foreach ($items as &$item) {
+                $item['price'] = floatval($item['price'] ?? 0);
+            }
+            unset($item);
+            
+            return new WP_REST_Response([
+                'success' => true,
+                'data' => [
+                    'shipment' => $shipment,
+                    'items' => $items
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return new WP_Error('get_detail_failed', '取得詳情失敗：' . $e->getMessage(), ['status' => 500]);
         }
     }
 }
