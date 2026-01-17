@@ -33,15 +33,18 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
         
         // 載入 Admin
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
         
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
         
         // 載入 API
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
         
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
@@ -52,8 +55,12 @@ class Plugin {
         // 建立資料表（外掛啟用時）
         \BuyGoPlus\Database::create_tables();
         
-        // 初始化 Debug Page
+        // 初始化角色權限
+        \BuyGoPlus\Services\SettingsService::init_roles();
+        
+        // 初始化 Admin Pages
         new \BuyGoPlus\Admin\DebugPage();
+        new \BuyGoPlus\Admin\SettingsPage();
         
         // 初始化 Routes
         new Routes();
@@ -61,5 +68,6 @@ class Plugin {
         // 初始化 API
         new \BuyGoPlus\Api\API();
         new \BuyGoPlus\Api\Debug_API();
+        new \BuyGoPlus\Api\Settings_API();
     }
 }
