@@ -11,18 +11,6 @@ $shipment_products_component_template = <<<'HTML'
                     <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">出貨商品</h1>
                     <p class="text-sm text-slate-500">選擇訂單並建立出貨單</p>
                 </div>
-                
-                <div class="flex items-center gap-3">
-                    <!-- 建立出貨單按鈕 -->
-                    <button 
-                        @click="openCreateModal"
-                        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        建立出貨單
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -43,14 +31,16 @@ $shipment_products_component_template = <<<'HTML'
         <!-- 出貨單列表 -->
         <div v-else>
             <!-- 批次操作工具列 -->
-            <div v-if="selectedItems.length > 0" class="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+            <div v-if="selectedShipments.length > 0" class="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
                 <div class="text-sm text-blue-700 font-medium">
-                    已選擇 {{ selectedItems.length }} 個出貨單
+                    已選擇 {{ selectedShipments.length }} 個出貨單
                 </div>
                 <button 
-                    @click="batchMarkShipped"
-                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition shadow-sm">
-                    批次標記為已出貨
+                    @click="mergeShipments"
+                    :disabled="!canMerge"
+                    :class="canMerge ? 'bg-orange-500 hover:bg-orange-600' : 'bg-slate-300 cursor-not-allowed'"
+                    class="px-4 py-2 text-white rounded-lg font-medium transition shadow-sm">
+                    合併出貨單
                 </button>
             </div>
             
@@ -74,7 +64,7 @@ $shipment_products_component_template = <<<'HTML'
                     <tbody class="bg-white divide-y divide-slate-200">
                         <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3">
-                                <input type="checkbox" :value="shipment.id" v-model="selectedItems" class="rounded border-slate-300">
+                                <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ shipment.shipment_number }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ shipment.customer_name || '未知客戶' }}</td>
@@ -130,18 +120,29 @@ $shipment_products_component_template = <<<'HTML'
                             </td>
                             <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ shipment.total_quantity || 0 }}</td>
                             <td class="px-4 py-3">
-                                <span :class="getStatusClass(shipment.status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                                    {{ getStatusText(shipment.status) }}
+                                <span 
+                                    :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'"
+                                    class="px-2 py-1 text-xs font-medium rounded-full"
+                                >
+                                    {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(shipment.created_at) }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
-                                    <!-- 查看詳情 -->
+                                    <!-- 查看按鈕 -->
                                     <button 
-                                        @click="viewShipmentDetail(shipment.id)" 
-                                        class="text-primary hover:text-primary-dark text-sm font-medium">
-                                        查看詳情
+                                        @click="viewDetail(shipment.id)" 
+                                        class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                                        查看
+                                    </button>
+                                    
+                                    <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
+                                    <button 
+                                        v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
+                                        @click="moveToShipment(shipment.id)"
+                                        class="text-orange-600 hover:text-orange-900 text-sm font-medium">
+                                        待出貨
                                     </button>
                                 </div>
                             </td>
@@ -158,7 +159,7 @@ $shipment_products_component_template = <<<'HTML'
                             <div class="text-sm font-bold text-slate-900 mb-1">{{ shipment.shipment_number }}</div>
                             <div class="text-xs text-slate-500">{{ shipment.customer_name || '未知客戶' }}</div>
                         </div>
-                        <input type="checkbox" :value="shipment.id" v-model="selectedItems" class="rounded border-slate-300">
+                        <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300">
                     </div>
                     
                     <div class="mb-3">
@@ -220,8 +221,11 @@ $shipment_products_component_template = <<<'HTML'
                         </div>
                         <div>
                             <span class="text-slate-500">狀態：</span>
-                            <span :class="getStatusClass(shipment.status)" class="px-2 py-0.5 text-xs font-medium rounded-full">
-                                {{ getStatusText(shipment.status) }}
+                            <span 
+                                :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'"
+                                class="px-2 py-0.5 text-xs font-medium rounded-full"
+                            >
+                                {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
                             </span>
                         </div>
                         <div class="col-span-2">
@@ -231,11 +235,19 @@ $shipment_products_component_template = <<<'HTML'
                     </div>
                     
                     <div class="flex gap-2">
-                        <!-- 查看詳情 -->
+                        <!-- 查看按鈕 -->
                         <button 
-                            @click="viewShipmentDetail(shipment.id)" 
-                            class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium">
-                            查看詳情
+                            @click="viewDetail(shipment.id)" 
+                            class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                            查看
+                        </button>
+                        
+                        <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
+                        <button 
+                            v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
+                            @click="moveToShipment(shipment.id)"
+                            class="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
+                            待出貨
                         </button>
                     </div>
                 </div>
@@ -406,6 +418,7 @@ const ShipmentProductsPageComponent = {
         
         // 批次操作
         const selectedItems = ref([]);
+        const selectedShipments = ref([]);
         
         // 展開狀態（用於商品列表展開）
         const expandedShipments = ref(new Set());
@@ -582,14 +595,14 @@ const ShipmentProductsPageComponent = {
             });
         };
         
-        // 批次標記為已出貨
+        // 批次標記為已出貨（保留此功能，但改用 selectedShipments）
         const batchMarkShipped = () => {
-            if (selectedItems.value.length === 0) {
+            if (selectedShipments.value.length === 0) {
                 return;
             }
             
             showConfirm(
-                `確定要標記 ${selectedItems.value.length} 個出貨單為已出貨嗎？`,
+                `確定要標記 ${selectedShipments.value.length} 個出貨單為已出貨嗎？`,
                 '批次標記已出貨',
                 async () => {
                     try {
@@ -600,7 +613,7 @@ const ShipmentProductsPageComponent = {
                             },
                             credentials: 'include',
                             body: JSON.stringify({
-                                shipment_ids: selectedItems.value
+                                shipment_ids: selectedShipments.value
                             })
                         });
                         
@@ -608,7 +621,7 @@ const ShipmentProductsPageComponent = {
                         
                         if (result.success) {
                             showToast(`成功標記 ${result.count} 個出貨單為已出貨！`, 'success');
-                            selectedItems.value = [];
+                            selectedShipments.value = [];
                             await loadShipments();
                         } else {
                             showToast('標記失敗：' + result.message, 'error');
@@ -621,26 +634,102 @@ const ShipmentProductsPageComponent = {
             );
         };
         
-        // 查看出貨單詳情
-        const viewShipmentDetail = (shipmentId) => {
-            // TODO: 實作出貨單詳情頁面或 Modal
-            showToast('出貨單詳情功能開發中...', 'info');
-            console.log('查看出貨單詳情：', shipmentId);
-        };
-        
-        // 開啟建立出貨單 Modal
-        const openCreateModal = () => {
-            // TODO: 實作建立出貨單 Modal
-            showToast('建立出貨單功能開發中...', 'info');
-        };
         
         // 全選/取消全選
         const toggleSelectAll = (event) => {
             if (event.target.checked) {
-                selectedItems.value = shipments.value.map(s => s.id);
+                selectedShipments.value = shipments.value.map(s => s.id);
             } else {
-                selectedItems.value = [];
+                selectedShipments.value = [];
             }
+        };
+        
+        // 檢查是否可以合併（必須是相同客戶）
+        const canMerge = computed(() => {
+            if (selectedShipments.value.length < 2) return false;
+            
+            // 取得所有選中出貨單的客戶 ID
+            const customerIds = selectedShipments.value.map(id => {
+                const shipment = shipments.value.find(s => s.id === id);
+                return shipment?.customer_id;
+            });
+            
+            // 檢查是否都是同一個客戶
+            return customerIds.every(id => id === customerIds[0]);
+        });
+        
+        // 移至待出貨（建立出貨單）
+        const moveToShipment = async (shipmentId) => {
+            showConfirm(
+                '確認移至待出貨',
+                '確定要將此商品移至出貨流程嗎？',
+                async () => {
+                    try {
+                        // 呼叫 API 建立出貨單
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                shipment_ids: [shipmentId]
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast('已移至待出貨', 'success');
+                            await loadShipments();
+                        } else {
+                            showToast('移至待出貨失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        showToast('移至待出貨失敗', 'error');
+                    }
+                }
+            );
+        };
+        
+        // 合併出貨單
+        const mergeShipments = async () => {
+            if (!canMerge.value) {
+                showToast('只能合併相同客戶的出貨單', 'error');
+                return;
+            }
+            
+            showConfirm(
+                '確認合併出貨單',
+                `確定要合併 ${selectedShipments.value.length} 個出貨單嗎？`,
+                async () => {
+                    try {
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/merge', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                shipment_ids: selectedShipments.value
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast('合併成功！', 'success');
+                            selectedShipments.value = [];
+                            await loadShipments();
+                        } else {
+                            showToast('合併失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        showToast('合併失敗', 'error');
+                    }
+                }
+            );
+        };
+        
+        // 查看詳情（導航到出貨明細頁面）
+        const viewDetail = (shipmentId) => {
+            window.location.href = '/buygo-portal/shipment-details/?id=' + shipmentId;
         };
         
         // 分頁
@@ -730,10 +819,13 @@ const ShipmentProductsPageComponent = {
             statusFilters,
             markShipped,
             batchMarkShipped,
-            viewShipmentDetail,
-            openCreateModal,
+            viewDetail,
             toggleSelectAll,
             selectedItems,
+            selectedShipments,
+            canMerge,
+            moveToShipment,
+            mergeShipments,
             loadShipments,
             
             // Modal 和 Toast

@@ -170,14 +170,11 @@ HTML;
 
 // Vue Component
 ?>
-<div id="shipment-details-app">
-    <?php echo $shipment_details_template; ?>
-</div>
-
 <script>
-const { createApp, ref, onMounted, watch } = Vue;
+const { ref, onMounted, watch } = Vue;
 
-createApp({
+const ShipmentDetailsPageComponent = {
+    name: 'ShipmentDetailsPage',
     template: `<?php echo $shipment_details_template; ?>`,
     setup() {
         const activeTab = ref('pending');
@@ -343,5 +340,5 @@ createApp({
             formatDate
         };
     }
-}).mount('#shipment-details-app');
+};
 </script>
