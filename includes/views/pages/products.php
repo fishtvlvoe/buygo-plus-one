@@ -762,6 +762,53 @@ $products_component_template = <<<'HTML'
             </div>
         </div>
     </div>
+    
+    <!-- 確認 Modal -->
+    <div 
+        v-if="confirmModal.show"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        @click.self="closeConfirmModal"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ confirmModal.title || '確認操作' }}</h3>
+                <p class="text-slate-600 mb-6">{{ confirmModal.message }}</p>
+                <div class="flex justify-end gap-3">
+                    <button 
+                        @click="closeConfirmModal"
+                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition">
+                        {{ confirmModal.cancelText }}
+                    </button>
+                    <button 
+                        @click="handleConfirm"
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition">
+                        {{ confirmModal.confirmText }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 通知 -->
+    <div 
+        v-if="toastMessage.show" 
+        class="fixed top-4 right-4 z-50 animate-slide-in"
+    >
+        <div :class="[
+            'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 
+            toastMessage.type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        ]">
+            <svg v-if="toastMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <svg v-else-if="toastMessage.type === 'error'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span class="font-medium">{{ toastMessage.message }}</span>
+        </div>
+    </div>
 </main>
 HTML;
 ?>
@@ -827,6 +874,56 @@ const ProductsPageComponent = {
         const allocationLoading = ref(false);
         const allocationError = ref(null);
         const updatingAllocation = ref(false);
+        
+        // 確認 Modal 狀態
+        const confirmModal = ref({
+            show: false,
+            title: '',
+            message: '',
+            confirmText: '確認',
+            cancelText: '取消',
+            onConfirm: null
+        });
+        
+        // Toast 通知狀態
+        const toastMessage = ref({
+            show: false,
+            message: '',
+            type: 'success' // 'success' | 'error' | 'info'
+        });
+        
+        // 顯示確認對話框
+        const showConfirm = (title, message, onConfirm, options = {}) => {
+            confirmModal.value = {
+                show: true,
+                title,
+                message,
+                confirmText: options.confirmText || '確認',
+                cancelText: options.cancelText || '取消',
+                onConfirm
+            };
+        };
+        
+        // 關閉確認對話框
+        const closeConfirmModal = () => {
+            confirmModal.value.show = false;
+        };
+        
+        // 確認按鈕處理
+        const handleConfirm = () => {
+            if (confirmModal.value.onConfirm) {
+                confirmModal.value.onConfirm();
+            }
+            closeConfirmModal();
+        };
+        
+        // 顯示 Toast 訊息
+        const showToast = (message, type = 'success') => {
+            toastMessage.value = { show: true, message, type };
+            setTimeout(() => {
+                toastMessage.value.show = false;
+            }, 3000);
+        };
         
         // 總頁數
         const totalPages = Vue.computed(() => {
@@ -1078,48 +1175,55 @@ const ProductsPageComponent = {
         };
 
         const deleteProduct = (id) => {
-            if (confirm('確定要刪除此商品嗎？')) {
-                products.value = products.value.filter(p => p.id !== id);
-                // TODO: API 整合時呼叫刪除 API
-                console.log('刪除商品:', id);
-            }
+            showConfirm(
+                '確認刪除',
+                '確定要刪除此商品嗎？',
+                () => {
+                    products.value = products.value.filter(p => p.id !== id);
+                    // TODO: API 整合時呼叫刪除 API
+                    console.log('刪除商品:', id);
+                    showToast('商品已刪除', 'success');
+                }
+            );
         };
 
         // 批次刪除
-        const batchDelete = async () => {
+        const batchDelete = () => {
             if (selectedItems.value.length === 0) {
                 return;
             }
             
-            if (!confirm(`確定要刪除 ${selectedItems.value.length} 個商品嗎？此操作無法復原。`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/wp-json/buygo-plus-one/v1/products/batch-delete', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        ids: selectedItems.value
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 從列表中移除已刪除的商品
-                    products.value = products.value.filter(p => !selectedItems.value.includes(p.id));
-                    selectedItems.value = [];
-                    console.log('批次刪除成功');
-                } else {
-                    alert('批次刪除失敗：' + result.message);
+            showConfirm(
+                '確認批次刪除',
+                `確定要刪除 ${selectedItems.value.length} 個商品嗎？此操作無法復原。`,
+                async () => {
+                    try {
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/products/batch-delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                ids: selectedItems.value
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // 從列表中移除已刪除的商品
+                            products.value = products.value.filter(p => !selectedItems.value.includes(p.id));
+                            selectedItems.value = [];
+                            showToast('批次刪除成功', 'success');
+                        } else {
+                            showToast('批次刪除失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('批次刪除錯誤:', err);
+                        showToast('批次刪除失敗', 'error');
+                    }
                 }
-            } catch (err) {
-                console.error('批次刪除錯誤:', err);
-                alert('批次刪除失敗');
-            }
+            );
         };
 
         // 匯出 CSV
@@ -1164,7 +1268,7 @@ const ProductsPageComponent = {
                 
             } catch (err) {
                 console.error('匯出 CSV 錯誤:', err);
-                alert('匯出失敗');
+                showToast('匯出失敗', 'error');
                 
                 // 恢復按鈕狀態
                 const button = event.target.closest('button');
@@ -1410,45 +1514,49 @@ const ProductsPageComponent = {
         };
         
         // 移除圖片
-        const removeImage = async () => {
-            if (!confirm('確定要移除圖片嗎？')) {
-                return;
-            }
-            
-            uploading.value = true;
-            imageError.value = null;
-            
-            try {
-                const response = await fetch(
-                    `/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`,
-                    {
-                        method: 'DELETE',
-                        credentials: 'include'
-                    }
-                );
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 清除當前圖片
-                    currentImage.value = null;
+        const removeImage = () => {
+            showConfirm(
+                '確認移除圖片',
+                '確定要移除圖片嗎？',
+                async () => {
+                    uploading.value = true;
+                    imageError.value = null;
                     
-                    // 更新商品列表中的圖片
-                    const index = products.value.findIndex(p => p.id === currentProduct.value.id);
-                    if (index !== -1) {
-                        products.value[index].image = null;
+                    try {
+                        const response = await fetch(
+                            `/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`,
+                            {
+                                method: 'DELETE',
+                                credentials: 'include'
+                            }
+                        );
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // 清除當前圖片
+                            currentImage.value = null;
+                            
+                            // 更新商品列表中的圖片
+                            const index = products.value.findIndex(p => p.id === currentProduct.value.id);
+                            if (index !== -1) {
+                                products.value[index].image = null;
+                            }
+                            
+                            showToast('圖片移除成功', 'success');
+                        } else {
+                            imageError.value = result.message || '移除失敗';
+                            showToast('移除失敗：' + (result.message || '未知錯誤'), 'error');
+                        }
+                    } catch (err) {
+                        console.error('移除圖片錯誤:', err);
+                        imageError.value = '移除時發生錯誤';
+                        showToast('移除失敗：' + err.message, 'error');
+                    } finally {
+                        uploading.value = false;
                     }
-                    
-                    console.log('圖片移除成功');
-                } else {
-                    imageError.value = result.message || '移除失敗';
                 }
-            } catch (err) {
-                console.error('移除圖片錯誤:', err);
-                imageError.value = '移除時發生錯誤';
-            } finally {
-                uploading.value = false;
-            }
+            );
         };
         
         // 打開下單客戶 Modal
@@ -1626,14 +1734,18 @@ const ProductsPageComponent = {
                     closeAllocationModal();
                     
                     // 顯示成功訊息
-                    alert('分配成功！配額已更新至各訂單。');
+                    showToast('分配成功！配額已更新至各訂單。', 'success');
+                    // 重新載入商品列表以更新已分配數量
+                    await loadProducts();
                 } else {
                     allocationError.value = result.message || '分配失敗';
+                    showToast('分配失敗：' + (result.message || '未知錯誤'), 'error');
                     console.error('分配失敗:', result);
                 }
             } catch (err) {
                 console.error('分配失敗:', err);
                 allocationError.value = err.message || '分配時發生錯誤';
+                showToast('分配失敗：' + err.message, 'error');
             } finally {
                 updatingAllocation.value = false;
             }
@@ -1724,7 +1836,14 @@ const ProductsPageComponent = {
             openAllocationModal,
             closeAllocationModal,
             updateOrderStatus,
-            confirmAllocation
+            confirmAllocation,
+            // 確認 Modal 和 Toast
+            confirmModal,
+            showConfirm,
+            closeConfirmModal,
+            handleConfirm,
+            toastMessage,
+            showToast
         };
     }
 };

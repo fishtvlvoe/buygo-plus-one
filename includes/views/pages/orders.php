@@ -442,6 +442,53 @@ $orders_component_template = <<<'HTML'
             </div>
         </div>
     </div>
+    
+    <!-- 確認 Modal -->
+    <div 
+        v-if="confirmModal.show"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        @click.self="closeConfirmModal"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ confirmModal.title || '確認操作' }}</h3>
+                <p class="text-slate-600 mb-6">{{ confirmModal.message }}</p>
+                <div class="flex justify-end gap-3">
+                    <button 
+                        @click="closeConfirmModal"
+                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition">
+                        {{ confirmModal.cancelText }}
+                    </button>
+                    <button 
+                        @click="handleConfirm"
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition">
+                        {{ confirmModal.confirmText }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 通知 -->
+    <div 
+        v-if="toastMessage.show" 
+        class="fixed top-4 right-4 z-50 animate-slide-in"
+    >
+        <div :class="[
+            'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 
+            toastMessage.type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        ]">
+            <svg v-if="toastMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <svg v-else-if="toastMessage.type === 'error'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span class="font-medium">{{ toastMessage.message }}</span>
+        </div>
+    </div>
 </main>
 HTML;
 ?>
@@ -486,6 +533,56 @@ const OrdersPageComponent = {
         
         // 展開狀態（用於商品列表展開）
         const expandedOrders = ref(new Set());
+        
+        // 確認 Modal 狀態
+        const confirmModal = ref({
+            show: false,
+            title: '',
+            message: '',
+            confirmText: '確認',
+            cancelText: '取消',
+            onConfirm: null
+        });
+        
+        // Toast 通知狀態
+        const toastMessage = ref({
+            show: false,
+            message: '',
+            type: 'success' // 'success' | 'error' | 'info'
+        });
+        
+        // 顯示確認對話框
+        const showConfirm = (title, message, onConfirm, options = {}) => {
+            confirmModal.value = {
+                show: true,
+                title,
+                message,
+                confirmText: options.confirmText || '確認',
+                cancelText: options.cancelText || '取消',
+                onConfirm
+            };
+        };
+        
+        // 關閉確認對話框
+        const closeConfirmModal = () => {
+            confirmModal.value.show = false;
+        };
+        
+        // 確認按鈕處理
+        const handleConfirm = () => {
+            if (confirmModal.value.onConfirm) {
+                confirmModal.value.onConfirm();
+            }
+            closeConfirmModal();
+        };
+        
+        // 顯示 Toast 訊息
+        const showToast = (message, type = 'success') => {
+            toastMessage.value = { show: true, message, type };
+            setTimeout(() => {
+                toastMessage.value.show = false;
+            }, 3000);
+        };
         
         // 載入訂單
         const loadOrders = async () => {
@@ -685,117 +782,121 @@ const OrdersPageComponent = {
             const itemsToShip = (order.items || []).filter(item => (item.allocated_quantity || 0) > 0);
             
             if (itemsToShip.length === 0) {
-                alert('此訂單沒有可出貨的商品');
+                showToast('此訂單沒有可出貨的商品', 'error');
                 return;
             }
             
             // 確認出貨
             const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.allocated_quantity || 0), 0);
-            if (!confirm(`確定要出貨 ${totalQuantity} 個商品嗎？`)) {
-                return;
-            }
-            
-            shipping.value = true;
-            
-            try {
-                // 準備 items 陣列
-                const items = itemsToShip.map(item => ({
-                    order_item_id: item.id,
-                    quantity: item.allocated_quantity,
-                    product_id: item.product_id
-                }));
-                
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/ship`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ items })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(`出貨成功！出貨單號：SH-${result.shipment_id}`);
-                    // 刷新列表
-                    await loadOrders();
-                } else {
-                    alert('出貨失敗：' + result.message);
-                }
-            } catch (err) {
-                console.error('出貨失敗:', err);
-                alert('出貨失敗：' + err.message);
-                
-                // 記錄到除錯中心
-                fetch('/wp-json/buygo-plus-one/v1/debug/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        module: 'Orders',
-                        message: '訂單出貨失敗',
-                        level: 'error',
-                        data: { error: err.message, order_id: order.id }
-                    })
-                }).catch(console.error);
-            } finally {
-                shipping.value = false;
-            }
-        };
-        
-        // 執行出貨
-        const shipOrderItem = async (item) => {
-            if (!confirm(`確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`)) {
-                return;
-            }
-            
-            shipping.value = true;
-            
-            try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${item.order_id}/ship`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        items: [{
+            showConfirm(
+                '確認出貨',
+                `確定要出貨 ${totalQuantity} 個商品嗎？`,
+                async () => {
+                    shipping.value = true;
+                    
+                    try {
+                        // 準備 items 陣列
+                        const items = itemsToShip.map(item => ({
                             order_item_id: item.id,
                             quantity: item.allocated_quantity,
                             product_id: item.product_id
-                        }]
-                    })
-                });
+                        }));
+                        
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/ship`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ items })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast(`出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
+                            // 刷新列表
+                            await loadOrders();
+                        } else {
+                            showToast('出貨失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('出貨失敗:', err);
+                        showToast('出貨失敗：' + err.message, 'error');
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(`出貨成功！出貨單號：SH-${result.shipment_id}`);
-                    // 重新載入訂單詳情
-                    await loadOrderDetail(item.order_id);
-                } else {
-                    alert('出貨失敗：' + result.message);
+                        // 記錄到除錯中心
+                        fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                module: 'Orders',
+                                message: '訂單出貨失敗',
+                                level: 'error',
+                                data: { error: err.message, order_id: order.id }
+                            })
+                        }).catch(console.error);
+                    } finally {
+                        shipping.value = false;
+                    }
                 }
-            } catch (err) {
-                console.error('出貨失敗:', err);
-                alert('出貨失敗：' + err.message);
+            );
+        };
+        
+        // 執行出貨
+        const shipOrderItem = (item) => {
+            showConfirm(
+                '確認出貨',
+                `確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`,
+                async () => {
+                    shipping.value = true;
+                    
+                    try {
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${item.order_id}/ship`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                items: [{
+                                    order_item_id: item.id,
+                                    quantity: item.allocated_quantity,
+                                    product_id: item.product_id
+                                }]
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            showToast(`出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
+                            // 重新載入訂單詳情
+                            await loadOrderDetail(item.order_id);
+                        } else {
+                            showToast('出貨失敗：' + result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('出貨失敗:', err);
+                        showToast('出貨失敗：' + err.message, 'error');
                 
-                // 記錄到除錯中心
-                fetch('/wp-json/buygo-plus-one/v1/debug/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        module: 'Orders',
-                        message: '訂單商品出貨失敗',
-                        level: 'error',
-                        data: { error: err.message, order_id: item.order_id, item_id: item.id }
-                    })
-                }).catch(console.error);
-            } finally {
-                shipping.value = false;
-            }
+                        // 記錄到除錯中心
+                        fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                module: 'Orders',
+                                message: '訂單商品出貨失敗',
+                                level: 'error',
+                                data: { error: err.message, order_id: item.order_id, item_id: item.id }
+                            })
+                        }).catch(console.error);
+                    } finally {
+                        shipping.value = false;
+                    }
+                }
+            );
         };
         
         // 載入訂單詳情
@@ -944,7 +1045,14 @@ const OrdersPageComponent = {
             formatItemsDisplay,
             toggleOrderExpand,
             isOrderExpanded,
-            expandedOrders
+            expandedOrders,
+            // 確認 Modal 和 Toast
+            confirmModal,
+            showConfirm,
+            closeConfirmModal,
+            handleConfirm,
+            toastMessage,
+            showToast
         };
     }
 };
