@@ -229,14 +229,14 @@ $customers_component_template = <<<'HTML'
                                 v-for="order in currentCustomer.orders" 
                                 :key="order.id"
                                 class="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="font-medium text-slate-900">{{ order.order_serial || '訂單 #' + order.id }}</div>
+                            <div class="flex items-center justify-between mb-2">
+                                    <div class="font-medium text-slate-900">訂單 #{{ order.order_number || order.id }}</div>
                                     <span :class="getOrderStatusClass(order.order_status)" class="px-2 py-1 text-xs font-medium rounded-full">
                                         {{ getOrderStatusText(order.order_status) }}
                                     </span>
                                 </div>
                                 <div class="text-sm text-slate-600 mb-1">
-                                    金額：{{ formatPrice(order.total || 0) }}
+                                    金額：{{ formatPrice(order.total_amount || 0) }}
                                 </div>
                                 <div class="text-xs text-slate-500">
                                     {{ formatDate(order.created_at) }}

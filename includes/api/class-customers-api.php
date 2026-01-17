@@ -74,6 +74,11 @@ class Customers_API {
     
     /**
      * 取得客戶列表
+     * 
+     * FluentCart 資料表結構：
+     * - fct_customers: id, user_id, email, first_name, last_name, status, ltv, purchase_count 等
+     * - fct_customer_addresses: 客戶地址和電話資訊
+     * - fct_orders: 訂單資料
      */
     public function get_customers($request) {
         global $wpdb;
@@ -88,61 +93,67 @@ class Customers_API {
             
             $table_customers = $wpdb->prefix . 'fct_customers';
             $table_orders = $wpdb->prefix . 'fct_orders';
+            $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
+            
+            // 先取得總數（不使用搜尋條件來確認資料存在）
+            $total = $wpdb->get_var("SELECT COUNT(*) FROM {$table_customers}");
             
             // 建立搜尋條件
             $where_conditions = ['1=1'];
-            $where_values = [];
+            $query_params = [];
             
             if (!empty($search)) {
                 $where_conditions[] = "(CONCAT(c.first_name, ' ', c.last_name) LIKE %s 
-                                     OR c.phone LIKE %s 
                                      OR c.email LIKE %s)";
                 $search_term = '%' . $wpdb->esc_like($search) . '%';
-                $where_values[] = $search_term;
-                $where_values[] = $search_term;
-                $where_values[] = $search_term;
+                $query_params[] = $search_term;
+                $query_params[] = $search_term;
+                
+                // 重新計算搜尋後的總數
+                $count_query = "SELECT COUNT(DISTINCT c.id)
+                               FROM {$table_customers} c
+                               WHERE " . implode(' AND ', $where_conditions);
+                $total = $wpdb->get_var($wpdb->prepare($count_query, ...$query_params));
             }
             
             $where_clause = implode(' AND ', $where_conditions);
             
-            // 取得客戶資料（包含訂單統計）
+            // 取得客戶資料（直接從 fct_orders 聚合計算，不使用 FluentCart 的統計欄位）
+            // 注意：phone 和 address 從 fct_customer_addresses 表取得
             $query = "SELECT 
                         c.id,
                         c.first_name,
                         c.last_name,
-                        CONCAT(c.first_name, ' ', c.last_name) as full_name,
-                        c.phone,
+                        CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as full_name,
                         c.email,
-                        c.address,
+                        c.status,
                         COUNT(o.id) as order_count,
-                        COALESCE(SUM(o.total), 0) as total_spent,
-                        MAX(o.created_at) as last_order_date
+                        COALESCE(SUM(o.total_amount), 0) as total_spent,
+                        MAX(o.created_at) as last_order_date,
+                        (SELECT a.phone FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
+                        (SELECT CONCAT(COALESCE(a.city, ''), ', ', COALESCE(a.state, ''), ', ', COALESCE(a.country, '')) 
+                         FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
                       FROM {$table_customers} c
                       LEFT JOIN {$table_orders} o ON c.id = o.customer_id
                       WHERE {$where_clause}
                       GROUP BY c.id
-                      ORDER BY last_order_date DESC
+                      ORDER BY last_order_date DESC, c.id DESC
                       LIMIT %d OFFSET %d";
             
-            $where_values[] = $per_page;
-            $where_values[] = $offset;
+            // 添加 LIMIT 和 OFFSET 參數
+            $query_params[] = $per_page;
+            $query_params[] = $offset;
             
+            // 執行查詢
             $customers = $wpdb->get_results(
-                $wpdb->prepare($query, ...$where_values),
+                $wpdb->prepare($query, ...$query_params),
                 ARRAY_A
             );
             
-            // 取得總數
-            $count_query = "SELECT COUNT(DISTINCT c.id)
-                           FROM {$table_customers} c
-                           WHERE {$where_clause}";
-            
-            if (empty($where_values)) {
-                $total = $wpdb->get_var($count_query);
-            } else {
-                // 移除 LIMIT 和 OFFSET 的參數（最後兩個）
-                $count_values = array_slice($where_values, 0, -2);
-                $total = $wpdb->get_var($wpdb->prepare($count_query, ...$count_values));
+            // 如果查詢失敗，記錄錯誤
+            if ($customers === null) {
+                error_log('BuyGo Customers API Error: ' . $wpdb->last_error);
+                $customers = [];
             }
             
             return new \WP_REST_Response([
@@ -151,10 +162,11 @@ class Customers_API {
                 'total' => (int)$total,
                 'page' => (int)$page,
                 'per_page' => (int)$per_page,
-                'total_pages' => ceil($total / $per_page)
+                'total_pages' => $per_page > 0 ? ceil($total / $per_page) : 1
             ], 200);
             
         } catch (\Exception $e) {
+            error_log('BuyGo Customers API Exception: ' . $e->getMessage());
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '取得客戶列表失敗：' . $e->getMessage()
@@ -173,14 +185,31 @@ class Customers_API {
             
             $table_customers = $wpdb->prefix . 'fct_customers';
             $table_orders = $wpdb->prefix . 'fct_orders';
+            $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
             
-            // 取得客戶基本資料
+            // 取得客戶基本資料（直接從 fct_orders 聚合計算，不使用 FluentCart 的統計欄位）
             $customer = $wpdb->get_row($wpdb->prepare(
                 "SELECT 
-                    c.*,
-                    CONCAT(c.first_name, ' ', c.last_name) as full_name,
+                    c.id,
+                    c.user_id,
+                    c.email,
+                    c.first_name,
+                    c.last_name,
+                    CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as full_name,
+                    c.status,
                     COUNT(o.id) as order_count,
-                    COALESCE(SUM(o.total), 0) as total_spent
+                    COALESCE(SUM(o.total_amount), 0) as total_spent,
+                    MAX(o.created_at) as last_purchase_date,
+                    c.notes as note,
+                    (SELECT a.phone FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
+                    (SELECT CONCAT(
+                        COALESCE(a.address_1, ''), ' ',
+                        COALESCE(a.address_2, ''), ', ',
+                        COALESCE(a.city, ''), ', ',
+                        COALESCE(a.state, ''), ' ',
+                        COALESCE(a.postcode, ''), ', ',
+                        COALESCE(a.country, '')
+                    ) FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
                  FROM {$table_customers} c
                  LEFT JOIN {$table_orders} o ON c.id = o.customer_id
                  WHERE c.id = %d
@@ -189,22 +218,30 @@ class Customers_API {
             ), ARRAY_A);
             
             if (!$customer) {
+                error_log('BuyGo Customers API: Customer not found, ID = ' . $customer_id);
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '客戶不存在'
                 ], 404);
             }
             
-            // 取得客戶的所有訂單
+            // 取得客戶的所有訂單（不限制狀態）
+            // 注意：fct_orders 表沒有 order_number，使用 id 或 receipt_number
             $orders = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, order_serial, total, order_status, payment_status, created_at
+                "SELECT 
+                    id, 
+                    id as order_number,
+                    total_amount, 
+                    status as order_status,
+                    payment_status, 
+                    created_at
                  FROM {$table_orders}
                  WHERE customer_id = %d
                  ORDER BY created_at DESC",
                 $customer_id
             ), ARRAY_A);
             
-            $customer['orders'] = $orders;
+            $customer['orders'] = $orders ?: [];
             
             return new \WP_REST_Response([
                 'success' => true,
@@ -212,6 +249,7 @@ class Customers_API {
             ], 200);
             
         } catch (\Exception $e) {
+            error_log('BuyGo Customers API Exception: ' . $e->getMessage());
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '取得客戶詳情失敗：' . $e->getMessage()
