@@ -1,7 +1,6 @@
 <?php
 // 訂單詳情 Modal 元件
-$component_name = 'OrderDetailModal';
-$component_template = <<<'HTML'
+$order_detail_modal_template = <<<'HTML'
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="$emit('close')">
     <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
@@ -43,6 +42,6 @@ const OrderDetailModal = {
         }
     },
     emits: ['close'],
-    template: `<?php echo $component_template; ?>`
+    template: `<?php echo $order_detail_modal_template; ?>`
 };
 </script>
