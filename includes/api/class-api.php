@@ -14,6 +14,7 @@ class API {
         // 載入所有 API 控制器
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-products-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-orders-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-shipments-api.php';
         
         // 註冊商品 API
         $products_api = new Products_API();
@@ -22,6 +23,10 @@ class API {
         // 註冊訂單 API
         $orders_api = new Orders_API();
         $orders_api->register_routes();
+        
+        // 註冊出貨單 API
+        $shipments_api = new Shipments_API();
+        $shipments_api->register_routes();
     }
     
     /**
