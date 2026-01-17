@@ -17,8 +17,98 @@ $order_detail_modal_template = <<<'HTML'
         
         <!-- Body -->
         <div class="p-6 overflow-y-auto flex-1">
-            <p class="text-slate-600">訂單 ID: {{ orderId }}</p>
-            <!-- 這裡預留給詳細內容 -->
+            <!-- Loading -->
+            <div v-if="loading" class="text-center py-8">
+                <p class="text-slate-600">載入中...</p>
+            </div>
+            
+            <!-- Error -->
+            <div v-else-if="error" class="text-center py-8">
+                <p class="text-red-600">{{ error }}</p>
+            </div>
+            
+            <!-- Order Details -->
+            <div v-else-if="orderData">
+                <!-- 訂單基本資訊 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">訂單資訊</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm text-slate-500">訂單編號：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ orderData.invoice_no }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">狀態：</span>
+                            <span :class="getStatusClass(orderData.status)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                {{ getStatusText(orderData.status) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶名稱：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ orderData.customer_name }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶 Email：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ orderData.customer_email }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">總金額：</span>
+                            <span class="text-sm font-bold text-slate-900">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">下單日期：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ formatDate(orderData.created_at) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 商品列表 -->
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">商品明細</h3>
+                    <div class="space-y-4">
+                        <div v-for="item in orderData.items" :key="item.id" class="border-b border-slate-200 pb-4 last:border-b-0">
+                            <!-- 商品基本資訊 -->
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-slate-900">{{ item.product_name }}</h4>
+                                    <div class="text-sm text-slate-600 mt-1">
+                                        數量: {{ item.quantity }} × {{ formatPrice(item.price, orderData.currency) }} = {{ formatPrice(item.total, orderData.currency) }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 出貨統計 -->
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="bg-gray-100 p-2 rounded text-center">
+                                    <div class="text-xs text-gray-600 mb-1">已出貨</div>
+                                    <div class="font-bold text-slate-900">{{ item.shipped_quantity || 0 }}</div>
+                                </div>
+                                <div class="bg-blue-100 p-2 rounded text-center" v-if="item.allocated_quantity > 0">
+                                    <div class="text-xs text-blue-600 mb-1">本次可出貨</div>
+                                    <div class="font-bold text-blue-700">{{ item.allocated_quantity }}</div>
+                                </div>
+                                <div class="bg-yellow-100 p-2 rounded text-center">
+                                    <div class="text-xs text-yellow-600 mb-1">未出貨</div>
+                                    <div class="font-bold text-yellow-700">{{ item.pending_quantity || 0 }}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- 出貨按鈕 -->
+                            <button 
+                                v-if="item.allocated_quantity > 0"
+                                @click="shipOrderItem(item)" 
+                                :disabled="shipping"
+                                class="w-full px-4 py-2 bg-accent text-white rounded-lg text-xs font-black shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 uppercase tracking-tighter disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                {{ shipping ? '出貨中...' : ('執行出貨 (' + item.allocated_quantity + ' 個)') }}
+                            </button>
+                            <div v-else class="text-sm text-slate-500 text-center py-2">
+                                本商品尚未分配現貨配額，請先至商品管理分配。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Footer -->
@@ -42,6 +132,134 @@ const OrderDetailModal = {
         }
     },
     emits: ['close'],
-    template: `<?php echo $order_detail_modal_template; ?>`
+    template: `<?php echo $order_detail_modal_template; ?>`,
+    setup(props, { emit }) {
+        const { ref, onMounted, computed } = Vue;
+        
+        const orderData = ref(null);
+        const loading = ref(false);
+        const error = ref(null);
+        const shipping = ref(false);
+        
+        // 載入訂單詳情
+        const loadOrderDetail = async () => {
+            if (!props.orderId) return;
+            
+            loading.value = true;
+            error.value = null;
+            
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${props.orderId}`, {
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    orderData.value = result.data[0];
+                } else {
+                    error.value = '載入訂單失敗';
+                }
+            } catch (err) {
+                console.error('載入訂單詳情失敗:', err);
+                error.value = err.message;
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        // 格式化金額
+        const formatPrice = (price, currency = 'TWD') => {
+            return `${price.toLocaleString()} ${currency}`;
+        };
+        
+        // 格式化日期
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-TW');
+        };
+        
+        // 取得狀態樣式
+        const getStatusClass = (status) => {
+            const statusClasses = {
+                'pending': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                'processing': 'bg-blue-100 text-blue-800 border border-blue-200',
+                'shipped': 'bg-purple-100 text-purple-800 border border-purple-200',
+                'completed': 'bg-green-100 text-green-800 border border-green-200',
+                'cancelled': 'bg-red-100 text-red-800 border border-red-200'
+            };
+            return statusClasses[status] || 'bg-slate-100 text-slate-800';
+        };
+        
+        // 取得狀態文字
+        const getStatusText = (status) => {
+            const statusTexts = {
+                'pending': '待處理',
+                'processing': '處理中',
+                'shipped': '已出貨',
+                'completed': '已完成',
+                'cancelled': '已取消'
+            };
+            return statusTexts[status] || status;
+        };
+        
+        // 執行出貨
+        const shipOrderItem = async (item) => {
+            if (!confirm(`確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`)) {
+                return;
+            }
+            
+            shipping.value = true;
+            
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${item.order_id}/ship`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        items: [{
+                            order_item_id: item.id,
+                            quantity: item.allocated_quantity,
+                            product_id: item.product_id
+                        }]
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`出貨成功！出貨單號：SH-${result.shipment_id}`);
+                    // 重新載入訂單詳情
+                    await loadOrderDetail();
+                } else {
+                    alert('出貨失敗：' + result.message);
+                }
+            } catch (err) {
+                console.error('出貨失敗:', err);
+                alert('出貨失敗：' + err.message);
+            } finally {
+                shipping.value = false;
+            }
+        };
+        
+        onMounted(() => {
+            loadOrderDetail();
+        });
+        
+        return {
+            orderData,
+            loading,
+            error,
+            shipping,
+            formatPrice,
+            formatDate,
+            getStatusClass,
+            getStatusText,
+            shipOrderItem
+        };
+    }
 };
 </script>
