@@ -1,5 +1,9 @@
 <?php
 // 訂單管理頁面元件
+
+// 載入 OrderDetailModal 元件
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
+
 $orders_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- 頁面標題 -->
@@ -88,7 +92,7 @@ $orders_component_template = <<<'HTML'
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(order.created_at) }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
-                                    <button @click="viewOrderDetails(order)" class="text-primary hover:text-primary-dark text-sm font-medium">
+                                    <button @click="openOrderDetail(order.id)" class="text-primary hover:text-primary-dark text-sm font-medium">
                                         查看詳情
                                     </button>
                                     <button 
@@ -137,7 +141,7 @@ $orders_component_template = <<<'HTML'
                     </div>
                     
                     <div class="flex gap-2">
-                        <button @click="viewOrderDetails(order)" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium">
+                        <button @click="openOrderDetail(order.id)" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium">
                             查看詳情
                         </button>
                         <button 
@@ -237,6 +241,13 @@ $orders_component_template = <<<'HTML'
             </footer>
         </div>
     </div>
+    
+    <!-- OrderDetailModal 元件 -->
+    <order-detail-modal 
+        v-if="showModal"
+        :order-id="selectedOrderId"
+        @close="closeOrderDetail"
+    />
     
     <!-- 訂單詳情 Modal -->
     <div v-if="showOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeOrderModal">
@@ -341,11 +352,13 @@ $orders_component_template = <<<'HTML'
 HTML;
 ?>
 
+
 <script>
 const OrdersPageComponent = {
     name: 'OrdersPage',
     components: {
-        'smart-search-box': BuyGoSmartSearchBox
+        'smart-search-box': BuyGoSmartSearchBox,
+        'order-detail-modal': OrderDetailModal
     },
     template: `<?php echo $orders_component_template; ?>`,
     setup() {
@@ -369,6 +382,10 @@ const OrdersPageComponent = {
         const showOrderModal = ref(false);
         const currentOrder = ref(null);
         const shipping = ref(false);
+        
+        // OrderDetailModal 狀態
+        const showModal = ref(false);
+        const selectedOrderId = ref(null);
         
         // 批次操作
         const selectedItems = ref([]);
@@ -468,6 +485,18 @@ const OrdersPageComponent = {
         const closeOrderModal = () => {
             showOrderModal.value = false;
             currentOrder.value = null;
+        };
+        
+        // 開啟 OrderDetailModal
+        const openOrderDetail = (orderId) => {
+            selectedOrderId.value = orderId;
+            showModal.value = true;
+        };
+        
+        // 關閉 OrderDetailModal
+        const closeOrderDetail = () => {
+            showModal.value = false;
+            selectedOrderId.value = null;
         };
         
         // 檢查訂單是否有可出貨的商品
@@ -753,7 +782,11 @@ const OrdersPageComponent = {
             searchFilterName,
             showOrderModal,
             currentOrder,
-            loadOrders
+            loadOrders,
+            showModal,
+            selectedOrderId,
+            openOrderDetail,
+            closeOrderDetail
         };
     }
 };
