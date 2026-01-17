@@ -518,6 +518,20 @@ const OrdersPageComponent = {
             } catch (err) {
                 console.error('載入訂單錯誤:', err);
                 error.value = err.message;
+                
+                // 記錄到除錯中心（透過 API）
+                fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        module: 'Orders',
+                        message: '載入訂單失敗',
+                        level: 'error',
+                        data: { error: err.message, url: url }
+                    })
+                }).catch(console.error);
+                
                 orders.value = [];
             } finally {
                 loading.value = false;
@@ -712,6 +726,19 @@ const OrdersPageComponent = {
             } catch (err) {
                 console.error('出貨失敗:', err);
                 alert('出貨失敗：' + err.message);
+                
+                // 記錄到除錯中心
+                fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        module: 'Orders',
+                        message: '訂單出貨失敗',
+                        level: 'error',
+                        data: { error: err.message, order_id: order.id }
+                    })
+                }).catch(console.error);
             } finally {
                 shipping.value = false;
             }
@@ -753,6 +780,19 @@ const OrdersPageComponent = {
             } catch (err) {
                 console.error('出貨失敗:', err);
                 alert('出貨失敗：' + err.message);
+                
+                // 記錄到除錯中心
+                fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        module: 'Orders',
+                        message: '訂單商品出貨失敗',
+                        level: 'error',
+                        data: { error: err.message, order_id: item.order_id, item_id: item.id }
+                    })
+                }).catch(console.error);
             } finally {
                 shipping.value = false;
             }

@@ -34,16 +34,32 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
         
+        // 載入 Admin
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
+        
+        // 載入 Database
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
+        
+        // 載入 API
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
+        
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
     }
     
     private function register_hooks() {
+        // 建立資料表（外掛啟用時）
+        \BuyGoPlus\Database::create_tables();
+        
+        // 初始化 Debug Page
+        new \BuyGoPlus\Admin\DebugPage();
+        
         // 初始化 Routes
         new Routes();
         
         // 初始化 API
         new \BuyGoPlus\Api\API();
+        new \BuyGoPlus\Api\Debug_API();
     }
 }
