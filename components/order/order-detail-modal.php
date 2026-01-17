@@ -58,49 +58,107 @@ $order_detail_modal_template = <<<'HTML'
                     </div>
                 </div>
                 
-                <!-- 商品列表 -->
+                <!-- 商品明細 -->
                 <div>
-                    <h3 class="text-lg font-semibold text-slate-900 mb-4">商品明細</h3>
-                    <div class="space-y-4">
-                        <div v-for="item in orderData.items" :key="item.id" class="border-b border-slate-200 pb-4 last:border-b-0">
-                            <!-- 商品基本資訊 -->
-                            <div class="flex items-center gap-4 mb-3">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold text-slate-900">{{ item.product_name }}</h4>
-                                    <div class="text-sm text-slate-600 mt-1">
-                                        數量: {{ item.quantity }} × {{ formatPrice(item.price, orderData.currency) }} = {{ formatPrice(item.total, orderData.currency) }}
+                    <h4 class="text-sm font-bold text-slate-900 mb-3 border-l-4 border-slate-900 pl-3">訂單明細</h4>
+                    
+                    <!-- 桌面版：表格樣式 -->
+                    <div class="hidden md:block space-y-0 divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
+                        <div v-for="item in (orderData.items || [])" :key="item.id" class="p-3 flex gap-3 bg-white hover:bg-slate-50 transition">
+                            <!-- 商品圖片 -->
+                            <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                <img v-if="item.image || item.product_image" :src="item.image || item.product_image" :alt="item.product_name" class="h-full w-full object-cover object-center">
+                                <div v-else class="h-full w-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            
+                            <!-- 商品資訊 -->
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{{ item.product_name }}</h3>
+                                
+                                <!-- 價格資訊 -->
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">數量: {{ item.quantity }}</span>
+                                        <span class="text-xs text-slate-500">×</span>
+                                        <span class="text-xs text-slate-600">{{ formatPrice(item.price, orderData.currency) }}</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-900">{{ formatPrice(item.total, orderData.currency) }}</span>
+                                </div>
+                                
+                                <!-- 數量統計 -->
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span v-if="(item.shipped_quantity || 0) > 0" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                        已出貨: {{ item.shipped_quantity || 0 }}
+                                    </span>
+                                    <span v-if="(item.allocated_quantity || 0) > 0" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                        已分配: {{ item.allocated_quantity || 0 }}
+                                    </span>
+                                    <span v-if="(item.pending_quantity || 0) > 0" class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
+                                        待出貨: {{ item.pending_quantity || 0 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 手機版：卡片樣式 -->
+                    <div class="md:hidden space-y-3">
+                        <div v-for="item in (orderData.items || [])" :key="item.id" class="border border-slate-200 rounded-lg p-3 bg-white">
+                            <div class="flex gap-3">
+                                <!-- 商品圖片 -->
+                                <div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                    <img v-if="item.image || item.product_image" :src="item.image || item.product_image" :alt="item.product_name" class="h-full w-full object-cover object-center">
+                                    <div v-else class="h-full w-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- 商品資訊 -->
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{{ item.product_name }}</h3>
+                                    
+                                    <!-- 價格資訊 -->
+                                    <div class="mb-2">
+                                        <div class="text-xs text-slate-500 mb-1">
+                                            數量: {{ item.quantity }} × {{ formatPrice(item.price, orderData.currency) }}
+                                        </div>
+                                        <div class="text-sm font-bold text-slate-900">
+                                            小計: {{ formatPrice(item.total, orderData.currency) }}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 數量統計 -->
+                                    <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                        <span v-if="(item.shipped_quantity || 0) > 0" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                            已出貨: {{ item.shipped_quantity || 0 }}
+                                        </span>
+                                        <span v-if="(item.allocated_quantity || 0) > 0" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                            已分配: {{ item.allocated_quantity || 0 }}
+                                        </span>
+                                        <span v-if="(item.pending_quantity || 0) > 0" class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
+                                            待出貨: {{ item.pending_quantity || 0 }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- 出貨統計 -->
-                            <div class="grid grid-cols-3 gap-2 mb-3">
-                                <div class="bg-gray-100 p-2 rounded text-center">
-                                    <div class="text-xs text-gray-600 mb-1">已出貨</div>
-                                    <div class="font-bold text-slate-900">{{ item.shipped_quantity || 0 }}</div>
-                                </div>
-                                <div class="bg-blue-100 p-2 rounded text-center" v-if="item.allocated_quantity > 0">
-                                    <div class="text-xs text-blue-600 mb-1">本次可出貨</div>
-                                    <div class="font-bold text-blue-700">{{ item.allocated_quantity }}</div>
-                                </div>
-                                <div class="bg-yellow-100 p-2 rounded text-center">
-                                    <div class="text-xs text-yellow-600 mb-1">未出貨</div>
-                                    <div class="font-bold text-yellow-700">{{ item.pending_quantity || 0 }}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- 出貨按鈕 -->
-                            <button 
-                                v-if="item.allocated_quantity > 0"
-                                @click="shipOrderItem(item)" 
-                                :disabled="shipping"
-                                class="w-full px-4 py-2 bg-accent text-white rounded-lg text-xs font-black shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 uppercase tracking-tighter disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            >
-                                {{ shipping ? '出貨中...' : ('執行出貨 (' + item.allocated_quantity + ' 個)') }}
-                            </button>
-                            <div v-else class="text-sm text-slate-500 text-center py-2">
-                                本商品尚未分配現貨配額，請先至商品管理分配。
-                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 總計區塊 -->
+                    <div class="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-slate-600 font-medium">商品總數：</span>
+                            <span class="text-sm font-bold text-slate-900">{{ calculateTotalItems }}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                            <span class="text-base font-bold text-slate-900">訂單總金額：</span>
+                            <span class="text-lg font-bold text-slate-900">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
                         </div>
                     </div>
                 </div>
@@ -130,7 +188,7 @@ const OrderDetailModal = {
     emits: ['close'],
     template: `<?php echo $order_detail_modal_template; ?>`,
     setup(props, { emit }) {
-        const { ref, onMounted, watch } = Vue;
+        const { ref, onMounted, watch, computed } = Vue;
         
         const orderData = ref(null);
         const loading = ref(false);
@@ -207,6 +265,14 @@ const OrderDetailModal = {
             return statusTexts[status] || status;
         };
         
+        // 計算商品總數
+        const calculateTotalItems = computed(() => {
+            if (!orderData.value || !orderData.value.items) return 0;
+            return orderData.value.items.reduce((sum, item) => {
+                return sum + (parseInt(item.quantity) || 0);
+            }, 0);
+        });
+        
         // 執行出貨
         const shipOrderItem = async (item) => {
             if (!confirm(`確定要出貨 ${item.allocated_quantity} 個「${item.product_name}」嗎？`)) {
@@ -265,7 +331,8 @@ const OrderDetailModal = {
             formatDate,
             getStatusClass,
             getStatusText,
-            shipOrderItem
+            shipOrderItem,
+            calculateTotalItems
         };
     }
 };
