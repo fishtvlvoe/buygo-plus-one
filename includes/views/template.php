@@ -56,6 +56,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         <!-- 載入智慧搜尋框元件 -->
         <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
         
+        <!-- 載入 PageHeader 元件 -->
+        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
+        
         <!-- 主內容區 -->
         <div class="md:ml-64 min-h-screen">
             <!-- 頁面內容容器（由 Vue 動態渲染） -->
@@ -106,7 +109,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     // 建立主 App
     const app = createApp({
         components: {
-            SideNav: sideNavComponent<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
+            SideNav: sideNavComponent,
+            PageHeader: PageHeader,
+            SmartSearchBox: BuyGoSmartSearchBox<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
         },
         data() {
             return {

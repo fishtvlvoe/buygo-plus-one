@@ -26,6 +26,12 @@ define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
 // Load plugin class
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 
+// Activation hook
+register_activation_hook(__FILE__, function() {
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
+    \BuyGoPlus\Database::create_tables();
+});
+
 // Initialize plugin
 add_action('plugins_loaded', function() {
     \BuyGoPlus\Plugin::instance()->init();

@@ -52,9 +52,6 @@ class Plugin {
     }
     
     private function register_hooks() {
-        // 建立資料表（外掛啟用時）
-        \BuyGoPlus\Database::create_tables();
-        
         // 初始化角色權限
         \BuyGoPlus\Services\SettingsService::init_roles();
         
