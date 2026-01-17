@@ -512,17 +512,6 @@ const OrdersPageComponent = {
                 if (result.success && result.data) {
                     orders.value = result.data;
                     totalOrders.value = result.total || result.data.length;
-                    
-                    // 除錯：輸出第一個訂單的 items 結構
-                    if (result.data.length > 0) {
-                        const firstOrder = result.data[0];
-                        console.log('loadOrders - 第一個訂單:', firstOrder.id, firstOrder.invoice_no);
-                        console.log('loadOrders - 第一個訂單的 items:', firstOrder.items);
-                        if (firstOrder.items && firstOrder.items.length > 0) {
-                            console.log('loadOrders - 第一個 item:', firstOrder.items[0]);
-                            console.log('loadOrders - 第一個 item 的 allocated_quantity:', firstOrder.items[0].allocated_quantity, typeof firstOrder.items[0].allocated_quantity);
-                        }
-                    }
                 } else {
                     throw new Error(result.message || '載入訂單失敗');
                 }
@@ -653,32 +642,12 @@ const OrdersPageComponent = {
         
         // 檢查訂單是否有可出貨的商品
         const hasAllocatedItems = (order) => {
-            if (!order) {
-                console.log('hasAllocatedItems - order 為空');
-                return false;
-            }
-            
-            console.log('hasAllocatedItems - 檢查訂單:', order.id, order.invoice_no);
-            console.log('hasAllocatedItems - order.items:', order.items);
-            console.log('hasAllocatedItems - order.items 類型:', typeof order.items, Array.isArray(order.items));
-            
-            if (!order.items) {
-                console.log('hasAllocatedItems - order.items 不存在');
-                return false;
-            }
-            
-            if (!Array.isArray(order.items)) {
-                console.log('hasAllocatedItems - order.items 不是陣列');
-                return false;
-            }
-            
-            if (order.items.length === 0) {
-                console.log('hasAllocatedItems - items 陣列為空');
+            if (!order || !order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 return false;
             }
             
             // 檢查每個 item 的 allocated_quantity
-            const hasAllocated = order.items.some(item => {
+            return order.items.some(item => {
                 // 處理各種可能的資料類型：數字、字串、null、undefined
                 const allocatedQty = item.allocated_quantity != null 
                     ? parseInt(item.allocated_quantity, 10) 
@@ -686,15 +655,8 @@ const OrdersPageComponent = {
                 
                 // 確保是有效數字
                 const isValidNumber = !isNaN(allocatedQty) && isFinite(allocatedQty);
-                const result = isValidNumber && allocatedQty > 0;
-                
-                console.log(`hasAllocatedItems - item ${item.id} (${item.product_name || '未知'}): allocated_quantity = ${item.allocated_quantity} (${typeof item.allocated_quantity}), parsed = ${allocatedQty}, result = ${result}`);
-                
-                return result;
+                return isValidNumber && allocatedQty > 0;
             });
-            
-            console.log('hasAllocatedItems - 最終結果:', hasAllocated);
-            return hasAllocated;
         };
         
         // 執行訂單出貨
@@ -821,7 +783,7 @@ const OrdersPageComponent = {
         };
         
         const handleSearchInput = (query) => {
-            console.log('搜尋:', query);
+            // 搜尋輸入處理（目前無額外邏輯）
         };
         
         const handleSearchClear = () => {
