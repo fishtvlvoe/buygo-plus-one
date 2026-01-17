@@ -30,16 +30,16 @@ $orders_component_template = <<<'HTML'
             
             <!-- 智慧搜尋框 -->
             <smart-search-box
-                api-endpoint="/wp-json/buygo-plus-one/v1/orders"
-                :search-fields="['invoice_no', 'customer_name']"
-                placeholder="搜尋訂單編號或客戶名稱"
-                display-field="invoice_no"
-                display-sub-field="customer_name"
+                api-endpoint="/wp-json/buygo-plus-one/v1/global-search"
+                :search-fields="['name', 'invoice_no', 'customer_name', 'email', 'phone']"
+                placeholder="全局搜尋（商品、訂單、客戶、出貨單）"
+                display-field="display_field"
+                display-sub-field="display_sub_field"
                 :show-currency-toggle="true"
                 :default-currency="systemCurrency"
-                @select="handleSearchSelect"
-                @search="handleSearchInput"
-                @clear="handleSearchClear"
+                @select="handleGlobalSearchSelect"
+                @search="handleGlobalSearchInput"
+                @clear="handleGlobalSearchClear"
                 @currency-change="handleCurrencyChange"
             />
         </div>
@@ -520,7 +520,6 @@ const OrdersPageComponent = {
         // 搜尋篩選狀態
         const searchFilter = ref(null);
         const searchFilterName = ref('');
-        const searchQuery = ref('');
 
         // 幣別設定
         const systemCurrency = ref('JPY');
@@ -599,25 +598,24 @@ const OrdersPageComponent = {
             console.log('訂單頁面幣別切換:', currency);
         };
 
-        // 搜尋處理函數
-        const handleSearchInput = (query) => {
-            searchQuery.value = query;
-            currentPage.value = 1; // 重置到第一頁
-            loadOrders();
+        // 全局搜尋處理函數
+        const handleGlobalSearchInput = (query) => {
+            // 全局搜索不需要在本頁面載入資料，因為會跳轉到對應頁面
+            console.log('全局搜索輸入:', query);
         };
 
-        const handleSearchSelect = (item) => {
-            searchFilter.value = item.id;
-            searchFilterName.value = item.invoice_no || item.customer_name || '';
-            currentPage.value = 1;
-            loadOrders();
+        const handleGlobalSearchSelect = (item) => {
+            // 根據選擇的項目類型跳轉到對應頁面
+            if (item.url) {
+                window.location.href = item.url;
+            } else {
+                console.log('搜索項目沒有URL:', item);
+            }
         };
 
-        const handleSearchClear = () => {
-            searchFilter.value = null;
-            searchFilterName.value = '';
-            searchQuery.value = '';
-            loadOrders();
+        const handleGlobalSearchClear = () => {
+            // 清除全局搜索
+            console.log('清除全局搜索');
         };
 
         // 載入訂單
@@ -952,7 +950,23 @@ const OrdersPageComponent = {
             }
         };
         
-
+        // 搜尋處理
+        const handleSearchSelect = async (item) => {
+            searchFilter.value = item.id;
+            searchFilterName.value = item.invoice_no;
+            await loadOrders();
+        };
+        
+        const handleSearchInput = (query) => {
+            // 搜尋輸入處理（目前無額外邏輯）
+        };
+        
+        const handleSearchClear = () => {
+            searchFilter.value = null;
+            searchFilterName.value = '';
+            loadOrders();
+        };
+        
         // 全選/取消全選
         const toggleSelectAll = (event) => {
             if (event.target.checked) {
@@ -1051,13 +1065,10 @@ const OrdersPageComponent = {
             handleSearchSelect,
             handleSearchInput,
             handleSearchClear,
-            handleCurrencyChange,
             toggleSelectAll,
             selectedItems,
             searchFilter,
             searchFilterName,
-            searchQuery,
-            systemCurrency,
             showOrderModal,
             currentOrder,
             loadOrders,

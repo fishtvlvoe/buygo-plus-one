@@ -11,11 +11,24 @@ $shipment_products_component_template = <<<'HTML'
                     <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">出貨商品</h1>
                     <p class="text-sm text-slate-500">選擇訂單並建立出貨單</p>
                 </div>
-            </div>
-        </div>
-    </div>
+             </div>
 
-    <!-- 出貨單列表容器 -->
+             <!-- 智慧搜尋框 -->
+             <smart-search-box
+                 api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+                 :search-fields="['shipment_number', 'customer_name', 'product_name']"
+                 placeholder="搜尋出貨單號、客戶或商品"
+                 display-field="shipment_number"
+                 display-sub-field="customer_name"
+                 :show-currency-toggle="false"
+                 @select="handleSearchSelect"
+                 @search="handleSearchInput"
+                 @clear="handleSearchClear"
+             />
+         </div>
+     </div>
+
+     <!-- 出貨單列表容器 -->
     <div class="p-6">
         <!-- 載入狀態 -->
         <div v-if="loading" class="text-center py-8">
@@ -394,6 +407,9 @@ HTML;
 <script>
 const ShipmentProductsPageComponent = {
     name: 'ShipmentProductsPage',
+    components: {
+        'smart-search-box': BuyGoSmartSearchBox
+    },
     template: `<?php echo $shipment_products_component_template; ?>`,
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
@@ -405,9 +421,13 @@ const ShipmentProductsPageComponent = {
         
         // 分頁狀態
         const currentPage = ref(1);
-        const perPage = ref(10);
+        const perPage = ref(5);
         const totalShipments = ref(0);
-        
+
+        // 搜尋狀態
+        const searchQuery = ref(null);
+        const searchFilter = ref(null);
+
         // 狀態篩選（與 activeTab 同步）
         const currentStatusFilter = ref('pending');
         const statusFilters = [
@@ -453,7 +473,12 @@ const ShipmentProductsPageComponent = {
             
             try {
                 // 載入待出貨的出貨單（用於建立出貨單時的參考）
-                const url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
+                let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
+
+                // 加入搜尋參數
+                if (searchQuery.value) {
+                    url += `&search=${encodeURIComponent(searchQuery.value)}`;
+                }
                 
                 const response = await fetch(url, {
                     credentials: 'include',
@@ -479,7 +504,27 @@ const ShipmentProductsPageComponent = {
                 loading.value = false;
             }
         };
-        
+
+        // 全局搜尋處理函數
+        const handleGlobalSearchInput = (query) => {
+            // 全局搜索不需要在本頁面載入資料，因為會跳轉到對應頁面
+            console.log('全局搜索輸入:', query);
+        };
+
+        const handleGlobalSearchSelect = (item) => {
+            // 根據選擇的項目類型跳轉到對應頁面
+            if (item.url) {
+                window.location.href = item.url;
+            } else {
+                console.log('搜索項目沒有URL:', item);
+            }
+        };
+
+        const handleGlobalSearchClear = () => {
+            // 清除全局搜索
+            console.log('清除全局搜索');
+        };
+
         // 格式化日期
         const formatDate = (dateString) => {
             if (!dateString) return '';

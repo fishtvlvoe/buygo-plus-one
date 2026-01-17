@@ -89,7 +89,22 @@ $shipment_details_template = <<<'HTML'
             </div>
         </div>
     </div>
-    
+
+    <!-- 智慧搜尋框 -->
+    <div class="px-6 py-4 border-b border-slate-200">
+        <smart-search-box
+            api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+            :search-fields="['product_name', 'customer_name']"
+            placeholder="搜尋商品或客戶"
+            display-field="product_name"
+            display-sub-field="customer_name"
+            :show-currency-toggle="false"
+            @select="handleSearchSelect"
+            @search="handleSearchInput"
+            @clear="handleSearchClear"
+        />
+    </div>
+
     <!-- 出貨單列表 -->
     <div class="p-6">
         <div v-if="loading" class="text-center py-12">
@@ -179,7 +194,31 @@ $shipment_details_template = <<<'HTML'
             </table>
         </div>
     </div>
-    
+
+    <!-- 分頁控制 -->
+    <div v-if="totalShipments > perPage" class="flex items-center justify-between mt-6 px-6 pb-6">
+        <div class="text-sm text-slate-600">
+            顯示 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalShipments) }} 筆，共 {{ totalShipments }} 筆
+        </div>
+        <div class="flex items-center gap-2">
+            <select v-model="perPage" @change="changePerPage" class="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                <option value="5">5 / 頁</option>
+                <option value="10">10 / 頁</option>
+                <option value="20">20 / 頁</option>
+                <option value="50">50 / 頁</option>
+            </select>
+            <button @click="previousPage" :disabled="currentPage === 1" class="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                上一頁
+            </button>
+            <button class="px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium">
+                {{ currentPage }}
+            </button>
+            <button @click="nextPage" :disabled="currentPage === totalPages" class="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                下一頁
+            </button>
+        </div>
+    </div>
+
     <!-- 確認 Modal -->
     <div 
         v-if="confirmModal.show"
@@ -349,6 +388,9 @@ const { ref, onMounted, watch } = Vue;
 
 const ShipmentDetailsPageComponent = {
     name: 'ShipmentDetailsPage',
+    components: {
+        'smart-search-box': BuyGoSmartSearchBox
+    },
     template: `<?php echo $shipment_details_template; ?>`,
     setup() {
         const { computed, watch } = Vue;
@@ -365,24 +407,41 @@ const ShipmentDetailsPageComponent = {
         const toastMessage = ref({ show: false, message: '', type: 'success' });
         
         // 詳情 Modal 狀態
-        const detailModal = ref({ 
-            show: false, 
-            shipment: null, 
-            items: [], 
-            total: 0 
+        const detailModal = ref({
+            show: false,
+            shipment: null,
+            items: [],
+            total: 0
         });
+
+        // 分頁狀態
+        const currentPage = ref(1);
+        const perPage = ref(5);
+        const totalShipments = ref(0);
+
+        // 搜尋狀態
+        const searchQuery = ref(null);
+        const searchFilter = ref(null);
         
         // 載入出貨單列表
         const loadShipments = async () => {
             loading.value = true;
             try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}`, {
+                let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+
+                // 加入搜尋參數
+                if (searchQuery.value) {
+                    url += `&search=${encodeURIComponent(searchQuery.value)}`;
+                }
+
+                const response = await fetch(url, {
                     credentials: 'include'
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     shipments.value = result.data || [];
+                    totalShipments.value = result.total || result.data.length;
                 }
             } catch (err) {
                 console.error('載入出貨單失敗:', err);
@@ -487,6 +546,51 @@ const ShipmentDetailsPageComponent = {
         const clearSelection = () => {
             selectedShipments.value = [];
         };
+
+        // 全局搜尋處理函數
+        const handleGlobalSearchInput = (query) => {
+            // 全局搜索不需要在本頁面載入資料，因為會跳轉到對應頁面
+            console.log('全局搜索輸入:', query);
+        };
+
+        const handleGlobalSearchSelect = (item) => {
+            // 根據選擇的項目類型跳轉到對應頁面
+            if (item.url) {
+                window.location.href = item.url;
+            } else {
+                console.log('搜索項目沒有URL:', item);
+            }
+        };
+
+        const handleGlobalSearchClear = () => {
+            // 清除全局搜索
+            console.log('清除全局搜索');
+        };
+
+        // 分頁處理函數
+        const changePerPage = () => {
+            currentPage.value = 1; // 重置到第一頁
+            loadShipments();
+        };
+
+        const previousPage = () => {
+            if (currentPage.value > 1) {
+                currentPage.value--;
+                loadShipments();
+            }
+        };
+
+        const nextPage = () => {
+            if (currentPage.value < totalPages.value) {
+                currentPage.value++;
+                loadShipments();
+            }
+        };
+
+        // 計算屬性：總頁數
+        const totalPages = computed(() => {
+            return Math.ceil(totalShipments.value / perPage.value);
+        });
 
         // 批次標記已出貨
         const batchMarkShipped = () => {

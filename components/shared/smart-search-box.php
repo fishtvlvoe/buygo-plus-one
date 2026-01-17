@@ -139,27 +139,35 @@ const BuyGoSmartSearchBox = {
                         @mousedown="selectItem(item)"
                         class="cursor-pointer hover:bg-blue-50 px-4 py-2 flex justify-between items-center group transition">
                         <div class="flex items-center gap-2">
+                            <!-- Type Badge -->
+                            <span
+                                v-if="item.type_label"
+                                :class="getTypeClass(item.type)"
+                                class="text-xs px-2 py-0.5 rounded-full font-medium">
+                                {{ item.type_label }}
+                            </span>
+
                             <!-- Image -->
-                            <img 
-                                v-if="showImage && item[imageField]" 
-                                :src="item[imageField]" 
+                            <img
+                                v-if="showImage && item[imageField]"
+                                :src="item[imageField]"
                                 class="h-8 w-8 rounded object-cover">
-                            
+
                             <!-- Text -->
                             <div>
                                 <div class="font-medium text-slate-900 group-hover:text-primary">
-                                    {{ item[displayField] || '未命名' }}
+                                    {{ item[displayField] || item.display_field || '未命名' }}
                                 </div>
-                                <div v-if="displaySubField && item[displaySubField]" class="text-xs text-slate-500">
-                                    {{ item[displaySubField] }}
+                                <div v-if="(displaySubField && item[displaySubField]) || item.display_sub_field" class="text-xs text-slate-500">
+                                    {{ item[displaySubField] || item.display_sub_field }}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Status -->
-                        <span 
+                        <span
                             v-if="showStatus && item[statusField]"
-                            :class="getStatusClass(item[statusField])" 
+                            :class="getStatusClass(item[statusField])"
                             class="text-xs px-2 py-0.5 rounded-full border">
                             {{ formatStatus(item[statusField]) }}
                         </span>
@@ -322,6 +330,16 @@ const BuyGoSmartSearchBox = {
                 'pending': 'bg-yellow-50 text-yellow-700 border-yellow-200'
             };
             return classMap[status] || 'bg-gray-50 text-gray-700 border-gray-200';
+        },
+
+        getTypeClass(type) {
+            const classMap = {
+                'product': 'bg-blue-50 text-blue-700 border-blue-200',
+                'order': 'bg-green-50 text-green-700 border-green-200',
+                'customer': 'bg-purple-50 text-purple-700 border-purple-200',
+                'shipment': 'bg-orange-50 text-orange-700 border-orange-200'
+            };
+            return classMap[type] || 'bg-gray-50 text-gray-700 border-gray-200';
         }
     }
 };
