@@ -35,8 +35,15 @@ class API {
      * @return bool
      */
     public static function check_permission() {
-        // 開發階段暫時開放，正式環境需要加入權限檢查
-        // TODO: 正式環境改為檢查 WordPress Nonce 或 Application Password
+        // 檢查是否登入
+        if (!is_user_logged_in()) {
+            return false;
+        }
+        
+        // 檢查是否有管理權限（可依需求調整）
+        // 如果只要求登入即可，可註解以下這行
+        // return current_user_can('manage_options');
+        
         return true;
     }
     

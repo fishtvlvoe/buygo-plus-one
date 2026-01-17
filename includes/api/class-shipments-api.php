@@ -112,7 +112,7 @@ class Shipments_API
         $offset = ($page - 1) * $per_page;
         $limit = $per_page === -1 ? '' : "LIMIT {$per_page} OFFSET {$offset}";
 
-        // 查詢出貨單列表
+        // 查詢出貨單列表（不 JOIN orders 表，避免笛卡兒積）
         $query = "
             SELECT 
                 s.id,
@@ -122,11 +122,8 @@ class Shipments_API
                 s.status,
                 s.created_at,
                 s.shipped_at,
-                s.updated_at,
-                o.customer_name,
-                o.customer_email
+                s.updated_at
             FROM {$table_shipments} s
-            LEFT JOIN {$table_orders} o ON s.customer_id = o.customer_id
             WHERE {$where_clause}
             ORDER BY s.created_at DESC
             {$limit}
@@ -134,9 +131,22 @@ class Shipments_API
 
         $shipments = $wpdb->get_results($query, ARRAY_A);
 
-        // 為每個出貨單載入明細
+        // 為每個出貨單載入明細和客戶資料
         foreach ($shipments as &$shipment) {
             $shipment_id = $shipment['id'];
+            $customer_id = $shipment['customer_id'];
+
+            // 查詢客戶資料（取第一筆訂單的客戶資訊）
+            $customer_query = "
+                SELECT customer_name, customer_email
+                FROM {$table_orders}
+                WHERE customer_id = %d
+                LIMIT 1
+            ";
+            $customer = $wpdb->get_row($wpdb->prepare($customer_query, $customer_id), ARRAY_A);
+            
+            $shipment['customer_name'] = $customer['customer_name'] ?? null;
+            $shipment['customer_email'] = $customer['customer_email'] ?? null;
 
             // 查詢出貨單明細
             $items_query = "
