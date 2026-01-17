@@ -750,9 +750,13 @@ class Products_API {
         try {
             $params = $request->get_json_params();
             
+            // Debug: 記錄收到的參數
+            error_log('=== 商品分配 API 開始 ===');
+            error_log('收到的參數: ' . json_encode($params, JSON_UNESCAPED_UNICODE));
+            
             // 1. 取得參數
             $product_id = (int)($params['product_id'] ?? 0);
-            $allocations = $params['allocations'] ?? []; // 格式：[{ order_id: 123, allocated: 5 }, ...]
+            $allocations = $params['allocations'] ?? []; // 格式：[{ order_id: 123, allocated: 5 }, ...] 或 { "124": 1, "116": 1 }
             
             if (empty($allocations) || !is_array($allocations)) {
                 return new \WP_REST_Response([
@@ -784,8 +788,15 @@ class Products_API {
             $current_allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
             
             $total_new_allocated = 0;
-            foreach ($allocations as $alloc) {
-                $total_new_allocated += (int)($alloc['allocated'] ?? 0);
+            // 支援兩種格式：物件格式 { "124": 1 } 或陣列格式 [{ order_id: 124, allocated: 1 }]
+            foreach ($allocations as $key => $value) {
+                if (is_array($value)) {
+                    // 陣列格式
+                    $total_new_allocated += (int)($value['allocated'] ?? 0);
+                } else {
+                    // 物件格式（key 是 order_id，value 是 allocated_qty）
+                    $total_new_allocated += (int)$value;
+                }
             }
             
             $available = $purchased - $current_allocated;
@@ -801,9 +812,21 @@ class Products_API {
             $table_order_items = $wpdb->prefix . 'fct_order_items';
             
             $total_allocated_count = 0;
-            foreach ($allocations as $alloc) {
-                $order_id = (int)($alloc['order_id'] ?? 0);
-                $allocated_qty = (int)($alloc['allocated'] ?? 0);
+            
+            // 支援兩種格式：
+            // 1. 物件格式：{ "124": 1, "116": 1 }（前端目前使用）
+            // 2. 陣列格式：[{ order_id: 124, allocated: 1 }]（未來可能使用）
+            foreach ($allocations as $key => $value) {
+                // 判斷格式
+                if (is_array($value)) {
+                    // 陣列格式
+                    $order_id = (int)($value['order_id'] ?? 0);
+                    $allocated_qty = (int)($value['allocated'] ?? 0);
+                } else {
+                    // 物件格式（key 是 order_id，value 是 allocated_qty）
+                    $order_id = (int)$key;
+                    $allocated_qty = (int)$value;
+                }
                 
                 if ($allocated_qty <= 0 || $order_id <= 0) continue;
                 
@@ -836,6 +859,9 @@ class Products_API {
                     continue;
                 }
                 
+                // 記錄成功
+                error_log("成功更新訂單項目: order_item_id={$order_item['id']}, order_id={$order_id}, allocated_qty={$allocated_qty}");
+                
                 $total_allocated_count += $allocated_qty;
             }
             
@@ -843,10 +869,15 @@ class Products_API {
             $new_allocated = $current_allocated + $total_allocated_count;
             update_post_meta($post_id, '_buygo_allocated', $new_allocated);
             
+            error_log("=== 商品分配 API 完成 ===");
+            error_log("總共分配: {$total_allocated_count} 個配額");
+            error_log("更新的 post meta: post_id={$post_id}, _buygo_allocated={$new_allocated}");
+            
             return new \WP_REST_Response([
                 'success' => true,
                 'message' => "成功分配 {$total_allocated_count} 個配額",
-                'allocated_count' => $total_allocated_count
+                'allocated_count' => $total_allocated_count,
+                'new_total_allocated' => $new_allocated  // 新增：回傳更新後的總分配數
             ], 200);
             
         } catch (\Exception $e) {
