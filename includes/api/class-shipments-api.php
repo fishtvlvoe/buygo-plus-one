@@ -85,7 +85,7 @@ class Shipments_API
         $table_shipments = $wpdb->prefix . 'buygo_shipments';
         $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
         $table_order_items = $wpdb->prefix . 'fct_order_items';
-        $table_orders = $wpdb->prefix . 'fc_orders';
+        $table_orders = $wpdb->prefix . 'fct_orders';
         $table_customers = $wpdb->prefix . 'fct_customers';
 
         // 建立 WHERE 條件
@@ -137,20 +137,24 @@ class Shipments_API
             $shipment_id = $shipment['id'];
             $customer_id = $shipment['customer_id'];
 
-            // 查詢客戶資料（從 fc_customers 表 JOIN 取得）
+            // 查詢客戶資料（直接從 fct_customers 表查詢）
             $customer_query = "
-                SELECT c.first_name, c.last_name, c.email
-                FROM {$table_orders} o
-                LEFT JOIN {$table_customers} c ON o.customer_id = c.id
-                WHERE o.customer_id = %d
+                SELECT first_name, last_name, email
+                FROM {$table_customers}
+                WHERE id = %d
                 LIMIT 1
             ";
             $customer = $wpdb->get_row($wpdb->prepare($customer_query, $customer_id), ARRAY_A);
             
-            $first_name = $customer['first_name'] ?? '';
-            $last_name = $customer['last_name'] ?? '';
-            $shipment['customer_name'] = trim($first_name . ' ' . $last_name) ?: '未知客戶';
-            $shipment['customer_email'] = $customer['email'] ?? null;
+            if ($customer) {
+                $first_name = $customer['first_name'] ?? '';
+                $last_name = $customer['last_name'] ?? '';
+                $shipment['customer_name'] = trim($first_name . ' ' . $last_name) ?: '未知客戶';
+                $shipment['customer_email'] = $customer['email'] ?? null;
+            } else {
+                $shipment['customer_name'] = '未知客戶';
+                $shipment['customer_email'] = null;
+            }
 
             // 查詢出貨單明細
             $items_query = "

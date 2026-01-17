@@ -191,9 +191,12 @@ class Products_API {
                     $status = 'private';
                 }
                 
-                // 取得已分配數量（從 WordPress post meta）
-                $post_id = $product['post_id'] ?? $product['id'];
-                $allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
+                // 取得已分配數量（ProductService 已經讀取並回傳，如果沒有則從 post meta 讀取）
+                $allocated = $product['allocated'] ?? 0;
+                if ($allocated === 0 && isset($product['post_id'])) {
+                    // 如果 ProductService 沒有回傳 allocated，則從 post meta 讀取
+                    $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
+                }
                 
                 $formattedProduct = [
                     'id' => $product['id'],
@@ -238,9 +241,12 @@ class Products_API {
                     $status = 'private';
                 }
                 
-                // 取得已分配數量（從 WordPress post meta）
-                $post_id = $product['post_id'] ?? $product['id'];
-                $allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
+                // 取得已分配數量（ProductService 已經讀取並回傳，如果沒有則從 post meta 讀取）
+                $allocated = $product['allocated'] ?? 0;
+                if ($allocated === 0 && isset($product['post_id'])) {
+                    // 如果 ProductService 沒有回傳 allocated，則從 post meta 讀取
+                    $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
+                }
                 
                 $formattedProducts[] = [
                     'id' => $product['id'],
@@ -801,9 +807,9 @@ class Products_API {
                 
                 if ($allocated_qty <= 0 || $order_id <= 0) continue;
                 
-                // 找到該訂單中對應的 order_item
+                // 找到該訂單中對應的 order_item（使用 object_id，這是 FluentCart 的標準欄位）
                 $order_item = $wpdb->get_row($wpdb->prepare(
-                    "SELECT * FROM {$table_order_items} WHERE order_id = %d AND variation_id = %d LIMIT 1",
+                    "SELECT * FROM {$table_order_items} WHERE order_id = %d AND object_id = %d LIMIT 1",
                     $order_id,
                     $product_id
                 ), ARRAY_A);
