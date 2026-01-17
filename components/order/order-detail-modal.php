@@ -162,6 +162,66 @@ $order_detail_modal_template = <<<'HTML'
                         </div>
                     </div>
                 </div>
+                
+                <!-- 狀態操作 -->
+                <div class="mt-6">
+                    <h4 class="text-sm font-bold text-slate-900 mb-3 border-l-4 border-slate-900 pl-3">狀態操作</h4>
+                    
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="flex flex-col md:flex-row md:items-center gap-3">
+                            <!-- 訂單狀態 -->
+                            <div class="flex-1 md:flex-initial md:min-w-[160px]">
+                                <label class="block text-xs text-slate-500 font-medium mb-1.5">訂單狀態</label>
+                                <select 
+                                    v-model="localOrderStatus" 
+                                    class="w-full rounded-md border-slate-300 text-sm focus:border-primary focus:ring-primary py-2 px-3 bg-white"
+                                    :disabled="updatingStatus"
+                                >
+                                    <option value="pending">待處理</option>
+                                    <option value="on-hold">保留</option>
+                                    <option value="processing">處理中</option>
+                                    <option value="completed">已完成</option>
+                                    <option value="cancelled">已取消</option>
+                                    <option value="refunded">已退款</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 運送狀態 -->
+                            <div class="flex-1 md:flex-initial md:min-w-[160px]">
+                                <label class="block text-xs text-slate-500 font-medium mb-1.5">運送狀態</label>
+                                <select 
+                                    v-model="localShippingStatus" 
+                                    class="w-full rounded-md border-slate-300 text-sm focus:border-primary focus:ring-primary py-2 px-3 bg-white"
+                                    :disabled="updatingStatus"
+                                >
+                                    <option value="pending">未出貨</option>
+                                    <option value="preparing">備貨中</option>
+                                    <option value="processing">處理中</option>
+                                    <option value="shipped">已出貨</option>
+                                    <option value="completed">交易完成</option>
+                                    <option value="out_of_stock">斷貨</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 更新按鈕 -->
+                            <div class="flex-shrink-0 md:self-end">
+                                <button 
+                                    @click="updateStatus" 
+                                    :disabled="updatingStatus || !hasStatusChanges"
+                                    :class="hasStatusChanges ? 'bg-primary hover:bg-blue-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                                    class="w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap"
+                                >
+                                    {{ updatingStatus ? '更新中...' : '更新狀態' }}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 錯誤訊息 -->
+                        <div v-if="statusError" class="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                            {{ statusError }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -195,6 +255,12 @@ const OrderDetailModal = {
         const error = ref(null);
         const shipping = ref(false);
         
+        // 狀態操作相關
+        const localOrderStatus = ref('');
+        const localShippingStatus = ref('');
+        const updatingStatus = ref(false);
+        const statusError = ref(null);
+        
         // 載入訂單詳情
         const loadOrderDetail = async () => {
             if (!props.orderId) {
@@ -218,6 +284,10 @@ const OrderDetailModal = {
                 
                 if (result.success && result.data && result.data.length > 0) {
                     orderData.value = result.data[0];
+                    // 初始化本地狀態
+                    localOrderStatus.value = result.data[0].status || 'pending';
+                    localShippingStatus.value = result.data[0].shipping_status || 'pending';
+                    statusError.value = null;
                 } else {
                     error.value = result.message || '載入訂單失敗';
                 }
@@ -272,6 +342,89 @@ const OrderDetailModal = {
                 return sum + (parseInt(item.quantity) || 0);
             }, 0);
         });
+        
+        // 檢查狀態是否有變更
+        const hasStatusChanges = computed(() => {
+            if (!orderData.value) return false;
+            const orderStatusChanged = localOrderStatus.value !== (orderData.value.status || 'pending');
+            const shippingStatusChanged = localShippingStatus.value !== (orderData.value.shipping_status || 'pending');
+            return orderStatusChanged || shippingStatusChanged;
+        });
+        
+        // 更新狀態
+        const updateStatus = async () => {
+            if (!orderData.value || !hasStatusChanges.value) return;
+            
+            // 確認對話框（取消訂單時）
+            if (localOrderStatus.value === 'cancelled' && orderData.value.status !== 'cancelled') {
+                if (!confirm('確定要取消此訂單嗎？此操作無法復原。')) {
+                    return;
+                }
+            }
+            
+            updatingStatus.value = true;
+            statusError.value = null;
+            
+            try {
+                const orderId = orderData.value.id;
+                const updates = [];
+                
+                // 更新訂單狀態
+                if (localOrderStatus.value !== (orderData.value.status || 'pending')) {
+                    const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            status: localOrderStatus.value
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || '訂單狀態更新失敗');
+                    }
+                    updates.push('訂單狀態');
+                }
+                
+                // 更新運送狀態
+                if (localShippingStatus.value !== (orderData.value.shipping_status || 'pending')) {
+                    const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/shipping-status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            status: localShippingStatus.value
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || '運送狀態更新失敗');
+                    }
+                    updates.push('運送狀態');
+                }
+                
+                // 重新載入訂單資料
+                await loadOrderDetail();
+                
+                // 顯示成功訊息
+                if (updates.length > 0) {
+                    alert(`${updates.join('、')}已更新`);
+                }
+            } catch (err) {
+                console.error('更新狀態失敗:', err);
+                statusError.value = err.message || '更新狀態時發生錯誤';
+            } finally {
+                updatingStatus.value = false;
+            }
+        };
         
         // 執行出貨
         const shipOrderItem = async (item) => {
@@ -332,7 +485,13 @@ const OrderDetailModal = {
             getStatusClass,
             getStatusText,
             shipOrderItem,
-            calculateTotalItems
+            calculateTotalItems,
+            localOrderStatus,
+            localShippingStatus,
+            updatingStatus,
+            statusError,
+            hasStatusChanges,
+            updateStatus
         };
     }
 };
