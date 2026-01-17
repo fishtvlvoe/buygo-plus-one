@@ -234,13 +234,24 @@ class Customers_API {
                     total_amount, 
                     status as order_status,
                     payment_status, 
-                    created_at
+                    created_at,
+                    currency
                  FROM {$table_orders}
                  WHERE customer_id = %d
                  ORDER BY created_at DESC",
                 $customer_id
             ), ARRAY_A);
-            
+
+            // 補上 currency fallback（fct_orders 若無 currency 欄位，上列 SELECT 會 SQL 錯，需改為移除 currency 並全設 TWD）
+            if (is_array($orders)) {
+                foreach ($orders as &$o) {
+                    if (empty($o['currency'])) {
+                        $o['currency'] = 'TWD';
+                    }
+                }
+                unset($o);
+            }
+
             $customer['orders'] = $orders ?: [];
             
             return new \WP_REST_Response([
