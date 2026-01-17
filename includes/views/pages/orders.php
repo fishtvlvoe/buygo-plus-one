@@ -82,7 +82,55 @@ $orders_component_template = <<<'HTML'
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ order.invoice_no }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.total_items }} 件</td>
+                            <td class="px-4 py-3 text-sm text-slate-600">
+                                <div class="flex items-center gap-2">
+                                    <span 
+                                        @click="toggleOrderExpand(order.id)"
+                                        class="cursor-pointer hover:text-primary transition truncate max-w-xs"
+                                        :title="formatItemsDisplay(order, 999)"
+                                    >
+                                        {{ formatItemsDisplay(order) }}
+                                    </span>
+                                    <button 
+                                        @click="toggleOrderExpand(order.id)"
+                                        class="text-slate-400 hover:text-primary transition flex-shrink-0"
+                                    >
+                                        <svg 
+                                            class="w-4 h-4 transition-transform"
+                                            :class="{ 'rotate-180': isOrderExpanded(order.id) }"
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <!-- 展開的商品詳細列表 -->
+                                <div 
+                                    v-if="isOrderExpanded(order.id) && order.items && order.items.length > 0"
+                                    class="mt-2 pt-2 border-t border-slate-200 space-y-2"
+                                >
+                                    <div 
+                                        v-for="item in order.items" 
+                                        :key="item.id"
+                                        class="flex items-center gap-3 text-xs"
+                                    >
+                                        <img 
+                                            v-if="item.product_image"
+                                            :src="item.product_image" 
+                                            :alt="item.product_name"
+                                            class="w-10 h-10 object-cover rounded border border-slate-200"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
+                                            <div class="text-slate-500">
+                                                {{ item.quantity }} × {{ formatPrice(item.price || 0, order.currency) }} = {{ formatPrice(item.total || 0, order.currency) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ formatPrice(order.total_amount, order.currency) }}</td>
                             <td class="px-4 py-3">
                                 <span :class="getStatusClass(order.status)" class="px-2 py-1 text-xs font-medium rounded-full">
@@ -120,9 +168,55 @@ $orders_component_template = <<<'HTML'
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
-                        <div>
-                            <span class="text-slate-500">商品數量：</span>
-                            <span class="font-medium text-slate-900">{{ order.total_items }} 件</span>
+                        <div class="col-span-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-500">商品：</span>
+                                <span 
+                                    @click="toggleOrderExpand(order.id)"
+                                    class="font-medium text-slate-900 cursor-pointer hover:text-primary transition flex-1 truncate"
+                                    :title="formatItemsDisplay(order, 999)"
+                                >
+                                    {{ formatItemsDisplay(order, 40) }}
+                                </span>
+                                <button 
+                                    @click="toggleOrderExpand(order.id)"
+                                    class="text-slate-400 hover:text-primary transition flex-shrink-0"
+                                >
+                                    <svg 
+                                        class="w-3 h-3 transition-transform"
+                                        :class="{ 'rotate-180': isOrderExpanded(order.id) }"
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- 展開的商品詳細列表 -->
+                            <div 
+                                v-if="isOrderExpanded(order.id) && order.items && order.items.length > 0"
+                                class="mt-2 pt-2 border-t border-slate-200 space-y-2"
+                            >
+                                <div 
+                                    v-for="item in order.items" 
+                                    :key="item.id"
+                                    class="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded"
+                                >
+                                    <img 
+                                        v-if="item.product_image"
+                                        :src="item.product_image" 
+                                        :alt="item.product_name"
+                                        class="w-8 h-8 object-cover rounded border border-slate-200"
+                                    />
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
+                                        <div class="text-slate-500">
+                                            {{ item.quantity }} × {{ formatPrice(item.price || 0, order.currency) }} = {{ formatPrice(item.total || 0, order.currency) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <span class="text-slate-500">總金額：</span>
@@ -390,6 +484,9 @@ const OrdersPageComponent = {
         // 批次操作
         const selectedItems = ref([]);
         
+        // 展開狀態（用於商品列表展開）
+        const expandedOrders = ref(new Set());
+        
         // 載入訂單
         const loadOrders = async () => {
             loading.value = true;
@@ -448,6 +545,61 @@ const OrdersPageComponent = {
             if (!dateString) return '';
             const date = new Date(dateString);
             return date.toLocaleDateString('zh-TW');
+        };
+        
+        // 格式化商品列表顯示
+        const formatItemsDisplay = (order, maxLength = 50) => {
+            if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
+                return `${order.total_items || 0} 件`;
+            }
+            
+            const itemsText = order.items
+                .map(item => `${item.product_name || '未知商品'} x${item.quantity || 0}`)
+                .join(', ');
+            
+            // 如果文字太長，截斷並加上省略號
+            if (itemsText.length > maxLength) {
+                return itemsText.substring(0, maxLength) + '...';
+            }
+            
+            return itemsText;
+        };
+        
+        // 切換訂單展開狀態
+        const toggleOrderExpand = async (orderId) => {
+            if (expandedOrders.value.has(orderId)) {
+                expandedOrders.value.delete(orderId);
+            } else {
+                expandedOrders.value.add(orderId);
+                
+                // 如果訂單沒有 items，載入詳細資料
+                const order = orders.value.find(o => o.id === orderId);
+                if (order && (!order.items || !Array.isArray(order.items) || order.items.length === 0)) {
+                    try {
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${orderId}`, {
+                            credentials: 'include'
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.data && result.data.length > 0) {
+                            const orderDetail = result.data[0];
+                            // 更新 orders 陣列中的訂單資料
+                            const index = orders.value.findIndex(o => o.id === orderId);
+                            if (index !== -1) {
+                                orders.value[index] = { ...orders.value[index], items: orderDetail.items };
+                            }
+                        }
+                    } catch (err) {
+                        console.error('載入訂單商品失敗:', err);
+                    }
+                }
+            }
+        };
+        
+        // 檢查訂單是否展開
+        const isOrderExpanded = (orderId) => {
+            return expandedOrders.value.has(orderId);
         };
         
         // 取得狀態樣式
@@ -786,7 +938,11 @@ const OrdersPageComponent = {
             showModal,
             selectedOrderId,
             openOrderDetail,
-            closeOrderDetail
+            closeOrderDetail,
+            formatItemsDisplay,
+            toggleOrderExpand,
+            isOrderExpanded,
+            expandedOrders
         };
     }
 };
