@@ -218,78 +218,112 @@ $customers_component_template = <<<'HTML'
                 </div>
             </div>
             
+            <!-- Tab 按鈕 -->
+            <div v-if="currentCustomer" class="px-6 pt-4 border-b border-slate-200">
+                <div class="flex gap-1">
+                    <button 
+                        @click="activeTab = 'orders'"
+                        :class="activeTab === 'orders' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-600 hover:text-slate-900'"
+                        class="px-4 py-3 font-medium transition-colors min-h-[44px]">
+                        訂單記錄 <span v-if="currentCustomer.order_count > 0" class="text-xs ml-1">({{ currentCustomer.order_count }})</span>
+                    </button>
+                    <button 
+                        @click="activeTab = 'info'"
+                        :class="activeTab === 'info' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-600 hover:text-slate-900'"
+                        class="px-4 py-3 font-medium transition-colors min-h-[44px]">
+                        客戶資訊
+                    </button>
+                </div>
+            </div>
+            
             <!-- 內容區域 -->
             <div v-if="currentCustomer" class="p-6">
-                <div class="grid md:grid-cols-2 gap-6">
-                    <!-- 左側：訂單列表 -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900 mb-4">訂單記錄</h3>
-                        <div v-if="currentCustomer.orders && currentCustomer.orders.length > 0" class="space-y-3">
-                            <div 
-                                v-for="order in currentCustomer.orders" 
-                                :key="order.id"
-                                class="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition">
-                            <div class="flex items-center justify-between mb-2">
-                                    <div class="font-medium text-slate-900">訂單 #{{ order.order_number || order.id }}</div>
-                                    <span :class="getOrderStatusClass(order.order_status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                                        {{ getOrderStatusText(order.order_status) }}
-                                    </span>
-                                </div>
-                                <div class="text-sm text-slate-600 mb-1">
-                                    金額：{{ formatPrice(order.total_amount || 0) }}
-                                </div>
-                                <div class="text-xs text-slate-500">
-                                    {{ formatDate(order.created_at) }}
-                                </div>
-                            </div>
+                <!-- Tab 1: 訂單記錄 -->
+                <div v-show="activeTab === 'orders'">
+                    <!-- 搜尋框（訂單 > 5 筆時顯示） -->
+                    <div v-if="currentCustomer.orders && currentCustomer.orders.length > 5" class="mb-4">
+                        <div class="relative">
+                            <input 
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="搜尋訂單編號或狀態..."
+                                class="w-full px-4 py-2 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
                         </div>
-                        <div v-else class="text-sm text-slate-500 text-center py-8">
-                            此客戶尚無訂單記錄
+                        <div v-if="searchQuery && filteredOrders.length > 0" class="text-xs text-slate-500 mt-2">
+                            找到 {{ filteredOrders.length }} 筆訂單
                         </div>
                     </div>
                     
-                    <!-- 右側：客戶資訊 + 備註 -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900 mb-4">客戶資訊</h3>
-                        <div class="space-y-4 mb-6">
-                            <div>
-                                <span class="text-sm text-slate-500">姓名：</span>
-                                <span class="text-sm font-medium text-slate-900">{{ currentCustomer.full_name || '-' }}</span>
+                    <!-- 訂單列表 -->
+                    <div v-if="filteredOrders && filteredOrders.length > 0" class="space-y-3">
+                        <div 
+                            v-for="order in filteredOrders" 
+                            :key="order.id"
+                            @click="navigateToOrder(order.id)"
+                            class="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 hover:border-blue-300 transition cursor-pointer">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-medium text-slate-900">訂單 #{{ order.order_number || order.id }}</div>
+                                <span :class="getOrderStatusClass(order.order_status)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                    {{ getOrderStatusText(order.order_status) }}
+                                </span>
                             </div>
-                            <div>
-                                <span class="text-sm text-slate-500">電話：</span>
-                                <span class="text-sm font-medium text-slate-900">{{ currentCustomer.phone || '-' }}</span>
+                            <div class="text-sm text-slate-600 mb-1">
+                                金額：{{ formatPrice(order.total_amount || 0) }}
                             </div>
-                            <div>
-                                <span class="text-sm text-slate-500">Email：</span>
-                                <span class="text-sm font-medium text-slate-900 break-all">{{ currentCustomer.email || '-' }}</span>
-                            </div>
-                            <div v-if="currentCustomer.address">
-                                <span class="text-sm text-slate-500">地址：</span>
-                                <span class="text-sm font-medium text-slate-900">{{ currentCustomer.address }}</span>
-                            </div>
-                            <div>
-                                <span class="text-sm text-slate-500">訂單數：</span>
-                                <span class="text-sm font-medium text-slate-900">{{ currentCustomer.order_count || 0 }}</span>
-                            </div>
-                            <div>
-                                <span class="text-sm text-slate-500">總消費：</span>
-                                <span class="text-sm font-bold text-slate-900">{{ formatPrice(currentCustomer.total_spent || 0) }}</span>
+                            <div class="text-xs text-slate-500">
+                                {{ formatDate(order.created_at) }}
                             </div>
                         </div>
-                        
-                        <!-- 備註欄位 -->
+                    </div>
+                    <div v-else class="text-sm text-slate-500 text-center py-8">
+                        <p v-if="searchQuery">找不到符合「{{ searchQuery }}」的訂單</p>
+                        <p v-else>此客戶尚無訂單記錄</p>
+                    </div>
+                </div>
+                
+                <!-- Tab 2: 客戶資訊 -->
+                <div v-show="activeTab === 'info'">
+                    <div class="space-y-4 mb-6">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-2">備註</label>
-                            <textarea 
-                                v-model="customerNote"
-                                @blur="saveNote"
-                                rows="4"
-                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
-                                placeholder="輸入客戶備註..."></textarea>
-                            <div v-if="noteSaving" class="text-xs text-slate-500 mt-1">儲存中...</div>
-                            <div v-if="noteSaved" class="text-xs text-green-600 mt-1">已儲存</div>
+                            <span class="text-sm text-slate-500">姓名：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentCustomer.full_name || '-' }}</span>
                         </div>
+                        <div>
+                            <span class="text-sm text-slate-500">電話：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentCustomer.phone || '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">Email：</span>
+                            <span class="text-sm font-medium text-slate-900 break-all">{{ currentCustomer.email || '-' }}</span>
+                        </div>
+                        <div v-if="currentCustomer.address">
+                            <span class="text-sm text-slate-500">地址：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentCustomer.address }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">訂單數：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentCustomer.order_count || 0 }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">總消費：</span>
+                            <span class="text-sm font-bold text-slate-900">{{ formatPrice(currentCustomer.total_spent || 0) }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 備註欄位 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">備註</label>
+                        <textarea 
+                            v-model="customerNote"
+                            @blur="saveNote"
+                            rows="4"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                            placeholder="輸入客戶備註..."></textarea>
+                        <div v-if="noteSaving" class="text-xs text-slate-500 mt-1">儲存中...</div>
+                        <div v-if="noteSaved" class="text-xs text-green-600 mt-1">已儲存</div>
                     </div>
                 </div>
             </div>
@@ -347,6 +381,8 @@ const CustomersPageComponent = {
         // Modal 狀態
         const showCustomerModal = ref(false);
         const currentCustomer = ref(null);
+        const activeTab = ref('orders'); // Tab 分頁狀態
+        const searchQuery = ref(''); // 搜尋關鍵字
         
         // 備註狀態
         const customerNote = ref('');
@@ -446,6 +482,8 @@ const CustomersPageComponent = {
             currentCustomer.value = null;
             customerNote.value = '';
             noteSaved.value = false;
+            activeTab.value = 'orders'; // 重置 Tab
+            searchQuery.value = ''; // 清除搜尋
         };
         
         // 儲存備註
@@ -506,6 +544,37 @@ const CustomersPageComponent = {
                 'cancelled': '已取消'
             };
             return statusTexts[status] || status;
+        };
+        
+        // 過濾訂單列表
+        const filteredOrders = computed(() => {
+            if (!currentCustomer.value || !currentCustomer.value.orders) {
+                return [];
+            }
+            
+            const query = searchQuery.value.toLowerCase().trim();
+            if (!query) {
+                return currentCustomer.value.orders;
+            }
+            
+            return currentCustomer.value.orders.filter(order => {
+                const orderNumber = (order.order_number || order.id || '').toString().toLowerCase();
+                const orderStatus = (order.order_status || '').toLowerCase();
+                const statusText = getOrderStatusText(order.order_status).toLowerCase();
+                
+                return orderNumber.includes(query) || 
+                       orderStatus.includes(query) || 
+                       statusText.includes(query);
+            });
+        });
+        
+        // 跳轉到訂單管理頁面
+        const navigateToOrder = (orderId) => {
+            // 關閉 Modal
+            closeCustomerModal();
+            
+            // 跳轉到訂單管理頁面
+            window.location.href = `/buygo-portal/orders/?search=${orderId}`;
         };
         
         // 搜尋處理
@@ -606,8 +675,12 @@ const CustomersPageComponent = {
             formatDate,
             showCustomerModal,
             currentCustomer,
+            activeTab,
+            searchQuery,
+            filteredOrders,
             openCustomerDetail,
             closeCustomerModal,
+            navigateToOrder,
             customerNote,
             noteSaving,
             noteSaved,
