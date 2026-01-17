@@ -84,8 +84,9 @@ class Shipments_API
 
         $table_shipments = $wpdb->prefix . 'buygo_shipments';
         $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
-        $table_order_items = $wpdb->prefix . 'fc_order_items';
+        $table_order_items = $wpdb->prefix . 'fct_order_items';
         $table_orders = $wpdb->prefix . 'fc_orders';
+        $table_customers = $wpdb->prefix . 'fct_customers';
 
         // 建立 WHERE 條件
         $where_conditions = ['1=1'];
@@ -136,17 +137,20 @@ class Shipments_API
             $shipment_id = $shipment['id'];
             $customer_id = $shipment['customer_id'];
 
-            // 查詢客戶資料（取第一筆訂單的客戶資訊）
+            // 查詢客戶資料（從 fc_customers 表 JOIN 取得）
             $customer_query = "
-                SELECT customer_name, customer_email
-                FROM {$table_orders}
-                WHERE customer_id = %d
+                SELECT c.first_name, c.last_name, c.email
+                FROM {$table_orders} o
+                LEFT JOIN {$table_customers} c ON o.customer_id = c.id
+                WHERE o.customer_id = %d
                 LIMIT 1
             ";
             $customer = $wpdb->get_row($wpdb->prepare($customer_query, $customer_id), ARRAY_A);
             
-            $shipment['customer_name'] = $customer['customer_name'] ?? null;
-            $shipment['customer_email'] = $customer['customer_email'] ?? null;
+            $first_name = $customer['first_name'] ?? '';
+            $last_name = $customer['last_name'] ?? '';
+            $shipment['customer_name'] = trim($first_name . ' ' . $last_name) ?: '未知客戶';
+            $shipment['customer_email'] = $customer['email'] ?? null;
 
             // 查詢出貨單明細
             $items_query = "
@@ -156,8 +160,9 @@ class Shipments_API
                     si.order_item_id,
                     si.product_id,
                     si.quantity,
-                    oi.product_name,
-                    oi.product_image,
+                    oi.title,
+                    oi.post_title,
+                    oi.line_meta,
                     o.invoice_no as order_invoice_no
                 FROM {$table_shipment_items} si
                 LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
@@ -166,6 +171,21 @@ class Shipments_API
             ";
 
             $items = $wpdb->get_results($wpdb->prepare($items_query, $shipment_id), ARRAY_A);
+            
+            // 處理商品名稱和圖片
+            foreach ($items as &$item) {
+                // 取得商品名稱（優先使用 title，其次使用 post_title）
+                $item['product_name'] = $item['title'] ?? $item['post_title'] ?? '未知商品';
+                
+                // 從 line_meta 解析商品圖片（如果有的話）
+                $line_meta = $item['line_meta'] ?? '{}';
+                $meta_data = is_string($line_meta) ? json_decode($line_meta, true) : ($line_meta ?: []);
+                $item['product_image'] = $meta_data['product_image'] ?? $meta_data['image'] ?? null;
+                
+                // 移除不需要的欄位
+                unset($item['title'], $item['post_title'], $item['line_meta']);
+            }
+            unset($item);
 
             // 計算總數量
             $total_quantity = array_sum(array_column($items, 'quantity'));

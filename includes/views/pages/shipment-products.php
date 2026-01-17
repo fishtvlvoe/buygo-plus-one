@@ -352,6 +352,32 @@ $shipment_products_component_template = <<<'HTML'
             </footer>
         </div>
     </div>
+    
+    <!-- 確認 Modal -->
+    <div 
+        v-if="showConfirmModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        @click.self="cancelConfirm"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ confirmModal.title || '確認操作' }}</h3>
+                <p class="text-slate-600 mb-6">{{ confirmModal.message }}</p>
+                <div class="flex justify-end gap-3">
+                    <button 
+                        @click="cancelConfirm"
+                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition">
+                        取消
+                    </button>
+                    <button 
+                        @click="executeConfirm"
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition">
+                        確認
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 HTML;
 ?>
@@ -386,6 +412,14 @@ const ShipmentProductsPageComponent = {
         
         // 展開狀態（用於商品列表展開）
         const expandedShipments = ref(new Set());
+        
+        // 確認 Modal 狀態
+        const showConfirmModal = ref(false);
+        const confirmModal = ref({
+            title: '確認操作',
+            message: '',
+            onConfirm: null
+        });
         
         // 載入出貨單列表
         const loadShipments = async () => {
@@ -490,13 +524,34 @@ const ShipmentProductsPageComponent = {
             loadShipments();
         };
         
+        // 顯示確認 Modal
+        const showConfirm = (message, title = '確認操作', onConfirm = null) => {
+            confirmModal.value = {
+                title,
+                message,
+                onConfirm
+            };
+            showConfirmModal.value = true;
+        };
+        
+        // 執行確認操作
+        const executeConfirm = () => {
+            if (confirmModal.value.onConfirm) {
+                confirmModal.value.onConfirm();
+            }
+            showConfirmModal.value = false;
+        };
+        
+        // 取消確認
+        const cancelConfirm = () => {
+            showConfirmModal.value = false;
+            confirmModal.value.onConfirm = null;
+        };
+        
         // 標記為已出貨
         const markShipped = async (shipmentId) => {
-            if (!confirm('確定要標記此出貨單為已出貨嗎？')) {
-                return;
-            }
-            
-            try {
+            showConfirm('確定要標記此出貨單為已出貨嗎？', '確認標記已出貨', async () => {
+                try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
                     method: 'POST',
                     headers: {
@@ -508,18 +563,19 @@ const ShipmentProductsPageComponent = {
                     })
                 });
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('標記成功！');
-                    await loadShipments();
-                } else {
-                    alert('標記失敗：' + result.message);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('標記成功！');
+                        await loadShipments();
+                    } else {
+                        alert('標記失敗：' + result.message);
+                    }
+                } catch (err) {
+                    console.error('標記失敗:', err);
+                    alert('標記失敗：' + err.message);
                 }
-            } catch (err) {
-                console.error('標記失敗:', err);
-                alert('標記失敗：' + err.message);
-            }
+            });
         };
         
         // 批次標記為已出貨
@@ -528,11 +584,11 @@ const ShipmentProductsPageComponent = {
                 return;
             }
             
-            if (!confirm(`確定要標記 ${selectedItems.value.length} 個出貨單為已出貨嗎？`)) {
-                return;
-            }
-            
-            try {
+            showConfirm(
+                `確定要標記 ${selectedItems.value.length} 個出貨單為已出貨嗎？`,
+                '批次標記已出貨',
+                async () => {
+                    try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
                     method: 'POST',
                     headers: {
@@ -544,19 +600,21 @@ const ShipmentProductsPageComponent = {
                     })
                 });
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(`成功標記 ${result.count} 個出貨單為已出貨！`);
-                    selectedItems.value = [];
-                    await loadShipments();
-                } else {
-                    alert('標記失敗：' + result.message);
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            alert(`成功標記 ${result.count} 個出貨單為已出貨！`);
+                            selectedItems.value = [];
+                            await loadShipments();
+                        } else {
+                            alert('標記失敗：' + result.message);
+                        }
+                    } catch (err) {
+                        console.error('批次標記失敗:', err);
+                        alert('標記失敗：' + err.message);
+                    }
                 }
-            } catch (err) {
-                console.error('批次標記失敗:', err);
-                alert('標記失敗：' + err.message);
-            }
+            );
         };
         
         // 查看出貨單詳情
@@ -671,7 +729,12 @@ const ShipmentProductsPageComponent = {
             openCreateModal,
             toggleSelectAll,
             selectedItems,
-            loadShipments
+            loadShipments,
+            showConfirmModal,
+            confirmModal,
+            showConfirm,
+            executeConfirm,
+            cancelConfirm
         };
     }
 };
