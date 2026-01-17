@@ -565,7 +565,7 @@ $products_component_template = <<<'HTML'
                                         v-model.number="order.allocated"
                                         @input="updateOrderStatus(order)"
                                         :min="0"
-                                        :max="order.required"
+                                        :max="order.required - (order.shipped || 0)"
                                         class="w-20 px-2 py-1 text-right border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium"
                                     />
                                 </td>
@@ -573,7 +573,7 @@ $products_component_template = <<<'HTML'
                                 <td class="px-4 py-3 text-slate-600 text-right">{{ order.pending || 0 }}</td>
                                 <td class="px-4 py-3">
                                     <span 
-                                        :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
+                                        :class="order.status === '待出貨' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
                                         class="px-2 py-1 text-xs font-medium rounded-full"
                                     >
                                         {{ order.status }}
@@ -598,7 +598,7 @@ $products_component_template = <<<'HTML'
                                 <div class="text-xs text-slate-600 mt-0.5">{{ order.customer }}</div>
                             </div>
                             <span 
-                                :class="order.status === '已分配' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
+                                :class="order.status === '待出貨' ? 'bg-green-100 text-green-800' : order.status === '部分分配' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
                                 class="px-2 py-1 text-xs font-medium rounded-full"
                             >
                                 {{ order.status }}
@@ -618,7 +618,7 @@ $products_component_template = <<<'HTML'
                                     v-model.number="order.allocated"
                                     @input="updateOrderStatus(order)"
                                     :min="0"
-                                    :max="order.required"
+                                    :max="order.required - (order.shipped || 0)"
                                     class="w-full px-2 py-1 text-sm text-right border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium"
                                 />
                             </div>
@@ -1636,7 +1636,35 @@ const ProductsPageComponent = {
                 const result = await response.json();
                 
                 if (result.success) {
-                    productOrders.value = result.data;
+                    // 過濾掉已完成的訂單（已出貨 >= 需求）
+                    productOrders.value = result.data.filter(order => {
+                        const shipped = order.shipped || 0;
+                        const required = order.required || 0;
+                        return shipped < required;  // 只顯示未完成的訂單
+                    });
+                    
+                    // 處理每個訂單的數據
+                    productOrders.value.forEach(order => {
+                        const shipped = order.shipped || 0;
+                        const required = order.required || 0;
+                        const allocated = order.allocated || 0;
+                        
+                        // 計算未出貨數量（正確公式：pending = required - shipped）
+                        order.pending = required - shipped;
+                        
+                        // 計算剩餘需出貨數量
+                        const remaining = required - shipped;
+                        
+                        // 判斷狀態
+                        if (allocated >= remaining) {
+                            order.status = '待出貨';  // 分配完成，等待出貨
+                        } else if (allocated > 0) {
+                            order.status = '部分分配';
+                        } else {
+                            order.status = '未分配';
+                        }
+                    });
+                    
                     // 儲存原始分配數量，用於檢測變更
                     originalAllocations.value = {};
                     productOrders.value.forEach(order => {
@@ -1674,11 +1702,25 @@ const ProductsPageComponent = {
         
         // 更新訂單狀態（僅本地顯示，不保存）
         const updateOrderStatus = (order) => {
-            // 驗證輸入值
-            const newAllocated = Math.max(0, Math.min(Math.floor(order.allocated || 0), order.required));
+            const shipped = order.shipped || 0;
+            const required = order.required || 0;
+            
+            // 驗證輸入值（不能超過剩餘需出貨數量）
+            const remaining = required - shipped;
+            const newAllocated = Math.max(0, Math.min(Math.floor(order.allocated || 0), remaining));
             order.allocated = newAllocated;
-            order.pending = order.required - newAllocated;
-            order.status = newAllocated >= order.required ? '已分配' : (newAllocated > 0 ? '部分分配' : '未分配');
+            
+            // 計算未出貨數量（正確公式：pending = required - shipped）
+            order.pending = required - shipped;
+            
+            // 判斷狀態（基於剩餘需出貨數量）
+            if (newAllocated >= remaining) {
+                order.status = '待出貨';  // 分配完成，等待出貨
+            } else if (newAllocated > 0) {
+                order.status = '部分分配';
+            } else {
+                order.status = '未分配';
+            }
         };
         
         // 確認並保存所有分配

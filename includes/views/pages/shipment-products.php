@@ -378,6 +378,27 @@ $shipment_products_component_template = <<<'HTML'
             </div>
         </div>
     </div>
+    
+    <!-- Toast 通知 -->
+    <div 
+        v-if="toastMessage.show" 
+        class="fixed top-4 right-4 z-50 animate-slide-in"
+    >
+        <div :class="[
+            'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 
+            toastMessage.type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        ]">
+            <svg v-if="toastMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <svg v-else-if="toastMessage.type === 'error'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span class="font-medium">{{ toastMessage.message }}</span>
+        </div>
+    </div>
 </main>
 HTML;
 ?>
@@ -420,6 +441,21 @@ const ShipmentProductsPageComponent = {
             message: '',
             onConfirm: null
         });
+        
+        // Toast 通知狀態
+        const toastMessage = ref({
+            show: false,
+            message: '',
+            type: 'success' // 'success' | 'error' | 'info'
+        });
+        
+        // 顯示 Toast 訊息
+        const showToast = (message, type = 'success') => {
+            toastMessage.value = { show: true, message, type };
+            setTimeout(() => {
+                toastMessage.value.show = false;
+            }, 3000);
+        };
         
         // 載入出貨單列表
         const loadShipments = async () => {
@@ -549,37 +585,37 @@ const ShipmentProductsPageComponent = {
         };
         
         // 標記為已出貨
-        const markShipped = async (shipmentId) => {
+        const markShipped = (shipmentId) => {
             showConfirm('確定要標記此出貨單為已出貨嗎？', '確認標記已出貨', async () => {
                 try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        shipment_ids: [shipmentId]
-                    })
-                });
-                
+                    const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            shipment_ids: [shipmentId]
+                        })
+                    });
+                    
                     const result = await response.json();
                     
                     if (result.success) {
-                        alert('標記成功！');
+                        showToast('標記成功！', 'success');
                         await loadShipments();
                     } else {
-                        alert('標記失敗：' + result.message);
+                        showToast('標記失敗：' + result.message, 'error');
                     }
                 } catch (err) {
                     console.error('標記失敗:', err);
-                    alert('標記失敗：' + err.message);
+                    showToast('標記失敗：' + err.message, 'error');
                 }
             });
         };
         
         // 批次標記為已出貨
-        const batchMarkShipped = async () => {
+        const batchMarkShipped = () => {
             if (selectedItems.value.length === 0) {
                 return;
             }
@@ -589,29 +625,29 @@ const ShipmentProductsPageComponent = {
                 '批次標記已出貨',
                 async () => {
                     try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        shipment_ids: selectedItems.value
-                    })
-                });
-                
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                shipment_ids: selectedItems.value
+                            })
+                        });
+                        
                         const result = await response.json();
                         
                         if (result.success) {
-                            alert(`成功標記 ${result.count} 個出貨單為已出貨！`);
+                            showToast(`成功標記 ${result.count} 個出貨單為已出貨！`, 'success');
                             selectedItems.value = [];
                             await loadShipments();
                         } else {
-                            alert('標記失敗：' + result.message);
+                            showToast('標記失敗：' + result.message, 'error');
                         }
                     } catch (err) {
                         console.error('批次標記失敗:', err);
-                        alert('標記失敗：' + err.message);
+                        showToast('標記失敗：' + err.message, 'error');
                     }
                 }
             );
@@ -620,13 +656,14 @@ const ShipmentProductsPageComponent = {
         // 查看出貨單詳情
         const viewShipmentDetail = (shipmentId) => {
             // TODO: 實作出貨單詳情頁面或 Modal
-            alert('查看出貨單詳情：' + shipmentId);
+            showToast('出貨單詳情功能開發中...', 'info');
+            console.log('查看出貨單詳情：', shipmentId);
         };
         
         // 開啟建立出貨單 Modal
         const openCreateModal = () => {
             // TODO: 實作建立出貨單 Modal
-            alert('建立出貨單功能開發中...');
+            showToast('建立出貨單功能開發中...', 'info');
         };
         
         // 全選/取消全選
@@ -734,7 +771,9 @@ const ShipmentProductsPageComponent = {
             confirmModal,
             showConfirm,
             executeConfirm,
-            cancelConfirm
+            cancelConfirm,
+            toastMessage,
+            showToast
         };
     }
 };
