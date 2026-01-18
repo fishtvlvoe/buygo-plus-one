@@ -432,18 +432,44 @@ class SettingsService
     /**
      * 取得使用者的 LINE User ID
      * 
-     * 依序查詢三個 meta key（優先順序：buygo_line_user_id → m_line_user_id → line_user_id）
+     * 支援兩種儲存方式：
+     * 1. wp_usermeta 表（優先，meta_key: _mygo_line_uid, buygo_line_user_id, m_line_user_id, line_user_id）
+     * 2. wp_social_users 表（備用，由社交登入外掛建立）
      * 
      * @param int $user_id WordPress 使用者 ID
      * @return string|null LINE User ID，如果未綁定則返回 null
      */
     public static function get_user_line_id(int $user_id): ?string
     {
-        // 依序查詢三個 meta key（優先順序）
-        $meta_keys = ['buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
+        // 方式 1：從 wp_usermeta 查詢（優先）
+        // _mygo_line_uid 是目前系統實際使用的 meta key（來自 Nextend Social Login 或舊系統）
+        $meta_keys = ['_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
         
         foreach ($meta_keys as $meta_key) {
             $line_id = get_user_meta($user_id, $meta_key, true);
+            if (!empty($line_id)) {
+                return $line_id;
+            }
+        }
+        
+        // 方式 2：從 wp_social_users 表查詢（備用）
+        // 某些社交登入外掛（如 Super Socializer）會將 UID 儲存在此表
+        // 注意：此表的 User ID 欄位名稱是 ID（大寫），不是 user_id
+        global $wpdb;
+        $social_users_table = $wpdb->prefix . 'social_users';
+        
+        // 檢查資料表是否存在
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $social_users_table
+        ));
+        
+        if ($table_exists) {
+            $line_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT identifier FROM {$social_users_table} WHERE ID = %d AND type = 'line' LIMIT 1",
+                $user_id
+            ));
+            
             if (!empty($line_id)) {
                 return $line_id;
             }

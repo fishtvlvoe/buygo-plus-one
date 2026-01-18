@@ -26,13 +26,49 @@ define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
 // Load plugin class
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 
-// Activation hook
-register_activation_hook(__FILE__, function() {
+/**
+ * Activation Hook - 外掛啟用時執行
+ * 
+ * 建立外掛所需的資料表：
+ * - buygo_debug_logs (除錯日誌)
+ * - buygo_notification_logs (通知記錄)
+ * - buygo_workflow_logs (流程監控)
+ */
+register_activation_hook(__FILE__, function () {
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
     \BuyGoPlus\Database::create_tables();
 });
 
-// Initialize plugin
-add_action('plugins_loaded', function() {
+/**
+ * Deactivation Hook - 外掛停用時執行
+ * 
+ * 清理暫存資料和快取：
+ * - 清除 WordPress Object Cache
+ * - 清除 Transients（暫存資料）
+ * 
+ * 注意：不會刪除資料表和設定，以便使用者重新啟用時可以保留資料
+ */
+register_deactivation_hook(__FILE__, function () {
+    // 清除快取
+    wp_cache_flush();
+
+    // 清除所有 BuyGo 相關的 Transients
+    global $wpdb;
+    $wpdb->query(
+        "DELETE FROM {$wpdb->options} 
+         WHERE option_name LIKE '_transient_buygo_%' 
+         OR option_name LIKE '_transient_timeout_buygo_%'"
+    );
+
+    // 清除 NotificationTemplates 快取
+    delete_option('buygo_notification_templates_cache');
+});
+
+/**
+ * Initialize Plugin - 載入外掛
+ * 
+ * 優先級設為 20，確保在其他外掛（如 FluentCRM）載入後才初始化
+ */
+add_action('plugins_loaded', function () {
     \BuyGoPlus\Plugin::instance()->init();
 }, 20);

@@ -5,9 +5,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Plugin - 外掛主類別
+ * 
+ * 使用 Singleton 模式確保只有一個實例
+ * 負責載入所有依賴和註冊 Hooks
+ * 
+ * @package BuyGoPlus
+ * @since 0.0.1
+ */
 class Plugin {
+    /**
+     * 單例實例
+     * 
+     * @var Plugin|null
+     */
     private static $instance = null;
     
+    /**
+     * 取得單例實例
+     * 
+     * @return Plugin
+     */
     public static function instance() {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -15,16 +34,40 @@ class Plugin {
         return self::$instance;
     }
     
+    /**
+     * 私有建構函數（Singleton 模式）
+     * 
+     * 防止外部直接實例化
+     */
     private function __construct() {
         // 私有建構函數（Singleton）
     }
     
+    /**
+     * 初始化外掛
+     * 
+     * 載入所有依賴並註冊 Hooks
+     * 
+     * @return void
+     */
     public function init() {
         // 初始化外掛
         $this->load_dependencies();
         $this->register_hooks();
     }
     
+    /**
+     * 載入依賴檔案
+     * 
+     * 載入順序：
+     * 1. Services（服務層）
+     * 2. Admin（後台頁面）
+     * 3. Database（資料庫）
+     * 4. API（REST API）
+     * 5. Routes（路由）
+     * 
+     * @return void
+     */
     private function load_dependencies() {
         // 載入 Services
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
@@ -53,6 +96,17 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
     }
     
+    /**
+     * 註冊 WordPress Hooks
+     * 
+     * 初始化順序：
+     * 1. 角色權限（init_roles）
+     * 2. 後台頁面（DebugPage, SettingsPage）
+     * 3. 路由（Routes）
+     * 4. REST API（API, Debug_API, Settings_API, Keywords_API）
+     * 
+     * @return void
+     */
     private function register_hooks() {
         // 初始化角色權限
         \BuyGoPlus\Services\SettingsService::init_roles();
