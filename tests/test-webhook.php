@@ -98,6 +98,9 @@ run_test('NotificationTemplates 類別存在', function() {
 
 // 測試 9：測試 WebhookLogger 寫入功能
 run_test('WebhookLogger 可以寫入日誌', function() {
+    // 先確保資料表存在
+    \BuyGoPlus\Services\WebhookLogger::create_table();
+    
     $logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
     
     // 寫入測試日誌
