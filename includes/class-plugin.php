@@ -97,6 +97,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-line-webhook-api.php';
         
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
@@ -133,5 +134,9 @@ class Plugin {
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
+        
+        // 初始化 Webhook API
+        $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
+        add_action('rest_api_init', array($webhook_api, 'register_routes'));
     }
 }

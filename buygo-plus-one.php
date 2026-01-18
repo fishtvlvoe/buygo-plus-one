@@ -37,6 +37,10 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 register_activation_hook(__FILE__, function () {
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
     \BuyGoPlus\Database::create_tables();
+    
+    // 建立 Webhook Logger 資料表
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
+    \BuyGoPlus\Services\WebhookLogger::create_table();
 });
 
 /**
