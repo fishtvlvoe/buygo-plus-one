@@ -46,6 +46,7 @@ class Plugin {
         // 載入 API
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
         
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
@@ -67,5 +68,6 @@ class Plugin {
         new \BuyGoPlus\Api\API();
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
+        new \BuyGoPlus\Api\Keywords_API();
     }
 }

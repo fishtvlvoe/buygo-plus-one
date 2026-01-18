@@ -70,42 +70,60 @@ $settings_component_template = <<<'HTML'
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                             </svg>
-                                            <div>
-                                                <div class="font-semibold text-slate-900 md:text-base text-sm">{{ template.name }}</div>
-                                                <div class="md:text-sm text-xs text-slate-500">{{ template.description }}</div>
+                                            <div class="flex-1">
+                                                <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
+                                                <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
                                             </div>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded whitespace-nowrap">{{ template.category }}</span>
-                                            <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded whitespace-nowrap">LINE</span>
-                                            <span v-if="template.type === 'flex'" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded whitespace-nowrap">卡片式訊息</span>
                                         </div>
                                     </button>
                                     
                                     <!-- 編輯器（展開時顯示） -->
                                     <div v-if="isTemplateExpanded(template.key)" class="p-4 border-t border-slate-200">
                                         <!-- 文字模板編輯器 -->
-                                        <div v-if="template.type !== 'flex'">
-                                            <label class="block text-sm font-medium text-slate-700 mb-2">LINE 訊息內容</label>
+                                        <div v-if="template.type !== 'flex'" class="relative">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="text-sm font-medium text-slate-700">LINE 訊息內容</label>
+                                                <!-- 可用變數下拉選單（標題右邊） -->
+                                                <div v-if="template.variables && template.variables.length > 0" class="relative">
+                                                    <button
+                                                        @click.stop="toggleVariableDropdown(template.key)"
+                                                        :data-key="template.key"
+                                                        data-variable-button
+                                                        class="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition">
+                                                        <span class="font-mono">{{ }}</span>
+                                                        <span>點擊可用變數</span>
+                                                        <svg 
+                                                            :class="['w-3 h-3 transition-transform', isVariableDropdownOpen(template.key) ? 'rotate-180' : '']"
+                                                            fill="none" 
+                                                            stroke="currentColor" 
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                        </svg>
+                                                    </button>
+                                                    <!-- 下拉選單 -->
+                                                    <div 
+                                                        v-if="isVariableDropdownOpen(template.key)"
+                                                        :data-variable-dropdown="template.key"
+                                                        class="absolute right-0 top-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-3 min-w-[200px] max-w-[300px] max-h-[300px] overflow-y-auto"
+                                                        style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                                                        <div class="flex flex-wrap gap-2">
+                                                            <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
+                                                                <button
+                                                                    @click="copyVariable(variable); closeVariableDropdown(template.key)"
+                                                                    class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
+                                                                    { {{ variable }} }
+                                                                </button>
+                                                                <span class="md:text-[10px] text-[9px] text-slate-500 text-center leading-tight">{{ getVariableDescription(variable) }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <textarea 
                                                 v-model="templateEdits[template.key].line.message"
                                                 rows="8"
                                                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
                                                 placeholder="輸入模板內容..."></textarea>
-                                            
-                                            <!-- 可用變數（點擊複製） -->
-                                            <div v-if="template.variables && template.variables.length > 0" class="mt-4">
-                                                <label class="block text-sm font-medium text-slate-700 mb-2">可用變數（點擊複製）：</label>
-                                                <div class="flex flex-wrap gap-2">
-                                                    <button
-                                                        v-for="variable in template.variables"
-                                                        :key="variable"
-                                                        @click="copyVariable(variable)"
-                                                        class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
-                                                        { {{ variable }} }
-                                                    </button>
-                                                </div>
-                                            </div>
                                         </div>
                                         
                                         <!-- 卡片式訊息編輯器 -->
@@ -224,42 +242,60 @@ $settings_component_template = <<<'HTML'
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
-                                <div>
-                                    <div class="font-semibold text-slate-900 md:text-base text-sm">{{ template.name }}</div>
-                                    <div class="md:text-sm text-xs text-slate-500">{{ template.description }}</div>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
+                                    <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
                                 </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded whitespace-nowrap">{{ template.category }}</span>
-                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded whitespace-nowrap">LINE</span>
-                                <span v-if="template.type === 'flex'" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded whitespace-nowrap">卡片式訊息</span>
                             </div>
                         </button>
                         
                         <!-- 編輯器（展開時顯示） -->
                         <div v-if="isTemplateExpanded(template.key)" class="p-4 border-t border-slate-200">
                             <!-- 文字模板編輯器 -->
-                            <div v-if="template.type !== 'flex'">
-                                <label class="block text-sm font-medium text-slate-700 mb-2">LINE 訊息內容</label>
+                            <div v-if="template.type !== 'flex'" class="relative">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-700">LINE 訊息內容</label>
+                                    <!-- 可用變數下拉選單（標題右邊） -->
+                                    <div v-if="template.variables && template.variables.length > 0" class="relative">
+                                        <button
+                                            @click.stop="toggleVariableDropdown(template.key)"
+                                            :data-key="template.key"
+                                            data-variable-button
+                                            class="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition">
+                                            <span class="font-mono">{{ }}</span>
+                                            <span>點擊可用變數</span>
+                                            <svg 
+                                                :class="['w-3 h-3 transition-transform', isVariableDropdownOpen(template.key) ? 'rotate-180' : '']"
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
+                                        <!-- 下拉選單 -->
+                                        <div 
+                                            v-if="isVariableDropdownOpen(template.key)"
+                                            :data-variable-dropdown="template.key"
+                                            class="absolute right-0 top-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-3 min-w-[200px] max-w-[300px] max-h-[300px] overflow-y-auto"
+                                            style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                                            <div class="flex flex-wrap gap-2">
+                                                <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
+                                                    <button
+                                                        @click="copyVariable(variable); closeVariableDropdown(template.key)"
+                                                        class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
+                                                        { {{ variable }} }
+                                                    </button>
+                                                    <span class="md:text-[10px] text-[9px] text-slate-500 text-center leading-tight">{{ getVariableDescription(variable) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <textarea 
                                     v-model="templateEdits[template.key].line.message"
                                     rows="8"
                                     class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
                                     placeholder="輸入模板內容..."></textarea>
-                                
-                                <!-- 可用變數（點擊複製） -->
-                                <div v-if="template.variables && template.variables.length > 0" class="mt-4">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">可用變數（點擊複製）：</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button
-                                            v-for="variable in template.variables"
-                                            :key="variable"
-                                            @click="copyVariable(variable)"
-                                            class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
-                                            { {{ variable }} }
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                             
                             <!-- 卡片式訊息編輯器 -->
@@ -521,7 +557,7 @@ const SettingsPageComponent = {
     name: 'SettingsPage',
     template: `<?php echo $settings_component_template; ?>`,
     setup() {
-        const { ref, onMounted } = Vue;
+        const { ref, onMounted, onUnmounted } = Vue;
         
         // 模板設定狀態
         const activeTemplateTab = ref('buyer');
@@ -533,6 +569,8 @@ const SettingsPageComponent = {
         const expandedTemplates = ref(new Set());
         const expandedSystemNotifications = ref(false);
         const expandedKeywords = ref(false);
+        const expandedVariables = ref(new Set()); // 新增：追蹤哪些模板的變數已展開
+        const variableDropdownOpen = ref(new Set()); // 新增：追蹤哪些模板的下拉選單已打開
         const templateEdits = ref({});
         const savingTemplates = ref(false);
         const copyToast = ref({ show: false, message: '' });
@@ -755,7 +793,91 @@ const SettingsPageComponent = {
         const isTemplateExpanded = (key) => {
             return expandedTemplates.value.has(key);
         };
+        
+        // 切換變數展開/收合（舊版，保留以備用）
+        const toggleVariables = (templateKey) => {
+            if (expandedVariables.value.has(templateKey)) {
+                expandedVariables.value.delete(templateKey);
+            } else {
+                expandedVariables.value.add(templateKey);
+            }
+        };
+        
+        // 檢查變數是否展開（舊版，保留以備用）
+        const isVariablesExpanded = (templateKey) => {
+            return expandedVariables.value.has(templateKey);
+        };
+        
+        // 切換變數下拉選單
+        const toggleVariableDropdown = (templateKey) => {
+            if (variableDropdownOpen.value.has(templateKey)) {
+                variableDropdownOpen.value.delete(templateKey);
+            } else {
+                variableDropdownOpen.value.add(templateKey);
+            }
+        };
+        
+        // 檢查變數下拉選單是否打開
+        const isVariableDropdownOpen = (templateKey) => {
+            return variableDropdownOpen.value.has(templateKey);
+        };
+        
+        // 點擊外部關閉下拉選單
+        const closeVariableDropdown = (templateKey) => {
+            variableDropdownOpen.value.delete(templateKey);
+        };
+        
+        // 監聽點擊外部事件
+        const handleClickOutside = (e) => {
+            // 檢查點擊是否在下拉選單外部
+            const dropdowns = document.querySelectorAll('[data-variable-dropdown]');
+            dropdowns.forEach(dropdown => {
+                const templateKey = dropdown.getAttribute('data-variable-dropdown');
+                const button = e.target.closest('[data-variable-button]');
+                const isClickInsideDropdown = dropdown.contains(e.target);
+                const isClickOnButton = button && button.getAttribute('data-key') === templateKey;
+                
+                if (!isClickInsideDropdown && !isClickOnButton) {
+                    closeVariableDropdown(templateKey);
+                }
+            });
+        };
+        
+        onMounted(() => {
+            document.addEventListener('click', handleClickOutside);
+        });
+        
+        onUnmounted(() => {
+            document.removeEventListener('click', handleClickOutside);
+        });
 
+        // 變數說明對應表
+        const variableDescriptions = {
+            'order_id': '訂單編號',
+            'total': '訂單總金額',
+            'note': '備註說明',
+            'product_name': '商品名稱',
+            'quantity': '數量',
+            'buyer_name': '買家名稱',
+            'order_total': '訂單總額',
+            'order_url': '訂單連結',
+            'error_message': '錯誤訊息',
+            'product_url': '商品連結',
+            'price': '價格',
+            'currency_symbol': '貨幣符號',
+            'original_price_section': '原價區塊',
+            'category_section': '分類區塊',
+            'arrival_date_section': '到貨日期區塊',
+            'preorder_date_section': '預購日期區塊',
+            'community_url_section': '社群連結區塊',
+            'missing_fields': '缺少欄位'
+        };
+        
+        // 取得變數說明
+        const getVariableDescription = (variable) => {
+            return variableDescriptions[variable] || variable;
+        };
+        
         // 複製變數到剪貼簿
         const copyVariable = async (variable) => {
             const variableText = `{${variable}}`;
@@ -820,9 +942,11 @@ const SettingsPageComponent = {
                                     }
                                 };
                             } else {
+                                // 文字模板：優先讀取 line.message，如果沒有則讀取 line.text，最後使用空字串
+                                const message = templateData?.line?.message || templateData?.line?.text || '';
                                 templateEdits.value[template.key] = {
                                     line: {
-                                        message: templateData?.line?.message || templateData?.line?.text || ''
+                                        message: message
                                     }
                                 };
                             }
@@ -1040,7 +1164,13 @@ const SettingsPageComponent = {
             isTemplateExpanded,
             expandedSystemNotifications,
             expandedKeywords,
+            toggleVariables,
+            isVariablesExpanded,
+            toggleVariableDropdown,
+            isVariableDropdownOpen,
+            closeVariableDropdown,
             copyVariable,
+            getVariableDescription,
             loadTemplates,
             saveTemplates,
             helpers,

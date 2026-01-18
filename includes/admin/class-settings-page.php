@@ -38,6 +38,17 @@ class SettingsPage
             'dashicons-admin-generic',
             30
         );
+        
+        // 獨立的通知模板管理頁面
+        add_submenu_page(
+            'buygo-settings',
+            '通知模板管理',
+            '通知模板管理',
+            'manage_options',
+            'buygo-templates',
+            [$this, 'render_templates_page'],
+            1
+        );
     }
 
     /**
@@ -55,7 +66,7 @@ class SettingsPage
      */
     public function enqueue_scripts($hook): void
     {
-        if ($hook !== 'toplevel_page_buygo-settings') {
+        if ($hook !== 'toplevel_page_buygo-settings' && $hook !== 'buygo-settings_page_buygo-templates') {
             return;
         }
 
@@ -95,7 +106,6 @@ class SettingsPage
         $current_tab = $_GET['tab'] ?? 'line';
         $tabs = [
             'line' => 'LINE 設定',
-            'templates' => '訂單通知模板',
             'notifications' => '通知記錄',
             'workflow' => '流程監控',
             'roles' => '角色權限設定'
@@ -124,9 +134,6 @@ class SettingsPage
                 switch ($current_tab) {
                     case 'line':
                         $this->render_line_tab($line_settings);
-                        break;
-                    case 'templates':
-                        $this->render_templates_tab();
                         break;
                     case 'notifications':
                         $this->render_notifications_tab();
@@ -581,12 +588,53 @@ class SettingsPage
     }
 
     /**
-     * 渲染訂單通知模板 Tab
+     * 渲染獨立的通知模板管理頁面
+     */
+    public function render_templates_page(): void
+    {
+        // 處理表單提交
+        if (isset($_POST['submit_templates']) && isset($_POST['templates']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
+            $this->handle_templates_submit();
+        }
+        
+        ?>
+        <div class="wrap">
+            <h1>通知模板管理</h1>
+            <?php settings_errors('buygo_settings'); ?>
+            <?php $this->render_templates_tab(); ?>
+        </div>
+        <?php
+    }
+    
+    /**
+     * 渲染訂單通知模板 Tab（內部方法）
      */
     private function render_templates_tab(): void
     {
         // 取得所有模板
         $all_templates = NotificationTemplates::get_all_templates();
+        
+        // 變數說明對應表
+        $variable_descriptions = [
+            'order_id' => '訂單編號',
+            'total' => '訂單總金額',
+            'note' => '備註說明',
+            'product_name' => '商品名稱',
+            'quantity' => '數量',
+            'buyer_name' => '買家名稱',
+            'order_total' => '訂單總額',
+            'order_url' => '訂單連結',
+            'error_message' => '錯誤訊息',
+            'product_url' => '商品連結',
+            'price' => '價格',
+            'currency_symbol' => '貨幣符號',
+            'original_price_section' => '原價區塊',
+            'category_section' => '分類區塊',
+            'arrival_date_section' => '到貨日期區塊',
+            'preorder_date_section' => '預購日期區塊',
+            'community_url_section' => '社群連結區塊',
+            'missing_fields' => '缺少欄位'
+        ];
         
         // 定義可編輯的模板（按照新的分類）
         $editable_templates = [
@@ -660,40 +708,57 @@ class SettingsPage
         ];
         
         ?>
-        <form method="post" action="">
-            <?php wp_nonce_field('buygo_settings'); ?>
-            
-            <h2>通知模板管理</h2>
-            <p class="description">
-                編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
-            </p>
-            
-            <!-- Tab 切換 -->
-            <div class="nav-tab-wrapper" style="margin-top: 20px; border-bottom: 1px solid #ccc;">
-                <a href="#buyer-templates" class="nav-tab nav-tab-active" onclick="return false;" data-tab="buyer" style="cursor: pointer;">客戶</a>
-                <a href="#seller-templates" class="nav-tab" onclick="return false;" data-tab="seller" style="cursor: pointer;">賣家</a>
-                <a href="#system-templates" class="nav-tab" onclick="return false;" data-tab="system" style="cursor: pointer;">系統</a>
-            </div>
+        <div id="buygo-templates-page">
+            <form method="post" action="">
+                <?php wp_nonce_field('buygo_settings'); ?>
+                
+                <h2>通知模板管理</h2>
+                <p class="description">
+                    編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
+                </p>
+                
+                <!-- Tab 切換 -->
+                <div class="nav-tab-wrapper" style="margin-top: 20px; border-bottom: 1px solid #ccc;">
+                    <a href="#buyer-templates" class="nav-tab nav-tab-active" onclick="return false;" data-tab="buyer" style="cursor: pointer;">客戶</a>
+                    <a href="#seller-templates" class="nav-tab" onclick="return false;" data-tab="seller" style="cursor: pointer;">賣家</a>
+                    <a href="#system-templates" class="nav-tab" onclick="return false;" data-tab="system" style="cursor: pointer;">系統</a>
+                </div>
             
             <!-- 買家通知 -->
             <div id="buyer-templates" class="template-tab-content" style="margin-top: 20px;">
                 <h3>客戶通知</h3>
                 
+                <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">模板名稱</th>
+                            <th style="width: 50%;">說明</th>
+                            <th style="width: 20%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                 <?php foreach ($editable_templates['buyer'] as $template_key => $template_info): ?>
                     <?php
                     $template = $all_templates[$template_key] ?? null;
                     $line_message = $template['line']['message'] ?? '';
                     ?>
-                    <div class="postbox" style="margin-bottom: 20px;">
-                        <button type="button" class="handlediv" aria-expanded="true" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
-                            <span class="toggle-indicator" aria-hidden="true"></span>
-                        </button>
-                        <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
-                            <span><?php echo esc_html($template_info['name']); ?></span>
-                            <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">客戶</span>
-                            <span class="tag tag-line" style="display: inline-block; margin-left: 4px; padding: 2px 8px; background: #00c300; color: white; border-radius: 3px; font-size: 11px;">LINE</span>
-                        </h3>
-                        <div class="inside" style="padding: 15px;">
+                    <tr>
+                        <td>
+                            <strong><?php echo esc_html($template_info['name']); ?></strong>
+                        </td>
+                        <td>
+                            <span class="description"><?php echo esc_html($template_info['description']); ?></span>
+                        </td>
+                        <td>
+                            <button type="button" class="button button-small toggle-template-btn" data-template-key="<?php echo esc_attr($template_key); ?>" style="width: 100%;">
+                                <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s;">▼</span>
+                                <span class="toggle-text">展開</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="template-edit-row" id="template-<?php echo esc_attr($template_key); ?>" style="display: none;">
+                        <td colspan="3" style="padding: 20px; background: #f9f9f9;">
+                            <div style="max-width: 800px; margin: 0 auto;">
                             <p class="description" style="margin-top: 0; margin-bottom: 15px; color: #666;">
                                 <?php echo esc_html($template_info['description']); ?>
                             </p>
@@ -710,73 +775,126 @@ class SettingsPage
                             ><?php echo esc_textarea($line_message); ?></textarea>
                             
                             <?php if (!empty($template_info['variables'])): ?>
-                            <p class="description" style="margin-top: 5px;">
-                                可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
-                            </p>
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">可用變數（點擊複製）：</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    <?php foreach ($template_info['variables'] as $variable): ?>
+                                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                                        <button 
+                                            type="button"
+                                            onclick="copyToClipboard('{<?php echo esc_js($variable); ?>}')" 
+                                            class="button button-small"
+                                            style="cursor: pointer; font-family: monospace; font-size: 12px; padding: 6px 12px;">
+                                            { <?php echo esc_html($variable); ?> }
+                                        </button>
+                                        <span class="description" style="font-size: 11px; color: #666;">
+                                            <?php echo esc_html($variable_descriptions[$variable] ?? $variable); ?>
+                                        </span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                             <?php endif; ?>
-                        </div>
-                    </div>
+                            </div>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
             
             <!-- 賣家通知 -->
             <div id="seller-templates" class="template-tab-content" style="margin-top: 20px; display: none;">
                 <h3>賣家通知</h3>
                 
+                <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">模板名稱</th>
+                            <th style="width: 50%;">說明</th>
+                            <th style="width: 20%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                 <?php foreach ($editable_templates['seller'] as $template_key => $template_info): ?>
                     <?php
                     $template = $all_templates[$template_key] ?? null;
                     $line_message = $template['line']['message'] ?? '';
                     ?>
-                    <div class="postbox" style="margin-bottom: 20px;">
-                        <button type="button" class="handlediv" aria-expanded="true" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
-                            <span class="toggle-indicator" aria-hidden="true"></span>
-                        </button>
-                        <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
-                            <span><?php echo esc_html($template_info['name']); ?></span>
-                            <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">賣家</span>
-                            <span class="tag tag-line" style="display: inline-block; margin-left: 4px; padding: 2px 8px; background: #00c300; color: white; border-radius: 3px; font-size: 11px;">LINE</span>
-                        </h3>
-                        <div class="inside" style="padding: 15px;">
+                    <tr>
+                        <td>
+                            <strong><?php echo esc_html($template_info['name']); ?></strong>
+                        </td>
+                        <td>
+                            <span class="description"><?php echo esc_html($template_info['description']); ?></span>
+                        </td>
+                        <td>
+                            <button type="button" class="button button-small toggle-template-btn" data-template-key="<?php echo esc_attr($template_key); ?>" style="width: 100%;">
+                                <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s;">▼</span>
+                                <span class="toggle-text">展開</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="template-edit-row" id="template-<?php echo esc_attr($template_key); ?>" style="display: none;">
+                        <td colspan="3" style="padding: 20px; background: #f9f9f9;">
+                            <div style="max-width: 800px; margin: 0 auto;">
                             <p class="description" style="margin-top: 0; margin-bottom: 15px; color: #666;">
                                 <?php echo esc_html($template_info['description']); ?>
                             </p>
                             
-                            <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
-                                LINE 訊息模板：
-                            </label>
-                            <textarea 
-                                id="template_<?php echo esc_attr($template_key); ?>"
-                                name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
-                                rows="8" 
-                                class="large-text code"
-                                style="width: 100%; font-family: monospace;"
-                            ><?php echo esc_textarea($line_message); ?></textarea>
-                            
-                            <?php if (!empty($template_info['variables'])): ?>
-                            <p class="description" style="margin-top: 5px;">
-                                可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
-                            </p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                                <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                    LINE 訊息模板：
+                                </label>
+                                <textarea 
+                                    id="template_<?php echo esc_attr($template_key); ?>"
+                                    name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
+                                    rows="8" 
+                                    class="large-text code"
+                                    style="width: 100%; font-family: monospace;"
+                                ><?php echo esc_textarea($line_message); ?></textarea>
+                                
+                                <?php if (!empty($template_info['variables'])): ?>
+                                <div style="margin-top: 15px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">可用變數（點擊複製）：</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <?php foreach ($template_info['variables'] as $variable): ?>
+                                        <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                                            <button 
+                                                type="button"
+                                                onclick="copyToClipboard('{<?php echo esc_js($variable); ?>}')" 
+                                                class="button button-small"
+                                                style="cursor: pointer; font-family: monospace; font-size: 12px; padding: 6px 12px;">
+                                                { <?php echo esc_html($variable); ?> }
+                                            </button>
+                                            <span class="description" style="font-size: 11px; color: #666;">
+                                                <?php echo esc_html($variable_descriptions[$variable] ?? $variable); ?>
+                                            </span>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
             
             <!-- 系統通知 -->
             <div id="system-templates" class="template-tab-content" style="margin-top: 20px; display: none;">
                 <h3>系統通知</h3>
                 
-                <!-- 系統通知折疊區塊 -->
-                <div class="postbox" style="margin-bottom: 20px;">
-                    <button type="button" class="handlediv" aria-expanded="false" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
-                        <span class="toggle-indicator" aria-hidden="true"></span>
-                    </button>
-                    <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
-                        <span>系統通知</span>
-                        <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">系統</span>
-                    </h3>
-                    <div class="inside" style="padding: 15px;">
+                <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">模板名稱</th>
+                            <th style="width: 50%;">說明</th>
+                            <th style="width: 20%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <?php 
                         // 過濾掉關鍵字回覆
                         $system_notification_templates = array_filter($editable_templates['system'], function($key) {
@@ -786,7 +904,25 @@ class SettingsPage
                         foreach ($system_notification_templates as $template_key => $template_info): 
                             $template = $all_templates[$template_key] ?? null;
                             $template_type = $template['type'] ?? 'text';
-                            
+                            ?>
+                            <tr>
+                                <td>
+                                    <strong><?php echo esc_html($template_info['name']); ?></strong>
+                                </td>
+                                <td>
+                                    <span class="description"><?php echo esc_html($template_info['description']); ?></span>
+                                </td>
+                                <td>
+                                    <button type="button" class="button button-small toggle-template-btn" data-template-key="<?php echo esc_attr($template_key); ?>" style="width: 100%;">
+                                        <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s;">▼</span>
+                                        <span class="toggle-text">展開</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="template-edit-row" id="template-<?php echo esc_attr($template_key); ?>" style="display: none;">
+                                <td colspan="3" style="padding: 20px; background: #f9f9f9;">
+                                    <div style="max-width: 800px; margin: 0 auto;">
+                            <?php
                             // 檢查是否為卡片式訊息
                             if (($template_info['type'] ?? 'text') === 'flex' || $template_type === 'flex') {
                                 $flex_template = $template['line']['flex_template'] ?? [
@@ -801,17 +937,6 @@ class SettingsPage
                                 ];
                                 ?>
                                 <!-- 卡片式訊息編輯器 -->
-                                <div class="postbox" style="margin-bottom: 20px;">
-                                    <button type="button" class="handlediv" aria-expanded="true" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
-                                        <span class="toggle-indicator" aria-hidden="true"></span>
-                                    </button>
-                                    <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
-                                        <span><?php echo esc_html($template_info['name']); ?></span>
-                                        <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">系統</span>
-                                        <span class="tag tag-line" style="display: inline-block; margin-left: 4px; padding: 2px 8px; background: #00c300; color: white; border-radius: 3px; font-size: 11px;">LINE</span>
-                                        <span class="tag tag-flex" style="display: inline-block; margin-left: 4px; padding: 2px 8px; background: #0066cc; color: white; border-radius: 3px; font-size: 11px;">卡片式訊息</span>
-                                    </h3>
-                                    <div class="inside" style="padding: 15px;">
                                         <p class="description" style="margin-top: 0; margin-bottom: 15px; color: #666;">
                                             <?php echo esc_html($template_info['description']); ?>
                                         </p>
@@ -887,62 +1012,67 @@ class SettingsPage
                                             </label>
                                         </div>
                                         <?php endfor; ?>
-                                    </div>
-                                </div>
-                                <?php
+                            <?php
                             } else {
                                 // 一般文字模板
                                 $line_message = $template['line']['message'] ?? '';
                                 ?>
-                                <div class="postbox" style="margin-bottom: 20px;">
-                                    <button type="button" class="handlediv" aria-expanded="true" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
-                                        <span class="toggle-indicator" aria-hidden="true"></span>
-                                    </button>
-                                    <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
-                                        <span><?php echo esc_html($template_info['name']); ?></span>
-                                        <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">系統</span>
-                                        <span class="tag tag-line" style="display: inline-block; margin-left: 4px; padding: 2px 8px; background: #00c300; color: white; border-radius: 3px; font-size: 11px;">LINE</span>
-                                    </h3>
-                                    <div class="inside" style="padding: 15px;">
-                                        <p class="description" style="margin-top: 0; margin-bottom: 15px; color: #666;">
-                                            <?php echo esc_html($template_info['description']); ?>
-                                        </p>
-                                        
-                                        <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
-                                            LINE 訊息模板：
-                                        </label>
-                                        <textarea 
-                                            id="template_<?php echo esc_attr($template_key); ?>"
-                                            name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
-                                            rows="8" 
-                                            class="large-text code"
-                                            style="width: 100%; font-family: monospace;"
-                                        ><?php echo esc_textarea($line_message); ?></textarea>
-                                        
-                                        <?php if (!empty($template_info['variables'])): ?>
-                                        <p class="description" style="margin-top: 5px;">
-                                            可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
-                                        </p>
-                                        <?php endif; ?>
+                                <p class="description" style="margin-top: 0; margin-bottom: 15px; color: #666;">
+                                    <?php echo esc_html($template_info['description']); ?>
+                                </p>
+                                
+                                <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                    LINE 訊息模板：
+                                </label>
+                                <textarea 
+                                    id="template_<?php echo esc_attr($template_key); ?>"
+                                    name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
+                                    rows="8" 
+                                    class="large-text code"
+                                    style="width: 100%; font-family: monospace;"
+                                ><?php echo esc_textarea($line_message); ?></textarea>
+                                
+                                <?php if (!empty($template_info['variables'])): ?>
+                                <div style="margin-top: 15px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">可用變數（點擊複製）：</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <?php foreach ($template_info['variables'] as $variable): ?>
+                                        <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                                            <button 
+                                                type="button"
+                                                onclick="copyToClipboard('{<?php echo esc_js($variable); ?>}')" 
+                                                class="button button-small"
+                                                style="cursor: pointer; font-family: monospace; font-size: 12px; padding: 6px 12px;">
+                                                { <?php echo esc_html($variable); ?> }
+                                            </button>
+                                            <span class="description" style="font-size: 11px; color: #666;">
+                                                <?php echo esc_html($variable_descriptions[$variable] ?? $variable); ?>
+                                            </span>
+                                        </div>
+                                        <?php endforeach; ?>
                                     </div>
                                 </div>
-                                <?php
+                                <?php endif; ?>
+                            <?php
                             }
-                        endforeach; 
-                        ?>
-                    </div>
-                </div>
+                            ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
                 
-                <!-- 關鍵字訊息折疊區塊 -->
-                <div class="postbox" style="margin-bottom: 20px;">
-                    <button type="button" class="handlediv" aria-expanded="false" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true');">
+                <!-- 關鍵字訊息區塊 -->
+                <h3 style="margin-top: 30px;">關鍵字訊息</h3>
+                <div class="postbox closed" style="margin-bottom: 20px; max-width: 800px;">
+                    <button type="button" class="handlediv" aria-expanded="false" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true'); jQuery(this).siblings('.inside').toggle();">
                         <span class="toggle-indicator" aria-hidden="true"></span>
                     </button>
                     <h3 class="hndle" style="padding: 12px 15px; margin: 0; cursor: pointer;">
                         <span>關鍵字訊息</span>
-                        <span class="tag" style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px;">系統</span>
                     </h3>
-                    <div class="inside" style="padding: 15px;">
+                    <div class="inside" style="padding: 15px; display: none;">
                         <p class="description">關鍵字管理功能開發中...</p>
                     </div>
                 </div>
@@ -956,23 +1086,102 @@ class SettingsPage
                 <input type="submit" name="submit_templates" class="button-primary" value="儲存模板" />
             </p>
         </form>
+        </div>
         
         <script>
         jQuery(document).ready(function($) {
-            // Tab 切換功能
-            $('.nav-tab').on('click', function(e) {
+            // Tab 切換功能（僅限於模板管理頁面）
+            $('#buygo-templates-page .nav-tab').on('click', function(e) {
                 e.preventDefault();
                 var tab = $(this).data('tab');
                 
                 // 更新 Tab 樣式
-                $('.nav-tab').removeClass('nav-tab-active');
+                $('#buygo-templates-page .nav-tab').removeClass('nav-tab-active');
                 $(this).addClass('nav-tab-active');
                 
                 // 顯示對應的內容
-                $('.template-tab-content').hide();
-                $('#' + tab + '-templates').show();
+                $('#buygo-templates-page .template-tab-content').hide();
+                var $targetTab = $('#buygo-templates-page #' + tab + '-templates');
+                
+                if ($targetTab.length) {
+                    $targetTab.show();
+                } else {
+                    console.error('找不到 Tab 內容: #' + tab + '-templates');
+                }
+            });
+            
+            // 表格展開/收合功能
+            $('#buygo-templates-page .toggle-template-btn').on('click', function() {
+                var $btn = $(this);
+                var templateKey = $btn.data('template-key');
+                var $row = $('#template-' + templateKey);
+                var $arrow = $btn.find('.toggle-arrow');
+                var $text = $btn.find('.toggle-text');
+                
+                if ($row.is(':visible')) {
+                    // 收合
+                    $row.slideUp(200);
+                    $arrow.css('transform', 'rotate(0deg)');
+                    $text.text('展開');
+                } else {
+                    // 展開
+                    $row.slideDown(200);
+                    $arrow.css('transform', 'rotate(180deg)');
+                    $text.text('收合');
+                }
+            });
+            
+            // WordPress 內建的 postbox 折疊功能（僅限於模板管理頁面的系統通知區塊）
+            $('#buygo-templates-page .postbox .handlediv').on('click', function() {
+                $(this).parent().toggleClass('closed');
+                var isClosed = $(this).parent().hasClass('closed');
+                $(this).attr('aria-expanded', isClosed ? 'false' : 'true');
+                $(this).siblings('.inside').toggle();
+            });
+            
+            // 讓 h3.hndle 也可以點擊展開/收合（僅限於模板管理頁面的系統通知區塊）
+            $('#buygo-templates-page .postbox .hndle').on('click', function() {
+                var $postbox = $(this).closest('.postbox');
+                var $handlediv = $postbox.find('.handlediv');
+                $postbox.toggleClass('closed');
+                var isClosed = $postbox.hasClass('closed');
+                $handlediv.attr('aria-expanded', isClosed ? 'false' : 'true');
+                $postbox.find('.inside').toggle();
             });
         });
+        
+        // 複製變數到剪貼簿
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('已複製：' + text);
+                }).catch(function(err) {
+                    console.error('複製失敗:', err);
+                    fallbackCopyToClipboard(text);
+                });
+            } else {
+                fallbackCopyToClipboard(text);
+            }
+        }
+        
+        // 備用複製方法（舊瀏覽器）
+        function fallbackCopyToClipboard(text) {
+            var textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('已複製：' + text);
+            } catch (err) {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動複製：' + text);
+            }
+            document.body.removeChild(textArea);
+        }
         </script>
         <?php
     }
@@ -996,8 +1205,13 @@ class SettingsPage
                 'updated'
             );
         }
-        
-        // 處理模板儲存
+    }
+    
+    /**
+     * 處理模板提交（獨立方法）
+     */
+    private function handle_templates_submit(): void
+    {
         if (isset($_POST['submit_templates']) && isset($_POST['templates']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
             $templates = $_POST['templates'];
             
