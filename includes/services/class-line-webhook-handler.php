@@ -225,8 +225,15 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		// Send Flex Message menu
-		$flex_message = \BuyGoPlus\Templates\LineFlexTemplates::get_product_upload_menu();
-		$this->send_reply( $reply_token, $flex_message );
+		$template = \BuyGoPlus\Services\NotificationTemplates::get('flex_image_upload_menu', []);
+		
+		if ( $template && isset( $template['line']['flex_template'] ) ) {
+			$flex_message = \BuyGoPlus\Services\NotificationTemplates::build_flex_message( $template['line']['flex_template'] );
+			$this->send_reply( $reply_token, $flex_message );
+		} else {
+			// Fallback to text message if flex template not found
+			$this->send_reply( $reply_token, '圖片已收到！請發送商品資訊。' );
+		}
 	}
 
 	/**

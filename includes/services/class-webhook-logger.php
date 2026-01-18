@@ -141,7 +141,12 @@ class WebhookLogger {
 		$limit = intval( $args['limit'] );
 		$offset = intval( $args['offset'] );
 
-		$query = "SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY {$order_by} LIMIT {$limit} OFFSET {$offset}";
+		// Use $wpdb->prepare for LIMIT and OFFSET to follow WordPress standards
+		$query = $wpdb->prepare(
+			"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY {$order_by} LIMIT %d OFFSET %d",
+			$limit,
+			$offset
+		);
 
 		$results = $wpdb->get_results( $query, ARRAY_A );
 
