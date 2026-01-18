@@ -68,6 +68,10 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- SortableJS (vuedraggable 依賴) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- VueDraggable CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
     
     <?php
     // 載入頁面元件（如果存在）

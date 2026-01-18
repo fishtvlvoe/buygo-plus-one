@@ -95,6 +95,20 @@ class Settings_API {
             'callback' => [$this, 'remove_role'],
             'permission_callback' => [$this, 'check_permission_for_admin'],
         ]);
+        
+        // POST /settings/templates/order - 更新模板順序
+        register_rest_route($this->namespace, '/settings/templates/order', [
+            'methods' => 'POST',
+            'callback' => [$this, 'update_template_order'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
+        
+        // GET /settings/templates/order - 取得模板順序
+        register_rest_route($this->namespace, '/settings/templates/order', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_template_order'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
     }
     
     /**
@@ -444,5 +458,104 @@ class Settings_API {
         // return current_user_can('buygo_admin') || current_user_can('manage_options');
         
         return true;
+    }
+    
+    /**
+     * 更新模板順序
+     */
+    public function update_template_order($request) {
+        try {
+            $body = json_decode($request->get_body(), true);
+            
+            if (!isset($body['tab']) || !isset($body['order']) || !is_array($body['order'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '缺少必要參數'
+                ], 400);
+            }
+            
+            $tab = sanitize_text_field($body['tab']);
+            $order = $body['order'];
+            
+            // 取得現有的 metadata
+            $metadata = get_option('buygo_notification_templates_metadata', []);
+            
+            // 更新每個模板的順序
+            foreach ($order as $item) {
+                $key = sanitize_key($item['key'] ?? '');
+                $order_value = intval($item['order'] ?? 0);
+                
+                if (empty($key)) {
+                    continue;
+                }
+                
+                // 初始化 metadata（如果不存在）
+                if (!isset($metadata[$key])) {
+                    $metadata[$key] = [];
+                }
+                
+                // 更新順序
+                $metadata[$key]['order'] = $order_value;
+                $metadata[$key]['tab'] = $tab;
+            }
+            
+            // 儲存到資料庫
+            update_option('buygo_notification_templates_metadata', $metadata);
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '模板順序已更新'
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '更新模板順序失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 取得模板順序
+     */
+    public function get_template_order($request) {
+        try {
+            $metadata = get_option('buygo_notification_templates_metadata', []);
+            
+            // 按照 tab 分組
+            $orderData = [
+                'buyer' => [],
+                'seller' => [],
+                'system' => []
+            ];
+            
+            foreach ($metadata as $key => $meta) {
+                $tab = $meta['tab'] ?? 'buyer';
+                $order = $meta['order'] ?? 0;
+                
+                if (isset($orderData[$tab])) {
+                    $orderData[$tab][] = [
+                        'key' => $key,
+                        'order' => $order
+                    ];
+                }
+            }
+            
+            // 排序每個 tab 的順序
+            foreach ($orderData as &$orders) {
+                usort($orders, function($a, $b) {
+                    return $a['order'] - $b['order'];
+                });
+            }
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $orderData
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '取得模板順序失敗：' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -55,7 +55,14 @@ $settings_component_template = <<<'HTML'
                             </div>
                         </button>
                         <div v-if="expandedSystemNotifications" class="p-4 border-t border-slate-200 space-y-4">
-                            <template v-for="template in getSystemNotificationTemplates()" :key="template.key">
+                            <draggable 
+                                v-model="sortedSystemTemplates"
+                                @end="onSystemTemplateDragEnd"
+                                :animation="200"
+                                handle=".drag-handle"
+                                item-key="key"
+                                class="space-y-4">
+                                <template #item="{ element: template }">
                                 <!-- 折疊式模板項目 -->
                                 <div class="border border-slate-200 rounded-lg overflow-hidden">
                                     <!-- 標題列（可點擊展開/收合） -->
@@ -63,6 +70,12 @@ $settings_component_template = <<<'HTML'
                                         @click="toggleTemplate(template.key)"
                                         class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
                                         <div class="flex items-center gap-3">
+                                            <!-- 拖拉把手 -->
+                                            <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                                </svg>
+                                            </div>
                                             <svg 
                                                 :class="['w-5 h-5 text-slate-400 transition-transform', isTemplateExpanded(template.key) ? 'rotate-90' : '']"
                                                 fill="none" 
@@ -195,7 +208,8 @@ $settings_component_template = <<<'HTML'
                                         </div>
                                     </div>
                                 </div>
-                            </template>
+                                </template>
+                            </draggable>
                         </div>
                     </div>
                     
@@ -227,14 +241,27 @@ $settings_component_template = <<<'HTML'
                 
                 <!-- 客戶和賣家標籤：正常顯示模板列表 -->
                 <template v-else>
-                    <template v-for="template in getTemplatesByTab(activeTemplateTab)" :key="template.key">
-                    <!-- 折疊式模板項目 -->
-                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <draggable 
+                        v-model="sortedTemplates[activeTemplateTab]"
+                        @end="onTemplateDragEnd"
+                        :animation="200"
+                        handle=".drag-handle"
+                        item-key="key"
+                        class="space-y-4">
+                        <template #item="{ element: template }">
+                        <!-- 折疊式模板項目 -->
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
                         <!-- 標題列（可點擊展開/收合） -->
                         <button 
                             @click="toggleTemplate(template.key)"
                             class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
                             <div class="flex items-center gap-3">
+                                <!-- 拖拉把手 -->
+                                <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                    </svg>
+                                </div>
                                 <svg 
                                     :class="['w-5 h-5 text-slate-400 transition-transform', isTemplateExpanded(template.key) ? 'rotate-90' : '']"
                                     fill="none" 
@@ -368,7 +395,8 @@ $settings_component_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
-                    </template>
+                        </template>
+                    </draggable>
                 </template>
             </div>
             
@@ -557,6 +585,9 @@ HTML;
 const SettingsPageComponent = {
     name: 'SettingsPage',
     template: `<?php echo $settings_component_template; ?>`,
+    components: {
+        draggable: vuedraggable
+    },
     setup() {
         const { ref, onMounted, onUnmounted } = Vue;
         
@@ -577,6 +608,13 @@ const SettingsPageComponent = {
         const copyToast = ref({ show: false, message: '' });
         const keywords = ref([]);
         const loadingKeywords = ref(false);
+        
+        // 拖拉排序狀態
+        const sortedTemplates = ref({
+            buyer: [],
+            seller: []
+        });
+        const sortedSystemTemplates = ref([]);
         
         // 小幫手管理狀態
         const helpers = ref([]);
@@ -710,8 +748,79 @@ const SettingsPageComponent = {
             ]
         };
 
-        // 取得當前標籤的模板列表
+        // 初始化排序模板列表（從資料庫讀取順序）
+        const initSortedTemplates = async () => {
+            try {
+                // 從 API 讀取模板順序
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates/order', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const orderData = result.data;
+                        
+                        // 排序買家模板
+                        if (orderData.buyer) {
+                            sortedTemplates.value.buyer = sortTemplatesByOrder(templateDefinitions.buyer || [], orderData.buyer);
+                        } else {
+                            sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
+                        }
+                        
+                        // 排序賣家模板
+                        if (orderData.seller) {
+                            sortedTemplates.value.seller = sortTemplatesByOrder(templateDefinitions.seller || [], orderData.seller);
+                        } else {
+                            sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                        }
+                        
+                        // 排序系統模板
+                        if (orderData.system) {
+                            sortedSystemTemplates.value = sortTemplatesByOrder(getSystemNotificationTemplates(), orderData.system);
+                        } else {
+                            sortedSystemTemplates.value = getSystemNotificationTemplates();
+                        }
+                    } else {
+                        // 如果沒有順序資料，使用預設順序
+                        sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
+                        sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                        sortedSystemTemplates.value = getSystemNotificationTemplates();
+                    }
+                } else {
+                    // 如果 API 失敗，使用預設順序
+                    sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
+                    sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                    sortedSystemTemplates.value = getSystemNotificationTemplates();
+                }
+            } catch (err) {
+                console.error('讀取模板順序錯誤:', err);
+                // 使用預設順序
+                sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
+                sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                sortedSystemTemplates.value = getSystemNotificationTemplates();
+            }
+        };
+        
+        // 根據順序排序模板
+        const sortTemplatesByOrder = (templates, orderData) => {
+            const orderMap = {};
+            orderData.forEach(item => {
+                orderMap[item.key] = item.order;
+            });
+            
+            return templates.sort((a, b) => {
+                const orderA = orderMap[a.key] !== undefined ? orderMap[a.key] : 999;
+                const orderB = orderMap[b.key] !== undefined ? orderMap[b.key] : 999;
+                return orderA - orderB;
+            });
+        };
+        
+        // 取得當前標籤的模板列表（使用排序後的列表）
         const getTemplatesByTab = (tab) => {
+            if (tab === 'buyer' || tab === 'seller') {
+                return sortedTemplates.value[tab] || [];
+            }
             const templates = templateDefinitions[tab] || [];
             return templates.map(template => {
                 // 確保 templateEdits 中有這個模板的資料
@@ -748,7 +857,7 @@ const SettingsPageComponent = {
         const getSystemNotificationTemplates = () => {
             const templates = templateDefinitions['system'] || [];
             // 過濾掉 system_keyword_reply
-            return templates
+            const filtered = templates
                 .filter(template => template.key !== 'system_keyword_reply')
                 .map(template => {
                     // 確保 templateEdits 中有這個模板的資料
@@ -779,6 +888,53 @@ const SettingsPageComponent = {
                     }
                     return template;
                 });
+            return filtered;
+        };
+        
+        // 模板拖拉結束處理
+        const onTemplateDragEnd = async () => {
+            const tab = activeTemplateTab.value;
+            if (tab === 'buyer' || tab === 'seller') {
+                await saveTemplateOrder(tab, sortedTemplates.value[tab]);
+            }
+        };
+        
+        // 系統模板拖拉結束處理
+        const onSystemTemplateDragEnd = async () => {
+            await saveTemplateOrder('system', sortedSystemTemplates.value);
+        };
+        
+        // 儲存模板順序
+        const saveTemplateOrder = async (tab, templates) => {
+            try {
+                const order = templates.map((template, index) => ({
+                    key: template.key,
+                    order: index
+                }));
+                
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates/order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        tab: tab,
+                        order: order
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('順序已儲存', 'success');
+                } else {
+                    showToast('儲存順序失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('儲存順序錯誤:', err);
+                showToast('儲存順序失敗', 'error');
+            }
         };
 
         // 切換模板展開/收合
@@ -1247,6 +1403,7 @@ const SettingsPageComponent = {
             await checkAdmin();
             await loadTemplates();
             await loadHelpers();
+            await initSortedTemplates();
         });
         
         return {
@@ -1282,7 +1439,11 @@ const SettingsPageComponent = {
             searchUsers,
             selectUser,
             closeAddHelperModal,
-            toastMessage
+            toastMessage,
+            sortedTemplates,
+            sortedSystemTemplates,
+            onTemplateDragEnd,
+            onSystemTemplateDragEnd
         };
     }
 };
