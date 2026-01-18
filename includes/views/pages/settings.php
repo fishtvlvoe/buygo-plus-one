@@ -1599,12 +1599,22 @@ const SettingsPageComponent = {
                     credentials: 'include'
                 });
                 
+                // 檢查 HTTP 狀態
+                if (!response.ok) {
+                    console.error('API 回應錯誤:', response.status, response.statusText);
+                    showToast(`載入關鍵字列表失敗 (${response.status})`, 'error');
+                    return;
+                }
+                
                 const result = await response.json();
                 
-                if (result.success && result.data) {
+                // 除錯日誌
+                console.log('關鍵字 API 回應:', result);
+                
+                if (result.success && result.data && Array.isArray(result.data)) {
                     keywords.value = result.data.map(kw => ({
                         ...kw,
-                        aliases: kw.aliases || []
+                        aliases: Array.isArray(kw.aliases) ? kw.aliases : []
                     }));
                     
                     // 初始化編輯資料
@@ -1612,15 +1622,21 @@ const SettingsPageComponent = {
                         if (!keywordEdits.value[keyword.id]) {
                             keywordEdits.value[keyword.id] = {
                                 keyword: keyword.keyword || '',
-                                aliasesText: (keyword.aliases || []).join(', '),
+                                aliasesText: Array.isArray(keyword.aliases) ? keyword.aliases.join(', ') : '',
                                 message: keyword.message || ''
                             };
                         }
                     });
+                    
+                    console.log('載入的關鍵字數量:', keywords.value.length);
+                } else {
+                    console.warn('關鍵字 API 回應格式不正確:', result);
+                    keywords.value = [];
                 }
             } catch (err) {
                 console.error('載入關鍵字列表錯誤:', err);
-                showToast('載入關鍵字列表失敗', 'error');
+                showToast('載入關鍵字列表失敗: ' + err.message, 'error');
+                keywords.value = [];
             } finally {
                 loadingKeywords.value = false;
             }

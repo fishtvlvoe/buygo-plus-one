@@ -1145,7 +1145,7 @@ class SettingsPage
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="<?php echo admin_url('admin.php?page=buygo-settings&tab=templates'); ?>" class="button button-small">
+                                            <a href="<?php echo home_url('/buygo-portal/settings'); ?>" target="_blank" class="button button-small">
                                                 前往前端編輯
                                             </a>
                                         </td>

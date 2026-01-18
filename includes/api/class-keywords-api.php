@@ -34,9 +34,12 @@ class Keywords_API {
     
     /**
      * 權限檢查
+     * 使用統一的權限檢查方法，與其他 API 一致
      */
     public function check_permission() {
-        return current_user_can('manage_options');
+        // 暫時使用統一的權限檢查（測試階段）
+        // 測試完成後，改為使用 SettingsService 的權限檢查
+        return \BuyGoPlus\Api\API::check_permission();
     }
     
     /**
@@ -46,9 +49,31 @@ class Keywords_API {
         try {
             $keywords = get_option('buygo_line_keywords', []);
             
-            // 如果沒有關鍵字，提供預設的 /help 關鍵字
-            if (empty($keywords)) {
-                $keywords = [
+            // 確保是陣列格式
+            if (!is_array($keywords)) {
+                $keywords = [];
+            }
+            
+            // 驗證並清理資料格式
+            $validated_keywords = [];
+            foreach ($keywords as $keyword) {
+                // 確保是陣列且有必要的欄位
+                if (is_array($keyword) && !empty($keyword['keyword'])) {
+                    $validated_keywords[] = [
+                        'id' => isset($keyword['id']) ? sanitize_key($keyword['id']) : 'kw_' . uniqid(),
+                        'keyword' => sanitize_text_field($keyword['keyword']),
+                        'aliases' => is_array($keyword['aliases'] ?? null) 
+                            ? array_map('sanitize_text_field', $keyword['aliases']) 
+                            : [],
+                        'message' => sanitize_textarea_field($keyword['message'] ?? ''),
+                        'order' => isset($keyword['order']) ? intval($keyword['order']) : 0
+                    ];
+                }
+            }
+            
+            // 如果沒有有效的關鍵字，提供預設的 /help 關鍵字
+            if (empty($validated_keywords)) {
+                $validated_keywords = [
                     [
                         'id' => 'help',
                         'keyword' => '/help',
@@ -59,21 +84,14 @@ class Keywords_API {
                 ];
             }
             
-            // 確保每個關鍵字都有 order 欄位
-            foreach ($keywords as &$keyword) {
-                if (!isset($keyword['order'])) {
-                    $keyword['order'] = 0;
-                }
-            }
-            
             // 按照 order 排序
-            usort($keywords, function($a, $b) {
+            usort($validated_keywords, function($a, $b) {
                 return ($a['order'] ?? 0) - ($b['order'] ?? 0);
             });
             
             return new \WP_REST_Response([
                 'success' => true,
-                'data' => $keywords
+                'data' => $validated_keywords
             ], 200);
         } catch (\Exception $e) {
             return new \WP_REST_Response([
