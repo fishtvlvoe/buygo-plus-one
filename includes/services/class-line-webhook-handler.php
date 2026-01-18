@@ -165,12 +165,32 @@ class LineWebhookHandler {
 		}
 
 		// Check permissions (admin or helper)
-		$can_upload = current_user_can( 'manage_options' ) || current_user_can( 'buygo_admin' );
-
+	// Note: In webhook context, we check the WordPress user's role, not current_user
+	// For testing: define BUYGO_WEBHOOK_TEST_MODE in wp-config.php to skip permission check
+	if ( ! defined( 'BUYGO_WEBHOOK_TEST_MODE' ) || ! BUYGO_WEBHOOK_TEST_MODE ) {
+		$user_meta = get_userdata( $user->ID );
+		$can_upload = false;
+		
+		if ( $user_meta && ! empty( $user_meta->roles ) ) {
+			$can_upload = in_array( 'administrator', $user_meta->roles, true ) || 
+			              in_array( 'buygo_admin', $user_meta->roles, true );
+		}
+		
 		if ( ! $can_upload ) {
 			// Silent processing for regular users
+			$this->logger->log( 'permission_denied', array(
+				'user_id' => $user->ID,
+				'roles' => $user_meta->roles ?? [],
+			), $user->ID, $line_uid );
 			return;
 		}
+	} else {
+		// Test mode: allow all users
+		$this->logger->log( 'test_mode_active', array(
+			'message' => 'Permission check skipped (test mode)',
+			'user_id' => $user->ID,
+		), $user->ID, $line_uid );
+	}
 
 		// Download and upload image
 		if ( ! class_exists( 'BuyGo_Core' ) ) {
@@ -246,12 +266,31 @@ class LineWebhookHandler {
 		}
 
 		// Check permissions
-		$can_upload = current_user_can( 'manage_options' ) || current_user_can( 'buygo_admin' );
-
+	// Note: In webhook context, we check the WordPress user's role, not current_user
+	if ( ! defined( 'BUYGO_WEBHOOK_TEST_MODE' ) || ! BUYGO_WEBHOOK_TEST_MODE ) {
+		$user_meta = get_userdata( $user->ID );
+		$can_upload = false;
+		
+		if ( $user_meta && ! empty( $user_meta->roles ) ) {
+			$can_upload = in_array( 'administrator', $user_meta->roles, true ) || 
+			              in_array( 'buygo_admin', $user_meta->roles, true );
+		}
+		
 		if ( ! $can_upload ) {
 			// Silent processing for regular users
+			$this->logger->log( 'permission_denied', array(
+				'user_id' => $user->ID,
+				'roles' => $user_meta->roles ?? [],
+			), $user->ID, $line_uid );
 			return;
 		}
+	} else {
+		// Test mode: allow all users
+		$this->logger->log( 'test_mode_active', array(
+			'message' => 'Permission check skipped (test mode)',
+			'user_id' => $user->ID,
+		), $user->ID, $line_uid );
+	}
 
 		// Parse product data
 		$product_data = $this->product_data_parser->parse( $text );
