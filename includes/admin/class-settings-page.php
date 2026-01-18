@@ -3,6 +3,7 @@
 namespace BuyGoPlus\Admin;
 
 use BuyGoPlus\Services\SettingsService;
+use BuyGoPlus\Services\NotificationTemplates;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -94,6 +95,7 @@ class SettingsPage
         $current_tab = $_GET['tab'] ?? 'line';
         $tabs = [
             'line' => 'LINE 設定',
+            'templates' => '訂單通知模板',
             'notifications' => '通知記錄',
             'workflow' => '流程監控',
             'roles' => '角色權限設定'
@@ -122,6 +124,9 @@ class SettingsPage
                 switch ($current_tab) {
                     case 'line':
                         $this->render_line_tab($line_settings);
+                        break;
+                    case 'templates':
+                        $this->render_templates_tab();
                         break;
                     case 'notifications':
                         $this->render_notifications_tab();
@@ -576,21 +581,190 @@ class SettingsPage
     }
 
     /**
+     * 渲染訂單通知模板 Tab
+     */
+    private function render_templates_tab(): void
+    {
+        // 取得所有模板
+        $all_templates = NotificationTemplates::get_all_templates();
+        
+        // 定義可編輯的模板（買家版和賣家版）
+        $editable_templates = [
+            'buyer' => [
+                'order_created' => [
+                    'name' => '訂單已建立',
+                    'description' => '買家下單後收到的通知',
+                    'variables' => ['order_id', 'total', '客戶名稱', '訂單編號', '訂單金額', '下單時間']
+                ],
+                'order_shipped' => [
+                    'name' => '訂單已出貨',
+                    'description' => '商品出貨後通知買家',
+                    'variables' => ['order_id', 'note', '訂單編號', '商品名稱']
+                ],
+                'order_cancelled' => [
+                    'name' => '訂單已取消',
+                    'description' => '訂單取消或缺貨時通知買家',
+                    'variables' => ['order_id', 'note', '訂單編號', '說明']
+                ]
+            ],
+            'seller' => [
+                'seller_order_created' => [
+                    'name' => '新訂單通知',
+                    'description' => '賣家收到新訂單時的通知',
+                    'variables' => ['order_id', 'buyer_name', 'order_total', '訂單編號', '客戶名稱', '訂單金額', '下單時間']
+                ],
+                'seller_order_paid' => [
+                    'name' => '訂單已付款',
+                    'description' => '訂單付款後通知賣家',
+                    'variables' => ['order_id', 'buyer_name', 'order_total', '訂單編號', '客戶名稱', '訂單金額']
+                ],
+                'seller_order_refunded' => [
+                    'name' => '訂單已退款',
+                    'description' => '訂單退款後通知賣家',
+                    'variables' => ['order_id', 'customer_name', 'total', '訂單編號', '客戶名稱', '退款金額']
+                ]
+            ]
+        ];
+        
+        ?>
+        <form method="post" action="">
+            <?php wp_nonce_field('buygo_settings'); ?>
+            
+            <h2>訂單通知模板管理</h2>
+            <p class="description">
+                編輯買家和賣家收到的 LINE 通知模板。可使用變數：<code>{變數名稱}</code>
+            </p>
+            
+            <div style="margin-top: 20px;">
+                <h3>買家版模板（客戶收到的通知）</h3>
+                
+                <?php foreach ($editable_templates['buyer'] as $template_key => $template_info): ?>
+                    <?php
+                    $template = $all_templates[$template_key] ?? null;
+                    $line_message = $template['line']['message'] ?? '';
+                    ?>
+                    <div style="margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                        <h4 style="margin-top: 0;">
+                            <?php echo esc_html($template_info['name']); ?>
+                            <span style="font-size: 12px; font-weight: normal; color: #666;">
+                                （<?php echo esc_html($template_info['description']); ?>）
+                            </span>
+                        </h4>
+                        
+                        <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                            LINE 訊息模板：
+                        </label>
+                        <textarea 
+                            id="template_<?php echo esc_attr($template_key); ?>"
+                            name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
+                            rows="8" 
+                            class="large-text code"
+                            style="width: 100%; font-family: monospace;"
+                        ><?php echo esc_textarea($line_message); ?></textarea>
+                        
+                        <p class="description" style="margin-top: 5px;">
+                            可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
+                        </p>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <h3>賣家版模板（賣家/小幫手收到的通知）</h3>
+                
+                <?php foreach ($editable_templates['seller'] as $template_key => $template_info): ?>
+                    <?php
+                    $template = $all_templates[$template_key] ?? null;
+                    $line_message = $template['line']['message'] ?? '';
+                    ?>
+                    <div style="margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                        <h4 style="margin-top: 0;">
+                            <?php echo esc_html($template_info['name']); ?>
+                            <span style="font-size: 12px; font-weight: normal; color: #666;">
+                                （<?php echo esc_html($template_info['description']); ?>）
+                            </span>
+                        </h4>
+                        
+                        <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                            LINE 訊息模板：
+                        </label>
+                        <textarea 
+                            id="template_<?php echo esc_attr($template_key); ?>"
+                            name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
+                            rows="8" 
+                            class="large-text code"
+                            style="width: 100%; font-family: monospace;"
+                        ><?php echo esc_textarea($line_message); ?></textarea>
+                        
+                        <p class="description" style="margin-top: 5px;">
+                            可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
+                        </p>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <p class="submit">
+                <input type="submit" name="submit_templates" class="button-primary" value="儲存模板" />
+            </p>
+        </form>
+        <?php
+    }
+
+    /**
      * 處理表單提交
      */
     private function handle_form_submit(): void
     {
         if (isset($_POST['line_channel_access_token'])) {
             SettingsService::update_line_settings([
-                'channel_access_token' => $_POST['line_channel_access_token'],
-                'channel_secret' => $_POST['line_channel_secret'] ?? '',
-                'liff_id' => $_POST['line_liff_id'] ?? '',
+                'channel_access_token' => sanitize_text_field($_POST['line_channel_access_token'] ?? ''),
+                'channel_secret' => sanitize_text_field($_POST['line_channel_secret'] ?? ''),
+                'liff_id' => sanitize_text_field($_POST['line_liff_id'] ?? ''),
             ]);
             
             add_settings_error(
                 'buygo_settings',
                 'settings_saved',
                 '設定已儲存',
+                'updated'
+            );
+        }
+        
+        // 處理模板儲存
+        if (isset($_POST['submit_templates']) && isset($_POST['templates']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
+            $templates = $_POST['templates'];
+            
+            // 取得所有現有自訂模板
+            $all_custom = get_option('buygo_notification_templates', []);
+            
+            // 取得所有模板（包含預設和自訂）
+            $all_templates = NotificationTemplates::get_all_templates();
+            
+            // 處理每個提交的模板
+            foreach ($templates as $key => $template_data) {
+                if (isset($template_data['line']['message'])) {
+                    // 取得當前模板（可能是預設或自訂）
+                    $current_template = $all_templates[$key] ?? null;
+                    
+                    if ($current_template) {
+                        // 建立自訂模板結構
+                        $all_custom[$key] = [
+                            'email' => $current_template['email'] ?? ['subject' => '', 'message' => ''],
+                            'line' => [
+                                'message' => sanitize_textarea_field($template_data['line']['message'])
+                            ]
+                        ];
+                    }
+                }
+            }
+            
+            // 儲存所有自訂模板
+            NotificationTemplates::save_custom_templates($all_custom);
+            
+            add_settings_error(
+                'buygo_settings',
+                'templates_saved',
+                '模板已儲存',
                 'updated'
             );
         }
