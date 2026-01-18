@@ -588,40 +588,73 @@ class SettingsPage
         // 取得所有模板
         $all_templates = NotificationTemplates::get_all_templates();
         
-        // 定義可編輯的模板（買家版和賣家版）
+        // 定義可編輯的模板（按照新的分類）
         $editable_templates = [
             'buyer' => [
                 'order_created' => [
                     'name' => '訂單已建立',
-                    'description' => '買家下單後收到的通知',
-                    'variables' => ['order_id', 'total', '客戶名稱', '訂單編號', '訂單金額', '下單時間']
-                ],
-                'order_shipped' => [
-                    'name' => '訂單已出貨',
-                    'description' => '商品出貨後通知買家',
-                    'variables' => ['order_id', 'note', '訂單編號', '商品名稱']
+                    'description' => '訂單建立時（完整或拆分）發送給客戶',
+                    'variables' => ['order_id', 'total']
                 ],
                 'order_cancelled' => [
                     'name' => '訂單已取消',
-                    'description' => '訂單取消或缺貨時通知買家',
-                    'variables' => ['order_id', 'note', '訂單編號', '說明']
+                    'description' => '訂單取消時（僅客戶自行取消）發送給客戶',
+                    'variables' => ['order_id', 'note']
+                ],
+                'plusone_order_confirmation' => [
+                    'name' => '訂單確認',
+                    'description' => '訂單確認（留言回覆）發送給買家',
+                    'variables' => ['product_name', 'quantity', 'total']
                 ]
             ],
             'seller' => [
                 'seller_order_created' => [
                     'name' => '新訂單通知',
-                    'description' => '賣家收到新訂單時的通知',
-                    'variables' => ['order_id', 'buyer_name', 'order_total', '訂單編號', '客戶名稱', '訂單金額', '下單時間']
+                    'description' => '有人下訂單時發送給賣家',
+                    'variables' => ['order_id', 'buyer_name', 'order_total', 'order_url']
                 ],
-                'seller_order_paid' => [
-                    'name' => '訂單已付款',
-                    'description' => '訂單付款後通知賣家',
-                    'variables' => ['order_id', 'buyer_name', 'order_total', '訂單編號', '客戶名稱', '訂單金額']
+                'seller_order_cancelled' => [
+                    'name' => '訂單已取消',
+                    'description' => '訂單取消時發送給賣家',
+                    'variables' => ['order_id', 'buyer_name', 'note', 'order_url']
+                ]
+            ],
+            'system' => [
+                'system_line_follow' => [
+                    'name' => '加入好友通知',
+                    'description' => '加入好友時發送（含第一則通知）',
+                    'variables' => []
                 ],
-                'seller_order_refunded' => [
-                    'name' => '訂單已退款',
-                    'description' => '訂單退款後通知賣家',
-                    'variables' => ['order_id', 'customer_name', 'total', '訂單編號', '客戶名稱', '退款金額']
+                'flex_image_upload_menu' => [
+                    'name' => '圖片上傳成功（卡片式訊息）',
+                    'description' => '圖片上傳成功後發送的卡片式訊息',
+                    'type' => 'flex',
+                    'variables' => []
+                ],
+                'system_image_upload_failed' => [
+                    'name' => '圖片上傳失敗',
+                    'description' => '圖片上傳失敗時發送',
+                    'variables' => ['error_message']
+                ],
+                'system_product_published' => [
+                    'name' => '商品上架成功',
+                    'description' => '商品上架成功時發送',
+                    'variables' => ['product_name', 'price', 'quantity', 'product_url', 'currency_symbol', 'original_price_section', 'category_section', 'arrival_date_section', 'preorder_date_section', 'community_url_section']
+                ],
+                'system_product_publish_failed' => [
+                    'name' => '商品上架失敗',
+                    'description' => '商品上架失敗時發送',
+                    'variables' => ['error_message']
+                ],
+                'system_product_data_incomplete' => [
+                    'name' => '商品資料不完整',
+                    'description' => '商品資料不完整時發送',
+                    'variables' => ['missing_fields']
+                ],
+                'system_keyword_reply' => [
+                    'name' => '關鍵字回覆訊息',
+                    'description' => '關鍵字回覆訊息',
+                    'variables' => []
                 ]
             ]
         ];
@@ -630,13 +663,14 @@ class SettingsPage
         <form method="post" action="">
             <?php wp_nonce_field('buygo_settings'); ?>
             
-            <h2>訂單通知模板管理</h2>
+            <h2>通知模板管理</h2>
             <p class="description">
-                編輯買家和賣家收到的 LINE 通知模板。可使用變數：<code>{變數名稱}</code>
+                編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
             </p>
             
+            <!-- 買家通知 -->
             <div style="margin-top: 20px;">
-                <h3>買家版模板（客戶收到的通知）</h3>
+                <h3>買家通知（客戶收到的通知）</h3>
                 
                 <?php foreach ($editable_templates['buyer'] as $template_key => $template_info): ?>
                     <?php
@@ -662,15 +696,18 @@ class SettingsPage
                             style="width: 100%; font-family: monospace;"
                         ><?php echo esc_textarea($line_message); ?></textarea>
                         
+                        <?php if (!empty($template_info['variables'])): ?>
                         <p class="description" style="margin-top: 5px;">
                             可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
                         </p>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
             
+            <!-- 賣家通知 -->
             <div style="margin-top: 30px;">
-                <h3>賣家版模板（賣家/小幫手收到的通知）</h3>
+                <h3>賣家通知（賣家/小幫手收到的通知）</h3>
                 
                 <?php foreach ($editable_templates['seller'] as $template_key => $template_info): ?>
                     <?php
@@ -696,11 +733,151 @@ class SettingsPage
                             style="width: 100%; font-family: monospace;"
                         ><?php echo esc_textarea($line_message); ?></textarea>
                         
+                        <?php if (!empty($template_info['variables'])): ?>
                         <p class="description" style="margin-top: 5px;">
                             可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
                         </p>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
+            </div>
+            
+            <!-- 系統通知 -->
+            <div style="margin-top: 30px;">
+                <h3>系統通知</h3>
+                
+                <?php foreach ($editable_templates['system'] as $template_key => $template_info): ?>
+                    <?php
+                    $template = $all_templates[$template_key] ?? null;
+                    $template_type = $template['type'] ?? 'text';
+                    
+                    // 檢查是否為卡片式訊息
+                    if (($template_info['type'] ?? 'text') === 'flex' || $template_type === 'flex') {
+                        $flex_template = $template['line']['flex_template'] ?? [
+                            'logo_url' => '',
+                            'title' => '',
+                            'description' => '',
+                            'buttons' => [
+                                ['label' => '', 'action' => ''],
+                                ['label' => '', 'action' => ''],
+                                ['label' => '', 'action' => '']
+                            ]
+                        ];
+                        ?>
+                        <!-- 卡片式訊息編輯器 -->
+                        <div style="margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                            <h4 style="margin-top: 0;">
+                                <?php echo esc_html($template_info['name']); ?>
+                                <span style="font-size: 12px; font-weight: normal; color: #666;">
+                                    （<?php echo esc_html($template_info['description']); ?>）
+                                </span>
+                            </h4>
+                            
+                            <input type="hidden" name="templates[<?php echo esc_attr($template_key); ?>][type]" value="flex">
+                            
+                            <label for="flex_logo_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                Logo URL：
+                            </label>
+                            <input 
+                                type="text" 
+                                id="flex_logo_<?php echo esc_attr($template_key); ?>"
+                                name="templates[<?php echo esc_attr($template_key); ?>][line][flex_template][logo_url]" 
+                                value="<?php echo esc_attr($flex_template['logo_url'] ?? ''); ?>"
+                                class="large-text"
+                                style="width: 100%;"
+                                placeholder="https://example.com/logo.png"
+                            />
+                            
+                            <label for="flex_title_<?php echo esc_attr($template_key); ?>" style="display: block; margin-top: 15px; margin-bottom: 5px; font-weight: 600;">
+                                標題文字：
+                            </label>
+                            <input 
+                                type="text" 
+                                id="flex_title_<?php echo esc_attr($template_key); ?>"
+                                name="templates[<?php echo esc_attr($template_key); ?>][line][flex_template][title]" 
+                                value="<?php echo esc_attr($flex_template['title'] ?? ''); ?>"
+                                class="large-text"
+                                style="width: 100%;"
+                            />
+                            
+                            <label for="flex_description_<?php echo esc_attr($template_key); ?>" style="display: block; margin-top: 15px; margin-bottom: 5px; font-weight: 600;">
+                                說明文字：
+                            </label>
+                            <textarea 
+                                id="flex_description_<?php echo esc_attr($template_key); ?>"
+                                name="templates[<?php echo esc_attr($template_key); ?>][line][flex_template][description]" 
+                                rows="3" 
+                                class="large-text"
+                                style="width: 100%;"
+                            ><?php echo esc_textarea($flex_template['description'] ?? ''); ?></textarea>
+                            
+                            <h5 style="margin-top: 20px; margin-bottom: 10px;">按鈕設定：</h5>
+                            <?php 
+                            $buttons = $flex_template['buttons'] ?? [
+                                ['label' => '', 'action' => ''],
+                                ['label' => '', 'action' => ''],
+                                ['label' => '', 'action' => '']
+                            ];
+                            for ($i = 0; $i < 3; $i++): 
+                                $button = $buttons[$i] ?? ['label' => '', 'action' => ''];
+                            ?>
+                            <div style="margin-bottom: 15px; padding: 10px; background: #fff; border: 1px solid #ccc; border-radius: 4px;">
+                                <strong>按鈕 <?php echo $i + 1; ?>：</strong>
+                                <label style="display: block; margin-top: 5px;">
+                                    文字：
+                                    <input 
+                                        type="text" 
+                                        name="templates[<?php echo esc_attr($template_key); ?>][line][flex_template][buttons][<?php echo $i; ?>][label]" 
+                                        value="<?php echo esc_attr($button['label'] ?? ''); ?>"
+                                        style="width: 200px; margin-left: 5px;"
+                                    />
+                                </label>
+                                <label style="display: block; margin-top: 5px;">
+                                    關鍵字：
+                                    <input 
+                                        type="text" 
+                                        name="templates[<?php echo esc_attr($template_key); ?>][line][flex_template][buttons][<?php echo $i; ?>][action]" 
+                                        value="<?php echo esc_attr($button['action'] ?? ''); ?>"
+                                        style="width: 200px; margin-left: 5px;"
+                                        placeholder="/one"
+                                    />
+                                </label>
+                            </div>
+                            <?php endfor; ?>
+                        </div>
+                        <?php
+                    } else {
+                        // 一般文字模板
+                        $line_message = $template['line']['message'] ?? '';
+                        ?>
+                        <div style="margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                            <h4 style="margin-top: 0;">
+                                <?php echo esc_html($template_info['name']); ?>
+                                <span style="font-size: 12px; font-weight: normal; color: #666;">
+                                    （<?php echo esc_html($template_info['description']); ?>）
+                                </span>
+                            </h4>
+                            
+                            <label for="template_<?php echo esc_attr($template_key); ?>" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                LINE 訊息模板：
+                            </label>
+                            <textarea 
+                                id="template_<?php echo esc_attr($template_key); ?>"
+                                name="templates[<?php echo esc_attr($template_key); ?>][line][message]" 
+                                rows="8" 
+                                class="large-text code"
+                                style="width: 100%; font-family: monospace;"
+                            ><?php echo esc_textarea($line_message); ?></textarea>
+                            
+                            <?php if (!empty($template_info['variables'])): ?>
+                            <p class="description" style="margin-top: 5px;">
+                                可用變數：<code><?php echo esc_html(implode('</code>、<code>', $template_info['variables'])); ?></code>
+                            </p>
+                            <?php endif; ?>
+                        </div>
+                        <?php
+                    }
+                endforeach; ?>
             </div>
             
             <p class="submit">
@@ -742,14 +919,51 @@ class SettingsPage
             
             // 處理每個提交的模板
             foreach ($templates as $key => $template_data) {
-                if (isset($template_data['line']['message'])) {
+                $template_type = sanitize_text_field($template_data['type'] ?? 'text');
+                
+                if ($template_type === 'flex') {
+                    // Flex Message 模板
+                    $flex_template = $template_data['line']['flex_template'] ?? [];
+                    
+                    if (!empty($flex_template)) {
+                        // 取得當前模板（可能是預設或自訂）
+                        $current_template = $all_templates[$key] ?? null;
+                        
+                        if ($current_template) {
+                            // 建立自訂 Flex Message 模板結構
+                            $all_custom[$key] = [
+                                'type' => 'flex',
+                                'line' => [
+                                    'flex_template' => [
+                                        'logo_url' => sanitize_text_field($flex_template['logo_url'] ?? ''),
+                                        'title' => sanitize_text_field($flex_template['title'] ?? ''),
+                                        'description' => sanitize_textarea_field($flex_template['description'] ?? ''),
+                                        'buttons' => []
+                                    ]
+                                ]
+                            ];
+                            
+                            // 處理按鈕
+                            if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                                foreach ($flex_template['buttons'] as $button) {
+                                    if (!empty($button['label']) || !empty($button['action'])) {
+                                        $all_custom[$key]['line']['flex_template']['buttons'][] = [
+                                            'label' => sanitize_text_field($button['label'] ?? ''),
+                                            'action' => sanitize_text_field($button['action'] ?? '')
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } elseif (isset($template_data['line']['message'])) {
+                    // 文字模板
                     // 取得當前模板（可能是預設或自訂）
                     $current_template = $all_templates[$key] ?? null;
                     
                     if ($current_template) {
-                        // 建立自訂模板結構
+                        // 建立自訂模板結構（移除 email 結構）
                         $all_custom[$key] = [
-                            'email' => $current_template['email'] ?? ['subject' => '', 'message' => ''],
                             'line' => [
                                 'message' => sanitize_textarea_field($template_data['line']['message'])
                             ]

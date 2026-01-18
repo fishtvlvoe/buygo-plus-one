@@ -89,34 +89,139 @@ class SettingsService
         }
     }
     /**
-     * 取得模板設定
+     * 取得模板設定（統一使用 NotificationTemplates 系統）
      * 
      * @return array
      */
     public static function get_templates(): array
     {
-        $default_buyer = "親愛的 {{客戶名稱}}，\n您的訂單 {{訂單編號}} 已出貨！\n商品：{{商品名稱}}\n感謝您的購買！";
-        $default_seller = "新訂單通知！\n客戶：{{客戶名稱}}\n訂單金額：{{訂單金額}}\n請盡快處理！";
+        // 使用 NotificationTemplates 系統取得所有模板
+        $all_templates = \BuyGoPlus\Services\NotificationTemplates::get_all_templates();
+        
+        // 分類模板
+        $buyer_templates = [];
+        $seller_templates = [];
+        $system_templates = [];
+        
+        // 買家通知
+        $buyer_keys = ['order_created', 'order_cancelled', 'plusone_order_confirmation'];
+        foreach ($buyer_keys as $key) {
+            if (isset($all_templates[$key])) {
+                $buyer_templates[$key] = $all_templates[$key];
+            }
+        }
+        
+        // 賣家通知
+        $seller_keys = ['seller_order_created', 'seller_order_cancelled'];
+        foreach ($seller_keys as $key) {
+            if (isset($all_templates[$key])) {
+                $seller_templates[$key] = $all_templates[$key];
+            }
+        }
+        
+        // 系統通知
+        $system_keys = [
+            'system_line_follow',
+            'flex_image_upload_menu',
+            'system_image_upload_failed',
+            'system_product_published',
+            'system_product_publish_failed',
+            'system_product_data_incomplete',
+            'system_keyword_reply'
+        ];
+        foreach ($system_keys as $key) {
+            if (isset($all_templates[$key])) {
+                $system_templates[$key] = $all_templates[$key];
+            }
+        }
         
         return [
-            'buyer_template' => get_option('buygo_buyer_template', $default_buyer),
-            'seller_template' => get_option('buygo_seller_template', $default_seller),
+            'buyer' => $buyer_templates,
+            'seller' => $seller_templates,
+            'system' => $system_templates,
+            'all' => $all_templates
         ];
     }
     
     /**
-     * 更新模板設定
+     * 更新模板設定（統一使用 NotificationTemplates 系統）
      * 
-     * @param array $templates
+     * @param array $templates 完整的模板資料結構
      * @return bool
      */
     public static function update_templates(array $templates): bool
     {
-        $buyer_template = sanitize_textarea_field($templates['buyer_template'] ?? '');
-        $seller_template = sanitize_textarea_field($templates['seller_template'] ?? '');
+        // 取得所有現有自訂模板
+        $all_custom = get_option('buygo_notification_templates', []);
         
-        update_option('buygo_buyer_template', $buyer_template);
-        update_option('buygo_seller_template', $seller_template);
+        // 處理每個提交的模板
+        foreach ($templates as $key => $template_data) {
+            if (isset($template_data['type']) && $template_data['type'] === 'flex') {
+                // Flex Message 模板
+                $flex_template = $template_data['line']['flex_template'] ?? [];
+                
+                if (!empty($flex_template)) {
+                    $all_custom[$key] = [
+                        'type' => 'flex',
+                        'line' => [
+                            'flex_template' => [
+                                'logo_url' => sanitize_text_field($flex_template['logo_url'] ?? ''),
+                                'title' => sanitize_text_field($flex_template['title'] ?? ''),
+                                'description' => sanitize_textarea_field($flex_template['description'] ?? ''),
+                                'buttons' => []
+                            ]
+                        ]
+                    ];
+                    
+                    // 處理按鈕
+                    if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                        foreach ($flex_template['buttons'] as $button) {
+                            if (!empty($button['label']) || !empty($button['action'])) {
+                                $all_custom[$key]['line']['flex_template']['buttons'][] = [
+                                    'label' => sanitize_text_field($button['label'] ?? ''),
+                                    'action' => sanitize_text_field($button['action'] ?? '')
+                                ];
+                            }
+                        }
+                    }
+                }
+            } elseif (isset($template_data['line']['message'])) {
+                // 文字模板
+                $all_custom[$key] = [
+                    'line' => [
+                        'message' => sanitize_textarea_field($template_data['line']['message'])
+                    ]
+                ];
+            } elseif (isset($template_data['line']['flex_template'])) {
+                // Flex Message 模板（另一種格式）
+                $flex_template = $template_data['line']['flex_template'];
+                $all_custom[$key] = [
+                    'type' => 'flex',
+                    'line' => [
+                        'flex_template' => [
+                            'logo_url' => sanitize_text_field($flex_template['logo_url'] ?? ''),
+                            'title' => sanitize_text_field($flex_template['title'] ?? ''),
+                            'description' => sanitize_textarea_field($flex_template['description'] ?? ''),
+                            'buttons' => []
+                        ]
+                    ]
+                ];
+                
+                if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                    foreach ($flex_template['buttons'] as $button) {
+                        if (!empty($button['label']) || !empty($button['action'])) {
+                            $all_custom[$key]['line']['flex_template']['buttons'][] = [
+                                'label' => sanitize_text_field($button['label'] ?? ''),
+                                'action' => sanitize_text_field($button['action'] ?? '')
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 使用 NotificationTemplates 系統儲存
+        \BuyGoPlus\Services\NotificationTemplates::save_custom_templates($all_custom);
         
         return true;
     }

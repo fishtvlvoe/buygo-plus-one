@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 /**
  * NotificationTemplates - 通知模板管理服務
  * 
- * 負責管理所有 LINE 和 Email 通知模板
+ * 負責管理所有 LINE 通知模板（已移除 Email 通知）
  * 從舊版 BuyGo 外掛複製並調整命名空間
  */
 class NotificationTemplates {
@@ -47,21 +47,46 @@ class NotificationTemplates {
             $template = $templates[$key];
         }
 
-        // Process replacements
-        $subject = self::replace_placeholders($template['email']['subject'] ?? '', $args);
-        $email_body = self::replace_placeholders($template['email']['message'] ?? '', $args);
-        $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
+        // 檢查是否為 Flex Message 類型
+        $template_type = $template['type'] ?? 'text';
+        
+        if ($template_type === 'flex') {
+            // Flex Message 模板
+            $flex_template = $template['line']['flex_template'] ?? [];
+            
+            // 處理變數替換
+            if (!empty($flex_template)) {
+                $flex_template['title'] = self::replace_placeholders($flex_template['title'] ?? '', $args);
+                $flex_template['description'] = self::replace_placeholders($flex_template['description'] ?? '', $args);
+                
+                // 處理按鈕的 label（action 不需要替換）
+                if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                    foreach ($flex_template['buttons'] as &$button) {
+                        if (isset($button['label'])) {
+                            $button['label'] = self::replace_placeholders($button['label'], $args);
+                        }
+                    }
+                }
+            }
+            
+            return [
+                'type' => 'flex',
+                'line' => [
+                    'flex_template' => $flex_template
+                ]
+            ];
+        } else {
+            // 文字模板
+            $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
 
-        return [
-            'email' => [
-                'subject' => $subject,
-                'message' => $email_body
-            ],
-            'line' => [
+            return [
                 'type' => 'text',
-                'text' => $line_message
-            ]
-        ];
+                'line' => [
+                    'type' => 'text',
+                    'text' => $line_message
+                ]
+            ];
+        }
     }
 
     /**
@@ -95,24 +120,45 @@ class NotificationTemplates {
         $default_templates = self::definitions();
         if (!$has_custom_order_1 && isset($default_templates[$trigger_condition])) {
             $template = $default_templates[$trigger_condition];
+            $template_type = $template['type'] ?? 'text';
             
-            // Process replacements
-            $subject = self::replace_placeholders($template['email']['subject'] ?? '', $args);
-            $email_body = self::replace_placeholders($template['email']['message'] ?? '', $args);
-            $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
-            
-            $result[] = [
-                'email' => [
-                    'subject' => $subject,
-                    'message' => $email_body
-                ],
-                'line' => [
+            if ($template_type === 'flex') {
+                // Flex Message 模板
+                $flex_template = $template['line']['flex_template'] ?? [];
+                if (!empty($flex_template)) {
+                    $flex_template['title'] = self::replace_placeholders($flex_template['title'] ?? '', $args);
+                    $flex_template['description'] = self::replace_placeholders($flex_template['description'] ?? '', $args);
+                    if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                        foreach ($flex_template['buttons'] as &$button) {
+                            if (isset($button['label'])) {
+                                $button['label'] = self::replace_placeholders($button['label'], $args);
+                            }
+                        }
+                    }
+                }
+                
+                $result[] = [
+                    'type' => 'flex',
+                    'line' => [
+                        'flex_template' => $flex_template
+                    ],
+                    'message_order' => 1,
+                    'send_interval' => 0
+                ];
+            } else {
+                // 文字模板
+                $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
+                
+                $result[] = [
                     'type' => 'text',
-                    'text' => $line_message
-                ],
-                'message_order' => 1, // 預設模板為第一則
-                'send_interval' => 0 // 預設模板沒有間隔
-            ];
+                    'line' => [
+                        'type' => 'text',
+                        'text' => $line_message
+                    ],
+                    'message_order' => 1, // 預設模板為第一則
+                    'send_interval' => 0 // 預設模板沒有間隔
+                ];
+            }
         }
         
         // 然後加入所有自訂模板（按 message_order 排序）
@@ -121,24 +167,45 @@ class NotificationTemplates {
                 $template = $template_data['template'];
                 $message_order = $template_data['message_order'] ?? 1;
                 $send_interval = $template_data['send_interval'] ?? 0.5;
+                $template_type = $template['type'] ?? 'text';
                 
-                // Process replacements
-                $subject = self::replace_placeholders($template['email']['subject'] ?? '', $args);
-                $email_body = self::replace_placeholders($template['email']['message'] ?? '', $args);
-                $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
-                
-                $result[] = [
-                    'email' => [
-                        'subject' => $subject,
-                        'message' => $email_body
-                    ],
-                    'line' => [
+                if ($template_type === 'flex') {
+                    // Flex Message 模板
+                    $flex_template = $template['line']['flex_template'] ?? [];
+                    if (!empty($flex_template)) {
+                        $flex_template['title'] = self::replace_placeholders($flex_template['title'] ?? '', $args);
+                        $flex_template['description'] = self::replace_placeholders($flex_template['description'] ?? '', $args);
+                        if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                            foreach ($flex_template['buttons'] as &$button) {
+                                if (isset($button['label'])) {
+                                    $button['label'] = self::replace_placeholders($button['label'], $args);
+                                }
+                            }
+                        }
+                    }
+                    
+                    $result[] = [
+                        'type' => 'flex',
+                        'line' => [
+                            'flex_template' => $flex_template
+                        ],
+                        'message_order' => $message_order,
+                        'send_interval' => $send_interval
+                    ];
+                } else {
+                    // 文字模板
+                    $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
+                    
+                    $result[] = [
                         'type' => 'text',
-                        'text' => $line_message
-                    ],
-                    'message_order' => $message_order,
-                    'send_interval' => $send_interval
-                ];
+                        'line' => [
+                            'type' => 'text',
+                            'text' => $line_message
+                        ],
+                        'message_order' => $message_order,
+                        'send_interval' => $send_interval
+                    ];
+                }
             }
         }
         
@@ -282,6 +349,118 @@ class NotificationTemplates {
         wp_cache_delete(self::$cache_key, self::$cache_group);
     }
 
+    /**
+     * 組裝 Flex Message JSON
+     * 
+     * @param array $flex_template Flex Message 模板資料
+     * @return array LINE Flex Message JSON 格式
+     */
+    public static function build_flex_message($flex_template) {
+        if (empty($flex_template)) {
+            return null;
+        }
+
+        $logo_url = $flex_template['logo_url'] ?? '';
+        $title = $flex_template['title'] ?? '圖片已收到！';
+        $description = $flex_template['description'] ?? '請選擇您要使用的上架格式：';
+        $buttons = $flex_template['buttons'] ?? [];
+
+        // 建立 Flex Message 結構
+        $flex_message = [
+            'type' => 'flex',
+            'altText' => '收到商品圖片，請選擇上架方式',
+            'contents' => [
+                'type' => 'bubble',
+                'hero' => [
+                    'type' => 'image',
+                    'url' => $logo_url,
+                    'size' => 'full',
+                    'aspectRatio' => '20:13',
+                    'aspectMode' => 'cover',
+                ],
+                'body' => [
+                    'type' => 'box',
+                    'layout' => 'vertical',
+                    'contents' => [
+                        [
+                            'type' => 'text',
+                            'text' => $title,
+                            'weight' => 'bold',
+                            'size' => 'xl',
+                            'color' => '#111827'
+                        ],
+                        [
+                            'type' => 'text',
+                            'text' => $description,
+                            'wrap' => true,
+                            'color' => '#666666',
+                            'size' => 'sm',
+                            'margin' => 'md'
+                        ]
+                    ]
+                ],
+                'footer' => [
+                    'type' => 'box',
+                    'layout' => 'vertical',
+                    'spacing' => 'sm',
+                    'contents' => []
+                ]
+            ]
+        ];
+
+        // 加入按鈕
+        if (!empty($buttons)) {
+            $footer_contents = [];
+            
+            foreach ($buttons as $index => $button) {
+                $label = $button['label'] ?? '';
+                $action = $button['action'] ?? '';
+                
+                if (empty($label) || empty($action)) {
+                    continue;
+                }
+
+                // 第一個按鈕使用 primary 樣式，其他使用 secondary
+                $button_style = $index === 0 ? 'primary' : 'secondary';
+                $button_color = $index === 0 ? '#111827' : '#E5E7EB';
+                $text_color = $index === 0 ? '#FFFFFF' : '#374151';
+
+                $footer_contents[] = [
+                    'type' => 'button',
+                    'style' => $button_style,
+                    'color' => $button_color,
+                    'action' => [
+                        'type' => 'message',
+                        'label' => $label,
+                        'text' => $action
+                    ]
+                ];
+            }
+
+            // 如果有超過 2 個按鈕，最後一個改為 link 樣式
+            if (count($footer_contents) > 2) {
+                $last_button = array_pop($footer_contents);
+                $last_button['style'] = 'link';
+                $last_button['color'] = '#0066CC';
+                $last_button['action']['type'] = 'message';
+                
+                // 在最後一個按鈕前加入分隔線
+                if (count($footer_contents) > 0) {
+                    $footer_contents[] = [
+                        'type' => 'separator',
+                        'margin' => 'md'
+                    ];
+                }
+                
+                $footer_contents[] = $last_button;
+            }
+
+            $flex_message['contents']['footer']['contents'] = $footer_contents;
+        }
+
+        return $flex_message;
+    }
+
     private static function replace_placeholders($text, $args) {
         // 先替換所有變數
         foreach ($args as $key => $value) {
@@ -388,258 +567,79 @@ class NotificationTemplates {
 
     private static function definitions() {
         return [
-            'admin_new_seller_application' => [
-                'email' => [
-                    'subject' => '【BuyGo】新的賣家申請待審核',
-                    'message' => "您好，\n\n有新的賣家申請需要審核：\n\n申請人：{display_name} ({user_email})\n真實姓名：{real_name}\n聯絡電話：{phone}\nLINE ID：{line_id}\n申請時間：{submitted_at}\n\n請登入後台審核：{admin_url}\n\n謝謝！"
-                ],
+            // 客戶（買家）通知
+            'order_created' => [
                 'line' => [
-                    'message' => "🔔 新的賣家申請\n\n申請人：{display_name}\n時間：{submitted_at}\n\n請至後台審核。"
-                ]
-            ],
-            'seller_application_approved' => [
-                'email' => [
-                    'subject' => '【BuyGo】您的賣家申請已核准',
-                    'message' => "恭喜 {display_name}，\n\n您的賣家申請已通過審核！\n\n{review_note_section}\n\n您現在可以開始上架商品了。\n\n請透過以下指令開始使用：\n• 上架商品：直接傳送商品照片\n• 查看訂單：輸入「我的訂單」\n• 管理商品：輸入「我的商品」\n\n祝您銷售順利！"
-                ],
-                'line' => [
-                    'message' => "🎉 恭喜！您的賣家申請已通過審核\n\n您現在可以開始上架商品了！\n\n請透過以下指令開始使用：\n• 上架商品：直接傳送商品照片\n• 查看訂單：輸入「我的訂單」\n• 管理商品：輸入「我的商品」\n\n祝您銷售順利！"
-                ]
-            ],
-            'seller_application_rejected' => [
-                'email' => [
-                    'subject' => '【BuyGo】您的賣家申請未通過審核',
-                    'message' => "{display_name} 您好，\n\n很抱歉，您的賣家申請未通過審核。\n\n拒絕原因：{review_note}\n\n如有疑問，請聯絡客服。"
-                ],
-                'line' => [
-                    'message' => "很抱歉，您的賣家申請未通過審核\n\n拒絕原因：{review_note}\n\n如有疑問，請聯絡客服。"
-                ]
-            ],
-            'helper_assigned' => [
-                'email' => [
-                    'subject' => '【BuyGo】您已被邀請成為小幫手',
-                    'message' => "{helper_name} 您好，\n\n您已被 {seller_name} 邀請成為小幫手。\n\n請登入後台查看詳情：{link}\n\n謝謝！"
-                ],
-                'line' => [
-                    'message' => "📢 您已被邀請成為小幫手\n\n賣家：{seller_name}\n\n請登入查看詳情。"
-                ]
-            ],
-            'line_binding_success' => [
-                'email' => [
-                    'subject' => '', 
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => "✅ LINE 帳號綁定成功\n\n您的 LINE 帳號已成功綁定到 BuyGo 系統。\n\n現在您可以：\n• 接收訂單通知\n• 透過 LINE 上架商品（賣家）\n• 查詢訂單狀態\n\n感謝您的使用！"
-                ]
-            ],
-            // Order Notifications
-            'order_shipped' => [
-                'email' => [
-                    'subject' => '【BuyGo】您的訂單已寄出！ (單號 #{order_id})',
-                    'message' => "您好，\n\n賣家通知：您的商品已經寄出！\n\n訂單編號：{order_id}\n賣家備註：{note}\n\n請留意物流簡訊或通知，謝謝您的耐心等待。\n\n謝謝您的購買！"
-                ],
-                'line' => [
-                    'message' => "🚚 您的訂單已寄出！\n\n訂單編號：{order_id}\n賣家備註：{note}\n\n請留意物流簡訊或通知。"
+                    'message' => "✅ 訂單已建立\n\n訂單編號：#{order_id}\n訂單金額：NT$ {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
                 ]
             ],
             'order_cancelled' => [
-                'email' => [
-                    'subject' => '【BuyGo】您的訂單狀態更新：已取消/缺貨 (單號 #{order_id})',
-                    'message' => "您好，\n\n賣家通知：您的訂單有異動或已取消。\n\n訂單編號：{order_id}\n說明：{note}\n\n如有疑問，請直接聯絡賣家詢問。\n\n謝謝！"
-                ],
                 'line' => [
                     'message' => "❌ 您的訂單有異動/取消。\n\n訂單編號：{order_id}\n說明：{note}"
                 ]
             ],
-            // Seller Order Notifications
+            'plusone_order_confirmation' => [
+                'line' => [
+                    'message' => "已收到您的訂單！\n商品：{product_name}\n數量：{quantity}\n金額：NT$ {total}"
+                ]
+            ],
+            
+            // 賣家通知
             'seller_order_created' => [
-                'email' => [
-                    'subject' => '【BuyGo】您有新的訂單！ (單號 #{order_id})',
-                    'message' => "您好，\n\n您有新的訂單需要處理：\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快處理訂單。\n\n查看訂單：{order_url}"
-                ],
                 'line' => [
                     'message' => "🛒 您有新的訂單！\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快處理訂單。"
                 ]
             ],
-            'seller_order_paid' => [
-                'email' => [
-                    'subject' => '【BuyGo】訂單已付款 (單號 #{order_id})',
-                    'message' => "您好，\n\n訂單已收到付款：\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快安排出貨。\n\n查看訂單：{order_url}"
-                ],
-                'line' => [
-                    'message' => "💰 訂單已收到付款\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快安排出貨。"
-                ]
-            ],
             'seller_order_cancelled' => [
-                'email' => [
-                    'subject' => '【BuyGo】訂單已取消 (單號 #{order_id})',
-                    'message' => "您好，\n\n訂單已被取消：\n\n訂單編號：{order_id}\n買家：{buyer_name}\n取消原因：{note}\n\n查看訂單：{order_url}"
-                ],
                 'line' => [
                     'message' => "❌ 訂單已取消\n\n訂單編號：{order_id}\n買家：{buyer_name}\n取消原因：{note}"
                 ]
             ],
-            // System Messages
+            
+            // 系統通知
             'system_line_follow' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
                 'line' => [
                     'message' => "歡迎使用 BuyGo 商品上架 🎉\n\n【快速開始】\n1️⃣ 發送商品圖片\n2️⃣ 發送商品資訊\n\n【格式範例】\n商品名稱\n價格：350\n數量：20\n\n💡 輸入 /help 查看完整說明"
                 ]
             ],
-            'system_image_uploaded' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
+            'flex_image_upload_menu' => [
+                'type' => 'flex',
                 'line' => [
-                    'message' => "✅ 圖片已收到！\n\n請發送商品資訊：\n商品名稱、價格、數量\n\n💡 輸入 /help 查看格式說明"
-                ]
-            ],
-            'system_copy_template' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => "📋 複製以下格式發送商品資訊：\n\n商品名稱\n價格：XXX\n數量：XXX\n到貨：YYYY/MM/DD（選填）\n預購：YYYY/MM/DD（選填）"
-                ]
-            ],
-            'system_account_not_bound' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '請先使用 LINE Login 綁定您的帳號。'
-                ]
-            ],
-            'system_no_permission' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '您沒有上傳商品的權限。請先申請成為賣家。'
+                    'flex_template' => [
+                        'logo_url' => 'https://pub-5ec21b01ebe8403c850311d4ddf55acd.r2.dev/2025/12/line-buygo-logo.png',
+                        'title' => '圖片已收到！',
+                        'description' => '請選擇您要使用的上架格式：',
+                        'buttons' => [
+                            ['label' => '單一商品模板', 'action' => '/one'],
+                            ['label' => '多樣商品模板', 'action' => '/many'],
+                            ['label' => '需要幫助', 'action' => '/help']
+                        ]
+                    ]
                 ]
             ],
             'system_image_upload_failed' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
                 'line' => [
                     'message' => '圖片上傳失敗，請稍後再試。'
                 ]
             ],
-            'system_user_error' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '系統錯誤：無法識別使用者。請重新綁定 LINE 帳號。'
-                ]
-            ],
-            // Product Upload Messages
             'system_product_published' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
                 'line' => [
                     'message' => "商品名稱：{product_name}\n價格：{currency_symbol} {price}{original_price_section}\n數量：{quantity} 個{category_section}{arrival_date_section}{preorder_date_section}\n\n直接下單連結：\n{product_url}{community_url_section}"
                 ]
             ],
             'system_product_publish_failed' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
                 'line' => [
                     'message' => '❌ 商品上架失敗：{error_message}'
                 ]
             ],
             'system_product_data_incomplete' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
                 'line' => [
                     'message' => "商品資料不完整，缺少：{missing_fields}\n\n請使用以下格式：\n商品名稱\n價格：350\n數量：20"
                 ]
             ],
-            // 新增：買家訂單通知
-            'order_created' => [
-                'email' => [
-                    'subject' => '【BuyGo】您的訂單已建立！ (單號 #{order_id})',
-                    'message' => "您好，\n\n您的訂單已建立。\n\n訂單編號：{order_id}\n訂單金額：NT$ {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
-                ],
+            'system_keyword_reply' => [
                 'line' => [
-                    'message' => "✅ 訂單已建立\n\n訂單編號：#{order_id}\n訂單金額：NT$ {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
-                ]
-            ],
-            // 新增：賣家訂單退款通知
-            'seller_order_refunded' => [
-                'email' => [
-                    'subject' => '【BuyGo】訂單已退款 (單號 #{order_id})',
-                    'message' => "您好，\n\n訂單已退款。\n\n訂單編號：{order_id}\n客戶：{customer_name}\n退款金額：NT$ {total}"
-                ],
-                'line' => [
-                    'message' => "💰 訂單已退款\n\n訂單編號：#{order_id}\n客戶：{customer_name}\n退款金額：NT$ {total}\n\n查看訂單：\n{order_url}"
-                ]
-            ],
-            // 新增：買家無權限錯誤
-            'buyer_no_upload_permission' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '目前沒有賣場上架功能，請與管理員聯繫。'
-                ]
-            ],
-            // 新增：沒有商品訊息
-            'system_no_products' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => "您目前沒有上架的商品\n\n輸入「上架」查看上架說明"
-                ]
-            ],
-            // 新增：商品已售完錯誤
-            'error_product_sold_out' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '商品已售完'
-                ]
-            ],
-            // 新增：庫存不足錯誤
-            'error_insufficient_stock' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => '庫存不足，目前可購買數量為 {available_quantity} 個'
-                ]
-            ],
-            // 新增：訂單確認訊息（FluentCommunity 留言回覆）
-            'plusone_order_confirmation' => [
-                'email' => [
-                    'subject' => '',
-                    'message' => ''
-                ],
-                'line' => [
-                    'message' => "已收到您的訂單！\n商品：{product_name}\n數量：{quantity}\n金額：NT$ {total}"
+                    'message' => '關鍵字回覆訊息'
                 ]
             ]
         ];

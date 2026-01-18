@@ -117,23 +117,45 @@ class Settings_API {
     }
     
     /**
-     * 更新模板設定
+     * 更新模板設定（支援完整模板結構，包含 Flex Message）
      */
     public function update_templates($request) {
         try {
             $body = json_decode($request->get_body(), true);
             
-            if (!isset($body['buyer_template']) || !isset($body['seller_template'])) {
+            // 新的格式：接收完整的模板資料結構
+            if (isset($body['templates']) && is_array($body['templates'])) {
+                // 使用新的統一格式
+                SettingsService::update_templates($body['templates']);
+            } elseif (isset($body['buyer_template']) || isset($body['seller_template'])) {
+                // 舊格式：向後兼容（遷移舊資料）
+                $templates = [];
+                
+                if (isset($body['buyer_template'])) {
+                    // 遷移到 order_created 模板
+                    $templates['order_created'] = [
+                        'line' => [
+                            'message' => sanitize_textarea_field($body['buyer_template'])
+                        ]
+                    ];
+                }
+                
+                if (isset($body['seller_template'])) {
+                    // 遷移到 seller_order_created 模板
+                    $templates['seller_order_created'] = [
+                        'line' => [
+                            'message' => sanitize_textarea_field($body['seller_template'])
+                        ]
+                    ];
+                }
+                
+                SettingsService::update_templates($templates);
+            } else {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '缺少必要參數'
                 ], 400);
             }
-            
-            SettingsService::update_templates([
-                'buyer_template' => $body['buyer_template'],
-                'seller_template' => $body['seller_template'],
-            ]);
             
             return new \WP_REST_Response([
                 'success' => true,
