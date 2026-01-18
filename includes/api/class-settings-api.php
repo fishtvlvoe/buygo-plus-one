@@ -81,6 +81,20 @@ class Settings_API {
             'callback' => [$this, 'get_user_permissions'],
             'permission_callback' => [$this, 'check_permission'],
         ]);
+        
+        // POST /settings/binding/send - 發送綁定連結
+        register_rest_route($this->namespace, '/settings/binding/send', [
+            'methods' => 'POST',
+            'callback' => [$this, 'send_binding_link'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
+        
+        // POST /settings/roles/remove - 移除角色
+        register_rest_route($this->namespace, '/settings/roles/remove', [
+            'methods' => 'POST',
+            'callback' => [$this, 'remove_role'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
     }
     
     /**
@@ -153,17 +167,26 @@ class Settings_API {
     }
     
     /**
-     * 新增小幫手
+     * 新增小幫手或管理員
      */
     public function add_helper($request) {
         try {
             $body = json_decode($request->get_body(), true);
             $user_id = (int)($body['user_id'] ?? 0);
+            $role = sanitize_text_field($body['role'] ?? 'buygo_helper');
             
             if (!$user_id) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '缺少 user_id 參數'
+                ], 400);
+            }
+            
+            // 驗證角色
+            if (!in_array($role, ['buygo_helper', 'buygo_admin'], true)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的角色'
                 ], 400);
             }
             
@@ -175,11 +198,13 @@ class Settings_API {
                 ], 404);
             }
             
-            SettingsService::add_helper($user_id);
+            SettingsService::add_helper($user_id, $role);
+            
+            $role_name = $role === 'buygo_admin' ? '管理員' : '小幫手';
             
             return new \WP_REST_Response([
                 'success' => true,
-                'message' => '小幫手已新增',
+                'message' => "{$role_name}已新增",
                 'data' => [
                     'id' => $user->ID,
                     'name' => $user->display_name,
@@ -189,7 +214,7 @@ class Settings_API {
         } catch (\Exception $e) {
             return new \WP_REST_Response([
                 'success' => false,
-                'message' => '新增小幫手失敗：' . $e->getMessage()
+                'message' => '新增角色失敗：' . $e->getMessage()
             ], 500);
         }
     }
@@ -288,6 +313,98 @@ class Settings_API {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '取得權限失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 發送綁定連結
+     */
+    public function send_binding_link($request) {
+        try {
+            $body = json_decode($request->get_body(), true);
+            $user_id = (int)($body['user_id'] ?? 0);
+            
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '缺少 user_id 參數'
+                ], 400);
+            }
+            
+            $result = SettingsService::send_binding_link($user_id);
+            
+            if ($result['success']) {
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'message' => $result['message']
+                ], 200);
+            } else {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '發送綁定連結失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 移除角色
+     */
+    public function remove_role($request) {
+        try {
+            $body = json_decode($request->get_body(), true);
+            $user_id = (int)($body['user_id'] ?? 0);
+            $role = sanitize_text_field($body['role'] ?? '');
+            
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '缺少 user_id 參數'
+                ], 400);
+            }
+            
+            // 驗證角色
+            if (!in_array($role, ['buygo_helper', 'buygo_admin'], true)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的角色'
+                ], 400);
+            }
+            
+            $user = get_userdata($user_id);
+            if (!$user) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '使用者不存在'
+                ], 404);
+            }
+            
+            // 防止移除 WordPress 管理員的 BuyGo 管理員角色（如果他們是 WordPress 管理員）
+            if ($role === 'buygo_admin' && $user->has_cap('administrator')) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無法移除 WordPress 管理員的 BuyGo 管理員角色'
+                ], 400);
+            }
+            
+            SettingsService::remove_role($user_id, $role);
+            
+            $role_name = $role === 'buygo_admin' ? '管理員' : '小幫手';
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => "{$role_name}角色已移除"
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '移除角色失敗：' . $e->getMessage()
             ], 500);
         }
     }

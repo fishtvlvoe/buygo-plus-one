@@ -75,7 +75,8 @@ class SettingsPage
 
         wp_localize_script('buygo-settings-admin', 'buygoSettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('buygo_settings_nonce')
+            'restUrl' => rest_url('buygo-plus-one/v1'),
+            'nonce' => wp_create_nonce('wp_rest')
         ]);
     }
 
@@ -377,15 +378,81 @@ class SettingsPage
      */
     private function render_roles_tab(): void
     {
-        // 取得所有小幫手
+        // 取得所有小幫手（從選項中）
         $helpers = SettingsService::get_helpers();
+        $helper_ids = array_map(function($h) { return $h['id']; }, $helpers);
         
-        // 取得所有管理員（有 buygo_admin 權限的使用者）
-        $admins = get_users([
-            'role' => 'administrator',
-            'meta_key' => 'buygo_admin',
-            'meta_value' => '1'
-        ]);
+        // 取得所有管理員（WordPress 管理員 + BuyGo 管理員）
+        $wp_admins = get_users(['role' => 'administrator']);
+        $buygo_admins = get_users(['role' => 'buygo_admin']);
+        $all_admins = array_merge($wp_admins, $buygo_admins);
+        $wp_admin_ids = array_map(function($admin) { return $admin->ID; }, $wp_admins);
+        
+        // 取得所有有 buygo_helper 角色的使用者
+        $buygo_helpers = get_users(['role' => 'buygo_helper']);
+        
+        // 合併所有相關使用者（管理員 + 小幫手）
+        $all_related_users = array_merge($all_admins, $buygo_helpers);
+        
+        // 也加入從選項中取得的小幫手（可能沒有角色但有記錄）
+        foreach ($helpers as $helper) {
+            $found = false;
+            foreach ($all_related_users as $user) {
+                if ($user->ID === $helper['id']) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $user_obj = get_userdata($helper['id']);
+                if ($user_obj) {
+                    $all_related_users[] = $user_obj;
+                }
+            }
+        }
+        
+        // 去重（使用 user_id 作為 key）
+        $unique_users = [];
+        foreach ($all_related_users as $user) {
+            if (!isset($unique_users[$user->ID])) {
+                $unique_users[$user->ID] = $user;
+            }
+        }
+        
+        // 建立所有使用者的列表
+        $all_users = [];
+        
+        foreach ($unique_users as $user) {
+            $line_id = SettingsService::get_user_line_id($user->ID);
+            
+            // 判斷角色
+            $is_wp_admin = in_array($user->ID, $wp_admin_ids);
+            $has_buygo_admin_role = in_array('buygo_admin', $user->roles);
+            $has_buygo_helper_role = in_array('buygo_helper', $user->roles);
+            $is_in_helpers_list = in_array($user->ID, $helper_ids);
+            
+            if ($is_wp_admin || $has_buygo_admin_role) {
+                $role = 'BuyGo 管理員';
+            } elseif ($has_buygo_helper_role || $is_in_helpers_list) {
+                $role = 'BuyGo 小幫手';
+            } else {
+                // 這種情況不應該發生，但為了安全起見
+                continue;
+            }
+            
+            $all_users[] = [
+                'id' => $user->ID,
+                'name' => $user->display_name,
+                'email' => $user->user_email,
+                'role' => $role,
+                'line_id' => $line_id,
+                'is_bound' => !empty($line_id),
+                'is_wp_admin' => $is_wp_admin,
+                'has_buygo_admin_role' => $has_buygo_admin_role,
+                'has_buygo_helper_role' => $has_buygo_helper_role,
+                'is_in_helpers_list' => $is_in_helpers_list
+            ];
+        }
         
         ?>
         <div class="wrap">
@@ -396,35 +463,72 @@ class SettingsPage
                 </button>
             </h2>
             
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>使用者</th>
-                        <th>Email</th>
-                        <th>角色</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($helpers as $helper): ?>
+            <?php if (empty($all_users)): ?>
+                <p class="no-logs">尚無管理員或小幫手</p>
+            <?php else: ?>
+                <p class="description" style="margin-bottom: 15px;">
+                    ⚠️ 提示：未綁定 LINE 的使用者無法從 LINE 上架商品
+                </p>
+                
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
                         <tr>
-                            <td><?php echo esc_html($helper['name']); ?></td>
-                            <td><?php echo esc_html($helper['email']); ?></td>
-                            <td>BuyGo 小幫手</td>
-                            <td>
-                                <button type="button" class="button-link delete-helper" data-user-id="<?php echo esc_attr($helper['id']); ?>">
-                                    移除
-                                </button>
-                            </td>
+                            <th>使用者</th>
+                            <th>Email</th>
+                            <th>LINE ID</th>
+                            <th>角色</th>
+                            <th>操作</th>
                         </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($helpers)): ?>
-                        <tr>
-                            <td colspan="4" class="no-logs">尚無小幫手</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($all_users as $user): ?>
+                            <tr>
+                                <td><?php echo esc_html($user['name']); ?></td>
+                                <td><?php echo esc_html($user['email']); ?></td>
+                                <td>
+                                    <?php if ($user['is_bound']): ?>
+                                        <span style="color: #00a32a;">✅ 已綁定</span>
+                                        <br>
+                                        <code style="font-size: 11px; color: #666;"><?php echo esc_html($user['line_id']); ?></code>
+                                    <?php else: ?>
+                                        <span style="color: #d63638;">❌ 未綁定</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html($user['role']); ?></td>
+                                <td>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                        <?php if (!$user['is_bound']): ?>
+                                            <button type="button" class="button button-secondary send-binding-link" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4;">
+                                                📧 發送綁定連結
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if (!$user['is_wp_admin']): ?>
+                                            <?php 
+                                            // 判斷應該移除哪個角色
+                                            $role_to_remove = null;
+                                            if ($user['has_buygo_admin_role'] || ($user['role'] === 'BuyGo 管理員')) {
+                                                $role_to_remove = 'buygo_admin';
+                                            } elseif ($user['has_buygo_helper_role'] || $user['role'] === 'BuyGo 小幫手' || ($user['is_in_helpers_list'] ?? false)) {
+                                                $role_to_remove = 'buygo_helper';
+                                            }
+                                            ?>
+                                            <?php if ($role_to_remove): ?>
+                                                <button type="button" class="button remove-role" data-user-id="<?php echo esc_attr($user['id']); ?>" data-role="<?php echo esc_attr($role_to_remove); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4; background: #dc3232; color: white; border-color: #dc3232; cursor: pointer;">
+                                                    🗑️ 移除<?php echo $role_to_remove === 'buygo_admin' ? '管理員' : '小幫手'; ?>角色
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="description" style="font-size: 11px; color: #666; padding: 4px 8px; background: #f0f0f1; border-radius: 3px;">
+                                                WordPress 管理員無法移除
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
         
         <!-- 新增角色 Modal（使用 WordPress 內建的樣式） -->

@@ -150,28 +150,37 @@ class SettingsService
     }
     
     /**
-     * 新增小幫手
+     * 新增小幫手或管理員
      * 
      * @param int $user_id
+     * @param string $role 角色：'buygo_helper' 或 'buygo_admin'
      * @return bool
      */
-    public static function add_helper(int $user_id): bool
+    public static function add_helper(int $user_id, string $role = 'buygo_helper'): bool
     {
-        $helper_ids = get_option('buygo_helpers', []);
-        
-        if (!is_array($helper_ids)) {
-            $helper_ids = [];
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
         }
         
-        if (!in_array($user_id, $helper_ids)) {
-            $helper_ids[] = $user_id;
-            update_option('buygo_helpers', $helper_ids);
+        if ($role === 'buygo_helper') {
+            // 新增小幫手
+            $helper_ids = get_option('buygo_helpers', []);
+            
+            if (!is_array($helper_ids)) {
+                $helper_ids = [];
+            }
+            
+            if (!in_array($user_id, $helper_ids)) {
+                $helper_ids[] = $user_id;
+                update_option('buygo_helpers', $helper_ids);
+            }
             
             // 賦予小幫手角色
-            $user = get_userdata($user_id);
-            if ($user) {
-                $user->add_role('buygo_helper');
-            }
+            $user->add_role('buygo_helper');
+        } elseif ($role === 'buygo_admin') {
+            // 新增管理員
+            $user->add_role('buygo_admin');
         }
         
         return true;
@@ -201,6 +210,43 @@ class SettingsService
             $user = get_userdata($user_id);
             if ($user) {
                 $user->remove_role('buygo_helper');
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 移除角色（管理員或小幫手）
+     * 
+     * @param int $user_id
+     * @param string $role 角色：'buygo_helper' 或 'buygo_admin'
+     * @return bool
+     */
+    public static function remove_role(int $user_id, string $role): bool
+    {
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+        
+        if ($role === 'buygo_helper') {
+            // 移除小幫手
+            // 1. 從選項中移除
+            self::remove_helper($user_id);
+            // 2. 移除角色（如果有的話）
+            if (in_array('buygo_helper', $user->roles)) {
+                $user->remove_role('buygo_helper');
+            }
+        } elseif ($role === 'buygo_admin') {
+            // 移除管理員角色
+            if (in_array('buygo_admin', $user->roles)) {
+                $user->remove_role('buygo_admin');
+            }
+            // 如果也在小幫手列表中，也移除
+            $helper_ids = get_option('buygo_helpers', []);
+            if (is_array($helper_ids) && in_array($user_id, $helper_ids)) {
+                self::remove_helper($user_id);
             }
         }
         
@@ -275,6 +321,97 @@ class SettingsService
         }
         
         return true;
+    }
+    
+    /**
+     * 取得使用者的 LINE User ID
+     * 
+     * 依序查詢三個 meta key（優先順序：buygo_line_user_id → m_line_user_id → line_user_id）
+     * 
+     * @param int $user_id WordPress 使用者 ID
+     * @return string|null LINE User ID，如果未綁定則返回 null
+     */
+    public static function get_user_line_id(int $user_id): ?string
+    {
+        // 依序查詢三個 meta key（優先順序）
+        $meta_keys = ['buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
+        
+        foreach ($meta_keys as $meta_key) {
+            $line_id = get_user_meta($user_id, $meta_key, true);
+            if (!empty($line_id)) {
+                return $line_id;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 發送 LINE 綁定連結
+     * 
+     * @param int $user_id WordPress 使用者 ID
+     * @return array 包含 success 和 message
+     */
+    public static function send_binding_link(int $user_id): array
+    {
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => '使用者不存在'
+            ];
+        }
+        
+        // 檢查是否已綁定
+        $line_id = self::get_user_line_id($user_id);
+        if (!empty($line_id)) {
+            return [
+                'success' => false,
+                'message' => '該使用者已綁定 LINE'
+            ];
+        }
+        
+        // 取得 LINE 設定
+        $line_settings = self::get_line_settings();
+        $channel_access_token = $line_settings['channel_access_token'] ?? '';
+        
+        if (empty($channel_access_token)) {
+            return [
+                'success' => false,
+                'message' => 'LINE Channel Access Token 未設定'
+            ];
+        }
+        
+        // 產生綁定連結（使用 Nextend Social Login 的 LINE Login URL）
+        $binding_url = wp_login_url() . '?action=line&redirect_to=' . urlencode(admin_url('admin.php?page=buygo-settings&tab=roles'));
+        
+        // 設計模式：優先透過 Email 發送綁定連結
+        // 原因：使用者尚未綁定 LINE，無法透過 LINE 發送訊息
+        // 流程：Email 發送 → 使用者點擊連結 → LINE Login → 完成綁定
+        
+        if (!empty($user->user_email)) {
+            $subject = 'BuyGo+1 LINE 帳號綁定連結';
+            $email_message = "親愛的 {$user->display_name}，\n\n請點擊下方連結完成 LINE 帳號綁定：\n{$binding_url}\n\n此連結將在 24 小時後失效。\n\n如果無法點擊連結，請複製以下網址到瀏覽器：\n{$binding_url}";
+            
+            $email_sent = wp_mail($user->user_email, $subject, $email_message);
+            
+            if ($email_sent) {
+                return [
+                    'success' => true,
+                    'message' => '綁定連結已透過 Email 發送給 ' . $user->user_email
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Email 發送失敗，請檢查 WordPress 郵件設定'
+                ];
+            }
+        }
+        
+        return [
+            'success' => false,
+            'message' => '使用者沒有 Email，無法發送綁定連結'
+        ];
     }
     
     /**

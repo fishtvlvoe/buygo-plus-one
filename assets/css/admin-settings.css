@@ -57,3 +57,48 @@
     max-height: 90vh;
     overflow-y: auto;
 }
+
+/* 角色權限設定頁面樣式 */
+.wp-list-table .button.remove-role {
+    background: #dc3232 !important;
+    color: white !important;
+    border-color: #dc3232 !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.wp-list-table .button.remove-role:hover {
+    background: #a00 !important;
+    border-color: #a00 !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 50, 50, 0.3);
+}
+
+.wp-list-table .button.send-binding-link {
+    background: #2271b1 !important;
+    color: white !important;
+    border-color: #2271b1 !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.wp-list-table .button.send-binding-link:hover {
+    background: #135e96 !important;
+    border-color: #135e96 !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(34, 113, 177, 0.3);
+}
+
+/* 操作欄位樣式 */
+.wp-list-table td:last-child {
+    min-width: 200px;
+}
+
+.wp-list-table td:last-child > div {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}

@@ -59,21 +59,167 @@ jQuery(document).ready(function($) {
             return;
         }
         
-        // 這裡可以透過 AJAX 新增角色
-        // 暫時使用表單提交
-        alert('功能開發中，請稍後');
+        const button = $(this);
+        const originalText = button.text();
+        button.prop('disabled', true).text('處理中...');
+        
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers',
+            type: 'POST',
+            headers: {
+                'X-WP-Nonce': buygoSettings.nonce,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                user_id: parseInt(userId),
+                role: role
+            }),
+            success: function(response) {
+                if (response.success) {
+                    alert('角色已新增');
+                    location.reload();
+                } else {
+                    alert('新增失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '新增失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).text(originalText);
+            }
+        });
     });
     
     // 移除小幫手
-    $('.delete-helper').on('click', function() {
+    $(document).on('click', '.delete-helper', function() {
         const userId = $(this).data('user-id');
+        const button = $(this);
         
         if (!confirm('確定要移除這個小幫手嗎？')) {
             return;
         }
         
-        // 這裡可以透過 AJAX 移除小幫手
-        // 暫時使用表單提交
-        alert('功能開發中，請稍後');
+        const originalText = button.text();
+        button.prop('disabled', true).text('處理中...');
+        
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers/' + userId,
+            type: 'DELETE',
+            headers: {
+                'X-WP-Nonce': buygoSettings.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('小幫手已移除');
+                    location.reload();
+                } else {
+                    alert('移除失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '移除失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+    
+    // 發送綁定連結
+    $(document).on('click', '.send-binding-link', function() {
+        const userId = $(this).data('user-id');
+        const button = $(this);
+        
+        if (!confirm('確定要發送綁定連結給這個使用者嗎？')) {
+            return;
+        }
+        
+        const originalText = button.text();
+        button.prop('disabled', true).text('發送中...');
+        
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/binding/send',
+            type: 'POST',
+            headers: {
+                'X-WP-Nonce': buygoSettings.nonce,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                user_id: parseInt(userId)
+            }),
+            success: function(response) {
+                if (response.success) {
+                    alert('綁定連結已發送：' + (response.message || ''));
+                } else {
+                    alert('發送失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '發送失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+    
+    // 移除角色
+    $(document).on('click', '.remove-role', function() {
+        const userId = $(this).data('user-id');
+        const role = $(this).data('role');
+        const button = $(this);
+        
+        const roleName = role === 'buygo_admin' ? '管理員' : '小幫手';
+        
+        if (!confirm(`確定要移除這個使用者的「${roleName}」角色嗎？移除後將降級為一般顧客。`)) {
+            return;
+        }
+        
+        const originalText = button.text();
+        button.prop('disabled', true).text('處理中...');
+        
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/roles/remove',
+            type: 'POST',
+            headers: {
+                'X-WP-Nonce': buygoSettings.nonce,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                user_id: parseInt(userId),
+                role: role
+            }),
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message || '角色已移除');
+                    location.reload();
+                } else {
+                    alert('移除失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '移除失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).text(originalText);
+            }
+        });
     });
 });
