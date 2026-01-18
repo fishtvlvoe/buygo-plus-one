@@ -904,10 +904,10 @@ class SettingsPage
             </div>
             
             <!-- 系統通知 -->
-            <div id="system-templates" class="template-tab-content" style="margin-top: 20px; display: none;">
+            <div id="system-templates" class="template-tab-content" style="margin-top: 20px; display: none; max-width: 1000px; margin-left: auto; margin-right: auto;">
                 <h3>系統通知</h3>
                 
-                <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                <table class="wp-list-table widefat fixed striped" style="margin-top: 10px; max-width: 100%;">
                     <thead>
                         <tr>
                             <th style="width: 30%;">模板名稱</th>
@@ -1108,7 +1108,7 @@ class SettingsPage
                     return ($a['order'] ?? 0) - ($b['order'] ?? 0);
                 });
                 ?>
-                <div class="postbox closed" style="margin-bottom: 20px; max-width: 800px;">
+                <div class="postbox closed" style="margin-bottom: 20px; max-width: 1000px; margin-left: auto; margin-right: auto;">
                     <button type="button" class="handlediv" aria-expanded="false" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true'); jQuery(this).siblings('.inside').toggle();">
                         <span class="toggle-indicator" aria-hidden="true"></span>
                     </button>
@@ -1119,13 +1119,13 @@ class SettingsPage
                         <?php if (empty($keywords)): ?>
                             <p class="description">尚無關鍵字，請使用前端 Portal 新增關鍵字。</p>
                         <?php else: ?>
-                            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px; max-width: 100%;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 20%;">關鍵字</th>
-                                        <th style="width: 30%;">別名</th>
-                                        <th style="width: 40%;">回覆訊息預覽</th>
-                                        <th style="width: 10%;">操作</th>
+                                        <th style="width: 15%;">關鍵字</th>
+                                        <th style="width: 25%;">別名</th>
+                                        <th style="width: 45%;">回覆訊息預覽</th>
+                                        <th style="width: 15%;">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1140,7 +1140,7 @@ class SettingsPage
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="description" style="display: block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            <span class="description" style="display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                                 <?php echo esc_html(mb_substr($keyword['message'] ?? '', 0, 50)); ?>...
                                             </span>
                                         </td>

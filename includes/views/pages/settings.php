@@ -319,14 +319,32 @@ $settings_component_template = <<<'HTML'
                                                     </div>
                                                     
                                                     <div>
-                                                        <label class="block text-sm font-medium text-slate-700 mb-2">別名（用逗號分隔）</label>
-                                                        <input 
-                                                            type="text"
-                                                            v-model="keywordEdits[keyword.id].aliasesText"
-                                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
-                                                            placeholder="/幫助, ?help, 幫助"
-                                                        />
-                                                        <p class="text-xs text-slate-500 mt-1">多個別名請用逗號分隔</p>
+                                                        <label class="block text-sm font-medium text-slate-700 mb-2">別名</label>
+                                                        <!-- Tag 標籤顯示區 -->
+                                                        <div class="flex flex-wrap gap-2 mb-2 p-3 border border-slate-300 rounded-lg min-h-[42px] bg-white">
+                                                            <span 
+                                                                v-for="(alias, index) in keywordEdits[keyword.id].aliases" 
+                                                                :key="index"
+                                                                class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                                                {{ alias }}
+                                                                <button 
+                                                                    @click="removeAlias(keyword.id, index)"
+                                                                    class="ml-1 text-primary hover:text-primary/70 focus:outline-none">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            </span>
+                                                            <input 
+                                                                type="text"
+                                                                v-model="keywordEdits[keyword.id].aliasInput"
+                                                                @keydown.enter.prevent="addAlias(keyword.id)"
+                                                                @keydown.comma.prevent="addAlias(keyword.id)"
+                                                                class="flex-1 min-w-[120px] px-2 py-1 border-0 outline-none text-sm"
+                                                                placeholder="輸入別名後按 Enter"
+                                                            />
+                                                        </div>
+                                                        <p class="text-xs text-slate-500 mt-1">輸入別名後按 Enter 鍵新增標籤</p>
                                                     </div>
                                                     
                                                     <div>
@@ -634,14 +652,32 @@ $settings_component_template = <<<'HTML'
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">別名（用逗號分隔）</label>
-                    <input 
-                        type="text"
-                        v-model="newKeyword.aliasesText"
-                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
-                        placeholder="/幫助, ?help, 幫助"
-                    />
-                    <p class="text-xs text-slate-500 mt-1">多個別名請用逗號分隔</p>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">別名</label>
+                    <!-- Tag 標籤顯示區 -->
+                    <div class="flex flex-wrap gap-2 mb-2 p-3 border border-slate-300 rounded-lg min-h-[42px] bg-white">
+                        <span 
+                            v-for="(alias, index) in newKeyword.aliases" 
+                            :key="index"
+                            class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                            {{ alias }}
+                            <button 
+                                @click="removeNewAlias(index)"
+                                class="ml-1 text-primary hover:text-primary/70 focus:outline-none">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </span>
+                        <input 
+                            type="text"
+                            v-model="newKeyword.aliasInput"
+                            @keydown.enter.prevent="addNewAlias()"
+                            @keydown.comma.prevent="addNewAlias()"
+                            class="flex-1 min-w-[120px] px-2 py-1 border-0 outline-none text-sm"
+                            placeholder="輸入別名後按 Enter"
+                        />
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">輸入別名後按 Enter 鍵新增標籤</p>
                 </div>
                 
                 <div>
@@ -797,7 +833,8 @@ const SettingsPageComponent = {
         const editingKeywordId = ref(null);
         const newKeyword = ref({
             keyword: '',
-            aliasesText: '',
+            aliases: [],
+            aliasInput: '',
             message: ''
         });
         
@@ -1622,7 +1659,8 @@ const SettingsPageComponent = {
                         if (!keywordEdits.value[keyword.id]) {
                             keywordEdits.value[keyword.id] = {
                                 keyword: keyword.keyword || '',
-                                aliasesText: Array.isArray(keyword.aliases) ? keyword.aliases.join(', ') : '',
+                                aliases: Array.isArray(keyword.aliases) ? [...keyword.aliases] : [],
+                                aliasInput: '',
                                 message: keyword.message || ''
                             };
                         }
@@ -1712,10 +1750,13 @@ const SettingsPageComponent = {
                 return;
             }
             
-            // 處理別名
-            const aliases = edit.aliasesText
-                ? edit.aliasesText.split(',').map(a => a.trim()).filter(a => a)
-                : [];
+            // 處理別名（如果還有 aliasInput，先加入）
+            if (edit.aliasInput && edit.aliasInput.trim()) {
+                addAlias(keywordId);
+            }
+            
+            // 使用 aliases 陣列
+            const aliases = Array.isArray(edit.aliases) ? [...edit.aliases] : [];
             
             // 更新關鍵字資料
             const keywordIndex = keywords.value.findIndex(kw => kw.id === keywordId);
@@ -1741,12 +1782,49 @@ const SettingsPageComponent = {
             if (keyword) {
                 keywordEdits.value[keywordId] = {
                     keyword: keyword.keyword || '',
-                    aliasesText: (keyword.aliases || []).join(', '),
+                    aliases: Array.isArray(keyword.aliases) ? [...keyword.aliases] : [],
+                    aliasInput: '',
                     message: keyword.message || ''
                 };
             }
             expandedKeywordsSet.value.delete(keywordId);
             editingKeywordId.value = null;
+        };
+        
+        // 新增別名標籤（編輯模式）
+        const addAlias = (keywordId) => {
+            const edit = keywordEdits.value[keywordId];
+            if (edit && edit.aliasInput && edit.aliasInput.trim()) {
+                const alias = edit.aliasInput.trim();
+                if (!edit.aliases.includes(alias)) {
+                    edit.aliases.push(alias);
+                }
+                edit.aliasInput = '';
+            }
+        };
+        
+        // 移除別名標籤（編輯模式）
+        const removeAlias = (keywordId, index) => {
+            const edit = keywordEdits.value[keywordId];
+            if (edit && edit.aliases) {
+                edit.aliases.splice(index, 1);
+            }
+        };
+        
+        // 新增別名標籤（新增模式）
+        const addNewAlias = () => {
+            if (newKeyword.value.aliasInput && newKeyword.value.aliasInput.trim()) {
+                const alias = newKeyword.value.aliasInput.trim();
+                if (!newKeyword.value.aliases.includes(alias)) {
+                    newKeyword.value.aliases.push(alias);
+                }
+                newKeyword.value.aliasInput = '';
+            }
+        };
+        
+        // 移除別名標籤（新增模式）
+        const removeNewAlias = (index) => {
+            newKeyword.value.aliases.splice(index, 1);
         };
         
         // 刪除關鍵字
@@ -1770,10 +1848,13 @@ const SettingsPageComponent = {
                 return;
             }
             
+            // 處理別名（如果還有 aliasInput，先加入）
+            if (newKeyword.value.aliasInput && newKeyword.value.aliasInput.trim()) {
+                addNewAlias();
+            }
+            
             const newId = 'kw_' + Date.now();
-            const aliases = newKeyword.value.aliasesText
-                ? newKeyword.value.aliasesText.split(',').map(a => a.trim()).filter(a => a)
-                : [];
+            const aliases = Array.isArray(newKeyword.value.aliases) ? [...newKeyword.value.aliases] : [];
             
             const keywordData = {
                 id: newId,
@@ -1795,7 +1876,8 @@ const SettingsPageComponent = {
                 showAddKeywordModal.value = false;
                 newKeyword.value = {
                     keyword: '',
-                    aliasesText: '',
+                    aliases: [],
+                    aliasInput: '',
                     message: ''
                 };
                 toggleKeyword(newId);
@@ -1863,7 +1945,11 @@ const SettingsPageComponent = {
             keywordEdits,
             showAddKeywordModal,
             addKeywordFromModal,
-            newKeyword
+            newKeyword,
+            addAlias,
+            removeAlias,
+            addNewAlias,
+            removeNewAlias
         };
     }
 };
