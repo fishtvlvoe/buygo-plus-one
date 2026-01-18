@@ -63,8 +63,7 @@ $settings_component_template = <<<'HTML'
                                 item-key="key"
                                 class="space-y-4">
                                 <template #item="{ element: template }">
-                                <!-- 折疊式模板項目 -->
-                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                    <div class="border border-slate-200 rounded-lg overflow-hidden">
                                     <!-- 標題列（可點擊展開/收合） -->
                                     <button 
                                         @click="toggleTemplate(template.key)"
@@ -208,6 +207,7 @@ $settings_component_template = <<<'HTML'
                                         </div>
                                     </div>
                                 </div>
+                                    </div>
                                 </template>
                             </draggable>
                         </div>
@@ -249,84 +249,83 @@ $settings_component_template = <<<'HTML'
                         item-key="key"
                         class="space-y-4">
                         <template #item="{ element: template }">
-                        <!-- 折疊式模板項目 -->
-                        <div class="border border-slate-200 rounded-lg overflow-hidden">
-                        <!-- 標題列（可點擊展開/收合） -->
-                        <button 
-                            @click="toggleTemplate(template.key)"
-                            class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
-                            <div class="flex items-center gap-3">
-                                <!-- 拖拉把手 -->
-                                <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                                    </svg>
-                                </div>
-                                <svg 
-                                    :class="['w-5 h-5 text-slate-400 transition-transform', isTemplateExpanded(template.key) ? 'rotate-90' : '']"
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                <div class="flex-1">
-                                    <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
-                                    <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
-                                </div>
-                            </div>
-                        </button>
-                        
-                        <!-- 編輯器（展開時顯示） -->
-                        <div v-if="isTemplateExpanded(template.key)" class="p-4 border-t border-slate-200">
-                            <!-- 文字模板編輯器 -->
-                            <div v-if="template.type !== 'flex'" class="relative">
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="text-sm font-medium text-slate-700">LINE 訊息內容</label>
-                                    <!-- 可用變數下拉選單（標題右邊） -->
-                                    <div v-if="template.variables && template.variables.length > 0" class="relative">
-                                        <button
-                                            @click.stop="toggleVariableDropdown(template.key)"
-                                            :data-key="template.key"
-                                            data-variable-button
-                                            class="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition">
-                                            <span class="font-mono">{{ }}</span>
-                                            <span>點擊可用變數</span>
-                                            <svg 
-                                                :class="['w-3 h-3 transition-transform', isVariableDropdownOpen(template.key) ? 'rotate-180' : '']"
-                                                fill="none" 
-                                                stroke="currentColor" 
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                <!-- 標題列（可點擊展開/收合） -->
+                                <button 
+                                    @click="toggleTemplate(template.key)"
+                                    class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                    <div class="flex items-center gap-3">
+                                        <!-- 拖拉把手 -->
+                                        <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                                             </svg>
-                                        </button>
-                                        <!-- 下拉選單 -->
-                                        <div 
-                                            v-if="isVariableDropdownOpen(template.key)"
-                                            :data-variable-dropdown="template.key"
-                                            class="absolute right-0 top-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-3 min-w-[200px] max-w-[300px] max-h-[300px] overflow-y-auto"
-                                            style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-                                            <div class="flex flex-wrap gap-2">
-                                                <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
-                                                    <button
-                                                        @click="copyVariable(variable, template.key); closeVariableDropdown(template.key)"
-                                                        class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
-                                                        { {{ variable }} }
-                                                    </button>
-                                                    <span class="md:text-[10px] text-[9px] text-slate-500 text-center leading-tight">{{ getVariableDescription(variable) }}</span>
+                                        </div>
+                                        <svg 
+                                            :class="['w-5 h-5 text-slate-400 transition-transform', isTemplateExpanded(template.key) ? 'rotate-90' : '']"
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                        <div class="flex-1">
+                                            <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
+                                            <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
+                                        </div>
+                                    </div>
+                                </button>
+                                
+                                <!-- 編輯器（展開時顯示） -->
+                                <div v-if="isTemplateExpanded(template.key)" class="p-4 border-t border-slate-200">
+                                    <!-- 文字模板編輯器 -->
+                                    <div v-if="template.type !== 'flex'" class="relative">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <label class="text-sm font-medium text-slate-700">LINE 訊息內容</label>
+                                            <!-- 可用變數下拉選單（標題右邊） -->
+                                            <div v-if="template.variables && template.variables.length > 0" class="relative">
+                                                <button
+                                                    @click.stop="toggleVariableDropdown(template.key)"
+                                                    :data-key="template.key"
+                                                    data-variable-button
+                                                    class="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition">
+                                                    <span class="font-mono">{{ }}</span>
+                                                    <span>點擊可用變數</span>
+                                                    <svg 
+                                                        :class="['w-3 h-3 transition-transform', isVariableDropdownOpen(template.key) ? 'rotate-180' : '']"
+                                                        fill="none" 
+                                                        stroke="currentColor" 
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </button>
+                                                <!-- 下拉選單 -->
+                                                <div 
+                                                    v-if="isVariableDropdownOpen(template.key)"
+                                                    :data-variable-dropdown="template.key"
+                                                    class="absolute right-0 top-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-3 min-w-[200px] max-w-[300px] max-h-[300px] overflow-y-auto"
+                                                    style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
+                                                            <button
+                                                                @click="copyVariable(variable, template.key); closeVariableDropdown(template.key)"
+                                                                class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
+                                                                { {{ variable }} }
+                                                            </button>
+                                                            <span class="md:text-[10px] text-[9px] text-slate-500 text-center leading-tight">{{ getVariableDescription(variable) }}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        <textarea 
+                                            v-model="templateEdits[template.key].line.message"
+                                            rows="8"
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
+                                            placeholder="輸入模板內容..."></textarea>
                                     </div>
-                                </div>
-                                <textarea 
-                                    v-model="templateEdits[template.key].line.message"
-                                    rows="8"
-                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
-                                    placeholder="輸入模板內容..."></textarea>
-                            </div>
-                            
-                            <!-- 卡片式訊息編輯器 -->
-                            <div v-else class="space-y-4">
+                                    
+                                    <!-- 卡片式訊息編輯器 -->
+                                    <div v-else class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-2">Logo 圖片 URL</label>
                                     <input 
@@ -394,7 +393,7 @@ $settings_component_template = <<<'HTML'
                                 </div>
                             </div>
                         </div>
-                    </div>
+                            </div>
                         </template>
                     </draggable>
                 </template>
