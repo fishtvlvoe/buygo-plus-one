@@ -232,8 +232,130 @@ $settings_component_template = <<<'HTML'
                             </div>
                         </button>
                         <div v-if="expandedKeywords" class="p-4 border-t border-slate-200">
-                            <!-- 關鍵字列表將在這裡顯示 -->
-                            <div class="text-sm text-slate-600">關鍵字管理功能開發中...</div>
+                            <!-- 新增關鍵字按鈕 -->
+                            <div class="mb-4 flex justify-end">
+                                <button
+                                    @click="showAddKeywordModal = true"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                                    + 新增關鍵字
+                                </button>
+                            </div>
+                            
+                            <!-- 載入狀態 -->
+                            <div v-if="loadingKeywords" class="text-center py-8">
+                                <p class="text-slate-600">載入中...</p>
+                            </div>
+                            
+                            <!-- 關鍵字列表 -->
+                            <div v-else>
+                                <div v-if="keywords.length === 0" class="text-center py-8 text-slate-500">
+                                    <p>尚無關鍵字，點擊「+ 新增關鍵字」開始新增</p>
+                                </div>
+                                
+                                <draggable 
+                                    v-model="keywords"
+                                    @end="onKeywordDragEnd"
+                                    :animation="200"
+                                    handle=".keyword-drag-handle"
+                                    item-key="id"
+                                    class="space-y-3">
+                                    <template #item="{ element: keyword }">
+                                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                            <!-- 關鍵字標題列 -->
+                                            <button 
+                                                @click="toggleKeyword(keyword.id)"
+                                                class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                                <div class="flex items-center gap-3">
+                                                    <!-- 拖拉把手 -->
+                                                    <div 
+                                                        class="keyword-drag-handle cursor-move text-slate-400 hover:text-slate-600"
+                                                        @mousedown.stop
+                                                        @click.stop>
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <svg 
+                                                        :class="['w-5 h-5 text-slate-400 transition-transform', isKeywordExpanded(keyword.id) ? 'rotate-90' : '']"
+                                                        fill="none" 
+                                                        stroke="currentColor" 
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                    </svg>
+                                                    <div class="flex-1">
+                                                        <div class="font-semibold text-slate-900 md:text-base text-sm">
+                                                            {{ keyword.keyword }}
+                                                            <span v-if="keyword.aliases && keyword.aliases.length > 0" class="text-xs text-slate-500 font-normal ml-2">
+                                                                ({{ keyword.aliases.join(', ') }})
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <button
+                                                            @click.stop="editKeyword(keyword)"
+                                                            class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition">
+                                                            編輯
+                                                        </button>
+                                                        <button
+                                                            @click.stop="deleteKeyword(keyword.id)"
+                                                            class="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition">
+                                                            刪除
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                            
+                                            <!-- 關鍵字編輯器（展開時顯示） -->
+                                            <div v-if="isKeywordExpanded(keyword.id)" class="p-4 border-t border-slate-200">
+                                                <div class="space-y-4">
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-slate-700 mb-2">關鍵字</label>
+                                                        <input 
+                                                            type="text"
+                                                            v-model="keywordEdits[keyword.id].keyword"
+                                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono"
+                                                            placeholder="/help"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-slate-700 mb-2">別名（用逗號分隔）</label>
+                                                        <input 
+                                                            type="text"
+                                                            v-model="keywordEdits[keyword.id].aliasesText"
+                                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                                                            placeholder="/幫助, ?help, 幫助"
+                                                        />
+                                                        <p class="text-xs text-slate-500 mt-1">多個別名請用逗號分隔</p>
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-slate-700 mb-2">回覆訊息</label>
+                                                        <textarea 
+                                                            v-model="keywordEdits[keyword.id].message"
+                                                            rows="8"
+                                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
+                                                            placeholder="輸入回覆訊息內容..."></textarea>
+                                                    </div>
+                                                    
+                                                    <div class="flex justify-end gap-2">
+                                                        <button
+                                                            @click="cancelKeywordEdit(keyword.id)"
+                                                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                                                            取消
+                                                        </button>
+                                                        <button
+                                                            @click="saveKeyword(keyword.id)"
+                                                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                                                            儲存
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </draggable>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -486,6 +608,67 @@ $settings_component_template = <<<'HTML'
         </div>
     </div>
     
+    <!-- 新增關鍵字 Modal -->
+    <div v-if="showAddKeywordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showAddKeywordModal = false">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-slate-900">新增關鍵字</h3>
+                    <button @click="showAddKeywordModal = false" class="text-slate-400 hover:text-slate-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">關鍵字</label>
+                    <input 
+                        type="text"
+                        v-model="newKeyword.keyword"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono"
+                        placeholder="/help"
+                    />
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">別名（用逗號分隔）</label>
+                    <input 
+                        type="text"
+                        v-model="newKeyword.aliasesText"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                        placeholder="/幫助, ?help, 幫助"
+                    />
+                    <p class="text-xs text-slate-500 mt-1">多個別名請用逗號分隔</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">回覆訊息</label>
+                    <textarea 
+                        v-model="newKeyword.message"
+                        rows="8"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
+                        placeholder="輸入回覆訊息內容..."></textarea>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-slate-200 flex justify-end gap-2">
+                <button
+                    @click="showAddKeywordModal = false"
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                    取消
+                </button>
+                <button
+                    @click="addKeywordFromModal"
+                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                    新增
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 新增小幫手 Modal -->
     <div v-if="showAddHelperModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeAddHelperModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -608,6 +791,15 @@ const SettingsPageComponent = {
         const copyToast = ref({ show: false, message: '' });
         const keywords = ref([]);
         const loadingKeywords = ref(false);
+        const keywordEdits = ref({});
+        const expandedKeywordsSet = ref(new Set());
+        const showAddKeywordModal = ref(false);
+        const editingKeywordId = ref(null);
+        const newKeyword = ref({
+            keyword: '',
+            aliasesText: '',
+            message: ''
+        });
         
         // 拖拉排序狀態
         const sortedTemplates = ref({
@@ -1398,11 +1590,209 @@ const SettingsPageComponent = {
             }
         };
         
+        // 載入關鍵字列表
+        const loadKeywords = async () => {
+            loadingKeywords.value = true;
+            
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/line-keywords', {
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    keywords.value = result.data.map(kw => ({
+                        ...kw,
+                        aliases: kw.aliases || []
+                    }));
+                    
+                    // 初始化編輯資料
+                    keywords.value.forEach(keyword => {
+                        if (!keywordEdits.value[keyword.id]) {
+                            keywordEdits.value[keyword.id] = {
+                                keyword: keyword.keyword || '',
+                                aliasesText: (keyword.aliases || []).join(', '),
+                                message: keyword.message || ''
+                            };
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('載入關鍵字列表錯誤:', err);
+                showToast('載入關鍵字列表失敗', 'error');
+            } finally {
+                loadingKeywords.value = false;
+            }
+        };
+        
+        // 切換關鍵字展開/收合
+        const toggleKeyword = (keywordId) => {
+            if (expandedKeywordsSet.value.has(keywordId)) {
+                expandedKeywordsSet.value.delete(keywordId);
+            } else {
+                expandedKeywordsSet.value.add(keywordId);
+            }
+        };
+        
+        // 檢查關鍵字是否展開
+        const isKeywordExpanded = (keywordId) => {
+            return expandedKeywordsSet.value.has(keywordId);
+        };
+        
+        // 關鍵字拖拉結束處理
+        const onKeywordDragEnd = async () => {
+            await saveKeywords();
+        };
+        
+        // 儲存關鍵字列表
+        const saveKeywords = async () => {
+            try {
+                // 更新 order
+                keywords.value.forEach((keyword, index) => {
+                    keyword.order = index;
+                });
+                
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/line-keywords', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        keywords: keywords.value.map(kw => ({
+                            id: kw.id,
+                            keyword: kw.keyword,
+                            aliases: kw.aliases || [],
+                            message: kw.message || '',
+                            order: kw.order || 0
+                        }))
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('關鍵字順序已儲存', 'success');
+                } else {
+                    showToast('儲存失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('儲存關鍵字列表錯誤:', err);
+                showToast('儲存失敗', 'error');
+            }
+        };
+        
+        // 編輯關鍵字
+        const editKeyword = (keyword) => {
+            editingKeywordId.value = keyword.id;
+            toggleKeyword(keyword.id);
+        };
+        
+        // 儲存單個關鍵字
+        const saveKeyword = async (keywordId) => {
+            const edit = keywordEdits.value[keywordId];
+            if (!edit) {
+                return;
+            }
+            
+            // 處理別名
+            const aliases = edit.aliasesText
+                ? edit.aliasesText.split(',').map(a => a.trim()).filter(a => a)
+                : [];
+            
+            // 更新關鍵字資料
+            const keywordIndex = keywords.value.findIndex(kw => kw.id === keywordId);
+            if (keywordIndex !== -1) {
+                keywords.value[keywordIndex] = {
+                    ...keywords.value[keywordIndex],
+                    keyword: edit.keyword,
+                    aliases: aliases,
+                    message: edit.message
+                };
+            }
+            
+            // 儲存到後端
+            await saveKeywords();
+            
+            editingKeywordId.value = null;
+            showToast('關鍵字已儲存', 'success');
+        };
+        
+        // 取消編輯
+        const cancelKeywordEdit = (keywordId) => {
+            const keyword = keywords.value.find(kw => kw.id === keywordId);
+            if (keyword) {
+                keywordEdits.value[keywordId] = {
+                    keyword: keyword.keyword || '',
+                    aliasesText: (keyword.aliases || []).join(', '),
+                    message: keyword.message || ''
+                };
+            }
+            expandedKeywordsSet.value.delete(keywordId);
+            editingKeywordId.value = null;
+        };
+        
+        // 刪除關鍵字
+        const deleteKeyword = async (keywordId) => {
+            if (!confirm('確定要刪除這個關鍵字嗎？')) {
+                return;
+            }
+            
+            keywords.value = keywords.value.filter(kw => kw.id !== keywordId);
+            delete keywordEdits.value[keywordId];
+            expandedKeywordsSet.value.delete(keywordId);
+            
+            await saveKeywords();
+            showToast('關鍵字已刪除', 'success');
+        };
+        
+        // 從 Modal 新增關鍵字
+        const addKeywordFromModal = () => {
+            if (!newKeyword.value.keyword || !newKeyword.value.keyword.trim()) {
+                showToast('請輸入關鍵字', 'error');
+                return;
+            }
+            
+            const newId = 'kw_' + Date.now();
+            const aliases = newKeyword.value.aliasesText
+                ? newKeyword.value.aliasesText.split(',').map(a => a.trim()).filter(a => a)
+                : [];
+            
+            const keywordData = {
+                id: newId,
+                keyword: newKeyword.value.keyword.trim(),
+                aliases: aliases,
+                message: newKeyword.value.message || '',
+                order: keywords.value.length
+            };
+            
+            keywords.value.push(keywordData);
+            keywordEdits.value[newId] = {
+                keyword: keywordData.keyword,
+                aliasesText: aliases.join(', '),
+                message: keywordData.message
+            };
+            
+            // 儲存到後端
+            saveKeywords().then(() => {
+                showAddKeywordModal.value = false;
+                newKeyword.value = {
+                    keyword: '',
+                    aliasesText: '',
+                    message: ''
+                };
+                toggleKeyword(newId);
+                editingKeywordId.value = newId;
+            });
+        };
+        
         // 初始化
         onMounted(async () => {
             await checkAdmin();
             await loadTemplates();
             await loadHelpers();
+            await loadKeywords();
             await initSortedTemplates();
         });
         
@@ -1443,7 +1833,21 @@ const SettingsPageComponent = {
             sortedTemplates,
             sortedSystemTemplates,
             onTemplateDragEnd,
-            onSystemTemplateDragEnd
+            onSystemTemplateDragEnd,
+            keywords,
+            loadingKeywords,
+            loadKeywords,
+            toggleKeyword,
+            isKeywordExpanded,
+            onKeywordDragEnd,
+            editKeyword,
+            saveKeyword,
+            cancelKeywordEdit,
+            deleteKeyword,
+            keywordEdits,
+            showAddKeywordModal,
+            addKeywordFromModal,
+            newKeyword
         };
     }
 };
