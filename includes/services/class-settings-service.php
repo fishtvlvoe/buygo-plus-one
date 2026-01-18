@@ -145,6 +145,7 @@ class SettingsService
     
     /**
      * 更新模板設定（統一使用 NotificationTemplates 系統）
+     * 資料格式會自動標準化，確保前後端一致
      * 
      * @param array $templates 完整的模板資料結構
      * @return bool
@@ -220,7 +221,7 @@ class SettingsService
             }
         }
         
-        // 使用 NotificationTemplates 系統儲存
+        // 使用 NotificationTemplates 系統儲存（會自動標準化資料格式）
         \BuyGoPlus\Services\NotificationTemplates::save_custom_templates($all_custom);
         
         return true;

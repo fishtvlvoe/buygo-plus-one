@@ -307,6 +307,7 @@ class NotificationTemplates {
 
     /**
      * 取得所有模板（包含自訂和預設）
+     * 確保返回的資料格式標準化，前後端一致
      */
     public static function get_all_templates() {
         $default_templates = self::definitions();
@@ -315,31 +316,170 @@ class NotificationTemplates {
         $result = [];
         // 先加入所有預設模板（如果有自訂版本則使用自訂版本）
         foreach ($default_templates as $key => $default) {
-            $result[$key] = isset($custom_templates[$key]) ? $custom_templates[$key] : $default;
+            if (isset($custom_templates[$key])) {
+                // 使用自訂模板，但確保格式標準化
+                $result[$key] = self::normalize_single_template($key, $custom_templates[$key], $default);
+            } else {
+                // 使用預設模板
+                $result[$key] = $default;
+            }
         }
         
         // 再加入所有完全自訂的模板（key 以 custom_ 開頭）
         foreach ($custom_templates as $key => $custom) {
             if (strpos($key, 'custom_') === 0 && !isset($default_templates[$key])) {
-                $result[$key] = $custom;
+                // 標準化自訂模板格式
+                $result[$key] = self::normalize_single_template($key, $custom, null);
             }
         }
         
         return $result;
     }
+    
+    /**
+     * 標準化單一模板資料格式
+     * 
+     * @param string $key 模板鍵值
+     * @param array $template 模板資料
+     * @param array|null $default_template 預設模板（用於推斷類型）
+     * @return array 標準化後的模板資料
+     */
+    private static function normalize_single_template($key, $template, $default_template = null) {
+        // 如果已經是標準格式，直接返回
+        if (isset($template['line']['message']) || (isset($template['line']['flex_template']) && isset($template['type']) && $template['type'] === 'flex')) {
+            return $template;
+        }
+        
+        // 嘗試從預設模板推斷類型
+        if ($default_template && isset($default_template['line']['flex_template'])) {
+            // Flex Message 類型
+            return [
+                'type' => 'flex',
+                'line' => [
+                    'flex_template' => [
+                        'logo_url' => $template['line']['flex_template']['logo_url'] ?? '',
+                        'title' => $template['line']['flex_template']['title'] ?? '',
+                        'description' => $template['line']['flex_template']['description'] ?? '',
+                        'buttons' => $template['line']['flex_template']['buttons'] ?? []
+                    ]
+                ]
+            ];
+        } else {
+            // 文字模板類型
+            return [
+                'line' => [
+                    'message' => $template['line']['message'] ?? $template['line']['text'] ?? ''
+                ]
+            ];
+        }
+    }
 
     /**
      * 儲存自訂模板
+     * 
+     * @param array $templates 模板資料陣列
      */
     public static function save_custom_templates($templates) {
-        update_option('buygo_notification_templates', $templates);
+        // 驗證並標準化資料格式
+        $normalized_templates = self::normalize_templates($templates);
         
-        // 清除快取
+        // 儲存到資料庫
+        update_option('buygo_notification_templates', $normalized_templates);
+        
+        // 清除所有快取（確保前後端都能讀取到最新資料）
         self::clear_cache();
+    }
+    
+    /**
+     * 標準化模板資料格式
+     * 確保前後端使用相同的資料結構
+     * 
+     * @param array $templates 原始模板資料
+     * @return array 標準化後的模板資料
+     */
+    private static function normalize_templates($templates) {
+        if (!is_array($templates)) {
+            return [];
+        }
+        
+        $normalized = [];
+        $default_templates = self::definitions();
+        
+        foreach ($templates as $key => $template_data) {
+            // 只處理已定義的模板或自訂模板（custom_ 開頭）
+            if (!isset($default_templates[$key]) && strpos($key, 'custom_') !== 0) {
+                continue;
+            }
+            
+            // 標準化文字模板
+            if (isset($template_data['line']['message'])) {
+                $normalized[$key] = [
+                    'line' => [
+                        'message' => sanitize_textarea_field($template_data['line']['message'])
+                    ]
+                ];
+            }
+            // 標準化 Flex Message 模板
+            elseif (isset($template_data['line']['flex_template']) || (isset($template_data['type']) && $template_data['type'] === 'flex')) {
+                $flex_template = $template_data['line']['flex_template'] ?? [];
+                
+                $normalized[$key] = [
+                    'type' => 'flex',
+                    'line' => [
+                        'flex_template' => [
+                            'logo_url' => sanitize_text_field($flex_template['logo_url'] ?? ''),
+                            'title' => sanitize_text_field($flex_template['title'] ?? ''),
+                            'description' => sanitize_textarea_field($flex_template['description'] ?? ''),
+                            'buttons' => []
+                        ]
+                    ]
+                ];
+                
+                // 處理按鈕（只保留有效的按鈕）
+                if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                    foreach ($flex_template['buttons'] as $button) {
+                        if (!empty($button['label']) || !empty($button['action'])) {
+                            $normalized[$key]['line']['flex_template']['buttons'][] = [
+                                'label' => sanitize_text_field($button['label'] ?? ''),
+                                'action' => sanitize_text_field($button['action'] ?? '')
+                            ];
+                        }
+                    }
+                }
+            }
+            // 如果格式不符合，嘗試從預設模板結構推斷
+            elseif (isset($default_templates[$key])) {
+                $default = $default_templates[$key];
+                // 如果是 Flex Message 類型，保留結構但清空內容
+                if (isset($default['line']['flex_template'])) {
+                    $normalized[$key] = [
+                        'type' => 'flex',
+                        'line' => [
+                            'flex_template' => [
+                                'logo_url' => '',
+                                'title' => '',
+                                'description' => '',
+                                'buttons' => []
+                            ]
+                        ]
+                    ];
+                } else {
+                    // 文字模板，保留空訊息
+                    $normalized[$key] = [
+                        'line' => [
+                            'message' => ''
+                        ]
+                    ];
+                }
+            }
+        }
+        
+        return $normalized;
     }
 
     /**
      * 清除快取
+     * 確保前後端都能讀取到最新資料
      */
     public static function clear_cache() {
         // 清除 static 變數快取
@@ -347,6 +487,14 @@ class NotificationTemplates {
         
         // 清除 WordPress object cache
         wp_cache_delete(self::$cache_key, self::$cache_group);
+        
+        // 清除所有可能的快取變體
+        wp_cache_delete(self::$cache_key . '_all', self::$cache_group);
+        
+        // 如果 WordPress 版本 >= 6.1，使用 flush_group（更徹底）
+        if (function_exists('wp_cache_flush_group')) {
+            wp_cache_flush_group(self::$cache_group);
+        }
     }
 
     /**
