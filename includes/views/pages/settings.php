@@ -50,7 +50,6 @@ $settings_component_template = <<<'HTML'
                                 </svg>
                                 <div>
                                     <div class="font-semibold text-slate-900 md:text-base text-sm">系統通知</div>
-                                    <div class="md:text-sm text-xs text-slate-500">系統自動發送的通知訊息</div>
                                 </div>
                             </div>
                         </button>
@@ -226,7 +225,6 @@ $settings_component_template = <<<'HTML'
                                 </svg>
                                 <div>
                                     <div class="font-semibold text-slate-900 md:text-base text-sm">關鍵字訊息</div>
-                                    <div class="md:text-sm text-xs text-slate-500">管理 LINE 關鍵字自動回覆訊息</div>
                                 </div>
                             </div>
                         </button>
