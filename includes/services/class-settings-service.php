@@ -98,13 +98,6 @@ class SettingsService
         // 使用 NotificationTemplates 系統取得所有模板
         $all_templates = \BuyGoPlus\Services\NotificationTemplates::get_all_templates();
         
-        // #region agent log
-        error_log('DEBUG: get_templates() - all_templates keys: ' . implode(', ', array_keys($all_templates)));
-        if (isset($all_templates['order_created'])) {
-            error_log('DEBUG: get_templates() - order_created data: ' . print_r($all_templates['order_created'], true));
-        }
-        // #endregion
-        
         // 分類模板
         $buyer_templates = [];
         $seller_templates = [];

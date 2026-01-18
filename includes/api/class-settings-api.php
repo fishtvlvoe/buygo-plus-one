@@ -101,31 +101,14 @@ class Settings_API {
      * 取得模板設定
      */
     public function get_templates($request) {
-        // #region agent log
-        error_log('DEBUG: get_templates() called');
-        error_log('DEBUG: is_user_logged_in(): ' . (is_user_logged_in() ? 'true' : 'false'));
-        $current_user = wp_get_current_user();
-        error_log('DEBUG: current_user ID: ' . $current_user->ID);
-        // #endregion
-        
         try {
             $templates = SettingsService::get_templates();
-            
-            // #region agent log
-            error_log('DEBUG: get_templates() - templates keys: ' . implode(', ', array_keys($templates['all'] ?? [])));
-            if (isset($templates['all']['order_created'])) {
-                error_log('DEBUG: get_templates() - order_created data: ' . print_r($templates['all']['order_created'], true));
-            }
-            // #endregion
             
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $templates
             ], 200);
         } catch (\Exception $e) {
-            // #region agent log
-            error_log('DEBUG: get_templates() - exception: ' . $e->getMessage());
-            // #endregion
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '取得模板設定失敗：' . $e->getMessage()

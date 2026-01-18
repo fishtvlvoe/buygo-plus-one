@@ -48,14 +48,6 @@ class API {
         // TODO: 測試完成後，統一設定權限檢查
         // 目前暫時移除權限檢查，方便測試
         
-        // #region agent log
-        error_log('DEBUG: check_permission() - is_user_logged_in: ' . (is_user_logged_in() ? 'true' : 'false'));
-        if (is_user_logged_in()) {
-            $current_user = wp_get_current_user();
-            error_log('DEBUG: check_permission() - user ID: ' . $current_user->ID . ', login: ' . $current_user->user_login);
-        }
-        // #endregion
-        
         // 暫時允許所有請求（測試階段）
         // 測試完成後，改為：
         // if (!is_user_logged_in()) {
