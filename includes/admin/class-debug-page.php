@@ -33,15 +33,9 @@ class DebugPage
      */
     public function add_admin_menu(): void
     {
-        add_menu_page(
-            'BuyGo Plus One 除錯中心',
-            'BuyGo 除錯',
-            'manage_options',
-            'buygo-plus-one-debug',
-            [$this, 'render_debug_page'],
-            'dashicons-admin-tools',
-            99
-        );
+        // 不再建立獨立的主選單，改為由 SettingsPage 建立子選單
+        // 此方法保留以備用，但不會被調用
+        // 如果 SettingsPage 沒有正確註冊子選單，這裡可以作為備用
     }
 
     /**
@@ -49,7 +43,8 @@ class DebugPage
      */
     public function enqueue_scripts($hook): void
     {
-        if ($hook !== 'toplevel_page_buygo-plus-one-debug') {
+        // 支援作為子選單頁面載入
+        if ($hook !== 'toplevel_page_buygo-plus-one-debug' && $hook !== 'buygo-settings_page_buygo-plus-one-debug') {
             return;
         }
 

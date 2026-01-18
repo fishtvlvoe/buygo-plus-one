@@ -16,12 +16,20 @@ if (!defined('ABSPATH')) {
  */
 class SettingsPage
 {
+    private $debugPage = null;
+    
     public function __construct()
     {
-        add_action('admin_menu', [$this, 'add_admin_menu']);
+        add_action('admin_menu', [$this, 'add_admin_menu'], 20); // 優先級設為 20，確保在 DebugPage 之後執行
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
+        
+        // 取得 DebugPage 實例
+        global $buygo_plus_one_debug_page;
+        if (isset($buygo_plus_one_debug_page)) {
+            $this->debugPage = $buygo_plus_one_debug_page;
+        }
     }
 
     /**
@@ -30,8 +38,8 @@ class SettingsPage
     public function add_admin_menu(): void
     {
         add_menu_page(
-            'BuyGo 設定',
-            'BuyGo 設定',
+            'BuyGo+1 設定',
+            'BuyGo+1 設定',
             'manage_options',
             'buygo-settings',
             [$this, 'render_settings_page'],
@@ -42,13 +50,26 @@ class SettingsPage
         // 獨立的通知模板管理頁面
         add_submenu_page(
             'buygo-settings',
-            '通知模板管理',
-            '通知模板管理',
+            'Line 通知模板管理',
+            'Line 通知模板管理',
             'manage_options',
             'buygo-templates',
             [$this, 'render_templates_page'],
             1
         );
+        
+        // 將 BuyGo 除錯移入成為子選單
+        if ($this->debugPage) {
+            add_submenu_page(
+                'buygo-settings',
+                'BuyGo 除錯',
+                'BuyGo 除錯',
+                'manage_options',
+                'buygo-plus-one-debug',
+                [$this->debugPage, 'render_debug_page'],
+                99
+            );
+        }
     }
 
     /**
@@ -116,7 +137,7 @@ class SettingsPage
 
         ?>
         <div class="wrap">
-            <h1>BuyGo 設定</h1>
+            <h1>BuyGo+1 設定</h1>
             
             <!-- Tab 導航 -->
             <nav class="nav-tab-wrapper">
@@ -599,7 +620,7 @@ class SettingsPage
         
         ?>
         <div class="wrap">
-            <h1>通知模板管理</h1>
+            <h1>Line 通知模板管理</h1>
             <?php settings_errors('buygo_settings'); ?>
             <?php $this->render_templates_tab(); ?>
         </div>
@@ -712,7 +733,7 @@ class SettingsPage
             <form method="post" action="">
                 <?php wp_nonce_field('buygo_settings'); ?>
                 
-                <h2>通知模板管理</h2>
+                <h2>Line 通知模板管理</h2>
                 <p class="description">
                     編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
                 </p>
@@ -1065,6 +1086,28 @@ class SettingsPage
                 
                 <!-- 關鍵字訊息區塊 -->
                 <h3 style="margin-top: 30px;">關鍵字訊息</h3>
+                <?php
+                // 取得關鍵字列表
+                $keywords = get_option('buygo_line_keywords', []);
+                
+                // 如果沒有關鍵字，提供預設的 /help 關鍵字
+                if (empty($keywords)) {
+                    $keywords = [
+                        [
+                            'id' => 'help',
+                            'keyword' => '/help',
+                            'aliases' => ['/幫助', '?help', '幫助'],
+                            'message' => "📱 商品上架說明\n\n【步驟】\n1️⃣ 發送商品圖片\n2️⃣ 發送商品資訊\n\n【必填欄位】\n商品名稱\n價格：350\n數量：20\n\n【選填欄位】\n原價：500\n分類：服飾\n到貨：01/25\n預購：01/20\n描述：商品描述\n\n【範例】\n冬季外套\n價格：1200\n原價：1800\n數量：15\n分類：服飾\n到貨：01/15\n\n💡 輸入 /分類 查看可用分類",
+                            'order' => 0
+                        ]
+                    ];
+                }
+                
+                // 按照 order 排序
+                usort($keywords, function($a, $b) {
+                    return ($a['order'] ?? 0) - ($b['order'] ?? 0);
+                });
+                ?>
                 <div class="postbox closed" style="margin-bottom: 20px; max-width: 800px;">
                     <button type="button" class="handlediv" aria-expanded="false" onclick="jQuery(this).parent().toggleClass('closed'); jQuery(this).attr('aria-expanded', jQuery(this).parent().hasClass('closed') ? 'false' : 'true'); jQuery(this).siblings('.inside').toggle();">
                         <span class="toggle-indicator" aria-hidden="true"></span>
@@ -1073,7 +1116,47 @@ class SettingsPage
                         <span>關鍵字訊息</span>
                     </h3>
                     <div class="inside" style="padding: 15px; display: none;">
-                        <p class="description">關鍵字管理功能開發中...</p>
+                        <?php if (empty($keywords)): ?>
+                            <p class="description">尚無關鍵字，請使用前端 Portal 新增關鍵字。</p>
+                        <?php else: ?>
+                            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%;">關鍵字</th>
+                                        <th style="width: 30%;">別名</th>
+                                        <th style="width: 40%;">回覆訊息預覽</th>
+                                        <th style="width: 10%;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($keywords as $keyword): ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?php echo esc_html($keyword['keyword'] ?? ''); ?></strong>
+                                        </td>
+                                        <td>
+                                            <span class="description">
+                                                <?php echo esc_html(implode(', ', $keyword['aliases'] ?? [])); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="description" style="display: block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                <?php echo esc_html(mb_substr($keyword['message'] ?? '', 0, 50)); ?>...
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="<?php echo admin_url('admin.php?page=buygo-settings&tab=templates'); ?>" class="button button-small">
+                                                前往前端編輯
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <p class="description" style="margin-top: 15px;">
+                                💡 提示：關鍵字的新增、編輯、刪除功能請使用前端 Portal 的「Line 通知模板管理」頁面進行管理。
+                            </p>
+                        <?php endif; ?>
                     </div>
                 </div>
                 

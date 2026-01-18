@@ -58,7 +58,10 @@ class Plugin {
         \BuyGoPlus\Services\SettingsService::init_roles();
         
         // 初始化 Admin Pages
-        new \BuyGoPlus\Admin\DebugPage();
+        // 將 DebugPage 實例儲存為全域變數，供 SettingsPage 使用
+        // 注意：DebugPage 必須在 SettingsPage 之前初始化
+        global $buygo_plus_one_debug_page;
+        $buygo_plus_one_debug_page = new \BuyGoPlus\Admin\DebugPage();
         new \BuyGoPlus\Admin\SettingsPage();
         
         // 初始化 Routes
