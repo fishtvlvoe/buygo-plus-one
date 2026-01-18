@@ -12,7 +12,8 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'buygo_test_line_connection',
-                nonce: buygoSettings.nonce
+                nonce: buygoSettings.nonce,
+                token: $('#line_channel_access_token').val()
             },
             success: function(response) {
                 if (response.success) {

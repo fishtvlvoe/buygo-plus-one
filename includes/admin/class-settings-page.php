@@ -503,7 +503,8 @@ class SettingsPage
             wp_send_json_error(['message' => '權限不足']);
         }
         
-        $result = SettingsService::test_line_connection();
+        $token = isset($_POST['token']) ? sanitize_text_field($_POST['token']) : null;
+        $result = SettingsService::test_line_connection($token);
         
         if ($result['success']) {
             wp_send_json_success($result);

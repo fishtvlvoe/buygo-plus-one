@@ -13,6 +13,57 @@ if (!defined('ABSPATH')) {
 class SettingsService
 {
     /**
+     * 加密金鑰（可在 wp-config.php 中定義 BUYGO_ENCRYPTION_KEY）
+     */
+    private static function get_encryption_key(): string
+    {
+        return defined('BUYGO_ENCRYPTION_KEY') ? BUYGO_ENCRYPTION_KEY : 'buygo-secret-key-default-change-in-production';
+    }
+    
+    /**
+     * 加密方法
+     */
+    private static function cipher(): string
+    {
+        return 'AES-128-ECB';
+    }
+    
+    /**
+     * 檢查欄位是否需要加密
+     */
+    private static function is_encrypted_field(string $key): bool
+    {
+        $encrypted_fields = [
+            'line_channel_secret',
+            'line_channel_access_token',
+            'line_login_channel_secret',
+        ];
+        return in_array($key, $encrypted_fields, true);
+    }
+    
+    /**
+     * 加密資料
+     */
+    private static function encrypt(string $data): string
+    {
+        if (empty($data)) {
+            return $data;
+        }
+        return openssl_encrypt($data, self::cipher(), self::get_encryption_key());
+    }
+    
+    /**
+     * 解密資料
+     */
+    private static function decrypt(string $data): string
+    {
+        if (empty($data)) {
+            return $data;
+        }
+        $decrypted = openssl_decrypt($data, self::cipher(), self::get_encryption_key());
+        return $decrypted !== false ? $decrypted : $data;
+    }
+    /**
      * 初始化角色權限
      * 
      * @return void
@@ -157,22 +208,44 @@ class SettingsService
     }
     
     /**
-     * 取得 LINE 設定
+     * 取得 LINE 設定（自動解密敏感資料）
      * 
      * @return array
      */
     public static function get_line_settings(): array
     {
+        $token_raw = get_option('buygo_line_channel_access_token', '');
+        $secret_raw = get_option('buygo_line_channel_secret', '');
+        
+        // 嘗試解密敏感資料（如果解密失敗，使用原始值）
+        $token = $token_raw;
+        if (!empty($token_raw) && self::is_encrypted_field('line_channel_access_token')) {
+            $decrypted = self::decrypt($token_raw);
+            // 如果解密成功且結果不同，使用解密後的值
+            if ($decrypted !== $token_raw && !empty($decrypted)) {
+                $token = $decrypted;
+            }
+        }
+        
+        $secret = $secret_raw;
+        if (!empty($secret_raw) && self::is_encrypted_field('line_channel_secret')) {
+            $decrypted = self::decrypt($secret_raw);
+            // 如果解密成功且結果不同，使用解密後的值
+            if ($decrypted !== $secret_raw && !empty($decrypted)) {
+                $secret = $decrypted;
+            }
+        }
+        
         return [
-            'channel_access_token' => get_option('buygo_line_channel_access_token', ''),
-            'channel_secret' => get_option('buygo_line_channel_secret', ''),
+            'channel_access_token' => $token,
+            'channel_secret' => $secret,
             'liff_id' => get_option('buygo_line_liff_id', ''),
             'webhook_url' => rest_url('buygo-plus-one/v1/line/webhook'),
         ];
     }
     
     /**
-     * 更新 LINE 設定
+     * 更新 LINE 設定（自動加密敏感資料）
      * 
      * @param array $settings
      * @return bool
@@ -180,11 +253,21 @@ class SettingsService
     public static function update_line_settings(array $settings): bool
     {
         if (isset($settings['channel_access_token'])) {
-            update_option('buygo_line_channel_access_token', sanitize_text_field($settings['channel_access_token']));
+            $token = sanitize_text_field($settings['channel_access_token']);
+            // 加密儲存
+            if (self::is_encrypted_field('line_channel_access_token') && !empty($token)) {
+                $token = self::encrypt($token);
+            }
+            update_option('buygo_line_channel_access_token', $token);
         }
         
         if (isset($settings['channel_secret'])) {
-            update_option('buygo_line_channel_secret', sanitize_text_field($settings['channel_secret']));
+            $secret = sanitize_text_field($settings['channel_secret']);
+            // 加密儲存
+            if (self::is_encrypted_field('line_channel_secret') && !empty($secret)) {
+                $secret = self::encrypt($secret);
+            }
+            update_option('buygo_line_channel_secret', $secret);
         }
         
         if (isset($settings['liff_id'])) {
@@ -197,11 +280,17 @@ class SettingsService
     /**
      * 測試 LINE 連線
      * 
+     * @param string|null $custom_token 測試用的 Token（選填，若未填則使用已儲存的設定）
      * @return array
      */
-    public static function test_line_connection(): array
+    public static function test_line_connection(?string $custom_token = null): array
     {
-        $token = get_option('buygo_line_channel_access_token', '');
+        if (!empty($custom_token)) {
+            $token = $custom_token;
+        } else {
+            $settings = self::get_line_settings();
+            $token = $settings['channel_access_token'] ?? '';
+        }
         
         if (empty($token)) {
             return [
@@ -235,9 +324,13 @@ class SettingsService
                 'data' => $body
             ];
         } else {
+            // 嘗試解析錯誤訊息
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            $error_msg = $body['message'] ?? 'HTTP ' . $status_code;
+            
             return [
                 'success' => false,
-                'message' => '連線失敗：HTTP ' . $status_code
+                'message' => '連線失敗：' . $error_msg
             ];
         }
     }
