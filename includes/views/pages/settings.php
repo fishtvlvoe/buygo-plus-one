@@ -12,7 +12,7 @@ $settings_component_template = <<<'HTML'
     <div class="p-6">
         <!-- 模板設定 -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 mb-4">📝 通知模板管理</h2>
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">📝 LINE 通知模板管理</h2>
             <p class="text-sm text-slate-600 mb-6">選擇分類和類型，然後編輯對應的訊息模板</p>
             
             <!-- 標籤分類 -->
