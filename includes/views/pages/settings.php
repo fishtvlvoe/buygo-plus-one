@@ -84,7 +84,6 @@ $settings_component_template = <<<'HTML'
                                             </svg>
                                             <div class="flex-1">
                                                 <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
-                                                <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
                                             </div>
                                         </div>
                                     </button>
@@ -269,7 +268,6 @@ $settings_component_template = <<<'HTML'
                                         </svg>
                                         <div class="flex-1">
                                             <div class="font-semibold text-slate-900 md:text-base text-sm whitespace-nowrap overflow-hidden text-ellipsis">{{ template.name }}</div>
-                                            <div class="md:text-sm text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{{ template.description }}</div>
                                         </div>
                                     </div>
                                 </button>
@@ -697,7 +695,7 @@ const SettingsPageComponent = {
                 },
                 {
                     key: 'flex_image_upload_menu',
-                    name: '圖片上傳成功（卡片式訊息）',
+                    name: '圖片上傳成功發送',
                     description: '圖片上傳成功後發送的卡片式訊息',
                     category: '系統',
                     type: 'flex',
