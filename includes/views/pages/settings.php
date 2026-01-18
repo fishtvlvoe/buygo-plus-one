@@ -69,7 +69,10 @@ $settings_component_template = <<<'HTML'
                                         class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
                                         <div class="flex items-center gap-3">
                                             <!-- 拖拉把手 -->
-                                            <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
+                                            <div 
+                                                class="drag-handle cursor-move text-slate-400 hover:text-slate-600"
+                                                @mousedown.stop
+                                                @click.stop>
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                                                 </svg>
@@ -252,7 +255,10 @@ $settings_component_template = <<<'HTML'
                                     class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
                                     <div class="flex items-center gap-3">
                                         <!-- 拖拉把手 -->
-                                        <div class="drag-handle cursor-move text-slate-400 hover:text-slate-600">
+                                        <div 
+                                            class="drag-handle cursor-move text-slate-400 hover:text-slate-600"
+                                            @mousedown.stop
+                                            @click.stop>
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                                             </svg>
