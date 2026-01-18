@@ -65,7 +65,7 @@ $settings_component_template = <<<'HTML'
                                     <div class="border border-slate-200 rounded-lg overflow-hidden">
                                         <!-- 標題列（可點擊展開/收合） -->
                                         <button 
-                                        @click="toggleTemplate(template.key)"
+                                            @click="toggleTemplate(template.key)"
                                         class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
                                         <div class="flex items-center gap-3">
                                             <!-- 拖拉把手 -->
