@@ -54,12 +54,12 @@ function run_test($name, $callback) {
 
 // 測試 1：檢查 LineWebhookHandler 類別是否存在
 run_test('LineWebhookHandler 類別存在', function() {
-    return class_exists('BuyGo_Plus_One\\Services\\LineWebhookHandler');
+    return class_exists('BuyGoPlus\\Services\\LineWebhookHandler');
 });
 
 // 測試 2：檢查 WebhookLogger 類別是否存在
 run_test('WebhookLogger 類別存在', function() {
-    return class_exists('BuyGo_Plus_One\\Services\\WebhookLogger');
+    return class_exists('BuyGoPlus\\Services\\WebhookLogger');
 });
 
 // 測試 3：檢查資料庫表是否存在
@@ -78,45 +78,40 @@ run_test('Webhook API 端點已註冊', function() {
 
 // 測試 5：檢查 SettingsService::get_user_line_id 方法是否存在
 run_test('SettingsService::get_user_line_id 方法存在', function() {
-    return method_exists('BuyGo_Plus_One\\Services\\SettingsService', 'get_user_line_id');
+    return method_exists('BuyGoPlus\\Services\\SettingsService', 'get_user_line_id');
 });
 
 // 測試 6：檢查 FluentCartService 類別是否存在
 run_test('FluentCartService 類別存在', function() {
-    return class_exists('BuyGo_Plus_One\\Services\\FluentCartService');
+    return class_exists('BuyGoPlus\\Services\\FluentCartService');
 });
 
 // 測試 7：檢查 ProductDataParser 類別是否存在
 run_test('ProductDataParser 類別存在', function() {
-    return class_exists('BuyGo_Plus_One\\Services\\ProductDataParser');
+    return class_exists('BuyGoPlus\\Services\\ProductDataParser');
 });
 
-// 測試 8：檢查 LineFlexTemplates 類別是否存在
-run_test('LineFlexTemplates 類別存在', function() {
-    return class_exists('BuyGo_Plus_One\\Templates\\LineFlexTemplates');
+// 測試 8：檢查 NotificationTemplates 類別是否存在（已改用此類別取代 LineFlexTemplates）
+run_test('NotificationTemplates 類別存在', function() {
+    return class_exists('BuyGoPlus\\Services\\NotificationTemplates');
 });
 
 // 測試 9：測試 WebhookLogger 寫入功能
 run_test('WebhookLogger 可以寫入日誌', function() {
-    $logger = new BuyGo_Plus_One\Services\WebhookLogger();
+    $logger = BuyGoPlus\\Services\\WebhookLogger::get_instance();
     
     // 寫入測試日誌
-    $webhook_id = $logger->log_webhook([
-        'type' => 'message',
-        'message' => [
-            'type' => 'text',
-            'text' => 'Test message'
-        ]
-    ], 'message', true, 200, 'Test response');
+    $webhook_id = $logger->log('test_event', [
+        'message' => 'Test log entry'
+    ], null, null);
     
     return $webhook_id > 0;
 });
 
-// 測試 10：測試 LINE UID 查詢功能
-run_test('LINE UID 查詢功能正常', function() {
-    // 測試已知有 LINE UID 的使用者（User ID 2）
-    $line_id = BuyGo_Plus_One\Services\SettingsService::get_user_line_id(2);
-    return !empty($line_id);
+// 測試 10：測試 NotificationTemplates 功能
+run_test('NotificationTemplates 可以取得模板', function() {
+    $template = BuyGoPlus\\Services\\NotificationTemplates::get('flex_image_upload_menu', []);
+    return !empty($template);
 });
 
 ?>
