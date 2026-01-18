@@ -16,13 +16,13 @@ $settings_component_template = <<<'HTML'
             <p class="text-sm text-slate-600 mb-6">選擇分類和類型，然後編輯對應的訊息模板</p>
             
             <!-- 標籤分類 -->
-            <div class="flex space-x-2 mb-6 border-b border-slate-200">
+            <div class="flex space-x-2 mb-6 border-b border-slate-200 overflow-x-auto">
                 <button 
                     v-for="tab in templateTabs" 
                     :key="tab.key"
                     @click="activeTemplateTab = tab.key"
                     :class="[
-                        'px-4 py-2 font-medium text-sm transition',
+                        'px-4 py-2 font-medium md:text-sm text-xs transition whitespace-nowrap',
                         activeTemplateTab === tab.key 
                             ? 'text-primary border-b-2 border-primary' 
                             : 'text-slate-600 hover:text-slate-900'
@@ -33,7 +33,183 @@ $settings_component_template = <<<'HTML'
             
             <!-- 模板列表 -->
             <div class="space-y-4">
-                <template v-for="template in getTemplatesByTab(activeTemplateTab)" :key="template.key">
+                <!-- 系統標籤：顯示兩個折疊區塊 -->
+                <template v-if="activeTemplateTab === 'system'">
+                    <!-- 系統通知折疊區塊 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button 
+                            @click="expandedSystemNotifications = !expandedSystemNotifications"
+                            class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                            <div class="flex items-center gap-3">
+                                <svg 
+                                    :class="['w-5 h-5 text-slate-400 transition-transform', expandedSystemNotifications ? 'rotate-90' : '']"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <div>
+                                    <div class="font-semibold text-slate-900 md:text-base text-sm">系統通知</div>
+                                    <div class="md:text-sm text-xs text-slate-500">系統自動發送的通知訊息</div>
+                                </div>
+                            </div>
+                        </button>
+                        <div v-if="expandedSystemNotifications" class="p-4 border-t border-slate-200 space-y-4">
+                            <template v-for="template in getSystemNotificationTemplates()" :key="template.key">
+                                <!-- 折疊式模板項目 -->
+                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                    <!-- 標題列（可點擊展開/收合） -->
+                                    <button 
+                                        @click="toggleTemplate(template.key)"
+                                        class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                        <div class="flex items-center gap-3">
+                                            <svg 
+                                                :class="['w-5 h-5 text-slate-400 transition-transform', isTemplateExpanded(template.key) ? 'rotate-90' : '']"
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                            <div>
+                                                <div class="font-semibold text-slate-900 md:text-base text-sm">{{ template.name }}</div>
+                                                <div class="md:text-sm text-xs text-slate-500">{{ template.description }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded whitespace-nowrap">{{ template.category }}</span>
+                                            <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded whitespace-nowrap">LINE</span>
+                                            <span v-if="template.type === 'flex'" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded whitespace-nowrap">卡片式訊息</span>
+                                        </div>
+                                    </button>
+                                    
+                                    <!-- 編輯器（展開時顯示） -->
+                                    <div v-if="isTemplateExpanded(template.key)" class="p-4 border-t border-slate-200">
+                                        <!-- 文字模板編輯器 -->
+                                        <div v-if="template.type !== 'flex'">
+                                            <label class="block text-sm font-medium text-slate-700 mb-2">LINE 訊息內容</label>
+                                            <textarea 
+                                                v-model="templateEdits[template.key].line.message"
+                                                rows="8"
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
+                                                placeholder="輸入模板內容..."></textarea>
+                                            
+                                            <!-- 可用變數（點擊複製） -->
+                                            <div v-if="template.variables && template.variables.length > 0" class="mt-4">
+                                                <label class="block text-sm font-medium text-slate-700 mb-2">可用變數（點擊複製）：</label>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <button
+                                                        v-for="variable in template.variables"
+                                                        :key="variable"
+                                                        @click="copyVariable(variable)"
+                                                        class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
+                                                        { {{ variable }} }
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 卡片式訊息編輯器 -->
+                                        <div v-else class="space-y-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700 mb-2">Logo 圖片 URL</label>
+                                                <input 
+                                                    type="text"
+                                                    v-model="templateEdits[template.key].line.flex_template.logo_url"
+                                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                                                    placeholder="https://example.com/logo.png"
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700 mb-2">標題文字</label>
+                                                <input 
+                                                    type="text"
+                                                    v-model="templateEdits[template.key].line.flex_template.title"
+                                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                                                    placeholder="輸入標題..."
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700 mb-2">說明文字</label>
+                                                <textarea 
+                                                    v-model="templateEdits[template.key].line.flex_template.description"
+                                                    rows="3"
+                                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                                                    placeholder="輸入說明..."></textarea>
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700 mb-3">按鈕設定</label>
+                                                <div class="space-y-3">
+                                                    <div v-for="(button, index) in templateEdits[template.key].line.flex_template.buttons" :key="index" class="border border-slate-200 rounded-lg p-3">
+                                                        <div class="font-medium text-sm text-slate-700 mb-2">按鈕 {{ index + 1 }}</div>
+                                                        <div class="space-y-2">
+                                                            <div>
+                                                                <label class="block text-xs text-slate-600 mb-1">文字</label>
+                                                                <input 
+                                                                    type="text"
+                                                                    v-model="button.label"
+                                                                    class="w-full px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                                                                    placeholder="按鈕文字"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label class="block text-xs text-slate-600 mb-1">關鍵字</label>
+                                                                <div class="flex gap-2">
+                                                                    <input 
+                                                                        type="text"
+                                                                        v-model="button.action"
+                                                                        class="flex-1 px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono"
+                                                                        placeholder="/keyword"
+                                                                    />
+                                                                    <button
+                                                                        @click="copyVariable(button.action.replace('/', ''))"
+                                                                        class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs border border-slate-300">
+                                                                        複製
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- 關鍵字訊息折疊區塊 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button 
+                            @click="expandedKeywords = !expandedKeywords"
+                            class="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                            <div class="flex items-center gap-3">
+                                <svg 
+                                    :class="['w-5 h-5 text-slate-400 transition-transform', expandedKeywords ? 'rotate-90' : '']"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <div>
+                                    <div class="font-semibold text-slate-900 md:text-base text-sm">關鍵字訊息</div>
+                                    <div class="md:text-sm text-xs text-slate-500">管理 LINE 關鍵字自動回覆訊息</div>
+                                </div>
+                            </div>
+                        </button>
+                        <div v-if="expandedKeywords" class="p-4 border-t border-slate-200">
+                            <!-- 關鍵字列表將在這裡顯示 -->
+                            <div class="text-sm text-slate-600">關鍵字管理功能開發中...</div>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- 客戶和賣家標籤：正常顯示模板列表 -->
+                <template v-else>
+                    <template v-for="template in getTemplatesByTab(activeTemplateTab)" :key="template.key">
                     <!-- 折疊式模板項目 -->
                     <div class="border border-slate-200 rounded-lg overflow-hidden">
                         <!-- 標題列（可點擊展開/收合） -->
@@ -49,14 +225,14 @@ $settings_component_template = <<<'HTML'
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
                                 <div>
-                                    <div class="font-semibold text-slate-900">{{ template.name }}</div>
-                                    <div class="text-xs text-slate-500">{{ template.description }}</div>
+                                    <div class="font-semibold text-slate-900 md:text-base text-sm">{{ template.name }}</div>
+                                    <div class="md:text-sm text-xs text-slate-500">{{ template.description }}</div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded">{{ template.category }}</span>
-                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">LINE</span>
-                                <span v-if="template.type === 'flex'" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">卡片式訊息</span>
+                                <span class="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded whitespace-nowrap">{{ template.category }}</span>
+                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded whitespace-nowrap">LINE</span>
+                                <span v-if="template.type === 'flex'" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded whitespace-nowrap">卡片式訊息</span>
                             </div>
                         </button>
                         
@@ -350,14 +526,18 @@ const SettingsPageComponent = {
         // 模板設定狀態
         const activeTemplateTab = ref('buyer');
         const templateTabs = [
-            { key: 'buyer', label: '客戶（買家）通知' },
-            { key: 'seller', label: '賣家通知' },
-            { key: 'system', label: '系統通知' }
+            { key: 'buyer', label: '客戶' },
+            { key: 'seller', label: '賣家' },
+            { key: 'system', label: '系統' }
         ];
         const expandedTemplates = ref(new Set());
+        const expandedSystemNotifications = ref(false);
+        const expandedKeywords = ref(false);
         const templateEdits = ref({});
         const savingTemplates = ref(false);
         const copyToast = ref({ show: false, message: '' });
+        const keywords = ref([]);
+        const loadingKeywords = ref(false);
         
         // 小幫手管理狀態
         const helpers = ref([]);
@@ -523,6 +703,43 @@ const SettingsPageComponent = {
                 }
                 return template;
             });
+        };
+        
+        // 取得系統通知模板（排除關鍵字回覆）
+        const getSystemNotificationTemplates = () => {
+            const templates = templateDefinitions['system'] || [];
+            // 過濾掉 system_keyword_reply
+            return templates
+                .filter(template => template.key !== 'system_keyword_reply')
+                .map(template => {
+                    // 確保 templateEdits 中有這個模板的資料
+                    if (!templateEdits.value[template.key]) {
+                        if (template.type === 'flex') {
+                            templateEdits.value[template.key] = {
+                                type: 'flex',
+                                line: {
+                                    flex_template: {
+                                        logo_url: '',
+                                        title: '',
+                                        description: '',
+                                        buttons: [
+                                            { label: '', action: '' },
+                                            { label: '', action: '' },
+                                            { label: '', action: '' }
+                                        ]
+                                    }
+                                }
+                            };
+                        } else {
+                            templateEdits.value[template.key] = {
+                                line: {
+                                    message: ''
+                                }
+                            };
+                        }
+                    }
+                    return template;
+                });
         };
 
         // 切換模板展開/收合
@@ -818,8 +1035,11 @@ const SettingsPageComponent = {
             savingTemplates,
             copyToast,
             getTemplatesByTab,
+            getSystemNotificationTemplates,
             toggleTemplate,
             isTemplateExpanded,
+            expandedSystemNotifications,
+            expandedKeywords,
             copyVariable,
             loadTemplates,
             saveTemplates,
