@@ -313,12 +313,25 @@ class NotificationTemplates {
         $default_templates = self::definitions();
         $custom_templates = self::get_all_custom_templates();
         
+        // #region agent log
+        error_log('DEBUG: get_all_templates() - custom_templates keys: ' . implode(', ', array_keys($custom_templates)));
+        if (isset($custom_templates['order_created'])) {
+            error_log('DEBUG: get_all_templates() - custom order_created: ' . print_r($custom_templates['order_created'], true));
+        }
+        // #endregion
+        
         $result = [];
         // 先加入所有預設模板（如果有自訂版本則使用自訂版本）
         foreach ($default_templates as $key => $default) {
             if (isset($custom_templates[$key])) {
                 // 使用自訂模板，但確保格式標準化
                 $result[$key] = self::normalize_single_template($key, $custom_templates[$key], $default);
+                
+                // #region agent log
+                if ($key === 'order_created') {
+                    error_log('DEBUG: get_all_templates() - normalized order_created: ' . print_r($result[$key], true));
+                }
+                // #endregion
             } else {
                 // 使用預設模板
                 $result[$key] = $default;
@@ -350,12 +363,21 @@ class NotificationTemplates {
             $template = [];
         }
         
+        // #region agent log
+        error_log('DEBUG: normalize_single_template() - key: ' . $key);
+        error_log('DEBUG: normalize_single_template() - template: ' . print_r($template, true));
+        // #endregion
+        
         // 如果已經是標準格式，確保結構完整後返回
         if (isset($template['line']['message'])) {
-            // 文字模板：確保結構完整
+            // 文字模板：確保結構完整，保留原始內容
+            $message = $template['line']['message'];
+            // #region agent log
+            error_log('DEBUG: normalize_single_template() - found line.message: ' . $message);
+            // #endregion
             return [
                 'line' => [
-                    'message' => $template['line']['message']
+                    'message' => $message
                 ]
             ];
         }
@@ -392,6 +414,9 @@ class NotificationTemplates {
         } else {
             // 文字模板類型：嘗試從多種可能的欄位讀取
             $message = $template['line']['message'] ?? $template['line']['text'] ?? '';
+            // #region agent log
+            error_log('DEBUG: normalize_single_template() - fallback message: ' . $message);
+            // #endregion
             return [
                 'line' => [
                     'message' => $message

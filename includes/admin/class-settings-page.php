@@ -1317,6 +1317,13 @@ class SettingsPage
                 }
             }
             
+            // #region agent log
+            error_log('DEBUG: handle_templates_submit() - all_custom keys: ' . implode(', ', array_keys($all_custom)));
+            if (isset($all_custom['order_created'])) {
+                error_log('DEBUG: handle_templates_submit() - order_created data: ' . print_r($all_custom['order_created'], true));
+            }
+            // #endregion
+            
             // 儲存所有自訂模板
             NotificationTemplates::save_custom_templates($all_custom);
             

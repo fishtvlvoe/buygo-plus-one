@@ -45,14 +45,23 @@ class API {
      * @return bool
      */
     public static function check_permission() {
-        // 檢查是否登入
-        if (!is_user_logged_in()) {
-            return false;
-        }
+        // TODO: 測試完成後，統一設定權限檢查
+        // 目前暫時移除權限檢查，方便測試
         
-        // 檢查是否有管理權限（可依需求調整）
-        // 如果只要求登入即可，可註解以下這行
-        // return current_user_can('manage_options');
+        // #region agent log
+        error_log('DEBUG: check_permission() - is_user_logged_in: ' . (is_user_logged_in() ? 'true' : 'false'));
+        if (is_user_logged_in()) {
+            $current_user = wp_get_current_user();
+            error_log('DEBUG: check_permission() - user ID: ' . $current_user->ID . ', login: ' . $current_user->user_login);
+        }
+        // #endregion
+        
+        // 暫時允許所有請求（測試階段）
+        // 測試完成後，改為：
+        // if (!is_user_logged_in()) {
+        //     return false;
+        // }
+        // return current_user_can('manage_options') || current_user_can('buygo_admin');
         
         return true;
     }

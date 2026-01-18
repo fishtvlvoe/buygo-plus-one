@@ -368,6 +368,7 @@ $settings_component_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
+                    </template>
                 </template>
             </div>
             
@@ -969,14 +970,33 @@ const SettingsPageComponent = {
                 
                 const result = await response.json();
                 
+                // #region agent log
+                fetch('http://127.0.0.1:7246/ingest/2f915c07-e463-443a-8ec2-b60fc4f0e667',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'settings.php:970',message:'API Response received',data:{success:result.success,hasData:!!result.data,hasAll:!!result.data?.all,allKeys:result.data?.all?Object.keys(result.data.all):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                console.log('DEBUG: API Response:', result);
+                console.log('DEBUG: allTemplates:', result.data?.all);
+                // #endregion
+                
                 if (result.success && result.data) {
                     // 處理新的資料結構
                     const allTemplates = result.data.all || {};
+                    
+                    // #region agent log
+                    fetch('http://127.0.0.1:7246/ingest/2f915c07-e463-443a-8ec2-b60fc4f0e667',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'settings.php:976',message:'Processing templates',data:{allTemplatesKeys:Object.keys(allTemplates),orderCreatedExists:!!allTemplates['order_created'],orderCreatedData:allTemplates['order_created']},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                    // #endregion
                     
                     // 初始化所有模板的編輯資料
                     Object.keys(templateDefinitions).forEach(category => {
                         templateDefinitions[category].forEach(template => {
                             const templateData = allTemplates[template.key];
+                            
+                            // #region agent log
+                            if (template.key === 'order_created') {
+                                fetch('http://127.0.0.1:7246/ingest/2f915c07-e463-443a-8ec2-b60fc4f0e667',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'settings.php:983',message:'Processing order_created template',data:{templateData:templateData,hasLine:!!templateData?.line,hasMessage:!!templateData?.line?.message,message:templateData?.line?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                                console.log('DEBUG: order_created templateData:', templateData);
+                                console.log('DEBUG: templateData?.line:', templateData?.line);
+                                console.log('DEBUG: templateData?.line?.message:', templateData?.line?.message);
+                            }
+                            // #endregion
                             
                             // 如果沒有模板資料，使用空值
                             if (!templateData) {
