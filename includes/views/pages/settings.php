@@ -109,7 +109,7 @@ $settings_component_template = <<<'HTML'
                                                         <div class="flex flex-wrap gap-2">
                                                             <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
                                                                 <button
-                                                                    @click="copyVariable(variable); closeVariableDropdown(template.key)"
+                                                                    @click="copyVariable(variable, template.key); closeVariableDropdown(template.key)"
                                                                     class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
                                                                     { {{ variable }} }
                                                                 </button>
@@ -281,7 +281,7 @@ $settings_component_template = <<<'HTML'
                                             <div class="flex flex-wrap gap-2">
                                                 <div v-for="variable in template.variables" :key="variable" class="flex flex-col gap-0.5 items-center">
                                                     <button
-                                                        @click="copyVariable(variable); closeVariableDropdown(template.key)"
+                                                        @click="copyVariable(variable, template.key); closeVariableDropdown(template.key)"
                                                         class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded md:text-xs text-[10px] font-mono transition cursor-pointer border border-slate-300 hover:border-primary">
                                                         { {{ variable }} }
                                                     </button>
@@ -878,18 +878,82 @@ const SettingsPageComponent = {
             return variableDescriptions[variable] || variable;
         };
         
-        // 複製變數到剪貼簿
-        const copyVariable = async (variable) => {
+        // 插入變數到模板內容（直接插入，不複製到剪貼簿）
+        const copyVariable = (variable, templateKey = null) => {
             const variableText = `{${variable}}`;
-            try {
-                await navigator.clipboard.writeText(variableText);
-                copyToast.value = { show: true, message: `已複製 ${variableText}` };
+            
+            // 如果提供了 templateKey，直接插入到對應的模板
+            if (templateKey && templateEdits.value[templateKey]) {
+                const template = templateEdits.value[templateKey];
+                
+                // 文字模板：插入到 line.message
+                if (template.line && template.line.message !== undefined) {
+                    const currentMessage = template.line.message || '';
+                    // 嘗試從當前焦點的 textarea 取得游標位置
+                    const activeElement = document.activeElement;
+                    let cursorPos = currentMessage.length;
+                    
+                    if (activeElement && activeElement.tagName === 'TEXTAREA' && activeElement.value === currentMessage) {
+                        cursorPos = activeElement.selectionStart || currentMessage.length;
+                    }
+                    
+                    const textBefore = currentMessage.substring(0, cursorPos);
+                    const textAfter = currentMessage.substring(cursorPos);
+                    template.line.message = textBefore + variableText + textAfter;
+                    
+                    // 設定游標位置（使用 setTimeout 確保 DOM 更新後再設定）
+                    setTimeout(() => {
+                        const textarea = document.querySelector(`textarea[v-model*="${templateKey}"]`);
+                        if (textarea && textarea.value === template.line.message) {
+                            const newPos = cursorPos + variableText.length;
+                            textarea.setSelectionRange(newPos, newPos);
+                            textarea.focus();
+                        }
+                    }, 0);
+                }
+                // Flex Message 模板：插入到 description
+                else if (template.line && template.line.flex_template && template.line.flex_template.description !== undefined) {
+                    const currentDesc = template.line.flex_template.description || '';
+                    const activeElement = document.activeElement;
+                    let cursorPos = currentDesc.length;
+                    
+                    if (activeElement && activeElement.tagName === 'TEXTAREA' && activeElement.value === currentDesc) {
+                        cursorPos = activeElement.selectionStart || currentDesc.length;
+                    }
+                    
+                    const textBefore = currentDesc.substring(0, cursorPos);
+                    const textAfter = currentDesc.substring(cursorPos);
+                    template.line.flex_template.description = textBefore + variableText + textAfter;
+                    
+                    // 設定游標位置
+                    setTimeout(() => {
+                        const textarea = document.querySelector(`textarea[v-model*="${templateKey}"][v-model*="description"]`);
+                        if (textarea && textarea.value === template.line.flex_template.description) {
+                            const newPos = cursorPos + variableText.length;
+                            textarea.setSelectionRange(newPos, newPos);
+                            textarea.focus();
+                        }
+                    }, 0);
+                }
+                
+                copyToast.value = { show: true, message: `已插入 ${variableText}` };
                 setTimeout(() => {
                     copyToast.value.show = false;
                 }, 2000);
+                return;
+            }
+            
+            // 備用方案：如果找不到對應模板，則複製到剪貼簿
+            try {
+                navigator.clipboard.writeText(variableText).then(() => {
+                    copyToast.value = { show: true, message: `已複製 ${variableText}` };
+                    setTimeout(() => {
+                        copyToast.value.show = false;
+                    }, 2000);
+                });
             } catch (err) {
                 console.error('複製失敗:', err);
-                copyToast.value = { show: true, message: '複製失敗，請手動複製' };
+                copyToast.value = { show: true, message: '插入失敗，請手動輸入' };
                 setTimeout(() => {
                     copyToast.value.show = false;
                 }, 2000);
@@ -913,6 +977,34 @@ const SettingsPageComponent = {
                     Object.keys(templateDefinitions).forEach(category => {
                         templateDefinitions[category].forEach(template => {
                             const templateData = allTemplates[template.key];
+                            
+                            // 如果沒有模板資料，使用空值
+                            if (!templateData) {
+                                if (template.type === 'flex') {
+                                    templateEdits.value[template.key] = {
+                                        type: 'flex',
+                                        line: {
+                                            flex_template: {
+                                                logo_url: '',
+                                                title: '',
+                                                description: '',
+                                                buttons: [
+                                                    { label: '', action: '' },
+                                                    { label: '', action: '' },
+                                                    { label: '', action: '' }
+                                                ]
+                                            }
+                                        }
+                                    };
+                                } else {
+                                    templateEdits.value[template.key] = {
+                                        line: {
+                                            message: ''
+                                        }
+                                    };
+                                }
+                                return;
+                            }
                             
                             if (template.type === 'flex') {
                                 const flexTemplate = templateData?.line?.flex_template || {
@@ -943,10 +1035,15 @@ const SettingsPageComponent = {
                                 };
                             } else {
                                 // 文字模板：優先讀取 line.message，如果沒有則讀取 line.text，最後使用空字串
-                                const message = templateData?.line?.message || templateData?.line?.text || '';
+                                // 確保能讀取到後台儲存的內容
+                                const message = templateData?.line?.message || 
+                                             templateData?.line?.text || 
+                                             (templateData?.line ? '' : '') || 
+                                             '';
+                                
                                 templateEdits.value[template.key] = {
                                     line: {
-                                        message: message
+                                        message: message || ''
                                     }
                                 };
                             }

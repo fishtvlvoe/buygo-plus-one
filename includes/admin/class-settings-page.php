@@ -1150,8 +1150,49 @@ class SettingsPage
             });
         });
         
-        // 複製變數到剪貼簿
+        // 插入變數到 textarea（直接插入，不複製到剪貼簿）
         function copyToClipboard(text) {
+            // 找到當前焦點的 textarea（應該是在同一個模板編輯區域內）
+            const activeElement = document.activeElement;
+            let targetTextarea = null;
+            
+            // 如果當前焦點是 textarea，直接使用
+            if (activeElement && activeElement.tagName === 'TEXTAREA' && activeElement.name && activeElement.name.includes('[line][message]')) {
+                targetTextarea = activeElement;
+            } else {
+                // 否則，找到最近的 textarea（在同一個模板編輯區域內）
+                const templateRow = activeElement?.closest('tr.template-edit-row');
+                if (templateRow) {
+                    targetTextarea = templateRow.querySelector('textarea[name*="[line][message]"]');
+                }
+            }
+            
+            // 如果找到 textarea，直接插入
+            if (targetTextarea) {
+                const start = targetTextarea.selectionStart || targetTextarea.value.length;
+                const end = targetTextarea.selectionEnd || targetTextarea.value.length;
+                const currentValue = targetTextarea.value;
+                const textBefore = currentValue.substring(0, start);
+                const textAfter = currentValue.substring(end);
+                
+                targetTextarea.value = textBefore + text + textAfter;
+                
+                // 設定游標位置
+                const newPos = start + text.length;
+                targetTextarea.setSelectionRange(newPos, newPos);
+                targetTextarea.focus();
+                
+                // 觸發 input 事件，確保表單驗證等機制能正常工作
+                targetTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // 顯示提示（可選）
+                if (typeof showToast === 'function') {
+                    showToast('已插入：' + text);
+                }
+                return;
+            }
+            
+            // 備用方案：如果找不到 textarea，則複製到剪貼簿
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(function() {
                     alert('已複製：' + text);

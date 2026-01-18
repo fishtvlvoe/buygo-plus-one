@@ -345,9 +345,34 @@ class NotificationTemplates {
      * @return array 標準化後的模板資料
      */
     private static function normalize_single_template($key, $template, $default_template = null) {
-        // 如果已經是標準格式，直接返回
-        if (isset($template['line']['message']) || (isset($template['line']['flex_template']) && isset($template['type']) && $template['type'] === 'flex')) {
-            return $template;
+        // 確保 template 是陣列
+        if (!is_array($template)) {
+            $template = [];
+        }
+        
+        // 如果已經是標準格式，確保結構完整後返回
+        if (isset($template['line']['message'])) {
+            // 文字模板：確保結構完整
+            return [
+                'line' => [
+                    'message' => $template['line']['message']
+                ]
+            ];
+        }
+        
+        if (isset($template['line']['flex_template']) && isset($template['type']) && $template['type'] === 'flex') {
+            // Flex Message 模板：確保結構完整
+            return [
+                'type' => 'flex',
+                'line' => [
+                    'flex_template' => [
+                        'logo_url' => $template['line']['flex_template']['logo_url'] ?? '',
+                        'title' => $template['line']['flex_template']['title'] ?? '',
+                        'description' => $template['line']['flex_template']['description'] ?? '',
+                        'buttons' => $template['line']['flex_template']['buttons'] ?? []
+                    ]
+                ]
+            ];
         }
         
         // 嘗試從預設模板推斷類型
@@ -365,10 +390,11 @@ class NotificationTemplates {
                 ]
             ];
         } else {
-            // 文字模板類型
+            // 文字模板類型：嘗試從多種可能的欄位讀取
+            $message = $template['line']['message'] ?? $template['line']['text'] ?? '';
             return [
                 'line' => [
-                    'message' => $template['line']['message'] ?? $template['line']['text'] ?? ''
+                    'message' => $message
                 ]
             ];
         }
