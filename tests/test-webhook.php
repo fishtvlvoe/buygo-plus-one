@@ -98,7 +98,7 @@ run_test('NotificationTemplates 類別存在', function() {
 
 // 測試 9：測試 WebhookLogger 寫入功能
 run_test('WebhookLogger 可以寫入日誌', function() {
-    $logger = BuyGoPlus\\Services\\WebhookLogger::get_instance();
+    $logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
     
     // 寫入測試日誌
     $webhook_id = $logger->log('test_event', [
@@ -110,7 +110,7 @@ run_test('WebhookLogger 可以寫入日誌', function() {
 
 // 測試 10：測試 NotificationTemplates 功能
 run_test('NotificationTemplates 可以取得模板', function() {
-    $template = BuyGoPlus\\Services\\NotificationTemplates::get('flex_image_upload_menu', []);
+    $template = \BuyGoPlus\Services\NotificationTemplates::get('flex_image_upload_menu', []);
     return !empty($template);
 });
 
