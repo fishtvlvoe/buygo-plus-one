@@ -78,6 +78,12 @@ $customers_component_template = <<<'HTML'
         <smart-search-box
             api-endpoint="/wp-json/buygo-plus-one/v1/customers"
             :search-fields="['full_name', 'phone', 'email']"
+            display-field="full_name"
+            display-sub-field="email"
+            placeholder="搜尋客戶名稱、電話或 Email..."
+            :show-image="false"
+            :show-status="false"
+            @select="handleCustomerSelect"
         ></smart-search-box>
 
         <!-- 載入狀態 -->

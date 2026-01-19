@@ -642,11 +642,24 @@ class OrderService
                 // 取得 product_id（優先使用 post_id，其次使用 product_id）
                 $product_id = (int)($item['post_id'] ?? $item['product_id'] ?? 0);
 
+                // 取得商品圖片 URL
+                $product_image = '';
+                if ($product_id > 0) {
+                    global $wpdb;
+                    $product_image = $wpdb->get_var($wpdb->prepare(
+                        "SELECT meta_value FROM {$wpdb->postmeta}
+                         WHERE post_id = %d AND meta_key = '_image_url'
+                         LIMIT 1",
+                        $product_id
+                    )) ?: '';
+                }
+
                 $items[] = [
                     'id' => $item['id'] ?? 0,
                     'order_id' => $order['id'] ?? 0,
                     'product_id' => $product_id,
                     'product_name' => $product_name,
+                    'product_image' => $product_image,
                     'quantity' => $quantity,
                     'price' => isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0, // 轉換為元
                     'total' => isset($item['line_total']) ? ($item['line_total'] / 100) : 0,
