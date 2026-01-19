@@ -141,8 +141,8 @@ $products_component_template = <<<'HTML'
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">下單</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">採購</th>
-                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">已出貨</th>
-                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">待出貨</th>
+                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap hidden xl:table-cell">已出貨</th>
+                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap text-blue-600">待出貨</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap text-slate-400">預訂</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
                                     </tr>
@@ -172,8 +172,8 @@ $products_component_template = <<<'HTML'
                                         <td class="px-2 py-4 text-center">
                                             <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="inline-edit-input text-gray-700 bg-slate-50 focus:bg-white" @click.stop>
                                         </td>
-                                        <td class="px-2 py-4 text-center font-bold text-blue-600 font-mono text-sm">{{ product.shipped || 0 }}</td>
-                                        <td class="px-2 py-4 text-center font-bold text-orange-600 font-mono text-sm">{{ (product.purchased || 0) - (product.shipped || 0) }}</td>
+                                        <td class="px-2 py-4 text-center font-bold text-blue-600 font-mono text-sm hidden xl:table-cell">{{ product.shipped || 0 }}</td>
+                                        <td class="px-2 py-4 text-center font-bold text-orange-600 font-mono text-sm">{{ (product.allocated || 0) - (product.shipped || 0) }}</td>
                                         <td class="px-2 py-4 text-center font-bold text-slate-400 font-mono text-sm">{{ calculateReserved(product) }}</td>
                                         <td class="px-2 py-4 text-center">
                                             <div class="flex items-center justify-center gap-1">
@@ -229,14 +229,18 @@ $products_component_template = <<<'HTML'
                                 <div class="font-bold text-slate-400 text-base">{{ calculateReserved(product) }}</div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                        <div class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
                             <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-slate-400 mb-0.5">已出貨</div>
-                                <div class="font-bold text-blue-600 text-base">{{ product.shipped || 0 }}</div>
+                                <div class="text-[10px] text-slate-400 mb-0.5">已分配</div>
+                                <div class="font-bold text-blue-600 text-base">{{ product.allocated || 0 }}</div>
                             </div>
                             <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-slate-400 mb-0.5">待出貨</div>
-                                <div class="font-bold text-orange-600 text-base">{{ (product.purchased || 0) - (product.shipped || 0) }}</div>
+                                <div class="text-[10px] text-slate-400 mb-0.5">已出貨</div>
+                                <div class="font-bold text-slate-500 text-base">{{ product.shipped || 0 }}</div>
+                            </div>
+                            <div class="px-2 py-3 text-center">
+                                <div class="text-[10px] text-orange-500 mb-0.5">待出貨</div>
+                                <div class="font-bold text-orange-600 text-base">{{ (product.allocated || 0) - (product.shipped || 0) }}</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
@@ -356,8 +360,36 @@ $products_component_template = <<<'HTML'
 
                         <!-- Allocation View -->
                         <div v-show="currentView === 'allocation'" class="space-y-4 md:space-y-6">
-                             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                <div class="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"><div class="text-xs md:text-sm text-slate-500 mb-1">可分配</div><div class="text-xl md:text-2xl font-bold text-primary">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</div></div>
+                            <!-- 商品資訊卡片 -->
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex gap-4 items-start">
+                                <div class="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-slate-200">
+                                    <img v-if="selectedProduct?.image" :src="selectedProduct.image" class="w-full h-full object-cover">
+                                    <svg v-else class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-slate-900 truncate text-base md:text-lg">{{ selectedProduct?.name }}</h3>
+                                    <p class="text-sm text-slate-500 mt-0.5">{{ formatPrice(selectedProduct?.price) }} <span class="text-xs text-slate-400 ml-1">ID: {{ selectedProduct?.id }}</span></p>
+                                    <div class="mt-3 grid grid-cols-4 gap-2 text-center">
+                                        <div class="bg-green-50 rounded-lg py-2 px-1">
+                                            <div class="text-[10px] text-green-600">已下單</div>
+                                            <div class="font-bold text-green-700">{{ selectedProduct?.ordered || 0 }}</div>
+                                        </div>
+                                        <div class="bg-slate-100 rounded-lg py-2 px-1">
+                                            <div class="text-[10px] text-slate-600">已採購</div>
+                                            <div class="font-bold text-slate-700">{{ selectedProduct?.purchased || 0 }}</div>
+                                        </div>
+                                        <div class="bg-blue-50 rounded-lg py-2 px-1">
+                                            <div class="text-[10px] text-blue-600">已分配</div>
+                                            <div class="font-bold text-blue-700">{{ selectedProduct?.allocated || 0 }}</div>
+                                        </div>
+                                        <div class="bg-primary/10 rounded-lg py-2 px-1">
+                                            <div class="text-[10px] text-primary">可分配</div>
+                                            <div class="font-bold text-primary">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <!-- Orders Table implementation for Allocation... (Simplified for this step, using existing logic) -->
                             <!-- Orders Table implementation for Allocation -->

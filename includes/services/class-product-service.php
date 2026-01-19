@@ -78,7 +78,7 @@ class ProductService
                 });
             }
 
-            $products = $query->get();
+            $products = $query->orderBy('id', 'desc')->get();
 
             // 計算下單數量
             $productIds = $products->pluck('id')->toArray();
