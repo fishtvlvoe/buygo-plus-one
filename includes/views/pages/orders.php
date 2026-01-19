@@ -3,22 +3,44 @@
 
 // 載入 OrderDetailModal 元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
-
+?>
+<style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Transitions */
+    .search-slide-enter-active, .search-slide-leave-active { transition: all 0.2s ease; }
+    .search-slide-enter-from, .search-slide-leave-to { opacity: 0; transform: translateY(-10px); }
+    
+    [v-cloak] { display: none; }
+</style>
+<?php
 $orders_component_template = <<<'HTML'
-<main class="min-h-screen bg-slate-50">
-    <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
-    <div v-show="currentView === 'list'">
-    <!-- 頁面標題 -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">訂單</h1>
-                    <p class="text-sm text-slate-500">管理您的訂單、狀態與出貨</p>
+<!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->
+<div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+
+    <!-- Main Content -->
+    <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
+
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+            <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+                <div class="flex flex-col overflow-hidden min-w-0" v-show="!showMobileSearch">
+                    <h1 class="text-base md:text-lg lg:text-xl font-bold text-slate-900 leading-tight truncate">訂單管理</h1>
+                    <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
+                        <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-slate-900 font-medium">訂單</span>
+                        <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
+                        <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentOrderId }}</span>
+                    </nav>
                     
                     <!-- 篩選提示 -->
-                    <div v-if="searchFilter" class="mt-2 flex items-center gap-2">
-                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
+                    <div v-if="searchFilter" class="hidden md:flex items-center gap-2 mt-1">
+                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                             篩選：{{ searchFilterName }}
                         </span>
                         <button 
@@ -29,39 +51,60 @@ $orders_component_template = <<<'HTML'
                     </div>
                 </div>
             </div>
-            
-            <!-- 智慧搜尋框 -->
-            <smart-search-box
-                api-endpoint="/wp-json/buygo-plus-one/v1/orders"
-                :search-fields="['invoice_no', 'customer_name']"
-                placeholder="搜尋訂單編號或客戶名稱"
-                display-field="invoice_no"
-                display-sub-field="customer_name"
-                :show-currency-toggle="true"
-                :default-currency="systemCurrency"
-                @select="handleSearchSelect"
-                @search="handleSearchInput"
-                @clear="handleSearchClear"
-                @currency-change="handleCurrencyChange"
-            />
-        </div>
-    </div>
 
-    <!-- 訂單列表容器 -->
-    <div class="p-6">
-        <!-- 載入狀態 -->
-        <div v-if="loading" class="text-center py-8">
-            <p class="text-slate-600">載入中...</p>
-        </div>
-        
-        <!-- 錯誤訊息 -->
-        <div v-else-if="error" class="text-center py-8">
-            <p class="text-red-600">{{ error }}</p>
-            <button @click="loadOrders" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">重新載入</button>
-        </div>
-        
-        <!-- 訂單列表 -->
-        <div v-else>
+            <!-- Right Actions -->
+            <div class="flex items-center gap-2 md:gap-3 shrink-0">
+                <button @click="showMobileSearch = !showMobileSearch"
+                    class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </button>
+
+                <!-- Batch Actions -->
+                <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
+                    <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
+                </div>
+
+                <!-- Desktop Search -->
+                <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
+                    <input type="text" placeholder="搜尋訂單編號或客戶名稱..." v-model="searchQuery" @input="handleSearchInput"
+                        class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+
+                <!-- Currency Toggle -->
+                <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
+                    {{ systemCurrency }}
+                </button>
+            </div>
+
+            <!-- Mobile Search Overlay -->
+            <transition name="search-slide">
+                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
+                    <div class="relative flex-1">
+                        <input type="text" placeholder="搜尋訂單編號或客戶名稱..." v-model="searchQuery" @input="handleSearchInput"
+                            class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary auto-focus">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
+                </div>
+            </transition>
+        </header>
+
+        <div class="flex-1 overflow-auto bg-slate-50/50 relative">
+            <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
+            <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+                <!-- Loading -->
+                <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
+                
+                <!-- Error -->
+                <div v-else-if="error" class="text-center py-12">
+                    <p class="text-red-600 mb-4">{{ error }}</p>
+                    <button @click="loadOrders" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">重新載入</button>
+                </div>
+                
+                <!-- Content -->
+                <div v-else>
             <!-- 桌面版表格 -->
             <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <table class="w-full">
@@ -279,37 +322,38 @@ $orders_component_template = <<<'HTML'
                         </button>
                     </nav>
                 </div>
-            </div>
-        </div>
-    </div>
-    </div><!-- 結束列表視圖容器 -->
+                </div>
+            </div> <!-- End List View Container -->
 
-    <!-- 訂單詳情子頁面（URL 驅動） -->
-    <transition name="buygo-slide">
-        <div v-if="currentView === 'detail'" class="buygo-subpage">
-            <div class="buygo-subpage-header">
-                <div class="flex items-center gap-4">
-                    <button @click="navigateTo('list')" class="buygo-back-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        <span>返回列表</span>
-                    </button>
-                    <div class="buygo-divider-vertical"></div>
-                    <h2 class="text-xl font-bold text-slate-900">訂單詳情 #{{ currentOrderId }}</h2>
+            <!-- Subpages -->
+            <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
+                <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
+                        <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
+                            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            <span class="text-sm font-medium">返回</span>
+                        </button>
+                        <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
+                        <div class="truncate"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">訂單詳情 #{{ currentOrderId }}</h2></div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition text-xs md:text-sm font-medium">關閉</button>
+                    </div>
+                </div>
+
+                <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
+                    <order-detail-modal
+                        v-if="currentOrderId"
+                        :order-id="currentOrderId"
+                        :is-subpage="true"
+                        @close="navigateTo('list')"
+                    />
                 </div>
             </div>
-            <div class="buygo-subpage-content">
-                <order-detail-modal
-                    v-if="currentOrderId"
-                    :order-id="currentOrderId"
-                    :is-subpage="true"
-                    @close="navigateTo('list')"
-                />
-            </div>
         </div>
-    </transition>
+    </main>
 
+    
     <!-- OrderDetailModal 元件（向下相容：Modal 模式） -->
     <order-detail-modal
         v-if="showModal && currentView === 'list'"
@@ -317,7 +361,7 @@ $orders_component_template = <<<'HTML'
         @close="closeOrderDetail"
     />
     
-    <!-- 訂單詳情 Modal -->
+    <!-- 訂單詳情 Modal（保留向下相容） -->
     <div v-if="showOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeOrderModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <!-- 標題列 -->
@@ -463,7 +507,7 @@ $orders_component_template = <<<'HTML'
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
     </div>
-</main>
+</div>
 HTML;
 ?>
 
@@ -472,7 +516,6 @@ HTML;
 const OrdersPageComponent = {
     name: 'OrdersPage',
     components: {
-        'smart-search-box': BuyGoSmartSearchBox,
         'order-detail-modal': OrderDetailModal
     },
     template: `<?php echo $orders_component_template; ?>`,
@@ -484,6 +527,9 @@ const OrdersPageComponent = {
         // ============================================
         const currentView = ref('list');  // 'list' | 'detail'
         const currentOrderId = ref(null);
+
+        // UI 狀態
+        const showMobileSearch = ref(false);
 
         // 狀態變數
         const orders = ref([]);
@@ -502,6 +548,37 @@ const OrdersPageComponent = {
 
         // 幣別設定
         const systemCurrency = ref('JPY');
+        
+        // 批次操作
+        const batchDelete = async () => {
+            if(!confirm(`確認刪除 ${selectedItems.value.length} 項？`)) return;
+            try {
+                const res = await fetch('/wp-json/buygo-plus-one/v1/orders/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                    body: JSON.stringify({ ids: selectedItems.value })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    orders.value = orders.value.filter(o => !selectedItems.value.includes(o.id));
+                    selectedItems.value = [];
+                    showToast('批次刪除成功');
+                    loadOrders();
+                } else {
+                    showToast(data.message || '刪除失敗', 'error');
+                }
+            } catch(e) { 
+                console.error(e); 
+                showToast('刪除錯誤', 'error'); 
+            }
+        };
+        
+        // 切換幣別
+        const toggleCurrency = () => {
+            systemCurrency.value = systemCurrency.value === 'JPY' ? 'TWD' : 'JPY';
+            showToast(`已切換為 ${systemCurrency.value}`);
+            handleCurrencyChange(systemCurrency.value);
+        };
 
         // Modal 狀態（保留向下相容）
         const showOrderModal = ref(false);
@@ -578,15 +655,24 @@ const OrdersPageComponent = {
         };
 
         // 搜尋處理函數
-        const handleSearchInput = (query) => {
+        const handleSearchInput = (e) => {
+            const query = e.target ? e.target.value : e;
             searchQuery.value = query;
-            currentPage.value = 1; // 重置到第一頁
-            loadOrders();
+            // 如果搜尋框有內容，嘗試找到對應的訂單
+            if (query && query.trim()) {
+                // 可以選擇是否要自動篩選，這裡先簡單處理為全域搜尋
+                currentPage.value = 1;
+                loadOrders();
+            } else {
+                // 清除搜尋時重置
+                handleSearchClear();
+            }
         };
 
         const handleSearchSelect = (item) => {
             searchFilter.value = item.id;
             searchFilterName.value = item.invoice_no || item.customer_name || '';
+            searchQuery.value = item.invoice_no || item.customer_name || '';
             currentPage.value = 1;
             loadOrders();
         };
@@ -595,6 +681,7 @@ const OrdersPageComponent = {
             searchFilter.value = null;
             searchFilterName.value = '';
             searchQuery.value = '';
+            currentPage.value = 1;
             loadOrders();
         };
 
@@ -608,6 +695,9 @@ const OrdersPageComponent = {
                 
                 if (searchFilter.value) {
                     url += `&id=${searchFilter.value}`;
+                } else if (searchQuery.value && searchQuery.value.trim()) {
+                    // 如果沒有特定篩選，但有搜尋關鍵字，使用 search 參數
+                    url += `&search=${encodeURIComponent(searchQuery.value.trim())}`;
                 }
                 
                 const response = await fetch(url, {
@@ -1100,7 +1190,12 @@ const OrdersPageComponent = {
             closeConfirmModal,
             handleConfirm,
             toastMessage,
-            showToast
+            showToast,
+            // UI 狀態
+            showMobileSearch,
+            // 新增方法
+            batchDelete,
+            toggleCurrency
         };
     }
 };
