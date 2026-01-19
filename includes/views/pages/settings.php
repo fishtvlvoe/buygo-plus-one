@@ -6,7 +6,7 @@ $settings_component_template = <<<'HTML'
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
         <div class="pl-12 md:pl-0">
-            <h1 class="text-xl md:text-2xl font-bold text-slate-900">設定</h1>
+            <h1 class="text-xl font-bold text-slate-900">設定</h1>
         </div>
     </div>
 

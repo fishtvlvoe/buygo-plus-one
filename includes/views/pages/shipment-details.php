@@ -14,7 +14,7 @@ $shipment_details_template = <<<'HTML'
     <!-- 頁面標題 -->
     <div class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm sticky top-0 z-30 md:static">
         <div class="pl-12 md:pl-0">
-            <h1 class="text-xl md:text-2xl font-bold text-slate-900">出貨</h1>
+            <h1 class="text-xl font-bold text-slate-900">出貨</h1>
         </div>
     </div>
     

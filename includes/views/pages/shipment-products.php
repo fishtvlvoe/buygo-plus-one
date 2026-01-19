@@ -7,7 +7,7 @@ $shipment_products_component_template = <<<'HTML'
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
         <div class="mb-6">
             <div class="pl-12 md:pl-0 mb-4">
-                <h1 class="text-xl md:text-2xl font-bold text-slate-900">備貨</h1>
+                <h1 class="text-xl font-bold text-slate-900">備貨</h1>
             </div>
 
              <!-- 智慧搜尋框 -->
