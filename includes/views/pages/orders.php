@@ -297,6 +297,7 @@ $orders_component_template = <<<'HTML'
                         </button>
                     </div>
                 </div>
+            </div> <!-- End md:hidden (mobile cards) -->
 
             <!-- 統一分頁樣式 -->
             <div v-if="totalOrders > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
