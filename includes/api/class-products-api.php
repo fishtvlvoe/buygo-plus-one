@@ -258,7 +258,9 @@ class Products_API {
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $product['purchased'] ?? 0,
                     'allocated' => $allocated,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated)
+                    'shipped' => $product['shipped'] ?? 0,
+                    'pending' => $product['pending'] ?? 0,
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0))
                 ];
             }
             

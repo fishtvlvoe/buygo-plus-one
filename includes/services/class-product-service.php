@@ -83,6 +83,9 @@ class ProductService
             // 計算下單數量
             $productIds = $products->pluck('id')->toArray();
             $orderCounts = $this->calculateOrderCounts($productIds);
+            
+            // 計算已出貨數量
+            $shippedCounts = $this->calculateShippedCounts($productIds);
 
             // 格式化資料
             $formattedProducts = [];
@@ -111,8 +114,14 @@ class ProductService
                 // 計算已下單數量
                 $ordered = $orderCounts[$product->id] ?? 0;
                 
-                // 計算預訂數量（ordered - purchased - allocated）
-                $reserved = max(0, $ordered - $purchased - $allocated);
+                // 計算已出貨數量
+                $shipped = $shippedCounts[$product->id] ?? 0;
+                
+                // 計算待出貨數量（採購了但還沒寄的）
+                $pending = max(0, $purchased - $shipped);
+                
+                // 計算預訂數量（還沒採購到的）
+                $reserved = max(0, $ordered - $purchased);
 
                 $productData = [
                     'id' => $product->id,
@@ -131,6 +140,8 @@ class ProductService
                     'ordered' => $ordered,
                     'purchased' => $purchased,
                     'allocated' => $allocated,
+                    'shipped' => $shipped,
+                    'pending' => $pending,
                     'reserved' => $reserved,
                     'order_count' => $ordered,
                     'stock_status' => $product->stock_status,
@@ -375,6 +386,56 @@ class ProductService
 
         } catch (\Exception $e) {
             $this->debugService->log('ProductService', '計算下單數量失敗', [
+                'error' => $e->getMessage(),
+                'product_variation_ids' => $productVariationIds
+            ], 'error');
+
+            return [];
+        }
+    }
+
+    /**
+     * 計算已出貨數量
+     * 
+     * @param array $productVariationIds 商品變體 ID 陣列
+     * @return array 商品 ID => 已出貨數量
+     */
+    private function calculateShippedCounts(array $productVariationIds): array
+    {
+        if (empty($productVariationIds)) {
+            return [];
+        }
+
+        try {
+            global $wpdb;
+            
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            
+            $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
+            
+            $sql = $wpdb->prepare("
+                SELECT 
+                    si.product_id,
+                    SUM(si.quantity) as shipped_count
+                FROM {$table_shipment_items} si
+                INNER JOIN {$table_shipments} s ON si.shipment_id = s.id
+                WHERE si.product_id IN ({$placeholders})
+                AND s.status IN ('shipped', 'archived')
+                GROUP BY si.product_id
+            ", ...$productVariationIds);
+
+            $results = $wpdb->get_results($sql, ARRAY_A);
+            
+            $shippedCounts = [];
+            foreach ($results as $result) {
+                $shippedCounts[$result['product_id']] = (int)$result['shipped_count'];
+            }
+
+            return $shippedCounts;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '計算已出貨數量失敗', [
                 'error' => $e->getMessage(),
                 'product_variation_ids' => $productVariationIds
             ], 'error');

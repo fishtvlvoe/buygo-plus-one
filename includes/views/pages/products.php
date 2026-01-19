@@ -141,6 +141,8 @@ $products_component_template = <<<'HTML'
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">下單</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">採購</th>
+                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">已出貨</th>
+                                        <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">待出貨</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap text-slate-400">預訂</th>
                                         <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
                                     </tr>
@@ -165,11 +167,13 @@ $products_component_template = <<<'HTML'
                                              <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2.5 py-1 text-xs font-semibold rounded-full border hover:opacity-80 transition cursor-pointer">{{ product.status === 'published' ? '已上架' : '已下架' }}</button>
                                         </td>
                                         <td class="px-2 py-4 text-center">
-                                            <button @click="navigateTo('buyers', product)" class="text-base font-bold text-green-600 hover:text-green-700 hover:underline decoration-green-300 underline-offset-2 transition">{{ product.ordered }}</button>
+                                            <button @click="navigateTo('buyers', product)" class="text-base font-bold text-green-600 hover:text-green-700 hover:underline decoration-green-300 underline-offset-2 transition">{{ product.ordered || 0 }}</button>
                                         </td>
                                         <td class="px-2 py-4 text-center">
                                             <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="inline-edit-input text-gray-700 bg-slate-50 focus:bg-white" @click.stop>
                                         </td>
+                                        <td class="px-2 py-4 text-center font-bold text-blue-600 font-mono text-sm">{{ product.shipped || 0 }}</td>
+                                        <td class="px-2 py-4 text-center font-bold text-orange-600 font-mono text-sm">{{ (product.purchased || 0) - (product.shipped || 0) }}</td>
                                         <td class="px-2 py-4 text-center font-bold text-slate-400 font-mono text-sm">{{ calculateReserved(product) }}</td>
                                         <td class="px-2 py-4 text-center">
                                             <div class="flex items-center justify-center gap-1">
@@ -215,14 +219,24 @@ $products_component_template = <<<'HTML'
                                 </div>
                             </div>
                         </div>
-                        <div class="flex border-t border-slate-100 bg-slate-50/50">
-                            <div class="flex-1 px-2 py-3 text-center border-r border-slate-100 clickable active:bg-green-100" @click="navigateTo('buyers', product)">
+                        <div class="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                            <div class="px-2 py-3 text-center clickable active:bg-green-100" @click="navigateTo('buyers', product)">
                                 <div class="text-[10px] text-slate-400 mb-0.5">下單</div>
-                                <div class="font-bold text-green-600 text-base underline decoration-green-200">{{ product.ordered }}</div>
+                                <div class="font-bold text-green-600 text-base underline decoration-green-200">{{ product.ordered || 0 }}</div>
                             </div>
-                            <div class="flex-1 px-2 py-3 text-center">
+                            <div class="px-2 py-3 text-center">
                                 <div class="text-[10px] text-slate-400 mb-0.5">預訂</div>
                                 <div class="font-bold text-slate-400 text-base">{{ calculateReserved(product) }}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                            <div class="px-2 py-3 text-center">
+                                <div class="text-[10px] text-slate-400 mb-0.5">已出貨</div>
+                                <div class="font-bold text-blue-600 text-base">{{ product.shipped || 0 }}</div>
+                            </div>
+                            <div class="px-2 py-3 text-center">
+                                <div class="text-[10px] text-slate-400 mb-0.5">待出貨</div>
+                                <div class="font-bold text-orange-600 text-base">{{ (product.purchased || 0) - (product.shipped || 0) }}</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
@@ -798,7 +812,7 @@ const ProductsPageComponent = {
             else selectedItems.value = products.value.map(p => p.id);
         };
         const formatPrice = (p) => `$${p}`; // Simplified
-        const calculateReserved = (p) => (p.ordered || 0) - (p.purchased || 0) - (p.allocated || 0); // Logic check?
+        const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
         
         onMounted(() => {
