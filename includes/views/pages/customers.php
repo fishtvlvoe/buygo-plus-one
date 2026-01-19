@@ -72,7 +72,7 @@ $customers_component_template = <<<'HTML'
     </header>
 
     <!-- 客戶列表容器 -->
-    <div v-show="currentView === 'list'" class="p-6">
+    <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6">
         <!-- 載入狀態 -->
         <div v-if="loading" class="buygo-loading">
             <div class="buygo-loading-spinner"></div>
