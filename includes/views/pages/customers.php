@@ -117,12 +117,15 @@ $customers_component_template = <<<'HTML'
                             <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
                                 <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
                                 <td class="px-4 py-4">
-                                    <div class="min-w-0">
-                                        <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
-                                            {{ customer.full_name || '-' }}
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <img :src="getGravatarUrl(customer.email)" :alt="customer.full_name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200">
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
+                                                {{ customer.full_name || '-' }}
+                                            </div>
+                                            <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
                                         </div>
-                                        <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
-                                        <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
                                     </div>
                                 </td>
                                 <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
@@ -671,6 +674,15 @@ const CustomersPageComponent = {
             return `${month}/${day}`;
         };
 
+        // 取得 Gravatar 頭像 URL
+        const getGravatarUrl = (email) => {
+            if (!email) return 'https://www.gravatar.com/avatar/?d=mp&s=40';
+            // 使用 MD5 hash (簡化版,實際應使用 crypto)
+            const hash = email.toLowerCase().trim();
+            // 使用 Gravatar 預設圖片 (mp = mystery person)
+            return `https://www.gravatar.com/avatar/${btoa(hash)}?d=mp&s=40`;
+        };
+
         // 儲存備註
         const saveNote = async () => {
             if (!selectedCustomer.value) return;
@@ -893,6 +905,7 @@ const CustomersPageComponent = {
             formatPrice,
             formatDate,
             formatShortDate,
+            getGravatarUrl,
             activeTab,
             filteredOrders,
             customerNote,
