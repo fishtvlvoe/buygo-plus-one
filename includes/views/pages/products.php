@@ -50,59 +50,15 @@
 <?php
 $products_component_template = <<<'HTML'
 
-<!-- Root Template Content (Logic only, no App ID here) -->
-<div class="flex h-screen w-full bg-background text-slate-900 font-sans antialiased overflow-hidden">
-
-    <!-- Sidebar -->
-    <aside class="bg-surface border-r border-slate-200 hidden md:flex flex-col transition-all duration-300 z-20 shrink-0"
-        :class="isSidebarCollapsed ? 'w-20' : 'w-20 lg:w-64'">
-        <div class="h-16 flex items-center justify-center border-b border-slate-100 p-2">
-            <div class="flex items-center gap-2 font-bold text-primary text-xl overflow-hidden whitespace-nowrap"
-                v-if="!isSidebarCollapsed">
-                <div class="hidden lg:flex items-center gap-2">
-                    <svg class="w-8 h-8 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                    <span>BuyGo+1</span>
-                </div>
-                <div class="lg:hidden">
-                    <svg class="w-8 h-8 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                </div>
-            </div>
-            <svg v-else class="w-8 h-8 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-        </div>
-
-        <nav class="flex-1 overflow-y-auto py-4 space-y-1">
-            <button v-for="item in menuItems" :key="item.id" @click="handleTabClick(item.id)" :class="[
-                'w-full flex items-center px-4 md:px-6 py-3 transition-colors duration-200 group relative',
-                currentTab === item.id ? 'bg-blue-50 text-primary border-r-2 border-primary' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            ]" :title="item.label">
-                <span v-html="item.icon" class="w-6 h-6 shrink-0"></span>
-                <span class="ml-3 font-medium whitespace-nowrap transition-opacity duration-200 hidden lg:block"
-                    :class="isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">
-                    {{ item.label }}
-                </span>
-            </button>
-        </nav>
-
-        <button @click="isSidebarCollapsed = !isSidebarCollapsed"
-            class="hidden lg:flex p-4 border-t border-slate-100 text-slate-400 hover:text-slate-600 justify-center transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                :class="{'rotate-180': isSidebarCollapsed}">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-            </svg>
-        </button>
-    </aside>
+<!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->
+<div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative bg-background">
+    <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
         <!-- Header -->
-        <header class="h-16 bg-surface border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
             <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                <button class="md:hidden text-slate-500 p-1 -ml-1 hover:bg-slate-50 rounded-lg"
-                    @click="showMobileMenu = !showMobileMenu">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                </button>
-
                 <div class="flex flex-col overflow-hidden min-w-0" v-show="!showMobileSearch">
                     <h1 class="text-base md:text-lg lg:text-xl font-bold text-slate-900 leading-tight truncate">商品管理</h1>
                     <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
@@ -148,7 +104,7 @@ $products_component_template = <<<'HTML'
 
             <!-- Mobile Search Overlay -->
             <transition name="search-slide">
-                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-surface flex items-center px-4 gap-2 md:hidden">
+                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
                     <div class="relative flex-1">
                         <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleSearchInput"
                             class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary auto-focus">
@@ -158,24 +114,6 @@ $products_component_template = <<<'HTML'
                 </div>
             </transition>
         </header>
-
-        <!-- Mobile Menu Overlay -->
-        <div v-if="showMobileMenu" class="absolute inset-0 z-50 flex md:hidden" @click.self="showMobileMenu = false">
-            <div class="w-64 bg-white h-full shadow-2xl flex flex-col animate-[slide-in-from-left_0.3s]">
-                <div class="h-16 flex items-center justify-center border-b border-slate-100 font-bold text-primary text-xl">BuyGo+1</div>
-                <nav class="flex-1 overflow-y-auto py-4 space-y-1">
-                    <button v-for="item in menuItems" :key="item.id"
-                        @click="currentTab = item.id; showMobileMenu = false" :class="[
-                        'w-full flex items-center px-6 py-3 transition-colors duration-200',
-                        currentTab === item.id ? 'bg-blue-50 text-primary border-r-4 border-primary' : 'text-slate-600'
-                    ]">
-                        <span v-html="item.icon" class="w-6 h-6 shrink-0"></span>
-                        <span class="ml-3 font-medium">{{ item.label }}</span>
-                    </button>
-                </nav>
-            </div>
-            <div class="flex-1 bg-black/20 backdrop-blur-sm"></div>
-        </div>
 
         <div class="flex-1 overflow-auto bg-slate-50/50 relative">
             <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
@@ -192,7 +130,7 @@ $products_component_template = <<<'HTML'
                 <!-- Content (Desktop & Mobile) -->
                 <div v-else>
                     <!-- Desktop Table -->
-                    <div class="hidden md:block bg-surface rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-200">
                                 <thead class="bg-slate-50/50">
@@ -330,8 +268,8 @@ $products_component_template = <<<'HTML'
 
             <!-- Subpages -->
             <!-- Subpages (No Transition for Debugging) -->
-            <div v-show="currentView !== 'list'" class="absolute inset-0 bg-background z-30 overflow-y-auto w-full">
-                    <div class="sticky top-0 z-40 bg-surface/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+            <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
+                    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
                         <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
                             <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
                                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -460,7 +398,6 @@ $products_component_template = <<<'HTML'
                         </div>
                     </div>
                 </div>
-            </div>
             <!-- </transition> -->
         </div>
     </main>
@@ -548,12 +485,27 @@ const ProductsPageComponent = {
         const currentCurrency = ref('TWD'); // Mock Currency State
 
         // --- Router Logic (使用 BuyGoRouter 核心模組) ---
-        const checkUrlParams = () => {
+        const checkUrlParams = async () => {
             const params = window.BuyGoRouter.checkUrlParams();
             const { view, id } = params;
 
             if (view && view !== 'list' && id) {
-                const product = products.value.find(p => p.id == id);
+                // 先嘗試在已載入的列表中找
+                let product = products.value.find(p => p.id == id);
+
+                // 如果列表中沒有，透過 API 取得單一商品
+                if (!product) {
+                    try {
+                        const res = await fetch(`/wp-json/buygo-plus-one/v1/products?id=${id}`);
+                        const data = await res.json();
+                        if (data.success && data.data && data.data.length > 0) {
+                            product = data.data[0];
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch product:', e);
+                    }
+                }
+
                 if (product) {
                     handleNavigation(view, product, false);
                 } else if (!loading.value) {
@@ -620,7 +572,7 @@ const ProductsPageComponent = {
                 if (data.success) {
                     products.value = data.data;
                     totalProducts.value = data.total || data.data.length;
-                    checkUrlParams(); 
+                    await checkUrlParams(); 
                 } else {
                     products.value = [];
                     totalProducts.value = 0;
@@ -810,18 +762,5 @@ const ProductsPageComponent = {
         };
     }
 };
-
-// Mount the App (Prevent Duplicate Mounting)
-document.addEventListener('DOMContentLoaded', () => {
-    const appContainer = document.getElementById('buygo-app');
-    if (appContainer && !appContainer.__vue_app__) {
-        const { createApp } = Vue;
-        const app = createApp(ProductsPageComponent);
-        // Use Global Components if available
-        if (typeof BuyGoSmartSearchBox !== 'undefined') {
-            app.component('smart-search-box', BuyGoSmartSearchBox);
-        }
-        app.mount('#buygo-app');
-    }
-});
+// 注意：不再自行掛載，由 template.php 統一管理 Vue app
 </script>

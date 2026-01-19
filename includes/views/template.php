@@ -54,17 +54,20 @@ $current_page = get_query_var('buygo_page', 'dashboard');
 </head>
 <body class="bg-slate-50">
     <div id="buygo-app">
-        <!-- 載入側邊導航元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/side-nav.php'; ?>
-        
+        <!-- 載入新版側邊欄組件 -->
+        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
+
         <!-- 載入智慧搜尋框元件 -->
         <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
-        
+
         <!-- 載入 PageHeader 元件 -->
         <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
-        
+
+        <!-- 載入分頁元件 -->
+        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
+
         <!-- 主內容區 -->
-        <div class="md:ml-64 min-h-screen">
+        <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
             <!-- 頁面內容容器（由 Vue 動態渲染） -->
             <div id="page-content"></div>
         </div>
@@ -89,12 +92,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     
     <script>
     const { createApp } = Vue;
-    
-    // 載入側邊導航元件
-    const sideNavComponent = <?php echo $component_name; ?>Component;
-    
+
     // 載入頁面元件（如果存在）
-    <?php 
+    <?php
     $page_component_name = null;
     if ($has_page_component) {
         // 根據頁面名稱決定元件名稱
@@ -113,11 +113,11 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <?php if ($page_component_name): ?>
     const pageComponent = <?php echo $page_component_name; ?>;
     <?php endif; ?>
-    
+
     // 建立主 App
     const app = createApp({
         components: {
-            SideNav: sideNavComponent,
+            NewSidebar: NewSidebarComponent,
             PageHeader: PageHeader,
             SmartSearchBox: BuyGoSmartSearchBox<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
         },
@@ -128,8 +128,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         },
         template: `
             <div>
-                <SideNav :currentPage="currentPage" />
-                <div class="md:ml-64 min-h-screen">
+                <NewSidebar :currentPage="currentPage" />
+                <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
                     <?php if ($page_component_name): ?>
                     <PageContent />
                     <?php else: ?>
@@ -144,7 +144,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             </div>
         `
     });
-    
+
     app.mount('#buygo-app');
     </script>
 </body>

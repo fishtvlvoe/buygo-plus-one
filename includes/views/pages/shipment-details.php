@@ -12,8 +12,8 @@ if (!defined('ABSPATH')) {
 $shipment_details_template = <<<'HTML'
 <div class="min-h-screen bg-slate-50">
     <!-- 頁面標題 -->
-    <div class="bg-white border-b border-slate-200 px-6 py-4">
-        <h1 class="text-2xl font-bold text-slate-900">出貨明細</h1>
+    <div class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm sticky top-0 z-30 md:static">
+        <h1 class="text-2xl font-bold text-slate-900">出貨</h1>
         <p class="text-sm text-slate-500 mt-1">管理您的出貨單狀態</p>
     </div>
     
@@ -106,116 +106,195 @@ $shipment_details_template = <<<'HTML'
     </div>
 
     <!-- 出貨單列表 -->
-    <div class="p-6">
+    <div class="p-4 md:p-6">
         <div v-if="loading" class="buygo-loading">
             <div class="buygo-loading-spinner"></div>
             <p>載入中...</p>
         </div>
-        
+
         <div v-else-if="shipments.length === 0" class="text-center py-12">
             <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
             </svg>
             <p class="mt-2 text-slate-600">目前沒有出貨單</p>
         </div>
-        
-        <div v-else class="buygo-card overflow-hidden">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left">
-                            <input 
-                                type="checkbox" 
-                                @change="toggleSelectAll"
-                                :checked="isAllSelected"
-                                class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
-                            >
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">出貨單號</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">客戶</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">商品數量</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">日期</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-slate-200">
-                    <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input 
-                                type="checkbox" 
+
+        <template v-else>
+            <!-- 桌面版表格 -->
+            <div class="hidden md:block buygo-card overflow-hidden">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left">
+                                <input
+                                    type="checkbox"
+                                    @change="toggleSelectAll"
+                                    :checked="isAllSelected"
+                                    class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
+                                >
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">出貨單號</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">客戶</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">商品數量</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">日期</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-100">
+                        <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input
+                                    type="checkbox"
+                                    :value="shipment.id"
+                                    v-model="selectedShipments"
+                                    class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
+                                >
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                {{ shipment.shipment_number }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ shipment.customer_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ shipment.total_quantity }} 件
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex justify-end gap-2">
+                                    <button
+                                        v-if="activeTab === 'pending'"
+                                        @click="markShipped(shipment.id)"
+                                        class="buygo-btn buygo-btn-accent buygo-btn-sm"
+                                    >
+                                        已出貨
+                                    </button>
+                                    <button
+                                        v-if="activeTab === 'shipped'"
+                                        @click="archiveShipment(shipment.id)"
+                                        class="buygo-btn buygo-btn-secondary buygo-btn-sm"
+                                    >
+                                        存檔
+                                    </button>
+                                    <button
+                                        @click="viewDetail(shipment.id)"
+                                        class="buygo-btn buygo-btn-primary buygo-btn-sm"
+                                    >
+                                        查看
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 手機版卡片 -->
+            <div class="md:hidden space-y-4">
+                <div v-for="shipment in shipments" :key="shipment.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4">
+                        <div class="flex items-start gap-3">
+                            <input
+                                type="checkbox"
                                 :value="shipment.id"
                                 v-model="selectedShipments"
-                                class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+                                class="mt-1 w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
                             >
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                            {{ shipment.shipment_number }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                            {{ shipment.customer_name }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                            {{ shipment.total_quantity }} 件
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                            {{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div class="flex justify-end gap-2">
-                                <!-- 待出貨分頁：已出貨按鈕 -->
-                                <button
-                                    v-if="activeTab === 'pending'"
-                                    @click="markShipped(shipment.id)"
-                                    class="buygo-btn buygo-btn-accent buygo-btn-sm"
-                                >
-                                    已出貨
-                                </button>
-
-                                <!-- 已出貨分頁：存檔按鈕 -->
-                                <button
-                                    v-if="activeTab === 'shipped'"
-                                    @click="archiveShipment(shipment.id)"
-                                    class="buygo-btn buygo-btn-secondary buygo-btn-sm"
-                                >
-                                    存檔
-                                </button>
-
-                                <!-- 所有分頁：查看按鈕 -->
-                                <button
-                                    @click="viewDetail(shipment.id)"
-                                    class="buygo-btn buygo-btn-primary buygo-btn-sm"
-                                >
-                                    查看
-                                </button>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900">{{ shipment.shipment_number }}</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5">{{ shipment.customer_name }}</p>
+                                    </div>
+                                    <span :class="[
+                                        'px-2 py-0.5 text-xs font-medium rounded-full',
+                                        activeTab === 'pending' ? 'bg-orange-100 text-orange-600' :
+                                        activeTab === 'shipped' ? 'bg-green-100 text-green-600' :
+                                        'bg-slate-100 text-slate-600'
+                                    ]">
+                                        {{ activeTab === 'pending' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
+                                    </span>
+                                </div>
+                                <div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                                    <span>{{ shipment.total_quantity }} 件</span>
+                                    <span>{{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}</span>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
+                        <button
+                            v-if="activeTab === 'pending'"
+                            @click="markShipped(shipment.id)"
+                            class="py-3 flex items-center justify-center gap-1.5 text-accent hover:bg-orange-50 bg-white transition active:bg-orange-100"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-xs font-bold">出貨</span>
+                        </button>
+                        <button
+                            v-if="activeTab === 'shipped'"
+                            @click="archiveShipment(shipment.id)"
+                            class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                            <span class="text-xs font-bold">存檔</span>
+                        </button>
+                        <button
+                            v-if="activeTab === 'archived'"
+                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 bg-white cursor-default col-span-1"
+                        >
+                            <span class="text-xs">-</span>
+                        </button>
+                        <button
+                            @click="viewDetail(shipment.id)"
+                            class="py-3 flex items-center justify-center gap-1.5 text-primary hover:bg-blue-50 bg-white transition active:bg-blue-100"
+                            :class="activeTab === 'archived' ? 'col-span-2' : ''"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <span class="text-xs font-bold">查看</span>
+                        </button>
+                        <button
+                            v-if="activeTab !== 'archived'"
+                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 hover:bg-slate-50 bg-white transition"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            <span class="text-xs font-bold">列印</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 
     <!-- 分頁控制 -->
-    <div v-if="totalShipments > perPage" class="flex items-center justify-between mt-6 px-6 pb-6">
-        <div class="text-sm text-slate-600">
-            顯示 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalShipments) }} 筆，共 {{ totalShipments }} 筆
-        </div>
-        <div class="flex items-center gap-2">
-            <select v-model="perPage" @change="changePerPage" class="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                <option value="5">5 / 頁</option>
-                <option value="10">10 / 頁</option>
-                <option value="20">20 / 頁</option>
-                <option value="50">50 / 頁</option>
-            </select>
-            <button @click="previousPage" :disabled="currentPage === 1" class="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                上一頁
-            </button>
-            <button class="px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium">
-                {{ currentPage }}
-            </button>
-            <button @click="nextPage" :disabled="currentPage === totalPages" class="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                下一頁
-            </button>
+    <div v-if="totalShipments > 0" class="px-4 md:px-6 pb-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
+            <div class="text-sm text-slate-700 text-center sm:text-left">
+                顯示 <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * perPage, totalShipments) }}</span> 筆，共 <span class="font-medium">{{ totalShipments }}</span> 筆
+            </div>
+            <div class="flex items-center gap-3">
+                <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                    <option :value="5">5 / 頁</option>
+                    <option :value="10">10 / 頁</option>
+                    <option :value="20">20 / 頁</option>
+                    <option :value="50">50 / 頁</option>
+                </select>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="sr-only">上一頁</span>
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                        {{ p }}
+                    </button>
+                    <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="sr-only">下一頁</span>
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </nav>
+            </div>
         </div>
     </div>
 
@@ -592,6 +671,31 @@ const ShipmentDetailsPageComponent = {
             return Math.ceil(totalShipments.value / perPage.value);
         });
 
+        // 計算可見頁碼
+        const visiblePages = computed(() => {
+            const pages = [];
+            const maxPages = Math.min(5, totalPages.value);
+            let startPage = Math.max(1, currentPage.value - Math.floor(maxPages / 2));
+            let endPage = startPage + maxPages - 1;
+
+            if (endPage > totalPages.value) {
+                endPage = totalPages.value;
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+            return pages;
+        });
+
+        // 跳轉到指定頁
+        const goToPage = (page) => {
+            if (page < 1 || page > totalPages.value) return;
+            currentPage.value = page;
+            loadShipments();
+        };
+
         // 批次標記已出貨
         const batchMarkShipped = () => {
             if (selectedShipments.value.length === 0) {
@@ -766,7 +870,17 @@ const ShipmentDetailsPageComponent = {
             batchArchive,
             closeDetailModal,
             formatPrice,
-            printDetail
+            printDetail,
+            // 分頁相關
+            currentPage,
+            perPage,
+            totalShipments,
+            totalPages,
+            visiblePages,
+            changePerPage,
+            previousPage,
+            nextPage,
+            goToPage
         };
     }
 };

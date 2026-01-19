@@ -9,11 +9,11 @@ $orders_component_template = <<<'HTML'
     <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
     <div v-show="currentView === 'list'">
     <!-- 頁面標題 -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
+    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
         <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">訂單管理</h1>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">訂單</h1>
                     <p class="text-sm text-slate-500">管理您的訂單、狀態與出貨</p>
                     
                     <!-- 篩選提示 -->
@@ -252,91 +252,34 @@ $orders_component_template = <<<'HTML'
                 </div>
             </div>
             
-            <!-- 桌面版分頁 -->
-            <footer class="hidden md:flex items-center justify-between px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
-                <div class="flex items-center gap-4">
-                    <span class="text-xs text-slate-500 font-medium">
-                        <template v-if="perPage === -1">顯示全部 {{ totalOrders }} 筆</template>
-                        <template v-else>顯示 {{ totalOrders }} 筆中的第 {{ (currentPage - 1) * perPage + 1 }} 到 {{ Math.min(currentPage * perPage, totalOrders) }} 筆</template>
-                    </span>
-                    <select 
-                        v-model="perPage" 
-                        @change="changePerPage"
-                        class="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-primary outline-none">
+            <!-- 統一分頁樣式 -->
+            <div v-if="totalOrders > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
+                <div class="text-sm text-slate-700 text-center sm:text-left">
+                    顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalOrders : Math.min(currentPage * perPage, totalOrders) }}</span> 筆，共 <span class="font-medium">{{ totalOrders }}</span> 筆
+                </div>
+                <div class="flex items-center gap-3">
+                    <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                         <option :value="5">5 / 頁</option>
                         <option :value="10">10 / 頁</option>
-                        <option :value="30">30 / 頁</option>
+                        <option :value="20">20 / 頁</option>
                         <option :value="50">50 / 頁</option>
-                        <option :value="100">100 / 頁</option>
                         <option :value="-1">全部</option>
                     </select>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="sr-only">上一頁</span>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                            {{ p }}
+                        </button>
+                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="sr-only">下一頁</span>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </nav>
                 </div>
-                <div class="flex gap-2">
-                    <button 
-                        @click="previousPage"
-                        :disabled="currentPage === 1"
-                        :class="currentPage === 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-50'"
-                        class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs transition">
-                        上一頁
-                    </button>
-                    <button 
-                        v-for="page in visiblePages" 
-                        :key="page"
-                        @click="goToPage(page)"
-                        :class="page === currentPage ? 'bg-primary text-white border-primary font-bold shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                        class="px-3 py-1.5 border rounded-lg text-xs transition">
-                        {{ page }}
-                    </button>
-                    <button 
-                        @click="nextPage"
-                        :disabled="currentPage === totalPages"
-                        :class="currentPage === totalPages ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-50'"
-                        class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs transition">
-                        下一頁
-                    </button>
-                </div>
-            </footer>
-            
-            <!-- 手機版分頁 -->
-            <footer class="flex md:hidden items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm mt-6">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs text-slate-500 font-medium">
-                        <template v-if="perPage === -1">全部 {{ totalOrders }} 筆</template>
-                        <template v-else>第 {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalOrders) }} 筆</template>
-                    </span>
-                    <select 
-                        v-model="perPage" 
-                        @change="changePerPage"
-                        class="text-xs px-2 py-1.5 border border-slate-200 rounded-lg bg-white outline-none">
-                        <option :value="5">5/頁</option>
-                        <option :value="10">10/頁</option>
-                        <option :value="30">30/頁</option>
-                        <option :value="50">50/頁</option>
-                        <option :value="100">100/頁</option>
-                        <option :value="-1">全部</option>
-                    </select>
-                </div>
-                <div class="flex gap-1.5">
-                    <button 
-                        @click="previousPage"
-                        :disabled="currentPage === 1"
-                        class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg bg-white transition"
-                        :class="currentPage === 1 ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-50'">
-                        ◀
-                    </button>
-                    <button 
-                        class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-lg text-xs font-bold shadow-sm">
-                        {{ currentPage }}
-                    </button>
-                    <button 
-                        @click="nextPage"
-                        :disabled="currentPage === totalPages"
-                        class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg bg-white transition"
-                        :class="currentPage === totalPages ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-50'">
-                        ▶
-                    </button>
-                </div>
-            </footer>
+            </div>
         </div>
     </div>
     </div><!-- 結束列表視圖容器 -->

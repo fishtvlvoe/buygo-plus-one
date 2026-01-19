@@ -4,8 +4,9 @@
 $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- 頁面標題 -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
-        <h1 class="text-2xl font-bold text-slate-900 font-title">系統設定</h1>
+    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
+        <h1 class="text-2xl font-bold text-slate-900 font-title">設定</h1>
+        <p class="text-sm text-slate-500 mt-1">管理系統設定與 LINE 通知模板</p>
     </div>
 
     <!-- 設定內容容器 -->
