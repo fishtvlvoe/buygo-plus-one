@@ -117,7 +117,7 @@ $customers_component_template = <<<'HTML'
                         </tr>
                     </tbody>
                 </table>
-            </div>
+            </div> <!-- End desktop table -->
 
             <!-- 手機版卡片 -->
             <div class="md:hidden space-y-4 md:space-y-6">
@@ -140,8 +140,8 @@ $customers_component_template = <<<'HTML'
                         查看詳情
                     </button>
                 </div>
-            </div>
-            
+            </div> <!-- End mobile cards -->
+
             <!-- 統一分頁樣式 -->
             <div v-if="totalCustomers > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
                 <div class="text-sm text-slate-700 text-center sm:text-left">
@@ -169,10 +169,10 @@ $customers_component_template = <<<'HTML'
                         </button>
                     </nav>
                 </div>
-            </div>
-        </div>
-    </div>
-    
+            </div> <!-- End pagination -->
+        </div> <!-- End customer list content -->
+    </div> <!-- End list view -->
+
     <!-- 客戶詳情子頁面（URL 驅動） -->
     <div v-show="currentView === 'detail'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
         <!-- 子頁面 Header -->
