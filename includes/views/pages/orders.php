@@ -26,7 +26,7 @@ $orders_component_template = <<<'HTML'
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
         <!-- Header -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
             <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
                 <div class="flex flex-col overflow-hidden min-w-0" v-show="!showMobileSearch">
                     <h1 class="text-base md:text-lg lg:text-xl font-bold text-slate-900 leading-tight truncate">訂單管理</h1>
@@ -297,8 +297,7 @@ $orders_component_template = <<<'HTML'
                         </button>
                     </div>
                 </div>
-            </div>
-            
+
             <!-- 統一分頁樣式 -->
             <div v-if="totalOrders > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
                 <div class="text-sm text-slate-700 text-center sm:text-left">
@@ -326,8 +325,9 @@ $orders_component_template = <<<'HTML'
                         </button>
                     </nav>
                 </div>
-                </div>
-            </div> <!-- End List View Container -->
+            </div> <!-- End v-if="totalOrders > 0" (pagination) -->
+            </div> <!-- End v-else (order content) -->
+            </div> <!-- End list view (v-show="currentView === 'list'") -->
 
             <!-- Subpages -->
             <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
@@ -353,11 +353,9 @@ $orders_component_template = <<<'HTML'
                         @close="navigateTo('list')"
                     />
                 </div>
-            </div>
-        </div>
-    </main>
+            </div> <!-- End Subpages -->
+        </div> <!-- End flex-1 main content container -->
 
-    
     <!-- OrderDetailModal 元件（向下相容：Modal 模式） -->
     <order-detail-modal
         v-if="showModal && currentView === 'list'"
@@ -489,8 +487,8 @@ $orders_component_template = <<<'HTML'
                 </div>
             </div>
         </div>
-    </div>
-    
+    </div> <!-- End Confirm Modal -->
+
     <!-- Toast 通知 -->
     <div 
         v-if="toastMessage.show" 
@@ -510,8 +508,10 @@ $orders_component_template = <<<'HTML'
             </svg>
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
-    </div>
-</div>
+    </div> <!-- End Toast container -->
+
+    </main>
+</div> <!-- End root div -->
 HTML;
 ?>
 
