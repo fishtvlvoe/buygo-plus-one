@@ -440,13 +440,23 @@ class LineWebhookHandler {
 		// 如果舊外掛使用 post_id，我們也使用 post_id 以避免衝突
 		// 否則使用上架順序：/item/{上架順序}
 		$old_product_url = get_permalink( $post_id );
+		
+		// 檢查 get_permalink 是否返回 /item/ 格式
+		// 如果不是，強制使用 /item/{post_id} 格式（與舊外掛保持一致）
 		if ( strpos( $old_product_url, '/item/' ) !== false ) {
 			// 舊外掛已經有 /item/ 路由，使用 get_permalink 保持一致性
 			$product_url = $old_product_url;
 		} else {
-			// 如果沒有 /item/ 路由，使用上架順序生成短連結
-			$listing_order = $this->get_listing_order( $user->ID, $post_id );
-			$product_url = home_url( "/item/{$listing_order}" );
+			// 如果 get_permalink 返回的是商品名稱的 slug，強制使用 /item/{post_id} 格式
+			// 這樣可以確保連結格式一致，且不會因為商品名稱變更而改變
+			$product_url = home_url( "/item/{$post_id}" );
+			
+			// 記錄日誌以便除錯
+			$this->logger->log( 'product_url_generated', array(
+				'product_id' => $post_id,
+				'old_permalink' => $old_product_url,
+				'new_url' => $product_url,
+			), $user->ID, $line_uid );
 		}
 
 		// Prepare template arguments
@@ -535,12 +545,20 @@ class LineWebhookHandler {
 			$quantity_display = ( $product_data['quantity'] ?? 0 ) . ' 個';
 		}
 
+		// 計算 original_price 變數（用於向後兼容舊模板）
+		$original_price_value = '';
+		if ( ! empty( $product_data['original_price'] ) || ! empty( $product_data['compare_price'] ) ) {
+			$original_price_value = number_format( $product_data['original_price'] ?? $product_data['compare_price'] ?? 0 );
+		}
+
 		$template_args = array(
 			'product_name' => $product_data['name'] ?? '',
 			'price' => $price_display,
 			'quantity' => $quantity_display,
 			'product_url' => $product_url,
 			'currency_symbol' => $currency_symbol,
+			// 同時提供 original_price 和 original_price_section 以保持向後兼容
+			'original_price' => $original_price_value,
 			'original_price_section' => $original_price_section,
 			'category_section' => $category_section,
 			'arrival_date_section' => $arrival_date_section,
