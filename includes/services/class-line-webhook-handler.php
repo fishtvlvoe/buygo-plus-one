@@ -504,13 +504,23 @@ class LineWebhookHandler {
 		// 產生到貨日期區塊（如果有到貨日期）
 		$arrival_date_section = '';
 		if ( ! empty( $product_data['arrival_date'] ) ) {
-			$arrival_date_section = "\n到貨日期：{$product_data['arrival_date']}";
+			// 格式化日期顯示（如果是 YYYY-MM-DD 格式，轉換為 YYYY/MM/DD）
+			$arrival_date = $product_data['arrival_date'];
+			if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $arrival_date, $matches ) ) {
+				$arrival_date = "{$matches[1]}/{$matches[2]}/{$matches[3]}";
+			}
+			$arrival_date_section = "\n到貨日期：{$arrival_date}";
 		}
 		
 		// 產生預購日期區塊（如果有預購日期）
 		$preorder_date_section = '';
 		if ( ! empty( $product_data['preorder_date'] ) ) {
-			$preorder_date_section = "\n預購日期：{$product_data['preorder_date']}";
+			// 格式化日期顯示（如果是 YYYY-MM-DD 格式，轉換為 YYYY/MM/DD）
+			$preorder_date = $product_data['preorder_date'];
+			if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $preorder_date, $matches ) ) {
+				$preorder_date = "{$matches[1]}/{$matches[2]}/{$matches[3]}";
+			}
+			$preorder_date_section = "\n預購日期：{$preorder_date}";
 		}
 		
 		// 產生社群連結區塊（如果有社群連結）
