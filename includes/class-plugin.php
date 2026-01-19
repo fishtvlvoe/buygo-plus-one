@@ -106,6 +106,7 @@ class Plugin {
         // 載入其他類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
     }
     
@@ -136,6 +137,9 @@ class Plugin {
         
         // 初始化短連結路由
         ShortLinkRoutes::instance();
+        
+        // 初始化 FluentCart 產品頁面自訂
+        FluentCartProductPage::instance();
         
         // 初始化 API
         new \BuyGoPlus\Api\API();
