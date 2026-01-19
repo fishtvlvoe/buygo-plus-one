@@ -297,6 +297,37 @@ $products_component_template = <<<'HTML'
                 </div>
             </div> <!-- End List View Container -->
 
+            <!-- Pagination -->
+            <div v-if="currentView === 'list' && totalProducts > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
+                <div class="text-sm text-slate-700 text-center sm:text-left">
+                    顯示 <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * perPage, totalProducts) }}</span> 筆，共 <span class="font-medium">{{ totalProducts }}</span> 筆
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Per Page Selector -->
+                    <select v-model.number="perPage" @change="currentPage = 1; loadProducts()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                        <option :value="5">5 / 頁</option>
+                        <option :value="10">10 / 頁</option>
+                        <option :value="20">20 / 頁</option>
+                        <option :value="30">30 / 頁</option>
+                        <option :value="-1">全部</option>
+                    </select>
+                    <!-- Page Navigation -->
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button @click="currentPage > 1 && (currentPage--, loadProducts())" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="sr-only">上一頁</span>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <button v-for="p in Math.min(5, Math.ceil(totalProducts / perPage))" :key="p" @click="currentPage = p; loadProducts()" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                            {{ p }}
+                        </button>
+                        <button @click="currentPage < Math.ceil(totalProducts / perPage) && (currentPage++, loadProducts())" :disabled="currentPage >= Math.ceil(totalProducts / perPage)" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="sr-only">下一頁</span>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
             <!-- Subpages -->
             <!-- Subpages (No Transition for Debugging) -->
             <div v-show="currentView !== 'list'" class="absolute inset-0 bg-background z-30 overflow-y-auto w-full">
@@ -377,18 +408,54 @@ $products_component_template = <<<'HTML'
                                 <div class="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"><div class="text-xs md:text-sm text-slate-500 mb-1">可分配</div><div class="text-xl md:text-2xl font-bold text-primary">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</div></div>
                             </div>
                             <!-- Orders Table implementation for Allocation... (Simplified for this step, using existing logic) -->
-                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-4">
-                                <div v-if="allocationLoading" class="text-center py-8">Loading...</div>
-                                <table v-else class="min-w-full text-sm">
-                                    <thead><tr><th class="text-left">訂單</th><th class="text-right">需求</th><th class="text-right">已分配</th></tr></thead>
-                                    <tbody>
-                                        <tr v-for="order in productOrders" :key="order.order_id">
-                                            <td class="py-2">#{{ order.order_id }} {{ order.customer }}</td>
-                                            <td class="text-right">{{ order.required }}</td>
-                                            <td class="text-right"><input type="number" v-model.number="order.allocated" class="w-20 border rounded px-1 text-right"></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <!-- Orders Table implementation for Allocation -->
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-300px)]">
+                                <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                                    <h3 class="font-bold text-slate-800">待分配訂單</h3>
+                                    <button @click="handleSubPageSave" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow hover:bg-primary-dark transition">儲存分配</button>
+                                </div>
+                                <div class="flex-1 overflow-auto p-0">
+                                    <div v-if="allocationLoading" class="flex flex-col items-center justify-center h-full py-12">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                        <p class="text-slate-500">載入訂單中...</p>
+                                    </div>
+                                    <div v-else-if="productOrders.length === 0" class="flex flex-col items-center justify-center h-full py-12 text-slate-500">
+                                        <svg class="w-12 h-12 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                        <p>目前沒有此商品的待處理訂單</p>
+                                    </div>
+                                    <table v-else class="min-w-full divide-y divide-slate-200">
+                                        <thead class="bg-white sticky top-0 z-10 shadow-sm">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">訂單編號 / 客戶</th>
+                                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">下單時間</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">需求量</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-32">分配數量</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">缺額</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100 bg-white">
+                                            <tr v-for="order in productOrders" :key="order.order_id" class="hover:bg-slate-50 transition">
+                                                <td class="px-4 py-3">
+                                                    <div class="font-medium text-slate-900">#{{ order.order_id }}</div>
+                                                    <div class="text-xs text-slate-500">{{ order.customer || '訪客' }}</div>
+                                                </td>
+                                                <td class="px-4 py-3 text-center text-sm text-slate-500">{{ order.date || '-' }}</td>
+                                                <td class="px-4 py-3 text-right font-medium text-slate-900">{{ order.required || order.quantity }}</td>
+                                                <td class="px-4 py-3 text-right">
+                                                    <input type="number" v-model.number="order.allocated" min="0" :max="order.required || order.quantity" class="w-20 px-2 py-1 border border-slate-300 rounded text-right focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                                </td>
+                                                <td class="px-4 py-3 text-right font-medium text-red-600">{{ (order.required || order.quantity) - (order.allocated || 0) }}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-slate-50 font-bold text-slate-700">
+                                            <tr>
+                                                <td colspan="3" class="px-4 py-3 text-right">總計分配：</td>
+                                                <td class="px-4 py-3 text-right text-primary">{{ productOrders.reduce((acc, o) => acc + (o.allocated||0), 0) }}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -558,7 +625,11 @@ const ProductsPageComponent = {
                 if (data.success) {
                     products.value = data.data;
                     totalProducts.value = data.total || data.data.length;
-                    checkUrlParams(); // Check URL after loading
+                    checkUrlParams(); 
+                } else {
+                    products.value = [];
+                    totalProducts.value = 0;
+                    showToast(data.message || '載入失敗', 'error');
                 }
             } catch (e) {
                 error.value = e.message;
@@ -592,7 +663,7 @@ const ProductsPageComponent = {
             try {
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${editingProduct.value.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
                     body: JSON.stringify(editingProduct.value)
                 });
                 const data = await res.json();
@@ -600,7 +671,10 @@ const ProductsPageComponent = {
                     const idx = products.value.findIndex(p => p.id === editingProduct.value.id);
                     if (idx !== -1) products.value[idx] = { ...products.value[idx], ...editingProduct.value };
                     showToast('儲存成功');
+                    loadProducts(); // Refresh list
                     navigateTo('list');
+                } else {
+                    showToast(data.message || '儲存失敗', 'error');
                 }
             } catch(e) { showToast('儲存失敗', 'error'); }
         };
@@ -630,13 +704,23 @@ const ProductsPageComponent = {
         };
 
         const deleteProduct = async (id) => {
-            console.log('Attempting delete', id); // Debug
             if(!window.confirm('確定要刪除此商品嗎？此動作無法復原。')) return;
             try {
-                 // Mock delete for now or implement API
-                 products.value = products.value.filter(p => p.id !== id);
-                 showToast('已刪除');
-            } catch(e) { console.error(e); }
+                const res = await fetch('/wp-json/buygo-plus-one/v1/products/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                    body: JSON.stringify({ ids: [id] })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                     products.value = products.value.filter(p => p.id !== id);
+                     showToast('已刪除');
+                     loadProducts();
+                } else {
+                     showToast(data.message || '刪除失敗', 'error');
+                }
+            } catch(e) { console.error(e); showToast('刪除錯誤', 'error'); }
         };
         
         const batchDelete = async () => {
@@ -661,17 +745,31 @@ const ProductsPageComponent = {
         const openImageModal = (p) => { currentProduct.value = p; currentImage.value = p.image; showImageModal.value = true; };
         const closeImageModal = () => { showImageModal.value = false; currentProduct.value = null; };
         const triggerFileInput = () => fileInput.value.click();
-        const handleFileSelect = (e) => {
+        const handleFileSelect = async (e) => {
             const file = e.target.files[0];
             if(file) {
-                 // Implement upload logic
-                 // Mock for UI:
-                 const reader = new FileReader();
-                 reader.onload = (e) => {
-                     currentImage.value = e.target.result;
-                     // In real app, upload formData here
-                 };
-                 reader.readAsDataURL(file);
+                 const formData = new FormData();
+                 formData.append('image', file);
+                 try {
+                     const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`, {
+                         method: 'POST',
+                         headers: { 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                         body: formData
+                     });
+                     const data = await res.json();
+                     if (data.success) {
+                         currentImage.value = data.data.image_url;
+                         currentProduct.value.image = data.data.image_url;
+                         if (editingProduct.value && editingProduct.value.id === currentProduct.value.id) {
+                             editingProduct.value.image = data.data.image_url;
+                         }
+                         showToast('圖片上傳成功');
+                     } else {
+                         imageError.value = data.message;
+                     }
+                 } catch(err) {
+                    imageError.value = '上傳錯誤';
+                 }
             }
         };
 

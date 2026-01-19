@@ -41,6 +41,10 @@ register_activation_hook(__FILE__, function () {
     // 建立 Webhook Logger 資料表
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
     \BuyGoPlus\Services\WebhookLogger::create_table();
+    
+    // 建立 LINE Service 資料表（如果不存在）
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+    \BuyGoPlus\Services\LineService::create_table();
 });
 
 /**

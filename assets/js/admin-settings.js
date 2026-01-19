@@ -1,5 +1,5 @@
 jQuery(document).ready(function($) {
-    // 測試 LINE 連線
+    // 測試 LINE 連線（使用 REST API，因為更可靠）
     $('#test-line-connection').on('click', function() {
         const button = $(this);
         const originalText = button.text();
@@ -7,32 +7,43 @@ jQuery(document).ready(function($) {
         button.prop('disabled', true).text('測試中...');
         $('#line-test-result').html('<p>測試中...</p>');
         
+        const token = $('#line_channel_access_token').val();
+        
+        // 使用 REST API 端點
         $.ajax({
-            url: buygoSettings.ajaxUrl,
+            url: buygoSettings.restUrl + '/settings/line/test-connection',
             type: 'POST',
-            data: {
-                action: 'buygo_test_line_connection',
-                nonce: buygoSettings.nonce,
-                token: $('#line_channel_access_token').val()
+            headers: {
+                'X-WP-Nonce': buygoSettings.nonce,
+                'Content-Type': 'application/json'
             },
+            data: JSON.stringify({
+                token: token
+            }),
             success: function(response) {
                 if (response.success) {
                     $('#line-test-result').html(
                         '<div class="notice notice-success"><p>連線成功！' + 
-                        (response.data.data ? 'Bot 名稱：' + response.data.data.displayName : '') + 
+                        (response.data && response.data.data && response.data.data.displayName ? 'Bot 名稱：' + response.data.data.displayName : '') + 
                         '</p></div>'
                     );
                 } else {
                     $('#line-test-result').html(
                         '<div class="notice notice-error"><p>連線失敗：' + 
-                        (response.data.message || '未知錯誤') + 
+                        (response.message || '未知錯誤') + 
                         '</p></div>'
                     );
                 }
             },
-            error: function() {
+            error: function(xhr) {
+                let errorMsg = '連線失敗：請檢查網路連線';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = '連線失敗：' + xhr.responseJSON.message;
+                } else if (xhr.status === 404) {
+                    errorMsg = '連線失敗：API 端點不存在，請檢查外掛是否正確載入';
+                }
                 $('#line-test-result').html(
-                    '<div class="notice notice-error"><p>連線失敗：請檢查網路連線</p></div>'
+                    '<div class="notice notice-error"><p>' + errorMsg + '</p></div>'
                 );
             },
             complete: function() {

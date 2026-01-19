@@ -109,6 +109,13 @@ class Settings_API {
             'callback' => [$this, 'get_template_order'],
             'permission_callback' => [$this, 'check_permission'],
         ]);
+        
+        // POST /settings/line/test-connection - 測試 LINE 連線
+        register_rest_route($this->namespace, '/settings/line/test-connection', [
+            'methods' => 'POST',
+            'callback' => [$this, 'test_line_connection'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
     }
     
     /**
@@ -441,6 +448,35 @@ class Settings_API {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '移除角色失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 測試 LINE 連線
+     */
+    public function test_line_connection($request) {
+        try {
+            $body = json_decode($request->get_body(), true);
+            $token = isset($body['token']) ? sanitize_text_field($body['token']) : null;
+            
+            $result = SettingsService::test_line_connection($token);
+            
+            if ($result['success']) {
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'data' => $result
+                ], 200);
+            } else {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result['message'] ?? '連線失敗'
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '測試連線失敗：' . $e->getMessage()
             ], 500);
         }
     }

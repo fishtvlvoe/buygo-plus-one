@@ -31,6 +31,9 @@ class Database
         
         // 建立流程監控表
         self::create_workflow_logs_table($wpdb, $charset_collate);
+        
+        // 建立 LINE 綁定表（遷移自舊外掛，讓新外掛可以獨立執行）
+        self::create_line_bindings_table($wpdb, $charset_collate);
     }
     
     /**
@@ -120,6 +123,37 @@ class Database
             KEY workflow_name (workflow_name),
             KEY status (status),
             KEY created_at (created_at)
+        ) {$charset_collate};";
+        
+        dbDelta($sql);
+    }
+    
+    /**
+     * 建立 LINE 綁定表
+     */
+    private static function create_line_bindings_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_line_bindings';
+        
+        // 檢查表格是否已存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+        
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            line_uid varchar(100) NOT NULL,
+            binding_code varchar(20),
+            binding_code_expires_at datetime,
+            status varchar(20) DEFAULT 'unbound',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            completed_at datetime,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id),
+            KEY line_uid (line_uid),
+            KEY binding_code (binding_code)
         ) {$charset_collate};";
         
         dbDelta($sql);

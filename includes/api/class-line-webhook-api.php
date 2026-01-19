@@ -59,7 +59,28 @@ class Line_Webhook_API {
 			return rest_ensure_response( array( 'success' => false ) );
 		}
 
-		return $this->webhook_handler->process_events( $data['events'] );
+		// Immediately respond to LINE to prevent timeout
+		// LINE requires response within 30 seconds
+		$response = rest_ensure_response( array( 'success' => true ) );
+		
+		// Send response immediately if fastcgi_finish_request is available
+		// This allows us to respond to LINE quickly while processing continues in background
+		if ( function_exists( 'fastcgi_finish_request' ) ) {
+			// Send response to LINE immediately (before processing events)
+			fastcgi_finish_request();
+			
+			// Process events in background (after response sent to LINE)
+			// This prevents timeout even if processing takes longer than 30 seconds
+			// Note: $return_response = false because response already sent
+			$this->webhook_handler->process_events( $data['events'], false );
+		} else {
+			// Fallback for non-FastCGI environments
+			// Process events normally (may timeout on slow servers)
+			// Note: This is less ideal but necessary for compatibility
+			$response = $this->webhook_handler->process_events( $data['events'], true );
+		}
+
+		return $response;
 	}
 
 	/**

@@ -547,6 +547,97 @@ class SettingsService
     }
     
     /**
+     * 取得設定值（通用方法，支援兩種儲存方式）
+     * 
+     * 支援兩種 option key：
+     * 1. buygo_core_settings（舊外掛使用，陣列格式，支援加密）
+     * 2. buygo_line_*（新外掛使用，獨立 option）
+     * 
+     * @param string $key 設定 key（例如 'line_channel_access_token'）
+     * @param mixed $default 預設值
+     * @return mixed
+     */
+    public static function get(string $key, $default = null)
+    {
+        // 方式 1：從 buygo_core_settings 讀取（舊外掛格式）
+        $core_settings = get_option('buygo_core_settings', []);
+        if (is_array($core_settings) && isset($core_settings[$key])) {
+            $value = $core_settings[$key];
+            
+            // 如果是加密欄位，嘗試解密
+            if (self::is_encrypted_field($key) && !empty($value)) {
+                $decrypted = self::decrypt($value);
+                // 如果解密成功且結果不同，使用解密後的值
+                if ($decrypted !== $value && !empty($decrypted)) {
+                    return $decrypted;
+                }
+            }
+            
+            return $value;
+        }
+        
+        // 方式 2：從獨立 option 讀取（新外掛格式）
+        $option_key_map = [
+            'line_channel_access_token' => 'buygo_line_channel_access_token',
+            'line_channel_secret' => 'buygo_line_channel_secret',
+            'line_liff_id' => 'buygo_line_liff_id',
+        ];
+        
+        if (isset($option_key_map[$key])) {
+            $value = get_option($option_key_map[$key], $default);
+            
+            // 如果是加密欄位，嘗試解密
+            if (self::is_encrypted_field($key) && !empty($value)) {
+                $decrypted = self::decrypt($value);
+                // 如果解密成功且結果不同，使用解密後的值
+                if ($decrypted !== $value && !empty($decrypted)) {
+                    return $decrypted;
+                }
+            }
+            
+            return $value;
+        }
+        
+        return $default;
+    }
+    
+    /**
+     * 設定值（通用方法，支援兩種儲存方式）
+     * 
+     * @param string $key 設定 key
+     * @param mixed $value 設定值
+     * @return bool
+     */
+    public static function set(string $key, $value): bool
+    {
+        // 如果是加密欄位，先加密
+        if (self::is_encrypted_field($key) && !empty($value)) {
+            $value = self::encrypt($value);
+        }
+        
+        // 方式 1：寫入 buygo_core_settings（舊外掛格式）
+        $core_settings = get_option('buygo_core_settings', []);
+        if (!is_array($core_settings)) {
+            $core_settings = [];
+        }
+        $core_settings[$key] = $value;
+        update_option('buygo_core_settings', $core_settings);
+        
+        // 方式 2：同時寫入獨立 option（新外掛格式，保持向後相容）
+        $option_key_map = [
+            'line_channel_access_token' => 'buygo_line_channel_access_token',
+            'line_channel_secret' => 'buygo_line_channel_secret',
+            'line_liff_id' => 'buygo_line_liff_id',
+        ];
+        
+        if (isset($option_key_map[$key])) {
+            update_option($option_key_map[$key], $value);
+        }
+        
+        return true;
+    }
+    
+    /**
      * 測試 LINE 連線
      * 
      * @param string|null $custom_token 測試用的 Token（選填，若未填則使用已儲存的設定）

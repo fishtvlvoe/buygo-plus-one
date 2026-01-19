@@ -79,6 +79,10 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
         
+        // 載入核心服務（遷移自舊外掛，讓新外掛可以獨立執行）
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
+        
         // 載入 Webhook 相關 Services（階段 2：LINE 後端功能）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-image-uploader.php';
