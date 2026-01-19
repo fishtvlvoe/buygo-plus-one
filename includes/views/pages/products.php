@@ -60,7 +60,7 @@ $products_component_template = <<<'HTML'
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
             <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
                 <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                    <h1 class="text-base md:text-lg lg:text-xl font-bold text-slate-900 leading-tight truncate">商品管理</h1>
+                    <h1 class="text-base md:text-lg lg:text-xl font-bold text-slate-900 leading-tight truncate">商品</h1>
                     <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
                         首頁 <span class="text-slate-300">/</span> 商品列表
                         <span v-if="currentView !== 'list'" class="text-slate-300">/</span>
