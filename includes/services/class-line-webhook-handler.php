@@ -329,7 +329,14 @@ class LineWebhookHandler {
 			'line_uid' => $line_uid,
 		), null, $line_uid );
 
-		// Check if it's a command
+		// 優先檢查關鍵字回應系統（後台設定的關鍵字模板）
+		$keyword_reply = $this->handle_keyword_reply( $text, $line_uid );
+		if ( $keyword_reply !== null ) {
+			$this->send_reply( $reply_token, $keyword_reply, $line_uid );
+			return;
+		}
+
+		// 如果關鍵字回應系統沒有匹配，再檢查是否為命令
 		if ( $this->product_data_parser->is_command( $text ) ) {
 			$this->handle_command( $text, $reply_token );
 			return;
@@ -481,6 +488,54 @@ class LineWebhookHandler {
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_published', $template_args );
 		$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '商品建立成功';
 		$this->send_reply( $reply_token, $message, $line_uid );
+	}
+
+	/**
+	 * 處理關鍵字回應（從後台設定的關鍵字模板讀取）
+	 *
+	 * @param string $text 使用者輸入的文字
+	 * @param string $line_uid LINE UID
+	 * @return string|null 如果有匹配的關鍵字，返回回應訊息；否則返回 null
+	 */
+	private function handle_keyword_reply( $text, $line_uid ) {
+		$keywords = get_option( 'buygo_line_keywords', [] );
+		
+		if ( empty( $keywords ) || ! is_array( $keywords ) ) {
+			return null;
+		}
+
+		$text_trimmed = trim( $text );
+
+		// 檢查是否匹配關鍵字或別名
+		foreach ( $keywords as $keyword_data ) {
+			$keyword = trim( $keyword_data['keyword'] ?? '' );
+			$aliases = $keyword_data['aliases'] ?? [];
+			$message = $keyword_data['message'] ?? '';
+
+			// 檢查是否匹配主關鍵字
+			if ( $text_trimmed === $keyword ) {
+				$this->logger->log( 'keyword_matched', array(
+					'keyword' => $keyword,
+					'line_uid' => $line_uid,
+				), null, $line_uid );
+				return $message;
+			}
+
+			// 檢查是否匹配別名
+			foreach ( $aliases as $alias ) {
+				$alias_trimmed = trim( $alias );
+				if ( $text_trimmed === $alias_trimmed ) {
+					$this->logger->log( 'keyword_alias_matched', array(
+						'keyword' => $keyword,
+						'alias' => $alias,
+						'line_uid' => $line_uid,
+					), null, $line_uid );
+					return $message;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**
