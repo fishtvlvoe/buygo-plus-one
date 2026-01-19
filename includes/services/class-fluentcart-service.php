@@ -79,10 +79,17 @@ class FluentCartService {
 				'product_id' => $product_id,
 			), $product_data['user_id'] ?? null, null );
 
-			// 建立 FluentCart 商品詳情
+		// 建立 FluentCart 商品詳情
+		// 檢查是否為多樣式產品
+		if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
+			// 多樣式產品：建立多個變體
+			$this->create_variable_product( $product_id, $product_data );
+		} else {
+			// 單一商品：建立單一變體
 			$this->create_product_details( $product_id, $product_data );
+		}
 
-			// 設定圖片
+		// 設定圖片
 			$image_attachment_id = $product_data['image_attachment_id'] ?? ( ! empty( $image_ids ) ? $image_ids[0] : null );
 			if ( ! empty( $image_attachment_id ) ) {
 				set_post_thumbnail( $product_id, intval( $image_attachment_id ) );
@@ -174,6 +181,140 @@ class FluentCartService {
 
 		// 建立預設變體（FluentCart 需要）
 		$this->create_default_variation( $product_id, $data );
+	}
+
+	/**
+	 * 建立多樣式商品（含多個變體）
+	 *
+	 * @param int $product_id Product ID
+	 * @param array $data Product data (包含 variations 陣列)
+	 */
+	private function create_variable_product( $product_id, $data ) {
+		global $wpdb;
+
+		// 計算最小和最大價格
+		$prices = array();
+		$total_quantity = 0;
+		
+		foreach ( $data['variations'] as $variation ) {
+			$variation_price = intval( $variation['price'] ?? $data['price'] ?? 0 );
+			$variation_quantity = intval( $variation['quantity'] ?? 0 );
+			$prices[] = $variation_price;
+			$total_quantity += $variation_quantity;
+		}
+
+		$min_price = ! empty( $prices ) ? min( $prices ) * 100 : 0; // 轉換為分
+		$max_price = ! empty( $prices ) ? max( $prices ) * 100 : 0; // 轉換為分
+
+		// 建立商品詳情
+		$detail_data = array(
+			'post_id' => $product_id,
+			'fulfillment_type' => 'physical',
+			'min_price' => $min_price,
+			'max_price' => $max_price,
+			'default_variation_id' => null,
+			'default_media' => null,
+			'manage_stock' => 1,
+			'stock_availability' => $total_quantity > 0 ? 'in-stock' : 'out-of-stock',
+			'variation_type' => 'variable', // 多樣式商品
+			'manage_downloadable' => 0,
+			'other_info' => wp_json_encode( array(
+				'stock_quantity' => $total_quantity,
+			) ),
+			'created_at' => current_time( 'mysql' ),
+			'updated_at' => current_time( 'mysql' ),
+		);
+
+		$table_name = $wpdb->prefix . 'fct_product_details';
+
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
+			$this->logger->log( 'error', array(
+				'message' => 'fct_product_details table not found',
+			), null, null );
+			return;
+		}
+
+		$wpdb->insert( $table_name, $detail_data );
+
+		$this->logger->log( 'variable_product_details_created', array(
+			'product_id' => $product_id,
+			'variations_count' => count( $data['variations'] ),
+		), null, null );
+
+		// 為每個變體建立 variation
+		$default_variation_id = null;
+		foreach ( $data['variations'] as $index => $variation ) {
+			$variation_id = $this->create_variation( $product_id, $variation, $data );
+			if ( $variation_id && $index === 0 ) {
+				$default_variation_id = $variation_id;
+			}
+		}
+
+		// 更新預設變體 ID
+		if ( $default_variation_id ) {
+			$wpdb->update(
+				$table_name,
+				array( 'default_variation_id' => $default_variation_id ),
+				array( 'post_id' => $product_id )
+			);
+		}
+	}
+
+	/**
+	 * 建立單一變體
+	 *
+	 * @param int $product_id Product ID
+	 * @param array $variation Variation data
+	 * @param array $product_data Full product data
+	 * @return int|null Variation ID
+	 */
+	private function create_variation( $product_id, $variation, $product_data ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'fct_product_variations';
+
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
+			$this->logger->log( 'error', array(
+				'message' => 'fct_product_variations table not found',
+			), null, null );
+			return null;
+		}
+
+		$price = intval( $variation['price'] ?? $product_data['price'] ?? 0 ) * 100; // 轉換為分
+		$quantity = intval( $variation['quantity'] ?? 0 );
+		$variation_title = $variation['variation_title'] ?? $variation['name'] ?? $product_data['name'] ?? '';
+
+		$variation_data = array(
+			'post_id' => $product_id,
+			'variation_title' => sanitize_text_field( $variation_title ),
+			'variation_identifier' => 'BUYGO-' . $product_id . '-' . ( $variation['code'] ?? '' ),
+			'manage_stock' => 1,
+			'stock_status' => $quantity > 0 ? 'in-stock' : 'out-of-stock',
+			'total_stock' => $quantity,
+			'available' => $quantity,
+			'item_status' => 'active',
+			'item_price' => $price,
+			'created_at' => current_time( 'mysql' ),
+			'updated_at' => current_time( 'mysql' ),
+		);
+
+		$result = $wpdb->insert( $table_name, $variation_data );
+
+		if ( $result === false ) {
+			$this->logger->log( 'error', array(
+				'message' => 'Variation insert failed',
+				'error' => $wpdb->last_error,
+			), null, null );
+			return null;
+		}
+
+		$this->logger->log( 'variation_created', array(
+			'product_id' => $product_id,
+			'variation_id' => $wpdb->insert_id,
+			'variation_title' => $variation_title,
+		), null, null );
+
+		return $wpdb->insert_id;
 	}
 
 	/**

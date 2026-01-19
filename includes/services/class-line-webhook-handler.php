@@ -436,21 +436,54 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		// Get product URL
-		$product_url = get_permalink( $post_id );
+		// 使用短連結格式：/item/{上架順序}
+		// 上架順序 = 該使用者上架的商品總數（包含已刪除的）
+		$listing_order = $this->get_listing_order( $user->ID, $post_id );
+		$product_url = home_url( "/item/{$listing_order}" );
 
 		// Prepare template arguments
 		$currency_symbol = $product_data['currency'] === 'TWD' ? 'NT$' : ( $product_data['currency'] ?? 'NT$' );
 		
 		// 產生原價區塊（如果有原價）
+		// 支援多樣式產品的多個原價（用斜線分隔顯示）
 		$original_price_section = '';
 		if ( ! empty( $product_data['original_price'] ) || ! empty( $product_data['compare_price'] ) ) {
-			$original_price = $product_data['original_price'] ?? $product_data['compare_price'] ?? 0;
-			$original_price_section = "\n原價：{$currency_symbol} " . number_format( $original_price );
+			// 如果是多樣式產品，顯示所有原價
+			if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
+				$original_prices = array();
+				foreach ( $product_data['variations'] as $variation ) {
+					if ( ! empty( $variation['compare_price'] ) ) {
+						$original_prices[] = number_format( $variation['compare_price'] );
+					}
+				}
+				if ( ! empty( $original_prices ) ) {
+					$original_price_section = "\n原價：{$currency_symbol} " . implode( '/', $original_prices );
+				}
+			} else {
+				// 單一商品的原價
+				$original_price = $product_data['original_price'] ?? $product_data['compare_price'] ?? 0;
+				if ( $original_price > 0 ) {
+					$original_price_section = "\n原價：{$currency_symbol} " . number_format( $original_price );
+				}
+			}
 		}
 		
 		// 產生分類區塊（如果有分類）
+		// 支援多樣式產品的多個分類（用斜線分隔顯示）
 		$category_section = '';
-		if ( ! empty( $product_data['category'] ) ) {
+		if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
+			// 多樣式產品：顯示所有分類
+			$categories = array();
+			foreach ( $product_data['variations'] as $variation ) {
+				if ( ! empty( $variation['name'] ) ) {
+					$categories[] = $variation['name'];
+				}
+			}
+			if ( ! empty( $categories ) ) {
+				$category_section = "\n分類：" . implode( '/', $categories );
+			}
+		} elseif ( ! empty( $product_data['category'] ) ) {
+			// 單一商品的分類
 			$category_section = "\n分類：{$product_data['category']}";
 		}
 		
@@ -472,10 +505,32 @@ class LineWebhookHandler {
 			$community_url_section = "\n\n社群討論：\n{$product_data['community_url']}";
 		}
 		
+		// 處理多樣式產品的價格和數量顯示
+		$price_display = '';
+		$quantity_display = '';
+		
+		if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
+			// 多樣式產品：顯示所有價格和數量（用斜線分隔）
+			$prices = array();
+			$quantities = array();
+			foreach ( $product_data['variations'] as $variation ) {
+				$variation_price = $variation['price'] ?? $product_data['price'] ?? 0;
+				$variation_quantity = $variation['quantity'] ?? 0;
+				$prices[] = number_format( $variation_price );
+				$quantities[] = $variation_quantity;
+			}
+			$price_display = implode( '/', $prices );
+			$quantity_display = implode( '/', $quantities ) . ' 個';
+		} else {
+			// 單一商品
+			$price_display = number_format( $product_data['price'] ?? 0 );
+			$quantity_display = ( $product_data['quantity'] ?? 0 ) . ' 個';
+		}
+
 		$template_args = array(
 			'product_name' => $product_data['name'] ?? '',
-			'price' => number_format( $product_data['price'] ?? 0 ),
-			'quantity' => $product_data['quantity'] ?? 0,
+			'price' => $price_display,
+			'quantity' => $quantity_display,
 			'product_url' => $product_url,
 			'currency_symbol' => $currency_symbol,
 			'original_price_section' => $original_price_section,
@@ -488,6 +543,42 @@ class LineWebhookHandler {
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_published', $template_args );
 		$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '商品建立成功';
 		$this->send_reply( $reply_token, $message, $line_uid );
+	}
+
+	/**
+	 * 取得商品上架順序（用於生成短連結）
+	 * 參考舊外掛邏輯：依據該使用者上架商品的順序生成短連結
+	 *
+	 * @param int $user_id WordPress 使用者 ID
+	 * @param int $product_id 商品 ID
+	 * @return int 上架順序（從 1 開始）
+	 */
+	private function get_listing_order( $user_id, $product_id ) {
+		global $wpdb;
+
+		// 查詢該使用者上架的所有商品（使用 post_date 排序，因為是上架順序）
+		// 計算在這個商品之前（包含自己）有多少個商品
+		$product = get_post( $product_id );
+		if ( ! $product ) {
+			return $product_id; // Fallback
+		}
+
+		$count = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->posts} 
+			WHERE post_author = %d 
+			AND post_type = 'fluent-products' 
+			AND (
+				post_date < %s 
+				OR (post_date = %s AND ID <= %d)
+			)",
+			$user_id,
+			$product->post_date,
+			$product->post_date,
+			$product_id
+		) );
+
+		// 如果查詢失敗，使用商品 ID 作為順序（fallback）
+		return $count > 0 ? intval( $count ) : $product_id;
 	}
 
 	/**
