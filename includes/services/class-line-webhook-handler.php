@@ -432,11 +432,50 @@ class LineWebhookHandler {
 		$product_url = get_permalink( $post_id );
 
 		// Prepare template arguments
+		$currency_symbol = $product_data['currency'] === 'TWD' ? 'NT$' : ( $product_data['currency'] ?? 'NT$' );
+		
+		// 產生原價區塊（如果有原價）
+		$original_price_section = '';
+		if ( ! empty( $product_data['original_price'] ) || ! empty( $product_data['compare_price'] ) ) {
+			$original_price = $product_data['original_price'] ?? $product_data['compare_price'] ?? 0;
+			$original_price_section = "\n原價：{$currency_symbol} " . number_format( $original_price );
+		}
+		
+		// 產生分類區塊（如果有分類）
+		$category_section = '';
+		if ( ! empty( $product_data['category'] ) ) {
+			$category_section = "\n分類：{$product_data['category']}";
+		}
+		
+		// 產生到貨日期區塊（如果有到貨日期）
+		$arrival_date_section = '';
+		if ( ! empty( $product_data['arrival_date'] ) ) {
+			$arrival_date_section = "\n到貨日期：{$product_data['arrival_date']}";
+		}
+		
+		// 產生預購日期區塊（如果有預購日期）
+		$preorder_date_section = '';
+		if ( ! empty( $product_data['preorder_date'] ) ) {
+			$preorder_date_section = "\n預購日期：{$product_data['preorder_date']}";
+		}
+		
+		// 產生社群連結區塊（如果有社群連結）
+		$community_url_section = '';
+		if ( ! empty( $product_data['community_url'] ) ) {
+			$community_url_section = "\n\n社群討論：\n{$product_data['community_url']}";
+		}
+		
 		$template_args = array(
 			'product_name' => $product_data['name'] ?? '',
-			'price' => $product_data['price'] ?? 0,
+			'price' => number_format( $product_data['price'] ?? 0 ),
 			'quantity' => $product_data['quantity'] ?? 0,
 			'product_url' => $product_url,
+			'currency_symbol' => $currency_symbol,
+			'original_price_section' => $original_price_section,
+			'category_section' => $category_section,
+			'arrival_date_section' => $arrival_date_section,
+			'preorder_date_section' => $preorder_date_section,
+			'community_url_section' => $community_url_section,
 		);
 
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_published', $template_args );
