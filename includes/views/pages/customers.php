@@ -88,7 +88,7 @@ $customers_component_template = <<<'HTML'
         <!-- 客戶列表 -->
         <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block buygo-card overflow-hidden" style="padding: 0;">
+            <div class="hidden md:block buygo-card overflow-hidden p-0">
                 <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
