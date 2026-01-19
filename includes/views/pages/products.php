@@ -679,12 +679,64 @@ const ProductsPageComponent = {
         };
 
         // SubPage Save Handler
-        const handleSubPageSave = () => {
-            if (currentView.value === 'edit') saveProduct();
-            if (currentView.value === 'allocation') {
-                // Implement allocation save
-                showToast('分配已儲存');
-                navigateTo('list');
+        const handleSubPageSave = async () => {
+            if (currentView.value === 'edit') {
+                saveProduct();
+            } else if (currentView.value === 'allocation') {
+                await handleAllocation();
+            }
+        };
+        
+        // 處理分配功能
+        const handleAllocation = async () => {
+            if (!selectedProduct.value) {
+                showToast('請選擇商品', 'error');
+                return;
+            }
+            
+            // 準備分配資料
+            const allocationData = productOrders.value
+                .filter(order => order.allocated && order.allocated > 0)
+                .map(order => ({
+                    order_id: order.order_id,
+                    order_item_id: order.order_item_id || order.id,
+                    quantity: order.allocated
+                }));
+            
+            if (allocationData.length === 0) {
+                showToast('請至少分配一個訂單', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/wp-json/buygo-plus-one/v1/products/allocate', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
+                    },
+                    body: JSON.stringify({
+                        product_id: selectedProduct.value.id,
+                        allocations: allocationData
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('分配成功', 'success');
+                    // 重新載入商品列表
+                    await loadProducts();
+                    // 重新載入訂單資料
+                    await loadProductOrders(selectedProduct.value.id);
+                    // 返回列表
+                    navigateTo('list');
+                } else {
+                    showToast(data.message || '分配失敗', 'error');
+                }
+            } catch (e) {
+                console.error('分配失敗:', e);
+                showToast('分配失敗：' + e.message, 'error');
             }
         };
         
