@@ -118,7 +118,7 @@ $customers_component_template = <<<'HTML'
                                 <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
                                 <td class="px-4 py-4">
                                     <div class="flex items-center gap-3 min-w-0">
-                                        <img :src="getGravatarUrl(customer.email)" :alt="customer.full_name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200">
+                                        <img :src="customer.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="customer.full_name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
                                         <div class="min-w-0">
                                             <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
                                                 {{ customer.full_name || '-' }}
@@ -674,15 +674,6 @@ const CustomersPageComponent = {
             return `${month}/${day}`;
         };
 
-        // 取得 Gravatar 頭像 URL
-        const getGravatarUrl = (email) => {
-            if (!email) return 'https://www.gravatar.com/avatar/?d=mp&s=40';
-            // 使用 MD5 hash (簡化版,實際應使用 crypto)
-            const hash = email.toLowerCase().trim();
-            // 使用 Gravatar 預設圖片 (mp = mystery person)
-            return `https://www.gravatar.com/avatar/${btoa(hash)}?d=mp&s=40`;
-        };
-
         // 儲存備註
         const saveNote = async () => {
             if (!selectedCustomer.value) return;
@@ -905,7 +896,6 @@ const CustomersPageComponent = {
             formatPrice,
             formatDate,
             formatShortDate,
-            getGravatarUrl,
             activeTab,
             filteredOrders,
             customerNote,

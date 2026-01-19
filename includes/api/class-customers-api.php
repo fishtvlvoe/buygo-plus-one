@@ -155,7 +155,22 @@ class Customers_API {
                 error_log('BuyGo Customers API Error: ' . $wpdb->last_error);
                 $customers = [];
             }
-            
+
+            // 為每個客戶添加頭像 URL（從 FluentCart 的 LINE 登入儲存）
+            if (is_array($customers)) {
+                foreach ($customers as &$customer) {
+                    if (!empty($customer['user_id'])) {
+                        // 優先使用 FluentCart 儲存的客戶照片（來自 LINE 登入）
+                        $avatar_url = get_user_meta($customer['user_id'], 'fc_customer_photo_url', true);
+                        $customer['avatar'] = !empty($avatar_url) ? esc_url($avatar_url) : get_avatar_url($customer['email'], ['size' => 100]);
+                    } else {
+                        // 沒有 user_id 則使用 Gravatar
+                        $customer['avatar'] = get_avatar_url($customer['email'], ['size' => 100]);
+                    }
+                }
+                unset($customer); // 解除參考
+            }
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $customers,
