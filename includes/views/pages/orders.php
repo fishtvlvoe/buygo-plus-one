@@ -711,7 +711,19 @@ const OrdersPageComponent = {
                 const result = await response.json();
                 
                 if (result.success && result.data) {
-                    orders.value = result.data;
+                    // 為每個訂單加上 has_allocation 標記和確保 items 存在
+                    orders.value = result.data.map(order => ({
+                        ...order,
+                        // 檢查是否有分配的商品
+                        has_allocation: order.items && Array.isArray(order.items) && order.items.some(item => {
+                            const allocatedQty = item.allocated_quantity != null 
+                                ? parseInt(item.allocated_quantity, 10) 
+                                : 0;
+                            return !isNaN(allocatedQty) && isFinite(allocatedQty) && allocatedQty > 0;
+                        }),
+                        // 確保 items 陣列存在
+                        items: order.items || []
+                    }));
                     totalOrders.value = result.total || result.data.length;
                 } else {
                     throw new Error(result.message || '載入訂單失敗');
@@ -895,7 +907,17 @@ const OrdersPageComponent = {
         
         // 檢查訂單是否有可出貨的商品
         const hasAllocatedItems = (order) => {
-            if (!order || !order.items || !Array.isArray(order.items) || order.items.length === 0) {
+            if (!order) {
+                return false;
+            }
+            
+            // 優先檢查 has_allocation 欄位（如果 API 有提供）
+            if (order.has_allocation === true) {
+                return true;
+            }
+            
+            // 如果沒有 has_allocation 欄位，檢查 items 中的 allocated_quantity
+            if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 return false;
             }
             

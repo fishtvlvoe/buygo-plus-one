@@ -725,7 +725,27 @@ const ProductsPageComponent = {
                 
                 if (data.success) {
                     showToast('分配成功', 'success');
-                    // 重新載入商品列表
+                    
+                    // 計算總分配數量
+                    const totalAllocated = allocationData.reduce((sum, alloc) => sum + alloc.quantity, 0);
+                    
+                    // 立即更新本地商品資料的 allocated 欄位
+                    const productIndex = products.value.findIndex(p => p.id === selectedProduct.value.id);
+                    if (productIndex !== -1) {
+                        products.value[productIndex].allocated = (products.value[productIndex].allocated || 0) + totalAllocated;
+                    }
+                    
+                    // 如果正在編輯的商品是同一個，也更新編輯中的商品
+                    if (editingProduct.value && editingProduct.value.id === selectedProduct.value.id) {
+                        editingProduct.value.allocated = (editingProduct.value.allocated || 0) + totalAllocated;
+                    }
+                    
+                    // 更新 selectedProduct
+                    if (selectedProduct.value) {
+                        selectedProduct.value.allocated = (selectedProduct.value.allocated || 0) + totalAllocated;
+                    }
+                    
+                    // 重新載入商品列表（確保資料同步）
                     await loadProducts();
                     // 重新載入訂單資料
                     await loadProductOrders(selectedProduct.value.id);
