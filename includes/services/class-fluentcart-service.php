@@ -112,6 +112,21 @@ class FluentCartService {
 				update_post_meta( $product_id, '_mygo_preorder_date', $product_data['preorder_date'] );
 			}
 
+			// 設定 FluentCart 產品為「單次付款」而非「訂閱商品」
+			// 確保客戶可以選擇數量並加入購物車
+			// 注意：FluentCart 的付款期限可能儲存在 other_info 或其他 meta 中
+			// 先嘗試設定常見的 meta key
+			update_post_meta( $product_id, '_fct_payment_term', 'one_time' );
+			update_post_meta( $product_id, '_fct_billing_interval', '' );
+			update_post_meta( $product_id, '_fct_billing_period', '' );
+			update_post_meta( $product_id, '_fct_subscription_enabled', 'no' );
+			
+			// 記錄日誌以便除錯
+			$this->logger->log( 'product_payment_term_set', array(
+				'product_id' => $product_id,
+				'payment_term' => 'one_time',
+			), $product_data['user_id'] ?? null, null );
+
 			do_action( 'buygo/product/created', $product_id, $product_data, $line_uid );
 
 			$this->logger->log( 'product_created_success', array(
