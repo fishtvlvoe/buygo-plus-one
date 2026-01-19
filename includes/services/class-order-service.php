@@ -642,16 +642,13 @@ class OrderService
                 // 取得 product_id（優先使用 post_id，其次使用 product_id）
                 $product_id = (int)($item['post_id'] ?? $item['product_id'] ?? 0);
 
-                // 取得商品圖片 URL
+                // 取得商品圖片 URL (使用 WordPress 標準方式)
                 $product_image = '';
                 if ($product_id > 0) {
-                    global $wpdb;
-                    $product_image = $wpdb->get_var($wpdb->prepare(
-                        "SELECT meta_value FROM {$wpdb->postmeta}
-                         WHERE post_id = %d AND meta_key = '_image_url'
-                         LIMIT 1",
-                        $product_id
-                    )) ?: '';
+                    $thumbnail_id = get_post_thumbnail_id($product_id);
+                    if ($thumbnail_id) {
+                        $product_image = wp_get_attachment_image_url($thumbnail_id, 'medium') ?: '';
+                    }
                 }
 
                 $items[] = [
