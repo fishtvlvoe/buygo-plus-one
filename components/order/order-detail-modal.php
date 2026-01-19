@@ -1,7 +1,177 @@
 <?php
 // 訂單詳情 Modal 元件
 $order_detail_modal_template = <<<'HTML'
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="$emit('close')">
+<!-- Subpage 模式（無 Modal 外框） -->
+<div v-if="isSubpage" class="space-y-6">
+    <!-- Loading -->
+    <div v-if="loading" class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p class="mt-2 text-slate-500">載入中...</p>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="text-center py-8">
+        <p class="text-red-600">{{ error }}</p>
+    </div>
+
+    <!-- Order Details -->
+    <div v-else-if="orderData">
+        <!-- 客戶資訊卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-primary pl-3">客戶資訊</h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">訂單編號</span>
+                    <span class="font-bold text-slate-900 md:block">{{ orderData.invoice_no || ('訂單 #' + orderData.id) }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">訂單狀態</span>
+                    <span :class="getStatusClass(orderData.status)" class="px-2 py-1 text-xs font-medium rounded-full">
+                        {{ getStatusText(orderData.status) }}
+                    </span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">客戶姓名</span>
+                    <span class="font-bold text-slate-900 md:block">{{ orderData.customer_name || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">客戶 Email</span>
+                    <span class="text-slate-900 md:block break-all">{{ orderData.customer_email || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">總金額</span>
+                    <span class="font-bold text-slate-900 md:block">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">下單日期</span>
+                    <span class="text-slate-900 md:block">{{ formatDate(orderData.created_at) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品明細卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-primary pl-3">訂單明細</h4>
+
+            <!-- 商品列表 -->
+            <div class="space-y-4">
+                <div v-for="item in (orderData.items || [])" :key="item.id" class="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                    <div class="flex gap-4">
+                        <!-- 商品圖片 -->
+                        <div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                            <img v-if="item.image || item.product_image" :src="item.image || item.product_image" :alt="item.product_name" class="h-full w-full object-cover">
+                            <div v-else class="h-full w-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- 商品資訊 -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{{ item.product_name }}</h3>
+
+                            <!-- 價格資訊 -->
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2 text-sm text-slate-600">
+                                    <span>{{ item.quantity }} × {{ formatPrice(item.price, orderData.currency) }}</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-900">{{ formatPrice(item.total, orderData.currency) }}</span>
+                            </div>
+
+                            <!-- 數量統計 -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span v-if="(item.shipped_quantity || 0) > 0" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                    已出貨: {{ item.shipped_quantity }}
+                                </span>
+                                <span v-if="(item.allocated_quantity || 0) > 0" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                                    已分配: {{ item.allocated_quantity }}
+                                </span>
+                                <span v-if="(item.pending_quantity || 0) > 0" class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
+                                    待出貨: {{ item.pending_quantity }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 總計區塊 -->
+            <div class="mt-6 p-4 bg-slate-100 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-slate-600">商品總數：</span>
+                    <span class="text-sm font-bold text-slate-900">{{ calculateTotalItems }}</span>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                    <span class="text-base font-bold text-slate-900">訂單總金額：</span>
+                    <span class="text-xl font-bold text-primary">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 狀態操作卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-primary pl-3">狀態操作</h4>
+
+            <div class="flex flex-col md:flex-row md:items-end gap-4">
+                <!-- 訂單狀態 -->
+                <div class="flex-1">
+                    <label class="block text-xs text-slate-500 font-medium mb-1.5">訂單狀態</label>
+                    <select
+                        v-model="localOrderStatus"
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary py-2.5 px-3 bg-white"
+                        :disabled="updatingStatus"
+                    >
+                        <option value="pending">待處理</option>
+                        <option value="on-hold">保留</option>
+                        <option value="processing">處理中</option>
+                        <option value="completed">已完成</option>
+                        <option value="cancelled">已取消</option>
+                        <option value="refunded">已退款</option>
+                    </select>
+                </div>
+
+                <!-- 運送狀態 -->
+                <div class="flex-1">
+                    <label class="block text-xs text-slate-500 font-medium mb-1.5">運送狀態</label>
+                    <select
+                        v-model="localShippingStatus"
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary py-2.5 px-3 bg-white"
+                        :disabled="updatingStatus"
+                    >
+                        <option value="pending">未出貨</option>
+                        <option value="preparing">備貨中</option>
+                        <option value="processing">處理中</option>
+                        <option value="shipped">已出貨</option>
+                        <option value="completed">交易完成</option>
+                        <option value="out_of_stock">斷貨</option>
+                    </select>
+                </div>
+
+                <!-- 更新按鈕 -->
+                <div class="flex-shrink-0">
+                    <button
+                        @click="updateStatus"
+                        :disabled="updatingStatus || !hasStatusChanges"
+                        :class="hasStatusChanges ? 'bg-primary hover:bg-blue-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                        class="w-full md:w-auto px-6 py-2.5 rounded-lg text-sm font-medium transition-all"
+                    >
+                        {{ updatingStatus ? '更新中...' : '更新狀態' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- 錯誤訊息 -->
+            <div v-if="statusError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                {{ statusError }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 模式（原有的樣式，保持不變） -->
+<div v-else class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="$emit('close')">
     <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
         <div class="p-6 border-b border-slate-200 flex-shrink-0">
@@ -243,6 +413,10 @@ const OrderDetailModal = {
         orderId: {
             type: [Number, String],
             default: null
+        },
+        isSubpage: {
+            type: Boolean,
+            default: false
         }
     },
     emits: ['close'],
@@ -491,7 +665,8 @@ const OrderDetailModal = {
             updatingStatus,
             statusError,
             hasStatusChanges,
-            updateStatus
+            updateStatus,
+            isSubpage: computed(() => props.isSubpage)
         };
     }
 };
