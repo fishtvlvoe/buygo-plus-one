@@ -120,7 +120,7 @@ $customers_component_template = <<<'HTML'
             </div>
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4">
+            <div class="md:hidden space-y-4 md:space-y-6">
                 <div v-for="customer in customers" :key="customer.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
                     <div class="mb-3">
                         <div class="text-base font-bold text-slate-900 mb-1">{{ customer.full_name || '-' }}</div>
