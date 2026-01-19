@@ -97,7 +97,6 @@ $customers_component_template = <<<'HTML'
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">訂單數</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">總消費</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">最後下單日期</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                         </tr>
                     </thead>
@@ -108,9 +107,8 @@ $customers_component_template = <<<'HTML'
                             <td class="px-4 py-4 text-sm text-slate-600">{{ customer.email || '-' }}</td>
                             <td class="px-4 py-4 text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
                             <td class="px-4 py-4 text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-600">{{ formatDate(customer.last_order_date) }}</td>
                             <td class="px-4 py-4">
-                                <button @click="navigateTo('detail', customer.id)" class="text-primary hover:text-primary-dark text-sm font-medium">
+                                <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition">
                                     查看詳情
                                 </button>
                             </td>
