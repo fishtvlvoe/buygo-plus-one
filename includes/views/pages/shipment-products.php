@@ -31,14 +31,15 @@ $shipment_products_component_template = <<<'HTML'
      <!-- 出貨單列表容器 -->
     <div class="p-6">
         <!-- 載入狀態 -->
-        <div v-if="loading" class="text-center py-8">
-            <p class="text-slate-600">載入中...</p>
+        <div v-if="loading" class="buygo-loading">
+            <div class="buygo-loading-spinner"></div>
+            <p>載入中...</p>
         </div>
-        
+
         <!-- 錯誤訊息 -->
         <div v-else-if="error" class="text-center py-8">
             <p class="text-red-600">{{ error }}</p>
-            <button @click="loadShipments" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">重新載入</button>
+            <button @click="loadShipments" class="buygo-btn buygo-btn-primary mt-4">重新載入</button>
         </div>
         
         <!-- 出貨單列表 -->
@@ -48,17 +49,16 @@ $shipment_products_component_template = <<<'HTML'
                 <div class="text-sm text-blue-700 font-medium">
                     已選擇 {{ selectedShipments.length }} 個出貨單
                 </div>
-                <button 
+                <button
                     @click="mergeShipments"
                     :disabled="!canMerge"
-                    :class="canMerge ? 'bg-orange-500 hover:bg-orange-600' : 'bg-slate-300 cursor-not-allowed'"
-                    class="px-4 py-2 text-white rounded-lg font-medium transition shadow-sm">
+                    :class="canMerge ? 'buygo-btn buygo-btn-accent' : 'buygo-btn bg-slate-300 cursor-not-allowed text-white'">
                     合併出貨單
                 </button>
             </div>
             
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="hidden md:block buygo-card overflow-hidden">
                 <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -133,9 +133,8 @@ $shipment_products_component_template = <<<'HTML'
                             </td>
                             <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ shipment.total_quantity || 0 }}</td>
                             <td class="px-4 py-3">
-                                <span 
-                                    :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'"
-                                    class="px-2 py-1 text-xs font-medium rounded-full"
+                                <span
+                                    :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'buygo-badge buygo-badge-warning' : 'buygo-badge buygo-badge-success'"
                                 >
                                     {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
                                 </span>
@@ -144,17 +143,17 @@ $shipment_products_component_template = <<<'HTML'
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
                                     <!-- 查看按鈕 -->
-                                    <button 
-                                        @click="viewDetail(shipment.id)" 
-                                        class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                                    <button
+                                        @click="viewDetail(shipment.id)"
+                                        class="buygo-btn buygo-btn-primary buygo-btn-sm">
                                         查看
                                     </button>
-                                    
+
                                     <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
-                                    <button 
+                                    <button
                                         v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
                                         @click="moveToShipment(shipment.id)"
-                                        class="text-orange-600 hover:text-orange-900 text-sm font-medium">
+                                        class="buygo-btn buygo-btn-accent buygo-btn-sm">
                                         待出貨
                                     </button>
                                 </div>
@@ -234,9 +233,8 @@ $shipment_products_component_template = <<<'HTML'
                         </div>
                         <div>
                             <span class="text-slate-500">狀態：</span>
-                            <span 
-                                :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'"
-                                class="px-2 py-0.5 text-xs font-medium rounded-full"
+                            <span
+                                :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'buygo-badge buygo-badge-warning' : 'buygo-badge buygo-badge-success'"
                             >
                                 {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
                             </span>
@@ -249,17 +247,17 @@ $shipment_products_component_template = <<<'HTML'
                     
                     <div class="flex gap-2">
                         <!-- 查看按鈕 -->
-                        <button 
-                            @click="viewDetail(shipment.id)" 
-                            class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                        <button
+                            @click="viewDetail(shipment.id)"
+                            class="flex-1 buygo-btn buygo-btn-primary">
                             查看
                         </button>
-                        
+
                         <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
-                        <button 
+                        <button
                             v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
                             @click="moveToShipment(shipment.id)"
-                            class="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
+                            class="flex-1 buygo-btn buygo-btn-accent">
                             待出貨
                         </button>
                     </div>
@@ -365,14 +363,14 @@ $shipment_products_component_template = <<<'HTML'
                 <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ confirmModal.title || '確認操作' }}</h3>
                 <p class="text-slate-600 mb-6">{{ confirmModal.message }}</p>
                 <div class="flex justify-end gap-3">
-                    <button 
+                    <button
                         @click="cancelConfirm"
-                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition">
+                        class="buygo-btn buygo-btn-secondary">
                         取消
                     </button>
-                    <button 
+                    <button
                         @click="executeConfirm"
-                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition">
+                        class="buygo-btn buygo-btn-accent">
                         確認
                     </button>
                 </div>

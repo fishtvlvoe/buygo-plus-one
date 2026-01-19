@@ -547,41 +547,39 @@ const ProductsPageComponent = {
         const totalProducts = ref(0);
         const currentCurrency = ref('TWD'); // Mock Currency State
 
-        // --- Router Logic ---
+        // --- Router Logic (使用 BuyGoRouter 核心模組) ---
         const checkUrlParams = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const view = urlParams.get('view');
-            const id = urlParams.get('id');
-            if (view && id) {
+            const params = window.BuyGoRouter.checkUrlParams();
+            const { view, id } = params;
+
+            if (view && view !== 'list' && id) {
                 const product = products.value.find(p => p.id == id);
                 if (product) {
-                    navigateTo(view, product, false);
+                    handleNavigation(view, product, false);
                 } else if (!loading.value) {
-                     // Product not found in current list, might need fetch single, but for now fallback to list
-                     navigateTo('list', null, false);
+                    handleNavigation('list', null, false);
                 }
             } else {
-                 currentView.value = 'list';
+                currentView.value = 'list';
             }
         };
 
         const navigateTo = async (view, product = null, updateUrl = true) => {
+            await handleNavigation(view, product, updateUrl);
+        };
+
+        const handleNavigation = async (view, product = null, updateUrl = true) => {
             currentView.value = view;
-            
+
             if (product) {
                 currentId.value = product.id;
                 selectedProduct.value = product;
-                
+
                 if (updateUrl) {
-                    const url = new URL(window.location);
-                    url.searchParams.set('view', view);
-                    url.searchParams.set('id', product.id);
-                    window.history.pushState({}, '', url);
+                    window.BuyGoRouter.navigateTo(view, product.id);
                 }
-                
-                console.log('Navigating to', view, 'Product:', product); // Debug Log
-                
-                 // Load Data for Sub-pages
+
+                // Load Data for Sub-pages
                 if (view === 'edit') {
                     editingProduct.value = { ...product };
                 } else if (view === 'allocation') {
@@ -593,10 +591,7 @@ const ProductsPageComponent = {
                 currentId.value = null;
                 selectedProduct.value = null;
                 if (updateUrl) {
-                    const url = new URL(window.location);
-                    url.searchParams.delete('view');
-                    url.searchParams.delete('id');
-                    window.history.pushState({}, '', url);
+                    window.BuyGoRouter.goToList();
                 }
             }
         };
@@ -784,7 +779,8 @@ const ProductsPageComponent = {
         
         onMounted(() => {
             loadProducts();
-            window.addEventListener('popstate', checkUrlParams);
+            // 使用 BuyGoRouter 核心模組的 popstate 監聽
+            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
         });
 
         return {

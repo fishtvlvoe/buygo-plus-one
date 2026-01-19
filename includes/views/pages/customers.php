@@ -46,20 +46,21 @@ $customers_component_template = <<<'HTML'
     <!-- 客戶列表容器 -->
     <div class="p-6">
         <!-- 載入狀態 -->
-        <div v-if="loading" class="text-center py-8">
-            <p class="text-slate-600">載入中...</p>
+        <div v-if="loading" class="buygo-loading">
+            <div class="buygo-loading-spinner"></div>
+            <p>載入中...</p>
         </div>
-        
+
         <!-- 錯誤訊息 -->
-        <div v-else-if="error" class="text-center py-8">
-            <p class="text-red-600">{{ error }}</p>
-            <button @click="loadCustomers" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">重新載入</button>
+        <div v-else-if="error" class="buygo-empty-state">
+            <p class="text-red-600 mb-4">{{ error }}</p>
+            <button @click="loadCustomers" class="buygo-btn buygo-btn-primary">重新載入</button>
         </div>
         
         <!-- 客戶列表 -->
         <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="hidden md:block buygo-card overflow-hidden" style="padding: 0;">
                 <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -107,7 +108,7 @@ $customers_component_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
-                    <button @click="openCustomerDetail(customer.id)" class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">
+                    <button @click="openCustomerDetail(customer.id)" class="w-full buygo-btn buygo-btn-primary">
                         查看詳情
                     </button>
                 </div>

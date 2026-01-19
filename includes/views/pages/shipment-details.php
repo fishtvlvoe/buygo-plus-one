@@ -70,19 +70,19 @@ $shipment_details_template = <<<'HTML'
             
             <div class="flex items-center gap-3">
                 <!-- 待出貨分頁：批次標記已出貨 -->
-                <button 
+                <button
                     v-if="activeTab === 'pending'"
                     @click="batchMarkShipped"
-                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition"
+                    class="buygo-btn buygo-btn-accent"
                 >
                     批次標記已出貨（{{ selectedShipments.length }}）
                 </button>
-                
+
                 <!-- 已出貨分頁：批次移至存檔 -->
-                <button 
+                <button
                     v-if="activeTab === 'shipped'"
                     @click="batchArchive"
-                    class="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 font-medium transition"
+                    class="buygo-btn buygo-btn-secondary"
                 >
                     批次移至存檔（{{ selectedShipments.length }}）
                 </button>
@@ -107,9 +107,9 @@ $shipment_details_template = <<<'HTML'
 
     <!-- 出貨單列表 -->
     <div class="p-6">
-        <div v-if="loading" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <p class="mt-2 text-slate-600">載入中...</p>
+        <div v-if="loading" class="buygo-loading">
+            <div class="buygo-loading-spinner"></div>
+            <p>載入中...</p>
         </div>
         
         <div v-else-if="shipments.length === 0" class="text-center py-12">
@@ -119,7 +119,7 @@ $shipment_details_template = <<<'HTML'
             <p class="mt-2 text-slate-600">目前沒有出貨單</p>
         </div>
         
-        <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div v-else class="buygo-card overflow-hidden">
             <table class="min-w-full divide-y divide-slate-200">
                 <thead class="bg-slate-50">
                     <tr>
@@ -163,27 +163,27 @@ $shipment_details_template = <<<'HTML'
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end gap-2">
                                 <!-- 待出貨分頁：已出貨按鈕 -->
-                                <button 
+                                <button
                                     v-if="activeTab === 'pending'"
                                     @click="markShipped(shipment.id)"
-                                    class="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-medium transition"
+                                    class="buygo-btn buygo-btn-accent buygo-btn-sm"
                                 >
                                     已出貨
                                 </button>
-                                
+
                                 <!-- 已出貨分頁：存檔按鈕 -->
-                                <button 
+                                <button
                                     v-if="activeTab === 'shipped'"
                                     @click="archiveShipment(shipment.id)"
-                                    class="px-3 py-1.5 bg-slate-500 text-white rounded-lg hover:bg-slate-600 text-sm font-medium transition"
+                                    class="buygo-btn buygo-btn-secondary buygo-btn-sm"
                                 >
                                     存檔
                                 </button>
-                                
+
                                 <!-- 所有分頁：查看按鈕 -->
-                                <button 
+                                <button
                                     @click="viewDetail(shipment.id)"
-                                    class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium transition"
+                                    class="buygo-btn buygo-btn-primary buygo-btn-sm"
                                 >
                                     查看
                                 </button>
@@ -230,15 +230,15 @@ $shipment_details_template = <<<'HTML'
                 <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ confirmModal.title }}</h3>
                 <p class="text-slate-600 mb-6">{{ confirmModal.message }}</p>
                 <div class="flex justify-end gap-3">
-                    <button 
+                    <button
                         @click="closeConfirmModal"
-                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition"
+                        class="buygo-btn buygo-btn-secondary"
                     >
                         取消
                     </button>
-                    <button 
+                    <button
                         @click="handleConfirm"
-                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition"
+                        class="buygo-btn buygo-btn-accent"
                     >
                         確認
                     </button>
@@ -363,15 +363,15 @@ $shipment_details_template = <<<'HTML'
             
             <!-- Modal 底部 -->
             <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
-                <button 
+                <button
                     @click="closeDetailModal"
-                    class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition"
+                    class="buygo-btn buygo-btn-secondary"
                 >
                     關閉
                 </button>
-                <button 
+                <button
                     @click="printDetail"
-                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition"
+                    class="buygo-btn buygo-btn-primary"
                 >
                     列印收據
                 </button>

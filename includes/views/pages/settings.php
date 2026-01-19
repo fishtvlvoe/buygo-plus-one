@@ -11,7 +11,7 @@ $settings_component_template = <<<'HTML'
     <!-- 設定內容容器 -->
     <div class="p-6">
         <!-- 模板設定 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+        <div class="buygo-card p-6 mb-6">
             <h2 class="text-lg font-semibold text-slate-900 mb-4">📝 LINE 通知模板管理</h2>
             <p class="text-sm text-slate-600 mb-6">選擇分類和類型，然後編輯對應的訊息模板</p>
             
@@ -236,14 +236,15 @@ $settings_component_template = <<<'HTML'
                             <div class="mb-4 flex justify-end">
                                 <button
                                     @click="showAddKeywordModal = true"
-                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                                    class="buygo-btn buygo-btn-primary">
                                     + 新增關鍵字
                                 </button>
                             </div>
-                            
+
                             <!-- 載入狀態 -->
-                            <div v-if="loadingKeywords" class="text-center py-8">
-                                <p class="text-slate-600">載入中...</p>
+                            <div v-if="loadingKeywords" class="buygo-loading">
+                                <div class="buygo-loading-spinner"></div>
+                                <p>載入中...</p>
                             </div>
                             
                             <!-- 關鍵字列表 -->
@@ -359,12 +360,12 @@ $settings_component_template = <<<'HTML'
                                                     <div class="flex justify-end gap-2">
                                                         <button
                                                             @click="cancelKeywordEdit(keyword.id)"
-                                                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                                                            class="buygo-btn buygo-btn-secondary">
                                                             取消
                                                         </button>
                                                         <button
                                                             @click="saveKeyword(keyword.id)"
-                                                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                                                            class="buygo-btn buygo-btn-primary">
                                                             儲存
                                                         </button>
                                                     </div>
@@ -541,10 +542,10 @@ $settings_component_template = <<<'HTML'
             </div>
             
             <div class="mt-6 flex justify-end">
-                <button 
+                <button
                     @click="saveTemplates"
                     :disabled="savingTemplates"
-                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="buygo-btn buygo-btn-primary">
                     <span v-if="savingTemplates">儲存中...</span>
                     <span v-else>儲存</span>
                 </button>
@@ -552,20 +553,21 @@ $settings_component_template = <<<'HTML'
         </div>
 
         <!-- 小幫手管理 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div class="buygo-card">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-slate-900">👥 小幫手管理</h2>
-                <button 
+                <button
                     v-if="isAdmin"
                     @click="showAddHelperModal = true"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                    class="buygo-btn buygo-btn-primary">
                     新增小幫手
                 </button>
             </div>
-            
+
             <!-- 載入狀態 -->
-            <div v-if="loadingHelpers" class="text-center py-8">
-                <p class="text-slate-600">載入中...</p>
+            <div v-if="loadingHelpers" class="buygo-loading">
+                <div class="buygo-loading-spinner"></div>
+                <p>載入中...</p>
             </div>
             
             <!-- 小幫手列表 -->
@@ -693,12 +695,12 @@ $settings_component_template = <<<'HTML'
             <div class="p-6 border-t border-slate-200 flex justify-end gap-2">
                 <button
                     @click="showAddKeywordModal = false"
-                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                    class="buygo-btn buygo-btn-secondary">
                     取消
                 </button>
                 <button
                     @click="addKeywordFromModal"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                    class="buygo-btn buygo-btn-primary">
                     新增
                 </button>
             </div>
@@ -758,7 +760,7 @@ $settings_component_template = <<<'HTML'
                 <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200 mt-4">
                     <button
                         @click="closeAddHelperModal"
-                        class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">
+                        class="buygo-btn buygo-btn-secondary">
                         取消
                     </button>
                 </div>

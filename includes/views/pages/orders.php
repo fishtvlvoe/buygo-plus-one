@@ -6,6 +6,8 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.ph
 
 $orders_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
+    <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
+    <div v-show="currentView === 'list'">
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
         <div class="mb-6">
@@ -337,10 +339,37 @@ $orders_component_template = <<<'HTML'
             </footer>
         </div>
     </div>
-    
-    <!-- OrderDetailModal 元件 -->
-    <order-detail-modal 
-        v-if="showModal"
+    </div><!-- 結束列表視圖容器 -->
+
+    <!-- 訂單詳情子頁面（URL 驅動） -->
+    <transition name="buygo-slide">
+        <div v-if="currentView === 'detail'" class="buygo-subpage">
+            <div class="buygo-subpage-header">
+                <div class="flex items-center gap-4">
+                    <button @click="navigateTo('list')" class="buygo-back-btn">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span>返回列表</span>
+                    </button>
+                    <div class="buygo-divider-vertical"></div>
+                    <h2 class="text-xl font-bold text-slate-900">訂單詳情 #{{ currentOrderId }}</h2>
+                </div>
+            </div>
+            <div class="buygo-subpage-content">
+                <order-detail-modal
+                    v-if="currentOrderId"
+                    :order-id="currentOrderId"
+                    :is-subpage="true"
+                    @close="navigateTo('list')"
+                />
+            </div>
+        </div>
+    </transition>
+
+    <!-- OrderDetailModal 元件（向下相容：Modal 模式） -->
+    <order-detail-modal
+        v-if="showModal && currentView === 'list'"
         :order-id="selectedOrderId"
         @close="closeOrderDetail"
     />
@@ -505,18 +534,24 @@ const OrdersPageComponent = {
     },
     template: `<?php echo $orders_component_template; ?>`,
     setup() {
-        const { ref, computed, onMounted } = Vue;
-        
+        const { ref, computed, onMounted, watch } = Vue;
+
+        // ============================================
+        // 路由狀態（使用 BuyGoRouter 核心模組）
+        // ============================================
+        const currentView = ref('list');  // 'list' | 'detail'
+        const currentOrderId = ref(null);
+
         // 狀態變數
         const orders = ref([]);
         const loading = ref(false);
         const error = ref(null);
-        
+
         // 分頁狀態
         const currentPage = ref(1);
         const perPage = ref(5);
         const totalOrders = ref(0);
-        
+
         // 搜尋篩選狀態
         const searchFilter = ref(null);
         const searchFilterName = ref('');
@@ -525,15 +560,15 @@ const OrdersPageComponent = {
         // 幣別設定
         const systemCurrency = ref('JPY');
 
-        // Modal 狀態
+        // Modal 狀態（保留向下相容）
         const showOrderModal = ref(false);
         const currentOrder = ref(null);
         const shipping = ref(false);
-        
-        // OrderDetailModal 狀態
+
+        // OrderDetailModal 狀態（已改為 URL 驅動）
         const showModal = ref(false);
         const selectedOrderId = ref(null);
-        
+
         // 批次操作
         const selectedItems = ref([]);
         
@@ -775,16 +810,54 @@ const OrdersPageComponent = {
             currentOrder.value = null;
         };
         
-        // 開啟 OrderDetailModal
-        const openOrderDetail = (orderId) => {
-            selectedOrderId.value = orderId;
-            showModal.value = true;
+        // ============================================
+        // 路由邏輯（使用 BuyGoRouter 核心模組）
+        // ============================================
+        const checkUrlParams = () => {
+            const params = window.BuyGoRouter.checkUrlParams();
+            const { view, id } = params;
+
+            if (view === 'detail' && id) {
+                currentView.value = 'detail';
+                currentOrderId.value = id;
+                selectedOrderId.value = id;
+                loadOrderDetail(id);
+            } else {
+                currentView.value = 'list';
+                currentOrderId.value = null;
+            }
         };
-        
-        // 關閉 OrderDetailModal
+
+        const navigateTo = (view, orderId = null, updateUrl = true) => {
+            currentView.value = view;
+
+            if (orderId) {
+                currentOrderId.value = orderId;
+                selectedOrderId.value = orderId;
+                loadOrderDetail(orderId);
+
+                if (updateUrl) {
+                    window.BuyGoRouter.navigateTo(view, orderId);
+                }
+            } else {
+                currentOrderId.value = null;
+                selectedOrderId.value = null;
+                currentOrder.value = null;
+
+                if (updateUrl) {
+                    window.BuyGoRouter.goToList();
+                }
+            }
+        };
+
+        // 開啟訂單詳情（URL 驅動）
+        const openOrderDetail = (orderId) => {
+            navigateTo('detail', orderId);
+        };
+
+        // 關閉訂單詳情（返回列表）
         const closeOrderDetail = () => {
-            showModal.value = false;
-            selectedOrderId.value = null;
+            navigateTo('list');
         };
         
         // 檢查訂單是否有可出貨的商品
@@ -1022,6 +1095,10 @@ const OrdersPageComponent = {
         // 初始化
         onMounted(() => {
             loadOrders();
+            // 檢查 URL 參數（使用 BuyGoRouter 核心模組）
+            checkUrlParams();
+            // 監聽瀏覽器上一頁/下一頁
+            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
         });
         
         return {
@@ -1069,6 +1146,11 @@ const OrdersPageComponent = {
             toggleOrderExpand,
             isOrderExpanded,
             expandedOrders,
+            // 路由狀態（URL 驅動）
+            currentView,
+            currentOrderId,
+            navigateTo,
+            checkUrlParams,
             // 確認 Modal 和 Toast
             confirmModal,
             showConfirm,
