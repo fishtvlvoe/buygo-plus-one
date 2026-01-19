@@ -72,49 +72,64 @@ $customers_component_template = <<<'HTML'
     </header>
 
     <!-- 客戶列表容器 -->
-    <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6">
+    <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+
+        <!-- Smart Search Box -->
+        <smart-search-box
+            api-endpoint="/wp-json/buygo-plus-one/v1/customers"
+            :search-fields="['full_name', 'phone', 'email']"
+        ></smart-search-box>
+
         <!-- 載入狀態 -->
-        <div v-if="loading" class="buygo-loading">
-            <div class="buygo-loading-spinner"></div>
-            <p>載入中...</p>
+        <div v-if="loading" class="text-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p class="mt-2 text-slate-500">載入中...</p>
         </div>
 
-        <!-- 錯誤訊息 -->
-        <div v-else-if="error" class="buygo-empty-state">
-            <p class="text-red-600 mb-4">{{ error }}</p>
-            <button @click="loadCustomers" class="buygo-btn buygo-btn-primary">重新載入</button>
-        </div>
-        
         <!-- 客戶列表 -->
+        <div v-else-if="error" class="text-center py-12">
+            <p class="text-red-600 mb-4">{{ error }}</p>
+            <button @click="loadCustomers" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition">重新載入</button>
+        </div>
+
+        <!-- Content -->
         <div v-else>
             <!-- 桌面版表格 -->
             <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-slate-50/50 border-b border-slate-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">客戶名稱</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">電話</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">訂單數</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">總消費</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-100">
-                        <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-4 text-sm font-medium text-slate-900">{{ customer.full_name || '-' }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-600">{{ customer.phone || '-' }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-600">{{ customer.email || '-' }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
-                            <td class="px-4 py-4 text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
-                            <td class="px-4 py-4">
-                                <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition">
-                                    查看詳情
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50/50">
+                            <tr>
+                                <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">客戶</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">訂單數</th>
+                                <th class="px-2 py-4 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">總消費</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-100">
+                            <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
+                                <td class="px-4 py-4">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
+                                            {{ customer.full_name || '-' }}
+                                        </div>
+                                        <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
+                                    </div>
+                                </td>
+                                <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
+                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
+                                <td class="px-2 py-4 text-center">
+                                    <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition whitespace-nowrap">
+                                        查看詳情
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div> <!-- End desktop table -->
 
             <!-- 手機版卡片 -->
