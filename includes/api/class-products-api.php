@@ -813,15 +813,16 @@ class Products_API {
             
             $total_allocated_count = 0;
             
-            // 支援兩種格式：
-            // 1. 物件格式：{ "124": 1, "116": 1 }（前端目前使用）
-            // 2. 陣列格式：[{ order_id: 124, allocated: 1 }]（未來可能使用）
+            // 支援三種格式：
+            // 1. 物件格式：{ "124": 1, "116": 1 }
+            // 2. 陣列格式：[{ order_id: 124, allocated: 1 }]
+            // 3. 陣列格式：[{ order_id: 124, quantity: 1 }]（前端目前使用）
             foreach ($allocations as $key => $value) {
                 // 判斷格式
                 if (is_array($value)) {
-                    // 陣列格式
+                    // 陣列格式（同時支援 allocated 和 quantity 欄位）
                     $order_id = (int)($value['order_id'] ?? 0);
-                    $allocated_qty = (int)($value['allocated'] ?? 0);
+                    $allocated_qty = (int)($value['allocated'] ?? $value['quantity'] ?? 0);
                 } else {
                     // 物件格式（key 是 order_id，value 是 allocated_qty）
                     $order_id = (int)$key;
