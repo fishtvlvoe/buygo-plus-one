@@ -436,10 +436,18 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		// Get product URL
-		// 使用短連結格式：/item/{上架順序}
-		// 上架順序 = 該使用者上架的商品總數（包含已刪除的）
-		$listing_order = $this->get_listing_order( $user->ID, $post_id );
-		$product_url = home_url( "/item/{$listing_order}" );
+		// 檢查舊外掛是否使用 /item/{post_id} 格式
+		// 如果舊外掛使用 post_id，我們也使用 post_id 以避免衝突
+		// 否則使用上架順序：/item/{上架順序}
+		$old_product_url = get_permalink( $post_id );
+		if ( strpos( $old_product_url, '/item/' ) !== false ) {
+			// 舊外掛已經有 /item/ 路由，使用 get_permalink 保持一致性
+			$product_url = $old_product_url;
+		} else {
+			// 如果沒有 /item/ 路由，使用上架順序生成短連結
+			$listing_order = $this->get_listing_order( $user->ID, $post_id );
+			$product_url = home_url( "/item/{$listing_order}" );
+		}
 
 		// Prepare template arguments
 		$currency_symbol = $product_data['currency'] === 'TWD' ? 'NT$' : ( $product_data['currency'] ?? 'NT$' );
