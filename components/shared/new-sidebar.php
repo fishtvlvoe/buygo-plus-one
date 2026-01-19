@@ -69,11 +69,16 @@ $new_sidebar_template = <<<'HTML'
     </button>
 
     <!-- 手機版選單覆蓋層 -->
-    <div v-if="showMobileMenu" class="fixed inset-0 z-[55] flex md:hidden" @click.self="showMobileMenu = false">
+    <div v-if="showMobileMenu" class="fixed inset-0 z-[70] flex md:hidden" @click.self="showMobileMenu = false">
         <div class="w-64 bg-white h-full shadow-2xl flex flex-col">
             <!-- 標題 -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-slate-100">
-                <a href="/buygo-portal/dashboard" class="font-bold text-primary text-xl">BuyGo+1</a>
+                <a href="/buygo-portal/dashboard" class="font-bold text-primary text-xl flex items-center gap-2">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                    <span>BuyGo+1</span>
+                </a>
                 <button @click="showMobileMenu = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>

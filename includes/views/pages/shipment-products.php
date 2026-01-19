@@ -6,22 +6,8 @@ $shipment_products_component_template = <<<'HTML'
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
         <div class="mb-6">
-            <!-- 桌面版：單行顯示 -->
-            <div class="hidden md:flex items-center justify-between mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 mb-1 font-title">備貨</h1>
-                    <p class="text-sm text-slate-500">選擇訂單並建立出貨單</p>
-                </div>
-             </div>
-
-            <!-- 手機版：兩行式佈局，避開漢堡選單 -->
-            <div class="md:hidden mb-4">
-                <!-- 第一行：Logo（預留漢堡選單空間）-->
-                <div class="flex items-center pl-12">
-                    <h1 class="text-xl font-bold text-slate-900">備貨</h1>
-                </div>
-                <!-- 第二行：完整標題 -->
-                <p class="text-sm text-slate-500 mt-2">選擇訂單並建立出貨單</p>
+            <div class="pl-12 md:pl-0 mb-4">
+                <h1 class="text-xl md:text-2xl font-bold text-slate-900">備貨</h1>
             </div>
 
              <!-- 智慧搜尋框 -->
