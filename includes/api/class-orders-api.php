@@ -111,6 +111,21 @@ class Orders_API {
                 ]
             ]
         ]);
+        
+        // POST /orders/{id}/split - 拆分訂單
+        register_rest_route($this->namespace, '/orders/(?P<id>\d+)/split', [
+            'methods' => 'POST',
+            'callback' => [$this, 'split_order'],
+            'permission_callback' => '__return_true',
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -317,6 +332,259 @@ class Orders_API {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 拆分訂單
+     * POST /wp-json/buygo-plus-one/v1/orders/{id}/split
+     */
+    public function split_order($request) {
+        $order_id = (int)$request->get_param('id');
+        $params = $request->get_json_params();
+        
+        $debugService = new \BuyGoPlus\Services\DebugService();
+        $debugService->log('Orders_API', '開始拆分訂單', [
+            'order_id' => $order_id,
+            'params' => $params
+        ]);
+        
+        try {
+            global $wpdb;
+            $table_orders = $wpdb->prefix . 'fct_orders';
+            $table_items = $wpdb->prefix . 'fct_order_items';
+            
+            // 檢查訂單是否存在
+            $order = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_orders} WHERE id = %d",
+                $order_id
+            ));
+            
+            if (!$order) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '找不到此訂單',
+                    'code' => 'ORDER_NOT_FOUND'
+                ], 404);
+            }
+            
+            // 檢查是否有要拆分的商品
+            if (empty($params['split_items']) || !is_array($params['split_items'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '請選擇要拆分的商品',
+                    'code' => 'NO_ITEMS_SELECTED'
+                ], 400);
+            }
+            
+            $split_items = $params['split_items'];
+            
+            // 取得訂單項目
+            $order_items = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table_items} WHERE order_id = %d",
+                $order_id
+            ), ARRAY_A);
+            
+            if (empty($order_items)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '訂單沒有商品',
+                    'code' => 'NO_ORDER_ITEMS'
+                ], 400);
+            }
+            
+            // 驗證拆分數量
+            $order_items_map = [];
+            foreach ($order_items as $item) {
+                $order_items_map[$item['id']] = $item;
+            }
+            
+            $shipment_items = [];
+            foreach ($split_items as $split_item) {
+                $order_item_id = (int)($split_item['order_item_id'] ?? 0);
+                $quantity = (int)($split_item['quantity'] ?? 0);
+                
+                if (!isset($order_items_map[$order_item_id])) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => "訂單項目 #{$order_item_id} 不存在",
+                        'code' => 'ORDER_ITEM_NOT_FOUND'
+                    ], 400);
+                }
+                
+                $order_item = $order_items_map[$order_item_id];
+                
+                // 檢查已拆分數量（從拆分訂單的商品項目中計算）
+                $split_quantity = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(oi.quantity), 0) 
+                     FROM {$wpdb->prefix}fct_order_items oi
+                     INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                     WHERE o.parent_id = %d 
+                     AND oi.post_id = %d 
+                     AND oi.object_id = %d",
+                    $order_id,
+                    (int)($order_item['post_id'] ?? 0),
+                    (int)($order_item['object_id'] ?? 0)
+                ));
+                
+                $available_quantity = $order_item['quantity'] - $split_quantity;
+                
+                if ($quantity > $available_quantity) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => "拆分數量 ({$quantity}) 不能超過可用數量 ({$available_quantity})",
+                        'code' => 'QUANTITY_EXCEEDED'
+                    ], 400);
+                }
+                
+                if ($quantity <= 0) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => '拆分數量必須大於 0',
+                        'code' => 'INVALID_QUANTITY'
+                    ], 400);
+                }
+                
+                $shipment_items[] = [
+                    'order_id' => $order_id,
+                    'order_item_id' => $order_item_id,
+                    'product_id' => (int)($order_item['post_id'] ?? $order_item['product_id'] ?? 0),
+                    'quantity' => $quantity
+                ];
+            }
+            
+            // 計算新訂單的編號後綴
+            $split_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_orders} WHERE parent_id = %d",
+                $order_id
+            ));
+            $split_suffix = (int)$split_count + 1;
+            
+            // 計算新訂單的總金額
+            $new_order_total = 0;
+            foreach ($shipment_items as $item) {
+                $order_item = $order_items_map[$item['order_item_id']];
+                $unit_price = (int)($order_item['unit_price'] ?? $order_item['item_price'] ?? 0);
+                $new_order_total += $unit_price * $item['quantity'];
+            }
+            
+            // 建立新訂單（拆分訂單/子訂單）
+            $new_order_data = [
+                'parent_id' => $order_id,  // 記錄父訂單 ID
+                'customer_id' => (int)$order->customer_id,
+                'status' => 'pending',  // 預設為「待處理」，可以進行分配
+                'payment_status' => $order->payment_status ?? 'pending',
+                'shipping_status' => 'unshipped',
+                'payment_method' => $order->payment_method ?? '',
+                'payment_method_title' => $order->payment_method_title ?? '',
+                'currency' => $order->currency ?? 'TWD',
+                'subtotal' => $new_order_total,
+                'total_amount' => $new_order_total,
+                'tax_total' => 0,
+                'discount_tax' => 0,
+                'manual_discount_total' => 0,
+                'coupon_discount_total' => 0,
+                'shipping_tax' => 0,
+                'shipping_total' => 0,
+                'total_paid' => 0,
+                'total_refund' => 0,
+                'invoice_no' => (!empty($order->invoice_no) ? $order->invoice_no : $order_id) . '-' . $split_suffix,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ];
+            
+            $new_order_inserted = $wpdb->insert(
+                $table_orders,
+                $new_order_data,
+                [
+                    '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d',
+                    '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s'
+                ]
+            );
+            
+            if ($new_order_inserted === false) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '建立拆分訂單失敗：' . $wpdb->last_error,
+                    'code' => 'CREATE_ORDER_FAILED'
+                ], 500);
+            }
+            
+            $new_order_id = $wpdb->insert_id;
+            
+            // 建立新訂單的商品項目
+            $items_inserted = 0;
+            foreach ($shipment_items as $item) {
+                $order_item = $order_items_map[$item['order_item_id']];
+                $unit_price = (int)($order_item['unit_price'] ?? $order_item['item_price'] ?? 0);
+                $line_total = $unit_price * $item['quantity'];
+                $subtotal = $line_total;
+                
+                $new_item_data = [
+                    'order_id' => $new_order_id,
+                    'post_id' => (int)($order_item['post_id'] ?? 0),
+                    'object_id' => (int)($order_item['object_id'] ?? 0),
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unit_price,
+                    'subtotal' => $subtotal,
+                    'line_total' => $line_total,
+                    'post_title' => $order_item['post_title'] ?? $order_item['title'] ?? '',
+                    'title' => $order_item['title'] ?? '',
+                    'fulfillment_type' => $order_item['fulfillment_type'] ?? 'physical',
+                    'payment_type' => $order_item['payment_type'] ?? 'onetime',
+                    'cart_index' => $order_item['cart_index'] ?? 0,
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
+                ];
+                
+                $insert_result = $wpdb->insert(
+                    $table_items,
+                    $new_item_data,
+                    [
+                        '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s'
+                    ]
+                );
+                
+                if ($insert_result !== false) {
+                    $items_inserted++;
+                }
+            }
+            
+            if ($items_inserted === 0 && !empty($shipment_items)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '建立拆分訂單的商品項目失敗',
+                    'code' => 'CREATE_ORDER_ITEMS_FAILED'
+                ], 500);
+            }
+            
+            $debugService->log('Orders_API', '訂單拆分成功', [
+                'order_id' => $order_id,
+                'new_order_id' => $new_order_id,
+                'split_suffix' => $split_suffix
+            ]);
+            
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '訂單拆分成功',
+                'data' => [
+                    'original_order_id' => $order_id,
+                    'new_order_id' => $new_order_id,
+                    'order_number' => (!empty($order->invoice_no) ? $order->invoice_no : $order_id) . '-' . $split_suffix
+                ]
+            ], 201);
+            
+        } catch (\Exception $e) {
+            $debugService->log('Orders_API', '拆分訂單失敗', [
+                'error' => $e->getMessage(),
+                'order_id' => $order_id
+            ], 'error');
+            
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'code' => 'SPLIT_ORDER_FAILED'
             ], 500);
         }
     }

@@ -46,7 +46,7 @@ class OrderService
 
             $query = Order::with(['customer', 'order_items']);
 
-            // 如果有 ID 參數，只取得單一訂單
+            // 如果有 ID 參數，只取得單一訂單（包含子訂單）
             if ($id) {
                 $order = $query->find($id);
                 if (!$order) {
@@ -67,6 +67,9 @@ class OrderService
                     'pages' => 1
                 ];
             }
+
+            // 只顯示虛擬訂單（沒有 parent_id 的訂單），過濾掉子訂單
+            $query->whereNull('parent_id');
 
             // 搜尋：訂單編號或客戶名稱
             if (!empty($search)) {
