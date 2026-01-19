@@ -45,6 +45,10 @@ register_activation_hook(__FILE__, function () {
     // 建立 LINE Service 資料表（如果不存在）
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
     \BuyGoPlus\Services\LineService::create_table();
+    
+    // 載入並初始化短連結路由，然後刷新 rewrite rules
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
+    \BuyGoPlus\ShortLinkRoutes::instance()->flush_rewrite_rules();
 });
 
 /**
