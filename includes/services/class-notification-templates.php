@@ -816,6 +816,17 @@ class NotificationTemplates {
                 'line' => [
                     'message' => '關鍵字回覆訊息'
                 ]
+            ],
+            // 命令模板
+            'system_command_one_template' => [
+                'line' => [
+                    'message' => "📋 複製以下格式發送：\n\n商品名稱\n價格：\n數量："
+                ]
+            ],
+            'system_command_many_template' => [
+                'line' => [
+                    'message' => "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2："
+                ]
             ]
         ];
     }

@@ -491,17 +491,25 @@ class LineWebhookHandler {
 	 */
 	private function handle_command( $command, $reply_token ) {
 		$command = trim( $command );
+		$line_uid = null; // 命令處理時可能沒有 line_uid，先設為 null
 
-		// Handle /one and /many commands
+		// Handle /one command - 從模板系統讀取
 		if ( $command === '/one' ) {
-			$msg = "📋 複製以下格式發送：\n\n商品名稱\n價格：\n數量：";
-			$this->send_reply( $reply_token, $msg );
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_command_one_template', [] );
+			$message = $template && isset( $template['line']['text'] ) 
+				? $template['line']['text'] 
+				: "📋 複製以下格式發送：\n\n商品名稱\n價格：\n數量：";
+			$this->send_reply( $reply_token, $message, $line_uid );
 			return;
 		}
 
+		// Handle /many command - 從模板系統讀取
 		if ( $command === '/many' ) {
-			$msg = "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2：";
-			$this->send_reply( $reply_token, $msg );
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_command_many_template', [] );
+			$message = $template && isset( $template['line']['text'] ) 
+				? $template['line']['text'] 
+				: "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2：";
+			$this->send_reply( $reply_token, $message, $line_uid );
 			return;
 		}
 
