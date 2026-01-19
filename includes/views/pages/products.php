@@ -294,7 +294,8 @@ $products_component_template = <<<'HTML'
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
+            </div> <!-- End List View Container -->
 
             <!-- Subpages -->
             <!-- Subpages (No Transition for Debugging) -->
@@ -348,6 +349,26 @@ $products_component_template = <<<'HTML'
                                     <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
                                 </div>
                             </div>
+
+                            <!-- Image Management Column -->
+                             <div class="space-y-4">
+                                <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">商品圖片</h3>
+                                    <div class="relative group aspect-square bg-slate-50 rounded-lg border-2 border-dashed border-slate-300 hover:border-primary hover:bg-slate-100 transition-colors cursor-pointer overflow-hidden flex flex-col items-center justify-center" @click="openImageModal(editingProduct)">
+                                        <img v-if="editingProduct.image" :src="editingProduct.image" class="absolute inset-0 w-full h-full object-cover">
+                                        <div v-else class="text-slate-400 flex flex-col items-center">
+                                            <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            <span class="text-xs font-medium">點擊上傳圖片</span>
+                                        </div>
+                                        <!-- Hover Overlay -->
+                                        <div v-if="editingProduct.image" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="text-white text-xs md:text-sm font-bold bg-white/20 backdrop-blur px-3 py-1.5 rounded-full border border-white/50">更換圖片</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-2 text-center">支援 JPG, PNG, GIF</p>
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Allocation View -->
