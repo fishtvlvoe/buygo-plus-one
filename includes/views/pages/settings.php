@@ -5,8 +5,21 @@ $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- 頁面標題 -->
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
-        <h1 class="text-2xl font-bold text-slate-900 font-title">設定</h1>
-        <p class="text-sm text-slate-500 mt-1">管理系統設定與 LINE 通知模板</p>
+        <!-- 桌面版：單行顯示 -->
+        <div class="hidden md:block">
+            <h1 class="text-2xl font-bold text-slate-900 font-title">設定</h1>
+            <p class="text-sm text-slate-500 mt-1">管理系統設定與 LINE 通知模板</p>
+        </div>
+
+        <!-- 手機版：兩行式佈局，避開漢堡選單 -->
+        <div class="md:hidden">
+            <!-- 第一行：Logo（預留漢堡選單空間）-->
+            <div class="flex items-center pl-12">
+                <h1 class="text-xl font-bold text-slate-900">設定</h1>
+            </div>
+            <!-- 第二行：完整標題 -->
+            <p class="text-sm text-slate-500 mt-2">管理系統設定與 LINE 通知模板</p>
+        </div>
     </div>
 
     <!-- 設定內容容器 -->
