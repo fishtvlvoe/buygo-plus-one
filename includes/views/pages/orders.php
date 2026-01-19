@@ -357,13 +357,6 @@ $orders_component_template = <<<'HTML'
             </div> <!-- End Subpages -->
         </div> <!-- End flex-1 main content container -->
 
-    <!-- OrderDetailModal 元件（向下相容：Modal 模式） -->
-    <order-detail-modal
-        v-if="showModal && currentView === 'list'"
-        :order-id="selectedOrderId"
-        @close="closeOrderDetail"
-    />
-    
     <!-- 訂單詳情 Modal（保留向下相容） -->
     <div v-if="showOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeOrderModal">
         <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
