@@ -954,18 +954,18 @@ class SettingsPage
             // 4. 清除訂單
             $wpdb->query("DELETE FROM {$wpdb->prefix}fct_orders");
 
-            // 5. 清除 FluentCart 商品變體
+            // 5. 清除 FluentCart 商品變體 (如果表存在)
             $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_variations");
 
-            // 6. 清除 FluentCart 商品
+            // 6. 清除 FluentCart 商品 (如果表存在)
             $wpdb->query("DELETE FROM {$wpdb->prefix}fct_products");
 
-            // 7. 獲取所有商品 ID
+            // 7. 獲取所有 WordPress 商品 ID (post_type = 'product')
             $product_ids = $wpdb->get_col(
                 "SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'product'"
             );
 
-            // 8. 清除商品的 meta 資料
+            // 8. 清除 WordPress 商品的 meta 資料
             if (!empty($product_ids)) {
                 $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
                 $wpdb->query(
@@ -983,11 +983,45 @@ class SettingsPage
                     )
                 );
 
-                // 10. 清除商品
+                // 10. 清除 WordPress 商品
                 $wpdb->query(
                     $wpdb->prepare(
                         "DELETE FROM {$wpdb->prefix}posts WHERE ID IN ($placeholders)",
                         ...$product_ids
+                    )
+                );
+            }
+
+            // 11. 獲取所有 FluentCart 商品 ID (post_type = 'fluent-products')
+            $fluent_product_ids = $wpdb->get_col(
+                "SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'"
+            );
+
+            // 12. 清除 FluentCart 商品的 meta 資料和商品本身
+            if (!empty($fluent_product_ids)) {
+                $placeholders = implode(',', array_fill(0, count($fluent_product_ids), '%d'));
+
+                // 清除 meta
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}postmeta WHERE post_id IN ($placeholders)",
+                        ...$fluent_product_ids
+                    )
+                );
+
+                // 清除分類關聯
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}term_relationships WHERE object_id IN ($placeholders)",
+                        ...$fluent_product_ids
+                    )
+                );
+
+                // 清除 FluentCart 商品
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}posts WHERE ID IN ($placeholders)",
+                        ...$fluent_product_ids
                     )
                 );
             }
