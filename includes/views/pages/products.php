@@ -167,7 +167,7 @@ $products_component_template = <<<'HTML'
                                             <div class="flex flex-col items-end">
                                                 <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                                 <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-xs text-slate-400 font-normal">
-                                                    ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
+                                                    ≈ NT${{ getTWDPrice(product.price, product.currency || systemCurrency).toLocaleString() }}
                                                 </span>
                                             </div>
                                         </td>
@@ -222,7 +222,7 @@ $products_component_template = <<<'HTML'
                                     <div class="mt-1">
                                         <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                         <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-[10px] text-slate-400 ml-1">
-                                            ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
+                                            ≈ NT${{ getTWDPrice(product.price, product.currency || systemCurrency).toLocaleString() }}
                                         </span>
                                     </div>
                                 </div>
@@ -502,7 +502,8 @@ const ProductsPageComponent = {
             convertCurrency,
             getCurrencySymbol,
             systemCurrency,
-            currencySymbols
+            currencySymbols,
+            exchangeRates
         } = useCurrency();
         
         // --- Router & UI State ---
@@ -883,6 +884,14 @@ const ProductsPageComponent = {
             return formatPrice(convertedPrice, currentCurrency.value);
         };
 
+        // 計算台幣轉換價格（用於顯示參考價格）
+        const getTWDPrice = (price, currency) => {
+            const safePrice = price ?? 0;
+            const rates = exchangeRates.value;
+            const rate = rates[currency] || 1;
+            return Math.round(safePrice * rate);
+        };
+
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
         
@@ -908,7 +917,7 @@ const ProductsPageComponent = {
             navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
             loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
-            toggleSelectAll, formatPriceDisplay, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
+            toggleSelectAll, formatPriceDisplay, getTWDPrice, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
              fileInput,
              handleTabClick: (id) => {
                  currentTab.value = id;
