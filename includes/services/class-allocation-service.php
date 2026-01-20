@@ -172,6 +172,7 @@ class AllocationService
         ]);
 
         // 查詢訂單項目，並計算已建立出貨單的數量
+        // 【重要】只查詢父訂單（parent_id IS NULL），不查詢子訂單
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT
                 oi.order_id,
@@ -179,6 +180,7 @@ class AllocationService
                 oi.quantity,
                 oi.line_meta,
                 o.customer_id,
+                o.parent_id,
                 c.first_name,
                 c.last_name,
                 c.email,
@@ -187,11 +189,21 @@ class AllocationService
                      FROM {$wpdb->prefix}buygo_shipment_items si
                      WHERE si.order_item_id = oi.id),
                     0
-                ) as shipped_to_shipment
+                ) as shipped_to_shipment,
+                COALESCE(
+                    (SELECT SUM(child_oi.quantity)
+                     FROM {$wpdb->prefix}fct_orders child_o
+                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                     WHERE child_o.parent_id = o.id
+                     AND child_o.type = 'split'
+                     AND child_oi.object_id = oi.object_id),
+                    0
+                ) as allocated_to_child
              FROM {$wpdb->prefix}fct_order_items oi
              LEFT JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
              LEFT JOIN {$wpdb->prefix}fct_customers c ON o.customer_id = c.id
              WHERE oi.object_id = %d
+             AND o.parent_id IS NULL
              AND o.status NOT IN ('cancelled', 'refunded', 'completed')
              ORDER BY o.created_at DESC",
             $product_id
@@ -202,17 +214,19 @@ class AllocationService
             $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
             $shipped = (int)($meta_data['_shipped_qty'] ?? 0);
             $shipped_to_shipment = (int)($item['shipped_to_shipment'] ?? 0);
+            $allocated_to_child = (int)($item['allocated_to_child'] ?? 0);
 
-            // 計算剩餘待分配數量（訂單數量 - 已建立出貨單的數量）
+            // 計算剩餘待分配數量（訂單數量 - 已建立子訂單的數量）
+            // 【重要】使用子訂單數量而非出貨單數量
             $required = (int)$item['quantity'];
-            $pending = $required - $shipped_to_shipment;
+            $pending = $required - $allocated_to_child;
 
-            // 如果已經全部建立出貨單，跳過此訂單項目
+            // 如果已經全部建立子訂單，跳過此訂單項目
             if ($pending <= 0) {
                 $this->debugService->log('AllocationService', '跳過已完全分配的訂單項目', [
                     'order_item_id' => $item['order_item_id'],
                     'required' => $required,
-                    'shipped_to_shipment' => $shipped_to_shipment
+                    'allocated_to_child' => $allocated_to_child
                 ]);
                 continue;
             }
@@ -230,11 +244,11 @@ class AllocationService
                 'customer' => $customer_name,
                 'email' => $item['email'] ?? '',
                 'required' => $required,                            // 下單量 (訂單總需求)
-                'already_allocated' => $shipped_to_shipment,        // 已分配到出貨單的數量
+                'already_allocated' => $allocated_to_child,         // 已建立子訂單的數量
                 'allocated' => 0,                                   // 本次分配 (前端輸入)
                 'pending' => $pending,                              // 待分配 (剩餘需求)
-                'shipped' => $shipped,
-                'status' => $shipped_to_shipment >= $required ? '已分配' : ($shipped_to_shipment > 0 ? '部分分配' : '未分配')
+                'shipped' => $shipped_to_shipment,                  // 已出貨數量
+                'status' => $allocated_to_child >= $required ? '已分配' : ($allocated_to_child > 0 ? '部分分配' : '未分配')
             ];
         }
 

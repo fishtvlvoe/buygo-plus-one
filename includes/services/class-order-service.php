@@ -68,8 +68,19 @@ class OrderService
                 ];
             }
 
-            // 只顯示虛擬訂單（沒有 parent_id 的訂單），過濾掉子訂單
-            $query->whereNull('parent_id');
+            // 根據參數決定是否顯示子訂單
+            // include_children: 'all' = 顯示所有, 'only' = 只顯示子訂單, 預設 = 只顯示父訂單
+            $include_children = $params['include_children'] ?? '';
+
+            if ($include_children === 'all') {
+                // 顯示所有訂單（父訂單和子訂單）
+            } elseif ($include_children === 'only') {
+                // 只顯示子訂單（type = 'split'）
+                $query->where('type', 'split');
+            } else {
+                // 預設：只顯示父訂單（沒有 parent_id 的訂單）
+                $query->whereNull('parent_id');
+            }
 
             // 搜尋：訂單編號或客戶名稱
             if (!empty($search)) {
@@ -712,6 +723,35 @@ class OrderService
             }
         }
 
+        // 取得子訂單資訊（如果是父訂單）
+        $children = [];
+        $parent_id = $order['parent_id'] ?? null;
+        $order_type = $order['type'] ?? 'one-time';
+        $is_child_order = !empty($parent_id);
+
+        // 如果是父訂單，查詢其子訂單
+        if (!$is_child_order) {
+            global $wpdb;
+            $child_orders = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, invoice_no, status, total_amount, currency, created_at
+                 FROM {$wpdb->prefix}fct_orders
+                 WHERE parent_id = %d AND type = 'split'
+                 ORDER BY created_at DESC",
+                $order['id']
+            ), ARRAY_A);
+
+            foreach ($child_orders as $child) {
+                $children[] = [
+                    'id' => (int)$child['id'],
+                    'invoice_no' => $child['invoice_no'],
+                    'status' => $child['status'],
+                    'total_amount' => ($child['total_amount'] ?? 0) / 100,
+                    'currency' => $child['currency'] ?? 'TWD',
+                    'created_at' => $child['created_at']
+                ];
+            }
+        }
+
         return [
             'id' => $order['id'] ?? 0,
             'invoice_no' => $order['invoice_no'] ?? '',
@@ -727,7 +767,12 @@ class OrderService
             'total_items' => $total_items,
             'items' => $items,
             'created_at' => $order['created_at'] ?? '',
-            'updated_at' => $order['updated_at'] ?? ''
+            'updated_at' => $order['updated_at'] ?? '',
+            // 父子訂單關聯資訊
+            'parent_id' => $parent_id,
+            'type' => $order_type,
+            'is_child_order' => $is_child_order,
+            'children' => $children
         ];
     }
 }
