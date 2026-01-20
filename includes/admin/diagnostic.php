@@ -9,7 +9,12 @@
  */
 
 // 載入 WordPress
-require_once '../../../../../../wp-load.php';
+$wp_load_path = dirname(dirname(dirname(dirname(dirname(dirname(__FILE__)))))) . '/wp-load.php';
+if (file_exists($wp_load_path)) {
+    require_once $wp_load_path;
+} else {
+    die('無法載入 WordPress 環境。請確認路徑正確。');
+}
 
 // 安全檢查
 if (!is_admin() || !current_user_can('manage_options')) {
