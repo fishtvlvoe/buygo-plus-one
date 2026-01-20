@@ -322,10 +322,10 @@ $orders_component_template = <<<'HTML'
                             <div class="relative inline-block">
                                 <button
                                     @click.stop="toggleStatusDropdown(order.id)"
-                                    :class="getStatusClass(order.shipping_status || 'not_shipped')"
+                                    :class="getStatusClass(order.shipping_status || 'unshipped')"
                                     class="px-2 py-0.5 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition whitespace-nowrap flex-shrink-0 overflow-hidden inline-flex items-center gap-1"
                                 >
-                                    <span>{{ getStatusText(order.shipping_status || 'not_shipped') }}</span>
+                                    <span>{{ getStatusText(order.shipping_status || 'unshipped') }}</span>
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
