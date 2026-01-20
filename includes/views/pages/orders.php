@@ -132,11 +132,11 @@ $orders_component_template = <<<'HTML'
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">訂單編號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶名稱</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">商品數量</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">編號</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名稱</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">項目</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">總金額</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">狀態</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">運送狀態</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">下單日期</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
                         </tr>
@@ -199,9 +199,38 @@ $orders_component_template = <<<'HTML'
                             </td>
                             <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ formatPrice(order.total_amount, order.currency) }}</td>
                             <td class="px-4 py-3">
-                                <span :class="getStatusClass(order.status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                                    {{ getStatusText(order.status) }}
-                                </span>
+                                <div class="relative inline-block">
+                                    <button
+                                        @click.stop="toggleStatusDropdown(order.id)"
+                                        :class="getStatusClass(order.shipping_status || 'not_shipped')"
+                                        class="px-3 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition whitespace-nowrap flex-shrink-0 overflow-hidden flex items-center gap-1"
+                                    >
+                                        <span>{{ getStatusText(order.shipping_status || 'not_shipped') }}</span>
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <!-- 下拉選單 -->
+                                    <div
+                                        v-if="isStatusDropdownOpen(order.id)"
+                                        @click.stop
+                                        class="absolute z-50 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[120px]"
+                                    >
+                                        <button
+                                            v-for="status in shippingStatuses"
+                                            :key="status.value"
+                                            @click="updateShippingStatus(order.id, status.value)"
+                                            :class="[
+                                                'w-full px-3 py-2 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
+                                                order.shipping_status === status.value ? 'font-bold' : ''
+                                            ]"
+                                        >
+                                            <span :class="status.color" class="px-2 py-0.5 rounded-full">
+                                                {{ status.label }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(order.created_at) }}</td>
                             <td class="px-4 py-3">
@@ -288,11 +317,40 @@ $orders_component_template = <<<'HTML'
                             <span class="text-slate-500">總金額：</span>
                             <span class="font-bold text-slate-900">{{ formatPrice(order.total_amount, order.currency) }}</span>
                         </div>
-                        <div>
-                            <span class="text-slate-500">狀態：</span>
-                            <span :class="getStatusClass(order.status)" class="px-2 py-0.5 text-xs font-medium rounded-full">
-                                {{ getStatusText(order.status) }}
-                            </span>
+                        <div class="col-span-2">
+                            <span class="text-slate-500">運送狀態：</span>
+                            <div class="relative inline-block">
+                                <button
+                                    @click.stop="toggleStatusDropdown(order.id)"
+                                    :class="getStatusClass(order.shipping_status || 'not_shipped')"
+                                    class="px-2 py-0.5 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition whitespace-nowrap flex-shrink-0 overflow-hidden inline-flex items-center gap-1"
+                                >
+                                    <span>{{ getStatusText(order.shipping_status || 'not_shipped') }}</span>
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <!-- 下拉選單 -->
+                                <div
+                                    v-if="isStatusDropdownOpen(order.id)"
+                                    @click.stop
+                                    class="absolute z-50 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[120px]"
+                                >
+                                    <button
+                                        v-for="status in shippingStatuses"
+                                        :key="status.value"
+                                        @click="updateShippingStatus(order.id, status.value)"
+                                        :class="[
+                                            'w-full px-3 py-2 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
+                                            order.shipping_status === status.value ? 'font-bold' : ''
+                                        ]"
+                                    >
+                                        <span :class="status.color" class="px-2 py-0.5 rounded-full">
+                                            {{ status.label }}
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <span class="text-slate-500">下單日期：</span>
@@ -633,6 +691,9 @@ const OrdersPageComponent = {
         
         // 展開狀態（用於商品列表展開）
         const expandedOrders = ref(new Set());
+
+        // 狀態下拉選單狀態
+        const openStatusDropdown = ref(null);
         
         // 確認 Modal 狀態
         const confirmModal = ref({
@@ -852,30 +913,76 @@ const OrdersPageComponent = {
             return expandedOrders.value.has(orderId);
         };
         
-        // 取得狀態樣式
+        // 運送狀態選項（6個）
+        const shippingStatuses = [
+            { value: 'not_shipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
+            { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
+            { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
+            { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
+            { value: 'completed', label: '交易完成', color: 'bg-green-100 text-green-800 border border-green-300' },
+            { value: 'out_of_stock', label: '斷貨', color: 'bg-red-100 text-red-800 border border-red-300' }
+        ];
+
+        // 取得運送狀態樣式
         const getStatusClass = (status) => {
-            const statusClasses = {
-                'pending': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-                'processing': 'bg-blue-100 text-blue-800 border border-blue-200',
-                'shipped': 'bg-purple-100 text-purple-800 border border-purple-200',
-                'completed': 'bg-green-100 text-green-800 border border-green-200',
-                'cancelled': 'bg-red-100 text-red-800 border border-red-200'
-            };
-            return statusClasses[status] || 'bg-slate-100 text-slate-800';
+            const statusObj = shippingStatuses.find(s => s.value === status);
+            return statusObj ? statusObj.color : 'bg-slate-100 text-slate-800 border border-slate-300';
         };
-        
-        // 取得狀態文字
+
+        // 取得運送狀態文字
         const getStatusText = (status) => {
-            const statusTexts = {
-                'pending': '待處理',
-                'processing': '處理中',
-                'shipped': '已出貨',
-                'completed': '已完成',
-                'cancelled': '已取消'
-            };
-            return statusTexts[status] || status;
+            const statusObj = shippingStatuses.find(s => s.value === status);
+            return statusObj ? statusObj.label : status;
         };
-        
+
+        // 切換狀態下拉選單
+        const toggleStatusDropdown = (orderId) => {
+            if (openStatusDropdown.value === orderId) {
+                openStatusDropdown.value = null;
+            } else {
+                openStatusDropdown.value = orderId;
+            }
+        };
+
+        // 檢查狀態下拉選單是否開啟
+        const isStatusDropdownOpen = (orderId) => {
+            return openStatusDropdown.value === orderId;
+        };
+
+        // 更新運送狀態
+        const updateShippingStatus = async (orderId, newStatus) => {
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/shipping-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ shipping_status: newStatus })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 更新本地訂單資料
+                    const order = orders.value.find(o => o.id === orderId);
+                    if (order) {
+                        order.shipping_status = newStatus;
+                    }
+                    showToast('運送狀態已更新', 'success');
+                } else {
+                    showToast('更新失敗：' + (result.message || '未知錯誤'), 'error');
+                }
+            } catch (err) {
+                console.error('更新運送狀態失敗:', err);
+                showToast('更新失敗：' + err.message, 'error');
+            } finally {
+                // 關閉下拉選單
+                openStatusDropdown.value = null;
+            }
+        };
+
         // 查看訂單詳情
         const viewOrderDetails = async (order) => {
             showOrderModal.value = true;
@@ -1188,6 +1295,13 @@ const OrdersPageComponent = {
             checkUrlParams();
             // 監聽瀏覽器上一頁/下一頁
             window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+
+            // 點擊外部關閉狀態下拉選單
+            document.addEventListener('click', () => {
+                if (openStatusDropdown.value !== null) {
+                    openStatusDropdown.value = null;
+                }
+            });
         });
 
         // Smart Search Box 事件處理器
@@ -1260,7 +1374,13 @@ const OrdersPageComponent = {
             batchDelete,
             toggleCurrency,
             // Smart Search Box
-            handleOrderSelect
+            handleOrderSelect,
+            // 運送狀態相關
+            shippingStatuses,
+            toggleStatusDropdown,
+            isStatusDropdownOpen,
+            updateShippingStatus,
+            openStatusDropdown
         };
     }
 };
