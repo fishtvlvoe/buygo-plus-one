@@ -167,7 +167,7 @@ $products_component_template = <<<'HTML'
                                             <div class="flex flex-col items-end">
                                                 <span>{{ formatPrice(product.price, product.currency) }}</span>
                                                 <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-xs text-slate-400 font-normal">
-                                                    ≈ NT${{ Math.round(product.price * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
+                                                    ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
                                                 </span>
                                             </div>
                                         </td>
@@ -222,7 +222,7 @@ $products_component_template = <<<'HTML'
                                     <div class="mt-1">
                                         <span class="text-xs font-bold text-slate-500">{{ formatPrice(product.price, product.currency) }}</span>
                                         <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-[10px] text-slate-400 ml-1">
-                                            ≈ NT${{ Math.round(product.price * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
+                                            ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
                                         </span>
                                     </div>
                                 </div>
@@ -878,17 +878,20 @@ const ProductsPageComponent = {
 
         // 格式化價格（支援多幣別顯示）
         const formatPrice = (price, productCurrency = null) => {
+            // 防護：價格為 undefined 或 null 時返回 0
+            const safePrice = price ?? 0;
+
             const displayCurrency = currentCurrency.value;
             const sourceCurrency = productCurrency || systemCurrency.value;
             const symbol = currencySymbols[displayCurrency] || '$';
 
-            let displayPrice = price;
+            let displayPrice = safePrice;
 
             // 如果顯示幣別與商品幣別不同，進行轉換
             if (displayCurrency !== sourceCurrency) {
                 const sourceRate = exchangeRates.value[sourceCurrency] || 1;
                 const targetRate = exchangeRates.value[displayCurrency] || 1;
-                displayPrice = Math.round(price * sourceRate / targetRate);
+                displayPrice = Math.round(safePrice * sourceRate / targetRate);
             }
 
             return `${symbol}${displayPrice.toLocaleString()}`;
@@ -896,16 +899,18 @@ const ProductsPageComponent = {
 
         // 格式化價格（帶台幣轉換）- 用於表格顯示
         const formatPriceWithConversion = (price, productCurrency = null) => {
+            // 防護：價格為 undefined 或 null 時返回 0
+            const safePrice = price ?? 0;
             const sourceCurrency = productCurrency || systemCurrency.value;
 
             // 原始幣別價格
             const originalSymbol = currencySymbols[sourceCurrency] || '$';
-            const originalPrice = `${originalSymbol}${price.toLocaleString()}`;
+            const originalPrice = `${originalSymbol}${safePrice.toLocaleString()}`;
 
             // 如果原始幣別不是台幣，顯示台幣轉換
             if (sourceCurrency !== 'TWD') {
                 const twdRate = exchangeRates.value[sourceCurrency] || 1;
-                const twdPrice = Math.round(price * twdRate);
+                const twdPrice = Math.round(safePrice * twdRate);
                 const twdConverted = `≈ NT$${twdPrice.toLocaleString()}`;
 
                 return currentCurrency.value === 'TWD'
@@ -949,6 +954,8 @@ const ProductsPageComponent = {
              },
              currentCurrency,
              systemCurrency,
+             exchangeRates,
+             currencySymbols,
              formatPriceWithConversion,
              toggleCurrency: () => {
                  // 在系統幣別和台幣之間切換
