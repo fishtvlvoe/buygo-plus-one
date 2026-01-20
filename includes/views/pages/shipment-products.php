@@ -3,27 +3,80 @@
 
 $shipment_products_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    <!-- 頁面標題 -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
-        <div class="mb-6">
-            <div class="pl-12 md:pl-0 mb-4">
-                <h1 class="text-xl font-bold text-slate-900">備貨</h1>
+    <!-- Header（固定高度 64px）-->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+        <!-- 左側：標題 -->
+        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">備貨</h1>
+            </div>
+        </div>
+
+        <!-- 右側：操作區 -->
+        <div class="flex items-center gap-2 md:gap-3 shrink-0">
+            <!-- 搜尋按鈕（手機版）-->
+            <button @click="showMobileSearch = true" class="md:hidden p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </button>
+
+            <!-- 全域搜尋（桌面版顯示）-->
+            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64">
+                <input type="text"
+                       placeholder="全域搜尋..."
+                       v-model="globalSearchQuery"
+                       @input="handleGlobalSearch"
+                       class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
             </div>
 
-             <!-- 智慧搜尋框 -->
-             <smart-search-box
-                 api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
-                 :search-fields="['shipment_number', 'customer_name', 'product_name']"
-                 placeholder="搜尋出貨單號、客戶或商品"
-                 display-field="shipment_number"
-                 display-sub-field="customer_name"
-                 :show-currency-toggle="false"
-                 @select="handleSearchSelect"
-                 @search="handleSearchInput"
-                 @clear="handleSearchClear"
-             />
-         </div>
-     </div>
+            <!-- 通知 -->
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- 手機版搜尋覆蓋層 -->
+        <transition name="search-slide">
+            <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
+                <div class="relative flex-1">
+                    <input type="text"
+                           placeholder="全域搜尋..."
+                           v-model="globalSearchQuery"
+                           @input="handleGlobalSearch"
+                           class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm w-full focus:outline-none">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <button @click="showMobileSearch = false" class="p-2 text-slate-600 hover:text-slate-900">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </transition>
+    </header>
+
+    <!-- Smart Search Box（獨立區域）-->
+    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
+        <smart-search-box
+            api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+            :search-fields="['shipment_number', 'customer_name', 'product_name']"
+            placeholder="搜尋出貨單號、客戶或商品"
+            display-field="shipment_number"
+            display-sub-field="customer_name"
+            :show-currency-toggle="false"
+            @select="handleSearchSelect"
+            @search="handleSearchInput"
+            @clear="handleSearchClear"
+        />
+    </div>
 
      <!-- 出貨單列表容器 -->
     <div class="p-6">
@@ -56,19 +109,19 @@ $shipment_products_component_template = <<<'HTML'
             
             <!-- 桌面版表格 -->
             <div class="hidden md:block buygo-card overflow-x-auto">
-                <table class="w-full">
+                <table class="w-full min-w-max">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-10">
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[20%]">出貨單號</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">出貨單號</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">客戶名稱</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[30%]">商品清單</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">總數量</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">狀態</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[8%]">總數量</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[12%]">狀態</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">建立日期</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">操作</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">操作</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
@@ -104,56 +157,58 @@ $shipment_products_component_template = <<<'HTML'
                                     </button>
                                 </div>
                                 <!-- 展開的商品詳細列表 -->
-                                <div 
+                                <div
                                     v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
-                                    class="mt-2 pt-2 border-t border-slate-200 space-y-2"
+                                    class="mt-2 pt-2 border-t border-slate-200"
                                 >
-                                    <div 
-                                        v-for="item in shipment.items" 
-                                        :key="item.id"
-                                        class="flex items-center gap-3 text-xs"
-                                    >
-                                        <img 
-                                            v-if="item.product_image"
-                                            :src="item.product_image" 
-                                            :alt="item.product_name"
-                                            class="w-10 h-10 object-cover rounded border border-slate-200"
-                                        />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
-                                            <div class="text-slate-500">
-                                                訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                                    <div class="space-y-2 mb-3">
+                                        <div
+                                            v-for="item in shipment.items"
+                                            :key="item.id"
+                                            class="flex items-center gap-3 text-xs"
+                                        >
+                                            <img
+                                                v-if="item.product_image"
+                                                :src="item.product_image"
+                                                :alt="item.product_name"
+                                                class="w-10 h-10 object-cover rounded border border-slate-200"
+                                            />
+                                            <div class="flex-1 min-w-0">
+                                                <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
+                                                <div class="text-slate-500">
+                                                    訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- 總數量 -->
+                                    <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
+                                        <span class="text-slate-600 font-medium">總數量</span>
+                                        <span class="text-slate-900 font-bold">{{ shipment.total_quantity }} 個</span>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ shipment.total_quantity || 0 }}</td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-slate-900">{{ shipment.total_quantity || 0 }}</td>
+                            <td class="px-4 py-3 text-center">
                                 <span
-                                    :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'buygo-badge buygo-badge-warning' : 'buygo-badge buygo-badge-success'"
+                                    class="px-2 py-1 text-xs font-medium rounded-full"
+                                    :class="{
+                                        'bg-yellow-100 text-yellow-800 border border-yellow-200': shipment.status === 'pending' || shipment.status === '備貨中',
+                                        'bg-green-100 text-green-800 border border-green-200': shipment.status === 'shipped' || shipment.status === '已出貨'
+                                    }"
                                 >
-                                    {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
+                                    {{ getStatusText(shipment.status) }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(shipment.created_at) }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <!-- 查看按鈕 -->
-                                    <button
-                                        @click="viewDetail(shipment.id)"
-                                        class="buygo-btn buygo-btn-primary buygo-btn-sm">
-                                        查看
-                                    </button>
-
-                                    <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
-                                    <button
-                                        v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
-                                        @click="moveToShipment(shipment.id)"
-                                        class="buygo-btn buygo-btn-accent buygo-btn-sm">
-                                        待出貨
-                                    </button>
-                                </div>
+                            <td class="px-4 py-3 text-center">
+                                <!-- 操作按鈕（僅待出貨狀態顯示） -->
+                                <button
+                                    v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
+                                    @click="moveToShipment(shipment.id)"
+                                    class="px-2 py-1 text-xs font-bold text-primary hover:text-primary-dark hover:underline transition">
+                                    標記已出貨
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -198,66 +253,66 @@ $shipment_products_component_template = <<<'HTML'
                             </button>
                         </div>
                         <!-- 展開的商品詳細列表 -->
-                        <div 
+                        <div
                             v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
-                            class="mt-2 pt-2 border-t border-slate-200 space-y-2"
+                            class="mt-2 pt-2 border-t border-slate-200"
                         >
-                            <div 
-                                v-for="item in shipment.items" 
-                                :key="item.id"
-                                class="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded"
-                            >
-                                <img 
-                                    v-if="item.product_image"
-                                    :src="item.product_image" 
-                                    :alt="item.product_name"
-                                    class="w-8 h-8 object-cover rounded border border-slate-200"
-                                />
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
-                                    <div class="text-slate-500">
-                                        訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                            <div class="space-y-2 mb-3">
+                                <div
+                                    v-for="item in shipment.items"
+                                    :key="item.id"
+                                    class="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded"
+                                >
+                                    <img
+                                        v-if="item.product_image"
+                                        :src="item.product_image"
+                                        :alt="item.product_name"
+                                        class="w-8 h-8 object-cover rounded border border-slate-200"
+                                    />
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
+                                        <div class="text-slate-500">
+                                            訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                            <!-- 總數量 -->
+                            <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs bg-slate-50 p-2 rounded">
+                                <span class="text-slate-600 font-medium">總數量</span>
+                                <span class="text-slate-900 font-bold">{{ shipment.total_quantity }} 個</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                    <div class="flex items-center justify-between mb-3 text-xs">
                         <div>
                             <span class="text-slate-500">總數量：</span>
                             <span class="font-bold text-slate-900">{{ shipment.total_quantity || 0 }}</span>
                         </div>
-                        <div>
-                            <span class="text-slate-500">狀態：</span>
-                            <span
-                                :class="(shipment.status === 'pending' || shipment.status === '備貨中') ? 'buygo-badge buygo-badge-warning' : 'buygo-badge buygo-badge-success'"
-                            >
-                                {{ shipment.status === 'pending' ? '備貨中' : (shipment.status || '備貨中') }}
-                            </span>
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-slate-500">建立日期：</span>
-                            <span class="text-slate-900">{{ formatDate(shipment.created_at) }}</span>
-                        </div>
+                        <span
+                            class="px-2 py-1 text-xs font-medium rounded-full"
+                            :class="{
+                                'bg-yellow-100 text-yellow-800 border border-yellow-200': shipment.status === 'pending' || shipment.status === '備貨中',
+                                'bg-green-100 text-green-800 border border-green-200': shipment.status === 'shipped' || shipment.status === '已出貨'
+                            }"
+                        >
+                            {{ getStatusText(shipment.status) }}
+                        </span>
                     </div>
-                    
-                    <div class="flex gap-2">
-                        <!-- 查看按鈕 -->
-                        <button
-                            @click="viewDetail(shipment.id)"
-                            class="flex-1 buygo-btn buygo-btn-primary">
-                            查看
-                        </button>
 
-                        <!-- 待出貨按鈕（只有已分配的商品才顯示） -->
-                        <button
-                            v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
-                            @click="moveToShipment(shipment.id)"
-                            class="flex-1 buygo-btn buygo-btn-accent">
-                            待出貨
-                        </button>
+                    <div class="mb-3 text-xs">
+                        <span class="text-slate-500">建立日期：</span>
+                        <span class="text-slate-900">{{ formatDate(shipment.created_at) }}</span>
                     </div>
+
+                    <!-- 操作按鈕（僅待出貨狀態顯示） -->
+                    <button
+                        v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
+                        @click="moveToShipment(shipment.id)"
+                        class="w-full px-3 py-2 text-xs font-bold text-primary bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+                        標記已出貨
+                    </button>
                 </div>
             </div>
             
@@ -288,103 +343,6 @@ $shipment_products_component_template = <<<'HTML'
                         </button>
                     </nav>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 出貨單詳情 Modal -->
-    <div
-        v-if="showDetailModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-        @click.self="closeDetailModal"
-    >
-        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <!-- Modal Header -->
-            <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
-                <h2 class="text-xl font-bold text-slate-900">出貨單詳情</h2>
-                <button @click="closeDetailModal" class="text-slate-400 hover:text-slate-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Modal Body -->
-            <div v-if="currentShipment" class="p-6">
-                <!-- 出貨單基本資訊 -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-slate-900 mb-4">出貨單資訊</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="text-sm text-slate-500">出貨單號：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.shipment_no }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">狀態：</span>
-                            <span :class="getStatusClass(currentShipment.status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                                {{ getStatusText(currentShipment.status) }}
-                            </span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">客戶名稱：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_name }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">客戶電話：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_phone || '-' }}</span>
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-sm text-slate-500">客戶地址：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_address || '-' }}</span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-slate-500">建立日期：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ formatDate(currentShipment.created_at) }}</span>
-                        </div>
-                        <div v-if="currentShipment.shipped_at">
-                            <span class="text-sm text-slate-500">出貨日期：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ formatDate(currentShipment.shipped_at) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 商品列表 -->
-                <div>
-                    <h3 class="text-lg font-semibold text-slate-900 mb-4">商品明細</h3>
-                    <div class="space-y-3">
-                        <div v-for="item in currentShipment.items" :key="item.id" class="border border-slate-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold text-slate-900">{{ item.product_name }}</h4>
-                                    <div class="text-sm text-slate-600 mt-1">
-                                        數量: {{ item.quantity }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 總數量 -->
-                    <div class="mt-4 pt-4 border-t border-slate-200">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-slate-600">總數量：</span>
-                            <span class="text-lg font-bold text-slate-900">{{ currentShipment.total_quantity }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
-                <button @click="closeDetailModal" class="buygo-btn buygo-btn-secondary">
-                    關閉
-                </button>
-                <button
-                    v-if="currentShipment && currentShipment.status === 'pending'"
-                    @click="markShipped(currentShipment.id); closeDetailModal();"
-                    class="buygo-btn buygo-btn-accent">
-                    標記已出貨
-                </button>
             </div>
         </div>
     </div>
@@ -493,9 +451,17 @@ const ShipmentProductsPageComponent = {
             type: 'success' // 'success' | 'error' | 'info'
         });
 
-        // 出貨單詳情 Modal 狀態
-        const showDetailModal = ref(false);
-        const currentShipment = ref(null);
+        // 全域搜尋狀態
+        const showMobileSearch = ref(false);
+        const globalSearchQuery = ref('');
+
+        // 全域搜尋處理
+        const handleGlobalSearch = () => {
+            if (globalSearchQuery.value.trim()) {
+                // 可以實作跨頁面搜尋邏輯
+                console.log('全域搜尋:', globalSearchQuery.value);
+            }
+        };
 
         // 顯示 Toast 訊息
         const showToast = (message, type = 'success') => {
@@ -607,15 +573,17 @@ const ShipmentProductsPageComponent = {
             return statusClasses[status] || 'bg-slate-100 text-slate-800';
         };
         
-        // 取得狀態文字
+        // 取得狀態文字（中文化）
         const getStatusText = (status) => {
             const statusTexts = {
                 'pending': '待出貨',
+                '備貨中': '待出貨',
                 'shipped': '已出貨',
+                '已出貨': '已出貨',
                 'archived': '已存檔',
                 'delivered': '已送達'
             };
-            return statusTexts[status] || status;
+            return statusTexts[status] || '待出貨';
         };
         
         // 顯示確認 Modal
@@ -810,34 +778,7 @@ const ShipmentProductsPageComponent = {
                 }
             );
         };
-        
-        // 查看詳情（顯示 Modal）
-        const viewDetail = async (shipmentId) => {
-            try {
-                loading.value = true;
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`);
-                const result = await response.json();
 
-                if (result.success && result.data) {
-                    currentShipment.value = result.data;
-                    showDetailModal.value = true;
-                } else {
-                    showToast('載入出貨單詳情失敗', 'error');
-                }
-            } catch (err) {
-                console.error('載入出貨單詳情錯誤:', err);
-                showToast('載入出貨單詳情失敗', 'error');
-            } finally {
-                loading.value = false;
-            }
-        };
-
-        // 關閉詳情 Modal
-        const closeDetailModal = () => {
-            showDetailModal.value = false;
-            currentShipment.value = null;
-        };
-        
         // 分頁
         const totalPages = computed(() => {
             if (perPage.value === -1) return 1;
@@ -925,7 +866,6 @@ const ShipmentProductsPageComponent = {
             statusFilters,
             markShipped,
             batchMarkShipped,
-            viewDetail,
             toggleSelectAll,
             selectedItems,
             selectedShipments,
@@ -933,6 +873,11 @@ const ShipmentProductsPageComponent = {
             moveToShipment,
             mergeShipments,
             loadShipments,
+
+            // 全域搜尋
+            showMobileSearch,
+            globalSearchQuery,
+            handleGlobalSearch,
 
             // Smart Search Box 事件處理
             handleSearchInput: handleGlobalSearchInput,
@@ -946,12 +891,7 @@ const ShipmentProductsPageComponent = {
             executeConfirm,
             cancelConfirm,
             toastMessage,
-            showToast,
-
-            // 出貨單詳情 Modal
-            showDetailModal,
-            currentShipment,
-            closeDetailModal
+            showToast
         };
     }
 };
