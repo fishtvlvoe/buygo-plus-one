@@ -561,12 +561,26 @@ const ShipmentProductsPageComponent = {
         // 格式化商品列表顯示
         const formatItemsDisplay = (shipment, maxLength = 50) => {
             if (!shipment.items || !Array.isArray(shipment.items) || shipment.items.length === 0) {
+                console.log('formatItemsDisplay: 無商品項目', shipment);
                 return `0 個項目`;
             }
 
-            // 簡潔模式：只顯示項目數
+            // 顯示商品名稱列表
             const itemCount = shipment.items.length;
-            return `${itemCount} 個項目`;
+            const firstItem = shipment.items[0];
+            const itemNames = shipment.items.map(item => item.product_name || '未知商品').join('、');
+
+            // 如果只有一個商品,顯示完整名稱
+            if (itemCount === 1) {
+                return firstItem.product_name || '未知商品';
+            }
+
+            // 多個商品時,截斷顯示
+            if (itemNames.length <= maxLength) {
+                return itemNames;
+            }
+
+            return `${firstItem.product_name || '未知商品'} 等 ${itemCount} 項`;
         };
         
         // 切換出貨單展開狀態
