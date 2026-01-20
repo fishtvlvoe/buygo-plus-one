@@ -205,9 +205,10 @@ class AllocationService
                 'order_item_id' => (int)$item['order_item_id'],
                 'customer' => $customer_name,
                 'email' => $item['email'] ?? '',
-                'required' => (int)$item['quantity'],
-                'allocated' => $allocated,
-                'pending' => (int)$item['quantity'] - $allocated,
+                'required' => (int)$item['quantity'],              // 下單量 (訂單總需求)
+                'already_allocated' => $allocated,                 // 已分配 (歷史累計)
+                'allocated' => 0,                                   // 本次分配 (前端輸入)
+                'pending' => (int)$item['quantity'] - $allocated, // 待分配 (剩餘需求)
                 'shipped' => $shipped,
                 'status' => $allocated >= (int)$item['quantity'] ? '已分配' : ($allocated > 0 ? '部分分配' : '未分配')
             ];

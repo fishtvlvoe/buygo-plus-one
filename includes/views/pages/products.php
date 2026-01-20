@@ -427,9 +427,10 @@ $products_component_template = <<<'HTML'
                                             <tr>
                                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">訂單編號 / 客戶</th>
                                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">下單時間</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">需求量</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-32">分配數量</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">缺額</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">下單量</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">已分配</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-32">本次分配</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">待分配</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -440,10 +441,11 @@ $products_component_template = <<<'HTML'
                                                 </td>
                                                 <td class="px-4 py-3 text-center text-sm text-slate-500">{{ order.date || '-' }}</td>
                                                 <td class="px-4 py-3 text-right font-medium text-slate-900">{{ order.required || order.quantity }}</td>
+                                                <td class="px-4 py-3 text-right font-medium text-blue-600">{{ order.already_allocated || 0 }}</td>
                                                 <td class="px-4 py-3 text-right">
-                                                    <input type="number" v-model.number="order.allocated" min="0" :max="order.required || order.quantity" class="w-20 px-2 py-1 border border-slate-300 rounded text-right focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                                    <input type="number" v-model.number="order.allocated" min="0" :max="order.pending || (order.required - (order.already_allocated || 0))" class="w-20 px-2 py-1 border border-slate-300 rounded text-right focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                                                 </td>
-                                                <td class="px-4 py-3 text-right font-medium text-red-600">{{ (order.required || order.quantity) - (order.allocated || 0) }}</td>
+                                                <td class="px-4 py-3 text-right font-medium text-red-600">{{ order.pending || ((order.required || order.quantity) - (order.already_allocated || 0)) }}</td>
                                             </tr>
                                         </tbody>
                                         <tfoot class="bg-slate-50 font-bold text-slate-700">
