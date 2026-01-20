@@ -888,6 +888,8 @@ const ShipmentDetailsPageComponent = {
             systemCurrency,
             handleSearchSelect,
             handleSearchClear,
+            handleSearchInput: handleGlobalSearchInput,
+            showToast,
             // 分頁相關
             currentPage,
             perPage,
