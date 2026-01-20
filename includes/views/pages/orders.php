@@ -144,11 +144,18 @@ $orders_component_template = <<<'HTML'
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
-                        <tr v-for="order in orders" :key="order.id" class="hover:bg-slate-50 transition">
+                        <!-- 父訂單行 -->
+                        <template v-for="order in orders" :key="order.id">
+                        <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3">
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">#{{ order.invoice_no || order.id }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900">
+                                #{{ order.invoice_no || order.id }}
+                                <span v-if="order.children && order.children.length > 0" class="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                    {{ order.children.length }} 批次
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">
                                 <div class="flex items-center gap-2">
@@ -249,6 +256,54 @@ $orders_component_template = <<<'HTML'
                                 </div>
                             </td>
                         </tr>
+
+                        <!-- 子訂單行（指定單） -->
+                        <tr
+                            v-for="childOrder in order.children"
+                            :key="'child-' + childOrder.id"
+                            class="bg-blue-50/30 hover:bg-blue-50/50 transition border-l-4 border-blue-400"
+                        >
+                            <td class="px-4 py-3">
+                                <!-- 子訂單不可勾選 -->
+                            </td>
+                            <td class="px-4 py-3 text-sm font-medium text-blue-700">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    #{{ childOrder.invoice_no }}
+                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">指定單</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600">
+                                <!-- 子訂單商品資訊（簡化顯示） -->
+                                <span class="text-xs text-blue-700">待出貨批次</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-700">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
+                            <td class="px-4 py-3">
+                                <span
+                                    :class="getStatusClass(childOrder.status || 'pending')"
+                                    class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+                                >
+                                    {{ getStatusText(childOrder.status || 'pending') }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(childOrder.created_at) }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </button>
+                                    <button
+                                        @click="shipChildOrder(childOrder, order)"
+                                        class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        執行出貨
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
@@ -1204,7 +1259,80 @@ const OrdersPageComponent = {
                 }
             );
         };
-        
+
+        // 執行子訂單出貨
+        const shipChildOrder = async (childOrder, parentOrder) => {
+            // 先載入子訂單的完整資訊
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${childOrder.id}`, {
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (!result.success || !result.data || result.data.length === 0) {
+                    showToast('無法載入子訂單資訊', 'error');
+                    return;
+                }
+
+                const fullChildOrder = result.data[0];
+
+                // 收集所有可出貨的商品
+                const itemsToShip = (fullChildOrder.items || []).filter(item => (item.quantity || 0) > 0);
+
+                if (itemsToShip.length === 0) {
+                    showToast('此指定單沒有可出貨的商品', 'error');
+                    return;
+                }
+
+                // 確認出貨
+                const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                showConfirm(
+                    '確認出貨指定單',
+                    `確定要出貨指定單 #${childOrder.invoice_no}（${totalQuantity} 個商品）嗎？`,
+                    async () => {
+                        shipping.value = true;
+
+                        try {
+                            // 準備 items 陣列
+                            const items = itemsToShip.map(item => ({
+                                order_item_id: item.id,
+                                quantity: item.quantity,
+                                product_id: item.product_id
+                            }));
+
+                            const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${childOrder.id}/ship`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                credentials: 'include',
+                                body: JSON.stringify({ items })
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                showToast(`指定單出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
+                                // 刷新列表
+                                await loadOrders();
+                            } else {
+                                showToast('出貨失敗：' + result.message, 'error');
+                            }
+                        } catch (err) {
+                            console.error('出貨失敗:', err);
+                            showToast('出貨失敗：' + err.message, 'error');
+                        } finally {
+                            shipping.value = false;
+                        }
+                    }
+                );
+            } catch (err) {
+                console.error('載入子訂單失敗:', err);
+                showToast('載入子訂單失敗：' + err.message, 'error');
+            }
+        };
+
         // 載入訂單詳情
         const loadOrderDetail = async (orderId) => {
             try {
@@ -1360,6 +1488,7 @@ const OrdersPageComponent = {
             hasAllocatedItems,
             shipOrder,
             shipOrderItem,
+            shipChildOrder,
             loadOrderDetail,
             shipping,
             handleSearchSelect,
