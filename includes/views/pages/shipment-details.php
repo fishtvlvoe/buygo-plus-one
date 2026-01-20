@@ -405,15 +405,15 @@ $shipment_details_template = <<<'HTML'
                                 <tr v-for="item in detailModal.items" :key="item.id">
                                     <td class="px-4 py-3 text-sm text-slate-900">{{ item.product_name }}</td>
                                     <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ getCurrencySymbol() }} {{ formatPrice(item.price) }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ getCurrencySymbol() }} {{ formatPrice(item.quantity * item.price) }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ formatPrice(item.quantity * item.price) }}</td>
                                 </tr>
                             </tbody>
                             <tfoot class="bg-slate-50">
                                 <tr>
                                     <td colspan="3" class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">總計</td>
                                     <td class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                                        {{ getCurrencySymbol() }} {{ formatPrice(detailModal.total) }}
+                                        {{ formatPrice(detailModal.total) }}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -463,7 +463,8 @@ HTML;
 
 // Vue Component
 ?>
-<script>
+<script type="module">
+import { useCurrency } from '../composables/useCurrency.js';
 const { ref, onMounted, watch } = Vue;
 
 const ShipmentDetailsPageComponent = {
@@ -474,6 +475,9 @@ const ShipmentDetailsPageComponent = {
     template: `<?php echo $shipment_details_template; ?>`,
     setup() {
         const { computed, watch } = Vue;
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const { formatPrice, getCurrencySymbol, systemCurrency } = useCurrency();
         const activeTab = ref('pending');
         const shipments = ref([]);
         const loading = ref(false);
@@ -502,16 +506,6 @@ const ShipmentDetailsPageComponent = {
         // 搜尋狀態
         const searchQuery = ref(null);
         const searchFilter = ref(null);
-
-        // 幣別設定 - 動態讀取 FluentCart 設定
-        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
-        const currencySymbols = {
-            'TWD': 'NT$',
-            'JPY': '¥',
-            'USD': '$',
-            'THB': '฿'
-        };
-        const getCurrencySymbol = () => currencySymbols[systemCurrency.value] || 'NT$';
 
         // 載入出貨單列表
         const loadShipments = async () => {
@@ -806,11 +800,6 @@ const ShipmentDetailsPageComponent = {
         // 關閉詳情 Modal
         const closeDetailModal = () => {
             detailModal.value = { show: false, shipment: null, items: [], total: 0 };
-        };
-
-        // 格式化價格
-        const formatPrice = (price) => {
-            return new Intl.NumberFormat('zh-TW').format(price);
         };
 
         // 列印收據

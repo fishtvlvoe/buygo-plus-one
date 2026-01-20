@@ -159,13 +159,13 @@ $products_component_template = <<<'HTML'
                                                 </div>
                                                 <div class="min-w-0 cursor-pointer" @click="navigateTo('edit', product)">
                                                     <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors line-clamp-2 leading-snug">{{ product.name }}</div>
-                                                    <div class="text-[10px] text-slate-400 font-mono mt-1">ID: {{ product.id }} <span class="lg:hidden ml-2 font-bold text-slate-600">{{ formatPrice(product.price, product.currency) }}</span></div>
+                                                    <div class="text-[10px] text-slate-400 font-mono mt-1">ID: {{ product.id }} <span class="lg:hidden ml-2 font-bold text-slate-600">{{ formatPriceDisplay(product.price, product.currency) }}</span></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td class="px-2 py-4 text-right font-mono text-sm font-medium hidden lg:table-cell">
                                             <div class="flex flex-col items-end">
-                                                <span>{{ formatPrice(product.price, product.currency) }}</span>
+                                                <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                                 <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-xs text-slate-400 font-normal">
                                                     ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
                                                 </span>
@@ -220,7 +220,7 @@ $products_component_template = <<<'HTML'
                                         <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2 py-0.5 text-[10px] font-medium rounded-full border shrink-0 whitespace-nowrap">{{ product.status === 'published' ? '上架' : '下架' }}</button>
                                     </div>
                                     <div class="mt-1">
-                                        <span class="text-xs font-bold text-slate-500">{{ formatPrice(product.price, product.currency) }}</span>
+                                        <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                         <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-[10px] text-slate-400 ml-1">
                                             ≈ NT${{ Math.round((product.price ?? 0) * (exchangeRates[systemCurrency] || 1)).toLocaleString() }}
                                         </span>
@@ -383,7 +383,7 @@ $products_component_template = <<<'HTML'
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-bold text-slate-900 truncate text-base md:text-lg">{{ selectedProduct?.name }}</h3>
-                                    <p class="text-sm text-slate-500 mt-0.5">{{ formatPrice(selectedProduct?.price) }} <span class="text-xs text-slate-400 ml-1">ID: {{ selectedProduct?.id }}</span></p>
+                                    <p class="text-sm text-slate-500 mt-0.5">{{ formatPriceDisplay(selectedProduct?.price) }} <span class="text-xs text-slate-400 ml-1">ID: {{ selectedProduct?.id }}</span></p>
                                     <div class="mt-3 grid grid-cols-4 gap-2 text-center">
                                         <div class="bg-green-50 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-green-600">已下單</div>
@@ -486,7 +486,9 @@ HTML;
     <?php echo $products_component_template; ?>
 </script>
 
-<script>
+<script type="module">
+import { useCurrency } from '../composables/useCurrency.js';
+
 const ProductsPageComponent = {
     name: 'ProductsPage',
     components: {
@@ -495,6 +497,15 @@ const ProductsPageComponent = {
     template: '#products-page-template',
     setup() {
         const { ref, computed, watch, onMounted } = Vue;
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const {
+            formatPriceDisplay,
+            convertCurrency,
+            getCurrencySymbol,
+            systemCurrency,
+            currencySymbols
+        } = useCurrency();
         
         // --- Router & UI State ---
         const isSidebarCollapsed = ref(false);
@@ -542,25 +553,8 @@ const ProductsPageComponent = {
         const perPage = ref(10);
         const totalProducts = ref(0);
 
-        // 幣別設定 - 動態讀取 FluentCart 設定
-        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
-        const currentCurrency = ref(systemCurrency.value); // 當前顯示幣別
-
-        // 幣別符號對照表
-        const currencySymbols = {
-            'TWD': 'NT$',
-            'JPY': '¥',
-            'USD': '$',
-            'THB': '฿'
-        };
-
-        // 台幣匯率對照表（以 1 單位外幣 = X TWD 計算）
-        const exchangeRates = ref({
-            'JPY': 0.22,  // 1 JPY = 0.22 TWD
-            'USD': 31.5,  // 1 USD = 31.5 TWD
-            'THB': 0.90,  // 1 THB = 0.90 TWD
-            'TWD': 1      // 1 TWD = 1 TWD
-        });
+        // 當前顯示幣別
+        const currentCurrency = ref(systemCurrency.value);
 
         // --- Router Logic (使用 BuyGoRouter 核心模組) ---
         const checkUrlParams = async () => {
@@ -877,48 +871,19 @@ const ProductsPageComponent = {
         };
 
         // 格式化價格（支援多幣別顯示）
-        const formatPrice = (price, productCurrency = null) => {
-            // 防護：價格為 undefined 或 null 時返回 0
-            const safePrice = price ?? 0;
-
-            const displayCurrency = currentCurrency.value;
-            const sourceCurrency = productCurrency || systemCurrency.value;
-            const symbol = currencySymbols[displayCurrency] || '$';
-
-            let displayPrice = safePrice;
-
-            // 如果顯示幣別與商品幣別不同，進行轉換
-            if (displayCurrency !== sourceCurrency) {
-                const sourceRate = exchangeRates.value[sourceCurrency] || 1;
-                const targetRate = exchangeRates.value[displayCurrency] || 1;
-                displayPrice = Math.round(safePrice * sourceRate / targetRate);
-            }
-
-            return `${symbol}${displayPrice.toLocaleString()}`;
-        };
-
-        // 格式化價格（帶台幣轉換）- 用於表格顯示
-        const formatPriceWithConversion = (price, productCurrency = null) => {
-            // 防護：價格為 undefined 或 null 時返回 0
+        // 格式化價格（根據 currentCurrency 顯示）
+        const formatPriceDisplayDisplay = (price, productCurrency = null) => {
             const safePrice = price ?? 0;
             const sourceCurrency = productCurrency || systemCurrency.value;
 
-            // 原始幣別價格
-            const originalSymbol = currencySymbols[sourceCurrency] || '$';
-            const originalPrice = `${originalSymbol}${safePrice.toLocaleString()}`;
-
-            // 如果原始幣別不是台幣，顯示台幣轉換
-            if (sourceCurrency !== 'TWD') {
-                const twdRate = exchangeRates.value[sourceCurrency] || 1;
-                const twdPrice = Math.round(safePrice * twdRate);
-                const twdConverted = `≈ NT$${twdPrice.toLocaleString()}`;
-
-                return currentCurrency.value === 'TWD'
-                    ? `NT$${twdPrice.toLocaleString()}`
-                    : `${originalPrice} <span class="text-xs text-slate-400 ml-1">${twdConverted}</span>`;
+            // 如果當前顯示幣別與商品幣別相同,直接格式化
+            if (currentCurrency.value === sourceCurrency) {
+                return formatPriceDisplay(safePrice, sourceCurrency);
             }
 
-            return originalPrice;
+            // 否則進行匯率轉換
+            const convertedPrice = convertCurrency(safePrice, sourceCurrency, currentCurrency.value);
+            return formatPriceDisplay(convertedPrice, currentCurrency.value);
         };
 
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
@@ -946,7 +911,7 @@ const ProductsPageComponent = {
             navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
             loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
-            toggleSelectAll, formatPrice, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
+            toggleSelectAll, formatPriceDisplay, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
              fileInput,
              handleTabClick: (id) => {
                  currentTab.value = id;
@@ -954,9 +919,7 @@ const ProductsPageComponent = {
              },
              currentCurrency,
              systemCurrency,
-             exchangeRates,
              currencySymbols,
-             formatPriceWithConversion,
              toggleCurrency: () => {
                  // 在系統幣別和台幣之間切換
                  if (currentCurrency.value === 'TWD') {

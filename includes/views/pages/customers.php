@@ -442,7 +442,9 @@ $customers_component_template = <<<'HTML'
 HTML;
 ?>
 
-<script>
+<script type="module">
+import { useCurrency } from '../composables/useCurrency.js';
+
 const CustomersPageComponent = {
     name: 'CustomersPage',
     components: {
@@ -451,6 +453,9 @@ const CustomersPageComponent = {
     template: `<?php echo $customers_component_template; ?>`,
     setup() {
         const { ref, computed, onMounted } = Vue;
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const { formatPrice: formatCurrency, systemCurrency } = useCurrency();
         
         // 狀態變數
         const customers = ref([]);
@@ -649,15 +654,16 @@ const CustomersPageComponent = {
         const navigateToOrder = (orderId) => {
             window.location.href = `/buygo-portal/orders/?view=detail&id=${orderId}`;
         };
-        
+
         // 格式化金額（amount 單位為分，除以 100 顯示；currency 可選，缺則用 currentCurrency 或 JPY）
         const formatPrice = (amount, currency = null) => {
             if (amount !== 0 && !amount) return '-';
-            const currencyCode = currency || currentCurrency.value || 'JPY';
+            const currencyCode = currency || currentCurrency.value || systemCurrency.value;
             const value = amount / 100;
-            return `${currencyCode} ${value.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            // 使用 composable 的 formatCurrency 來格式化
+            return formatCurrency(value, currencyCode);
         };
-        
+
         // 格式化日期
         const formatDate = (dateString) => {
             if (!dateString) return '-';

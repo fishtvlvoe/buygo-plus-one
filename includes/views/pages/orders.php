@@ -534,7 +534,9 @@ HTML;
 ?>
 
 
-<script>
+<script type="module">
+import { useCurrency } from '../composables/useCurrency.js';
+
 const OrdersPageComponent = {
     name: 'OrdersPage',
     components: {
@@ -544,6 +546,9 @@ const OrdersPageComponent = {
     template: `<?php echo $orders_component_template; ?>`,
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const { formatPrice } = useCurrency();
 
         // ============================================
         // 路由狀態（使用 BuyGoRouter 核心模組）
@@ -773,12 +778,7 @@ const OrdersPageComponent = {
                 loading.value = false;
             }
         };
-        
-        // 格式化金額
-        const formatPrice = (price, currency = 'TWD') => {
-            return `${price.toLocaleString()} ${currency}`;
-        };
-        
+
         // 格式化日期
         const formatDate = (dateString) => {
             if (!dateString) return '';

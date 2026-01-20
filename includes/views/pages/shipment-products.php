@@ -405,7 +405,9 @@ $shipment_products_component_template = <<<'HTML'
 HTML;
 ?>
 
-<script>
+<script type="module">
+import { useCurrency } from '../composables/useCurrency.js';
+
 const ShipmentProductsPageComponent = {
     name: 'ShipmentProductsPage',
     components: {
@@ -414,6 +416,9 @@ const ShipmentProductsPageComponent = {
     template: `<?php echo $shipment_products_component_template; ?>`,
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const { formatPrice } = useCurrency();
         
         // 狀態變數
         const shipments = ref([]);
@@ -607,19 +612,6 @@ const ShipmentProductsPageComponent = {
             return statusTexts[status] || '待出貨';
         };
 
-        // 格式化價格顯示
-        const formatPrice = (price, currency = 'JPY') => {
-            const currencySymbols = {
-                'JPY': '¥',
-                'TWD': 'NT$',
-                'USD': '$',
-                'THB': '฿'
-            };
-            const symbol = currencySymbols[currency] || currency;
-            const formattedPrice = Math.round(price || 0).toLocaleString();
-            return `${symbol}${formattedPrice}`;
-        };
-        
         // 顯示確認 Modal
         const showConfirm = (message, title = '確認操作', onConfirm = null) => {
             confirmModal.value = {
