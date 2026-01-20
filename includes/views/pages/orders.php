@@ -1175,58 +1175,35 @@ const OrdersPageComponent = {
         
         // 執行訂單出貨
         const shipOrder = async (order) => {
-            // 如果訂單沒有 items，先載入詳情
-            if (!order.items || !Array.isArray(order.items)) {
-                await loadOrderDetail(order.id);
-                order = currentOrder.value || order;
-            }
-            
-            // 收集所有可出貨的商品
-            const itemsToShip = (order.items || []).filter(item => (item.allocated_quantity || 0) > 0);
-            
-            if (itemsToShip.length === 0) {
-                showToast('此訂單沒有可出貨的商品', 'error');
-                return;
-            }
-            
-            // 確認出貨
-            const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.allocated_quantity || 0), 0);
+            // 轉備貨：將訂單狀態更新為 'preparing'
             showConfirm(
-                '確認出貨',
-                `確定要出貨 ${totalQuantity} 個商品嗎？`,
+                '確認轉備貨',
+                `確定要將訂單 #${order.invoice_no || order.id} 轉為備貨狀態嗎？`,
                 async () => {
                     shipping.value = true;
-                    
+
                     try {
-                        // 準備 items 陣列
-                        const items = itemsToShip.map(item => ({
-                            order_item_id: item.id,
-                            quantity: item.allocated_quantity,
-                            product_id: item.product_id
-                        }));
-                        
-                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/ship`, {
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/prepare`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            credentials: 'include',
-                            body: JSON.stringify({ items })
+                            credentials: 'include'
                         });
-                        
+
                         const result = await response.json();
-                        
+
                         if (result.success) {
-                            showToast(`出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
+                            showToast('已轉為備貨狀態', 'success');
                             // 刷新列表
                             await loadOrders();
                         } else {
-                            showToast('出貨失敗：' + result.message, 'error');
+                            showToast('轉備貨失敗：' + result.message, 'error');
                         }
                     } catch (err) {
-                        console.error('出貨失敗:', err);
-                        showToast('出貨失敗：' + err.message, 'error');
-                
+                        console.error('轉備貨失敗:', err);
+                        showToast('轉備貨失敗：' + err.message, 'error');
+
                         // 記錄到除錯中心
                         fetch('/wp-json/buygo-plus-one/v1/debug/log', {
                             method: 'POST',
@@ -1234,7 +1211,7 @@ const OrdersPageComponent = {
                             credentials: 'include',
                             body: JSON.stringify({
                                 module: 'Orders',
-                                message: '訂單出貨失敗',
+                                message: '轉備貨失敗',
                                 level: 'error',
                                 data: { error: err.message, order_id: order.id }
                             })

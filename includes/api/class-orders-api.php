@@ -126,8 +126,23 @@ class Orders_API {
                 ]
             ]
         ]);
+
+        // POST /orders/{id}/prepare - 轉備貨（更新狀態為 preparing）
+        register_rest_route($this->namespace, '/orders/(?P<id>\d+)/prepare', [
+            'methods' => 'POST',
+            'callback' => [$this, 'prepare_order'],
+            'permission_callback' => '__return_true',
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
-    
+
     /**
      * 取得訂單列表
      */
@@ -588,7 +603,41 @@ class Orders_API {
             ], 500);
         }
     }
-    
+
+    /**
+     * 轉備貨（更新訂單狀態為 preparing）
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function prepare_order($request) {
+        try {
+            $order_id = (string)$request['id'];
+
+            // 更新 shipping_status 為 'preparing'
+            $result = $this->orderService->updateShippingStatus($order_id, 'preparing', '轉備貨');
+
+            if (!$result) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '轉備貨失敗'
+                ], 500);
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '已轉為備貨狀態'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'code' => 'PREPARE_ORDER_FAILED'
+            ], 500);
+        }
+    }
+
     /**
      * 權限檢查
      */
