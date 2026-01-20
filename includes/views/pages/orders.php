@@ -299,7 +299,7 @@ $orders_component_template = <<<'HTML'
                                 <div class="text-xs text-slate-600">
                                     <template v-if="childOrder.items && childOrder.items.length > 0">
                                         <div v-for="item in childOrder.items" :key="item.id" class="truncate">
-                                            {{ item.product_title }} × {{ item.quantity }}
+                                            {{ item.product_name || item.product_title }} × {{ item.quantity }}
                                         </div>
                                     </template>
                                     <span v-else class="text-blue-700">拆單商品</span>

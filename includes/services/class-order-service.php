@@ -729,25 +729,29 @@ class OrderService
         $order_type = $order['type'] ?? 'one-time';
         $is_child_order = !empty($parent_id);
 
-        // 如果是父訂單，查詢其子訂單
+        // 如果是父訂單，查詢其子訂單（載入完整資料）
         if (!$is_child_order) {
-            global $wpdb;
-            $child_orders = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, invoice_no, status, total_amount, currency, created_at
-                 FROM {$wpdb->prefix}fct_orders
-                 WHERE parent_id = %d AND type = 'split'
-                 ORDER BY created_at DESC",
-                $order['id']
-            ), ARRAY_A);
+            // 使用 FluentCart Model 查詢子訂單，確保載入 order_items
+            $child_orders = Order::with(['customer', 'order_items'])
+                ->where('parent_id', $order['id'])
+                ->where('type', 'split')
+                ->orderBy('created_at', 'DESC')
+                ->get();
 
             foreach ($child_orders as $child) {
+                // 遞迴格式化子訂單（載入完整 items 和其他資料）
+                $formatted_child = $this->formatOrder($child);
+                // 只保留必要欄位，避免無限遞迴（子訂單不需要再載入其子訂單）
                 $children[] = [
-                    'id' => (int)$child['id'],
-                    'invoice_no' => $child['invoice_no'],
-                    'status' => $child['status'],
-                    'total_amount' => ($child['total_amount'] ?? 0) / 100,
-                    'currency' => $child['currency'] ?? 'TWD',
-                    'created_at' => $child['created_at']
+                    'id' => $formatted_child['id'],
+                    'invoice_no' => $formatted_child['invoice_no'],
+                    'status' => $formatted_child['status'],
+                    'shipping_status' => $formatted_child['shipping_status'],
+                    'total_amount' => $formatted_child['total_amount'],
+                    'currency' => $formatted_child['currency'],
+                    'created_at' => $formatted_child['created_at'],
+                    'items' => $formatted_child['items'], // 重要：加入 items 資料
+                    'total_items' => $formatted_child['total_items']
                 ];
             }
         }
