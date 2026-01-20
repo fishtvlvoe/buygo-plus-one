@@ -874,13 +874,19 @@ class SettingsPage
         $stats = [];
 
         // WordPress 商品數量
-        $stats['wp_products'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'"
-        );
+        $wp_products_query = "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'";
+        $stats['wp_products'] = (int) $wpdb->get_var($wp_products_query);
 
-        // FluentCart 商品數量
+        // 如果查詢失敗，記錄錯誤
+        if ($wpdb->last_error) {
+            error_log('BuyGo Stats Error (wp_products): ' . $wpdb->last_error);
+            error_log('Query: ' . $wp_products_query);
+        }
+
+        // FluentCart 商品數量 (存在 wp_posts 中，post_type = 'fluent-products')
+        // 注意：這是 BuyGo 系統自訂的 post_type，不是 FluentCart 官方的 'fc_product'
         $stats['fct_products'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_products"
+            "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'"
         );
 
         // 訂單數量
@@ -917,6 +923,10 @@ class SettingsPage
         $stats['customers'] = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->prefix}fct_customers"
         );
+
+        // Debug: 記錄統計資料
+        error_log('BuyGo Test Data Stats: ' . print_r($stats, true));
+        error_log('DB Prefix: ' . $wpdb->prefix);
 
         return $stats;
     }
