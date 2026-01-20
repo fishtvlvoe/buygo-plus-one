@@ -59,18 +59,43 @@ $order_detail_modal_template = <<<'HTML'
                 <!-- 運送狀態 -->
                 <div class="flex-1">
                     <label class="block text-xs text-slate-600 font-medium mb-1.5">運送狀態</label>
-                    <select
-                        v-model="localShippingStatus"
-                        class="w-full rounded-lg border-slate-300 text-xs md:text-sm focus:border-primary focus:ring-primary py-2 md:py-2.5 px-2 md:px-3 bg-white shadow-sm"
-                        :disabled="updatingStatus"
-                    >
-                        <option value="not_shipped">未出貨</option>
-                        <option value="preparing">備貨中</option>
-                        <option value="processing">處理中</option>
-                        <option value="shipped">已出貨</option>
-                        <option value="completed">交易完成</option>
-                        <option value="out_of_stock">斷貨</option>
-                    </select>
+                    <div class="relative">
+                        <button
+                            type="button"
+                            @click="toggleShippingDropdown"
+                            :disabled="updatingStatus"
+                            class="w-full rounded-lg border border-slate-300 text-xs md:text-sm focus:border-primary focus:ring-2 focus:ring-primary py-2 md:py-2.5 px-2 md:px-3 bg-white shadow-sm text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span :class="getShippingStatusColor(localShippingStatus)" class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap">
+                                {{ getShippingStatusText(localShippingStatus) }}
+                            </span>
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- 下拉選單 -->
+                        <div
+                            v-if="showShippingDropdown"
+                            @click.stop
+                            class="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg py-1 max-h-60 overflow-auto"
+                        >
+                            <button
+                                v-for="status in shippingStatuses"
+                                :key="status.value"
+                                type="button"
+                                @click="selectShippingStatus(status.value)"
+                                :class="[
+                                    'w-full px-3 py-2 text-left text-xs hover:bg-slate-50 transition',
+                                    localShippingStatus === status.value ? 'bg-slate-100' : ''
+                                ]"
+                            >
+                                <span :class="status.color" class="px-3 py-1 rounded-full whitespace-nowrap inline-block">
+                                    {{ status.label }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 更新按鈕 -->
@@ -178,6 +203,11 @@ $order_detail_modal_template = <<<'HTML'
                     <span class="text-base md:text-lg font-bold text-primary">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
                 </div>
             </div>
+
+            <!-- 底部關閉按鈕 -->
+            <div v-if="isSubpage" class="mt-6 md:mt-8 flex justify-center">
+                <button @click="$emit('close')" class="w-full md:w-auto px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition text-sm font-medium shadow-md">關閉</button>
+            </div>
         </div>
     </div>
 </div>
@@ -213,7 +243,39 @@ const OrderDetailModal = {
         const localShippingStatus = ref('');
         const updatingStatus = ref(false);
         const statusError = ref(null);
-        
+
+        // 運送狀態下拉選單
+        const showShippingDropdown = ref(false);
+
+        // 運送狀態選項（與訂單列表保持一致）
+        const shippingStatuses = [
+            { value: 'not_shipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
+            { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
+            { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
+            { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
+            { value: 'completed', label: '交易完成', color: 'bg-green-100 text-green-800 border border-green-300' },
+            { value: 'out_of_stock', label: '斷貨', color: 'bg-red-100 text-red-800 border border-red-300' }
+        ];
+
+        const toggleShippingDropdown = () => {
+            showShippingDropdown.value = !showShippingDropdown.value;
+        };
+
+        const selectShippingStatus = (value) => {
+            localShippingStatus.value = value;
+            showShippingDropdown.value = false;
+        };
+
+        const getShippingStatusColor = (status) => {
+            const statusObj = shippingStatuses.find(s => s.value === status);
+            return statusObj ? statusObj.color : 'bg-slate-100 text-slate-800';
+        };
+
+        const getShippingStatusText = (status) => {
+            const statusObj = shippingStatuses.find(s => s.value === status);
+            return statusObj ? statusObj.label : status;
+        };
+
         // 載入訂單詳情
         const loadOrderDetail = async () => {
             if (!props.orderId) {
@@ -435,7 +497,16 @@ const OrderDetailModal = {
                 shipping.value = false;
             }
         };
-        
+
+        // 點擊外部關閉下拉選單
+        onMounted(() => {
+            document.addEventListener('click', (e) => {
+                if (showShippingDropdown.value && !e.target.closest('.relative')) {
+                    showShippingDropdown.value = false;
+                }
+            });
+        });
+
         // 監聽 orderId 變化，重新載入資料
         watch(() => props.orderId, (newId) => {
             if (newId) {
@@ -461,6 +532,12 @@ const OrderDetailModal = {
             statusError,
             hasStatusChanges,
             updateStatus,
+            showShippingDropdown,
+            shippingStatuses,
+            toggleShippingDropdown,
+            selectShippingStatus,
+            getShippingStatusColor,
+            getShippingStatusText,
             isSubpage: computed(() => props.isSubpage)
         };
     }

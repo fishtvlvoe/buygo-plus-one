@@ -416,7 +416,7 @@ $orders_component_template = <<<'HTML'
                         <div class="truncate"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">訂單詳情 #{{ currentOrderId }}</h2></div>
                     </div>
                     <div class="flex gap-2 shrink-0">
-                        <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition text-xs md:text-sm font-medium">關閉</button>
+                        <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition text-xs md:text-sm font-medium">關閉</button>
                     </div>
                 </div>
 
