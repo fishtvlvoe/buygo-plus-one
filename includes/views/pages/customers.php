@@ -493,9 +493,8 @@ const CustomersPageComponent = {
         const noteSaving = ref(false);
         const noteSaved = ref(false);
 
-        // 幣別：從系統設定動態讀取（不再寫死）
-        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
-        const currentCurrency = ref(window.buygoSettings?.currency || 'JPY');
+        // 當前顯示幣別 (systemCurrency 已從 useCurrency composable 取得)
+        const currentCurrency = ref(systemCurrency.value);
 
         // 訂單展開狀態
         const expandedOrderId = ref(null);

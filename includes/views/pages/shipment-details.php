@@ -835,7 +835,21 @@ const ShipmentDetailsPageComponent = {
             const date = new Date(dateString);
             return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
         };
-        
+
+        // 智慧搜尋處理
+        const handleSearchSelect = (item) => {
+            // 搜尋選中項目後的處理
+            if (item && item.id) {
+                viewDetail(item.id);
+            }
+        };
+
+        const handleSearchClear = () => {
+            // 清除搜尋後重新載入列表
+            searchQuery.value = null;
+            loadShipments();
+        };
+
         // 監聽分頁切換，清除勾選
         watch(() => activeTab.value, () => {
             selectedShipments.value = [];
@@ -872,6 +886,8 @@ const ShipmentDetailsPageComponent = {
             printDetail,
             getCurrencySymbol,
             systemCurrency,
+            handleSearchSelect,
+            handleSearchClear,
             // 分頁相關
             currentPage,
             perPage,
