@@ -256,8 +256,8 @@ class Shipments_API
 
                 $item['product_image'] = $product_image;
 
-                // 處理價格（unit_price 是數據庫中的欄位名稱）
-                $unit_price_value = floatval($item['unit_price'] ?? 0);
+                // 處理價格（unit_price 是數據庫中的欄位名稱，FluentCart 以「分」為單位儲存，需除以 100）
+                $unit_price_value = floatval($item['unit_price'] ?? 0) / 100;
                 $item['unit_price'] = $unit_price_value;
                 $item['price'] = $unit_price_value;
 
@@ -668,9 +668,9 @@ class Shipments_API
                 $shipment_id
             ), ARRAY_A);
             
-            // 處理價格（如果沒有價格，預設為 0）
+            // 處理價格（FluentCart 以「分」為單位儲存，需除以 100）
             foreach ($items as &$item) {
-                $item['price'] = floatval($item['price'] ?? 0);
+                $item['price'] = floatval($item['price'] ?? 0) / 100;
             }
             unset($item);
             

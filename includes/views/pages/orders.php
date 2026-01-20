@@ -308,10 +308,10 @@ $orders_component_template = <<<'HTML'
                             <td class="px-4 py-3 text-sm font-semibold text-blue-700">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
                             <td class="px-4 py-3">
                                 <span
-                                    :class="getStatusClass(childOrder.shipping_status || 'pending')"
+                                    :class="getStatusClass(childOrder.shipping_status || 'unshipped')"
                                     class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
                                 >
-                                    {{ getStatusText(childOrder.shipping_status || 'pending') }}
+                                    {{ getStatusText(childOrder.shipping_status || 'unshipped') }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(childOrder.created_at) }}</td>
@@ -900,8 +900,8 @@ const OrdersPageComponent = {
                         ...order,
                         // 檢查是否有分配的商品
                         has_allocation: order.items && Array.isArray(order.items) && order.items.some(item => {
-                            const allocatedQty = item.allocated_quantity != null 
-                                ? parseInt(item.allocated_quantity, 10) 
+                            const allocatedQty = item.allocated_quantity != null
+                                ? parseInt(item.allocated_quantity, 10)
                                 : 0;
                             return !isNaN(allocatedQty) && isFinite(allocatedQty) && allocatedQty > 0;
                         }),
@@ -909,6 +909,13 @@ const OrdersPageComponent = {
                         items: order.items || []
                     }));
                     totalOrders.value = result.total || result.data.length;
+
+                    // 預設折疊所有有子訂單的訂單
+                    orders.value.forEach(order => {
+                        if (order.children && order.children.length > 0) {
+                            collapsedChildren.value.add(order.id);
+                        }
+                    });
                 } else {
                     throw new Error(result.message || '載入訂單失敗');
                 }

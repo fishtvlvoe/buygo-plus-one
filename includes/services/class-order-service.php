@@ -631,8 +631,21 @@ class OrderService
                 $quantity = $item['quantity'] ?? 0;
                 $total_items += $quantity;
 
-                // 取得商品名稱（優先使用 title，其次使用 post_title）
-                $product_name = $item['title'] ?? $item['post_title'] ?? '未知商品';
+                // 取得商品名稱（優先使用 title，其次從 WordPress 讀取）
+                $product_name = $item['title'] ?? '';
+
+                // 如果沒有 title，從 WordPress posts 表讀取商品名稱
+                if (empty($product_name)) {
+                    $post_id = (int)($item['post_id'] ?? 0);
+                    if ($post_id > 0) {
+                        $product_name = get_the_title($post_id);
+                    }
+                }
+
+                // 最終後備
+                if (empty($product_name)) {
+                    $product_name = '未知商品';
+                }
                 
                 // 讀取 line_meta 或 meta_data 中的 allocated_quantity 和 shipped_quantity
                 // 注意：FluentCart Model 會自動將 line_meta 解碼成 Array，所以需要檢查類型

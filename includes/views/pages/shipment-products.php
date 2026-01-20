@@ -211,7 +211,7 @@ $shipment_products_component_template = <<<'HTML'
                                         @click="moveToShipment(shipment.id)"
                                         class="inline-block px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-sm whitespace-nowrap"
                                         style="min-width: 80px;">
-                                        已出貨
+                                        轉出貨
                                     </button>
                                 </td>
                             </tr>
@@ -319,7 +319,7 @@ $shipment_products_component_template = <<<'HTML'
                         @click="moveToShipment(shipment.id)"
                         class="w-full px-3 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-sm"
                         style="white-space: nowrap;">
-                        已出貨
+                        轉出貨
                     </button>
                 </div>
             </div>

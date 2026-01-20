@@ -416,7 +416,29 @@ class ShipmentService
                 if ($order && $order->parent_id && $order->type === 'split') {
                     $parent_id = $order->parent_id;
 
-                    // 4. 檢查父訂單是否所有子訂單都已出貨
+                    // 4. 取得父訂單當前狀態
+                    $parent_order = $wpdb->get_row($wpdb->prepare(
+                        "SELECT status FROM {$wpdb->prefix}fct_orders WHERE id = %d",
+                        $parent_id
+                    ));
+
+                    // 5. 如果父訂單是 pending，先更新為 processing（有子訂單開始出貨）
+                    if ($parent_order && $parent_order->status === 'pending') {
+                        $wpdb->update(
+                            $wpdb->prefix . 'fct_orders',
+                            ['status' => 'processing'],
+                            ['id' => $parent_id],
+                            ['%s'],
+                            ['%d']
+                        );
+
+                        $this->debugService->log('ShipmentService', '父訂單更新為處理中', [
+                            'parent_id' => $parent_id,
+                            'reason' => '有子訂單開始出貨'
+                        ]);
+                    }
+
+                    // 6. 檢查父訂單是否所有子訂單都已出貨
                     $pending_count = $wpdb->get_var($wpdb->prepare(
                         "SELECT COUNT(*)
                          FROM {$wpdb->prefix}fct_orders
@@ -431,7 +453,7 @@ class ShipmentService
                         'pending_count' => $pending_count
                     ]);
 
-                    // 5. 如果所有子訂單都已出貨，自動完成父訂單
+                    // 7. 如果所有子訂單都已出貨，自動完成父訂單
                     if ($pending_count == 0) {
                         $wpdb->update(
                             $wpdb->prefix . 'fct_orders',

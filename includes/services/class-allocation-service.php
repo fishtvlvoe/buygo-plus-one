@@ -508,13 +508,14 @@ class AllocationService
                     'type' => 'split',
                     'customer_id' => $parent_order->customer_id,
                     'status' => 'pending',
+                    'shipping_status' => 'unshipped',  // 子訂單初始狀態為「未出貨」
                     'total_amount' => $child_total_cents,
                     'currency' => $parent_order->currency,
                     'payment_method' => $parent_order->payment_method,
                     'invoice_no' => $child_invoice_no,
                     'created_at' => current_time('mysql'),
                 ],
-                ['%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s']
+                ['%d', '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s']
             );
 
             if ($result === false || $wpdb->insert_id === 0) {
