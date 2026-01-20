@@ -33,41 +33,7 @@ $order_detail_modal_template = <<<'HTML'
     </div>
 
     <!-- Order Details -->
-    <div v-else-if="orderData">
-        <!-- 客戶資訊卡片 -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
-            <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-primary pl-3">客戶資訊</h4>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">訂單編號</span>
-                    <span class="font-bold text-slate-900 md:block">{{ orderData.invoice_no || ('訂單 #' + orderData.id) }}</span>
-                </div>
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">訂單狀態</span>
-                    <span :class="getStatusClass(orderData.status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                        {{ getStatusText(orderData.status) }}
-                    </span>
-                </div>
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">客戶姓名</span>
-                    <span class="font-bold text-slate-900 md:block">{{ orderData.customer_name || '-' }}</span>
-                </div>
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">客戶 Email</span>
-                    <span class="text-slate-900 md:block break-all">{{ orderData.customer_email || '-' }}</span>
-                </div>
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">總金額</span>
-                    <span class="font-bold text-slate-900 md:block">{{ formatPrice(orderData.total_amount, orderData.currency) }}</span>
-                </div>
-                <div class="flex justify-between md:block">
-                    <span class="text-slate-500">下單日期</span>
-                    <span class="text-slate-900 md:block">{{ formatDate(orderData.created_at) }}</span>
-                </div>
-            </div>
-        </div>
-
+    <div v-else-if="orderData" class="space-y-4 md:space-y-6">
         <!-- 狀態操作卡片 -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 md:p-6">
             <h4 class="text-xs md:text-sm font-bold text-slate-900 mb-3 md:mb-4 border-l-4 border-primary pl-2 md:pl-3">狀態操作</h4>
@@ -98,7 +64,7 @@ $order_detail_modal_template = <<<'HTML'
                         class="w-full rounded-lg border-slate-300 text-xs md:text-sm focus:border-primary focus:ring-primary py-2 md:py-2.5 px-2 md:px-3 bg-white shadow-sm"
                         :disabled="updatingStatus"
                     >
-                        <option value="pending">未出貨</option>
+                        <option value="not_shipped">未出貨</option>
                         <option value="preparing">備貨中</option>
                         <option value="processing">處理中</option>
                         <option value="shipped">已出貨</option>
@@ -123,6 +89,34 @@ $order_detail_modal_template = <<<'HTML'
             <!-- 錯誤訊息 -->
             <div v-if="statusError" class="mt-3 p-2 md:p-3 bg-red-50 border border-red-200 rounded-lg text-xs md:text-sm text-red-600">
                 {{ statusError }}
+            </div>
+        </div>
+
+        <!-- 客戶資訊卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+            <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-primary pl-3">客戶資訊</h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">姓名</span>
+                    <span class="font-bold text-slate-900 md:block">{{ orderData.customer_name || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">電話</span>
+                    <span class="text-slate-900 md:block">{{ orderData.customer_phone || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">Email</span>
+                    <span class="text-slate-900 md:block break-all">{{ orderData.customer_email || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">配送地址</span>
+                    <span class="text-slate-900 md:block">{{ orderData.customer_address || '-' }}</span>
+                </div>
+                <div class="flex justify-between md:block">
+                    <span class="text-slate-500">付款方式</span>
+                    <span class="text-slate-900 md:block">{{ orderData.payment_method || '-' }}</span>
+                </div>
             </div>
         </div>
 
@@ -261,7 +255,7 @@ const OrderDetailModal = {
 
                     // 初始化本地狀態
                     localOrderStatus.value = orderData.value.status || 'pending';
-                    localShippingStatus.value = orderData.value.shipping_status || 'pending';
+                    localShippingStatus.value = orderData.value.shipping_status || 'not_shipped';
                     statusError.value = null;
                 } else {
                     error.value = result.message || '載入訂單失敗';
@@ -322,7 +316,7 @@ const OrderDetailModal = {
         const hasStatusChanges = computed(() => {
             if (!orderData.value) return false;
             const orderStatusChanged = localOrderStatus.value !== (orderData.value.status || 'pending');
-            const shippingStatusChanged = localShippingStatus.value !== (orderData.value.shipping_status || 'pending');
+            const shippingStatusChanged = localShippingStatus.value !== (orderData.value.shipping_status || 'not_shipped');
             return orderStatusChanged || shippingStatusChanged;
         });
         
@@ -366,7 +360,7 @@ const OrderDetailModal = {
                 }
                 
                 // 更新運送狀態
-                if (localShippingStatus.value !== (orderData.value.shipping_status || 'pending')) {
+                if (localShippingStatus.value !== (orderData.value.shipping_status || 'not_shipped')) {
                     const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/shipping-status`, {
                         method: 'PUT',
                         headers: {
