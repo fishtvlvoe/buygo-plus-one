@@ -17,8 +17,8 @@ if (file_exists($wp_load_path)) {
 }
 
 // 安全檢查
-if (!is_admin() || !current_user_can('manage_options')) {
-    die('Access denied');
+if (!current_user_can('manage_options')) {
+    die('Access denied - 您沒有權限訪問此頁面');
 }
 
 global $wpdb;
