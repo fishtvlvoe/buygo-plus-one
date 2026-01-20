@@ -130,7 +130,8 @@ class SettingsPage
             'notifications' => '通知記錄',
             'workflow' => '流程監控',
             'roles' => '角色權限設定',
-            'test-tools' => '測試工具'
+            'test-tools' => '測試工具',
+            'debug-center' => '除錯中心'
         ];
 
         // 取得 LINE 設定
@@ -168,6 +169,9 @@ class SettingsPage
                         break;
                     case 'test-tools':
                         $this->render_test_tools_tab();
+                        break;
+                    case 'debug-center':
+                        $this->render_debug_center_tab();
                         break;
                 }
                 ?>
@@ -1043,6 +1047,322 @@ class SettingsPage
                 'message' => '❌ 清除失敗：' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * 渲染除錯中心 Tab
+     */
+    private function render_debug_center_tab(): void
+    {
+        global $wpdb;
+
+        // 處理 SQL 查詢
+        $sql_result = null;
+        $sql_error = null;
+        $sql_query = '';
+
+        if (isset($_POST['execute_sql']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_debug_sql')) {
+            $sql_query = stripslashes($_POST['sql_query'] ?? '');
+
+            if (!empty($sql_query)) {
+                try {
+                    // 安全檢查：只允許 SELECT 查詢
+                    $sql_upper = strtoupper(trim($sql_query));
+                    if (!preg_match('/^SELECT\s/i', $sql_upper)) {
+                        $sql_error = '⚠️ 安全限制：只允許 SELECT 查詢';
+                    } else {
+                        $results = $wpdb->get_results($sql_query, ARRAY_A);
+
+                        if ($wpdb->last_error) {
+                            $sql_error = $wpdb->last_error;
+                        } else {
+                            $sql_result = $results;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $sql_error = $e->getMessage();
+                }
+            }
+        }
+
+        ?>
+        <div class="wrap">
+            <h2>🔍 除錯中心</h2>
+            <p class="description">快速查詢資料庫，方便除錯和測試。</p>
+
+            <!-- 常用查詢快捷按鈕 -->
+            <div class="card" style="max-width: 100%; margin-top: 20px;">
+                <h3>📋 常用查詢</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px;">
+                    <button type="button" class="button" onclick="setQuery('products')">
+                        📦 查看最新商品
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('orders')">
+                        🛒 查看最新訂單
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('child_orders')">
+                        🔗 查看子訂單
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('shipments')">
+                        📦 查看出貨單
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('variations')">
+                        🏷️ 查看商品變體
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('customers')">
+                        👥 查看客戶
+                    </button>
+                    <button type="button" class="button" onclick="setQuery('tables')">
+                        🗄️ 查看所有資料表
+                    </button>
+                </div>
+            </div>
+
+            <!-- SQL 查詢編輯器 -->
+            <div class="card" style="max-width: 100%; margin-top: 20px;">
+                <h3>💻 SQL 查詢編輯器</h3>
+                <form method="post" action="">
+                    <?php wp_nonce_field('buygo_debug_sql'); ?>
+
+                    <div style="margin-top: 15px;">
+                        <textarea
+                            name="sql_query"
+                            id="sql_query"
+                            rows="8"
+                            style="width: 100%; font-family: monospace; font-size: 13px; padding: 10px;"
+                            placeholder="輸入 SQL 查詢... (僅支援 SELECT)"
+                        ><?php echo esc_textarea($sql_query); ?></textarea>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <button type="submit" name="execute_sql" class="button button-primary">
+                            ▶️ 執行查詢
+                        </button>
+                        <button type="button" class="button" onclick="clearQuery()">
+                            🗑️ 清空
+                        </button>
+                        <button type="button" class="button" onclick="copyQuery()">
+                            📋 複製結果
+                        </button>
+                        <span style="color: #666; margin-left: 15px;">
+                            ℹ️ 提示：表名前綴為 <code><?php echo esc_html($wpdb->prefix); ?></code>
+                        </span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 查詢結果 -->
+            <?php if ($sql_error): ?>
+                <div class="card" style="max-width: 100%; margin-top: 20px; border-left: 4px solid #dc3232;">
+                    <h3 style="color: #dc3232;">❌ 查詢錯誤</h3>
+                    <pre style="background: #f8d7da; padding: 15px; border-radius: 4px; overflow-x: auto;"><?php echo esc_html($sql_error); ?></pre>
+                </div>
+            <?php elseif ($sql_result !== null): ?>
+                <div class="card" style="max-width: 100%; margin-top: 20px; border-left: 4px solid #46b450;">
+                    <h3 style="color: #46b450;">✅ 查詢結果 (<?php echo count($sql_result); ?> 筆)</h3>
+
+                    <?php if (empty($sql_result)): ?>
+                        <p style="color: #666;">查詢結果為空</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table class="widefat" style="margin-top: 15px;">
+                                <thead>
+                                    <tr>
+                                        <?php foreach (array_keys($sql_result[0]) as $column): ?>
+                                            <th><?php echo esc_html($column); ?></th>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($sql_result as $row): ?>
+                                        <tr>
+                                            <?php foreach ($row as $value): ?>
+                                                <td>
+                                                    <?php
+                                                    if (strlen($value) > 100) {
+                                                        echo '<details><summary>' . esc_html(substr($value, 0, 100)) . '...</summary><pre style="white-space: pre-wrap; word-wrap: break-word;">' . esc_html($value) . '</pre></details>';
+                                                    } else {
+                                                        echo esc_html($value);
+                                                    }
+                                                    ?>
+                                                </td>
+                                            <?php endforeach; ?>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- JSON 格式 (用於複製) -->
+                        <details style="margin-top: 20px;">
+                            <summary style="cursor: pointer; font-weight: 600;">📄 JSON 格式 (點擊展開)</summary>
+                            <pre id="json-result" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px;"><?php echo json_encode($sql_result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE); ?></pre>
+                        </details>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- 系統資訊 -->
+            <div class="card" style="max-width: 100%; margin-top: 20px;">
+                <h3>ℹ️ 系統資訊</h3>
+                <table class="widefat" style="margin-top: 15px;">
+                    <tbody>
+                        <tr>
+                            <td style="width: 30%;"><strong>資料庫前綴</strong></td>
+                            <td><code><?php echo esc_html($wpdb->prefix); ?></code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>WordPress 版本</strong></td>
+                            <td><?php echo esc_html(get_bloginfo('version')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>PHP 版本</strong></td>
+                            <td><?php echo esc_html(PHP_VERSION); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>MySQL 版本</strong></td>
+                            <td><?php echo esc_html($wpdb->db_version()); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong>外掛版本</strong></td>
+                            <td><?php echo esc_html(BUYGO_PLUS_ONE_VERSION ?? 'N/A'); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+        // 預設查詢模板
+        const queries = {
+            products: `SELECT
+    id,
+    post_id,
+    variation_title,
+    item_price / 100 AS '售價(元)',
+    compare_price / 100 AS '原價(元)',
+    payment_type,
+    total_stock,
+    available,
+    created_at
+FROM <?php echo $wpdb->prefix; ?>fct_product_variations
+ORDER BY id DESC
+LIMIT 10`,
+
+            orders: `SELECT
+    id,
+    parent_id,
+    invoice_no,
+    type,
+    status,
+    total_amount / 100 AS '金額(元)',
+    customer_id,
+    created_at
+FROM <?php echo $wpdb->prefix; ?>fct_orders
+ORDER BY id DESC
+LIMIT 10`,
+
+            child_orders: `SELECT
+    o.id,
+    o.parent_id,
+    o.invoice_no,
+    o.type,
+    o.status,
+    o.total_amount / 100 AS '金額(元)',
+    oi.quantity,
+    o.created_at
+FROM <?php echo $wpdb->prefix; ?>fct_orders o
+LEFT JOIN <?php echo $wpdb->prefix; ?>fct_order_items oi ON o.id = oi.order_id
+WHERE o.type = 'split'
+ORDER BY o.created_at DESC
+LIMIT 10`,
+
+            shipments: `SELECT
+    s.id,
+    s.shipment_number,
+    s.status,
+    s.tracking_number,
+    COUNT(si.id) AS item_count,
+    s.created_at
+FROM <?php echo $wpdb->prefix; ?>buygo_shipments s
+LEFT JOIN <?php echo $wpdb->prefix; ?>buygo_shipment_items si ON s.id = si.shipment_id
+GROUP BY s.id
+ORDER BY s.id DESC
+LIMIT 10`,
+
+            variations: `SELECT
+    v.id,
+    v.post_id,
+    v.variation_title,
+    v.item_price / 100 AS '售價(元)',
+    v.compare_price / 100 AS '原價(元)',
+    v.payment_type,
+    v.other_info,
+    v.created_at
+FROM <?php echo $wpdb->prefix; ?>fct_product_variations v
+ORDER BY v.id DESC
+LIMIT 5`,
+
+            customers: `SELECT
+    id,
+    user_id,
+    email,
+    first_name,
+    last_name,
+    created_at
+FROM <?php echo $wpdb->prefix; ?>fct_customers
+ORDER BY id DESC
+LIMIT 10`,
+
+            tables: `SHOW TABLES LIKE '<?php echo $wpdb->prefix; ?>%'`
+        };
+
+        function setQuery(type) {
+            document.getElementById('sql_query').value = queries[type];
+        }
+
+        function clearQuery() {
+            document.getElementById('sql_query').value = '';
+        }
+
+        function copyQuery() {
+            const jsonResult = document.getElementById('json-result');
+            if (jsonResult) {
+                const text = jsonResult.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('✅ 結果已複製到剪貼板！');
+                }).catch(() => {
+                    alert('❌ 複製失敗，請手動選取');
+                });
+            } else {
+                alert('⚠️ 沒有可複製的結果');
+            }
+        }
+        </script>
+
+        <style>
+        .card {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccd0d4;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+        }
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        details summary {
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px;
+            background: #f0f0f1;
+            border-radius: 4px;
+        }
+        details summary:hover {
+            background: #e0e0e1;
+        }
+        </style>
+        <?php
     }
 
     /**
