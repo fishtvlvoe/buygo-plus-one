@@ -1,12 +1,23 @@
 <?php
 // 系統設定頁面元件
-
+?>
+<style>
+/* Transitions for mobile search */
+.search-slide-enter-active, .search-slide-leave-active {
+    transition: all 0.2s ease;
+}
+.search-slide-enter-from, .search-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+</style>
+<?php
 $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- Header（與其他頁面一致） -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
+            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
                 <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">設定</h1>
                 <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
                     <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
@@ -18,11 +29,36 @@ $settings_component_template = <<<'HTML'
 
         <!-- 右側操作區 -->
         <div class="flex items-center gap-2 md:gap-3 shrink-0">
+            <!-- 手機版搜尋按鈕 -->
+            <button @click="showMobileSearch = !showMobileSearch"
+                class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </button>
+
+            <!-- 桌面版全域搜尋框 -->
+            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
+                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
+                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
             <!-- 通知鈴鐺 -->
             <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </button>
         </div>
+
+        <!-- 手機版搜尋覆蓋層 -->
+        <transition name="search-slide">
+            <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
+                <div class="relative flex-1">
+                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
+                        class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
+            </div>
+        </transition>
     </header>
 
     <!-- 設定內容容器 -->
@@ -828,7 +864,11 @@ const SettingsPageComponent = {
     },
     setup() {
         const { ref, onMounted, onUnmounted } = Vue;
-        
+
+        // UI 狀態（全域搜尋）
+        const showMobileSearch = ref(false);
+        const globalSearchQuery = ref('');
+
         // 模板設定狀態
         const activeTemplateTab = ref('buyer');
         const templateTabs = [
@@ -889,7 +929,13 @@ const SettingsPageComponent = {
                 toastMessage.value.show = false;
             }, 3000);
         };
-        
+
+        // 全域搜尋處理
+        const handleGlobalSearch = (event) => {
+            // 預留給未來實作全域搜尋邏輯
+            console.log('Global search:', event.target.value);
+        };
+
         // 模板定義（包含分類和變數資訊）
         const templateDefinitions = {
             buyer: [
@@ -1966,7 +2012,11 @@ const SettingsPageComponent = {
             removeNewAlias,
             editingKeywordId,
             expandedKeywordsSet,
-            showToast
+            showToast,
+            // 全域搜尋相關
+            showMobileSearch,
+            globalSearchQuery,
+            handleGlobalSearch
         };
     }
 };
