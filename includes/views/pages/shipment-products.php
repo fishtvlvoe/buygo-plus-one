@@ -133,76 +133,58 @@ $shipment_products_component_template = <<<'HTML'
                                 <td class="px-4 py-4 text-sm font-medium text-slate-900 whitespace-nowrap">{{ shipment.shipment_number }}</td>
                                 <td class="px-4 py-4 text-sm text-slate-600 whitespace-nowrap">{{ shipment.customer_name || '未知客戶' }}</td>
                                 <td class="px-4 py-4">
-                                    <div class="flex items-start gap-3">
-                                        <!-- 商品圖片 -->
-                                        <div class="shrink-0">
-                                            <img
-                                                v-if="shipment.items && shipment.items[0] && shipment.items[0].product_image"
-                                                :src="shipment.items[0].product_image"
-                                                :alt="shipment.items[0].product_name"
-                                                class="w-12 h-12 object-cover rounded-lg border border-slate-200"
-                                            />
-                                            <div v-else class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200">
-                                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <!-- 商品清單文字 -->
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-2">
-                                                <span
-                                                    @click="toggleShipmentExpand(shipment.id)"
-                                                    class="cursor-pointer hover:text-primary transition text-sm text-slate-700 line-clamp-2"
-                                                    :title="formatItemsDisplay(shipment, 999)"
-                                                >
-                                                    {{ formatItemsDisplay(shipment) }}
-                                                </span>
-                                                <button
-                                                    v-if="shipment.items && shipment.items.length > 0"
-                                                    @click="toggleShipmentExpand(shipment.id)"
-                                                    class="text-slate-400 hover:text-primary transition flex-shrink-0"
-                                                >
-                                                    <svg
-                                                        class="w-4 h-4 transition-transform"
-                                                        :class="{ 'rotate-180': isShipmentExpanded(shipment.id) }"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            <!-- 展開的商品詳細列表 -->
-                                            <div
-                                                v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
-                                                class="mt-2 pt-2 border-t border-slate-200"
+                                    <!-- 商品清單（移除外部圖片） -->
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            @click="toggleShipmentExpand(shipment.id)"
+                                            class="cursor-pointer hover:text-primary transition text-sm text-slate-700 line-clamp-2"
+                                            :title="formatItemsDisplay(shipment, 999)"
+                                        >
+                                            {{ formatItemsDisplay(shipment) }}
+                                        </span>
+                                        <button
+                                            v-if="shipment.items && shipment.items.length > 0"
+                                            @click="toggleShipmentExpand(shipment.id)"
+                                            class="text-slate-400 hover:text-primary transition flex-shrink-0"
+                                        >
+                                            <svg
+                                                class="w-4 h-4 transition-transform"
+                                                :class="{ 'rotate-180': isShipmentExpanded(shipment.id) }"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
                                             >
-                                                <div class="space-y-2">
-                                                    <div
-                                                        v-for="item in shipment.items"
-                                                        :key="item.id"
-                                                        class="flex items-center gap-3 text-xs"
-                                                    >
-                                                        <!-- 商品圖片 -->
-                                                        <img
-                                                            v-if="item.product_image"
-                                                            :src="item.product_image"
-                                                            :alt="item.product_name"
-                                                            class="w-10 h-10 object-cover rounded border border-slate-200 shrink-0"
-                                                        />
-                                                        <div v-else class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center border border-slate-200 shrink-0">
-                                                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="flex-1 min-w-0">
-                                                            <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
-                                                            <div class="text-slate-500">
-                                                                {{ item.quantity }} × {{ formatPrice(item.unit_price || item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.unit_price || item.price || 0)), item.currency || 'JPY') }}
-                                                            </div>
-                                                        </div>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <!-- 展開的商品詳細列表 -->
+                                    <div
+                                        v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
+                                        class="mt-3 pt-3 border-t border-slate-200"
+                                    >
+                                        <div class="space-y-2">
+                                            <div
+                                                v-for="item in shipment.items"
+                                                :key="item.id"
+                                                class="flex items-center gap-3 text-xs"
+                                            >
+                                                <!-- 商品圖片 -->
+                                                <img
+                                                    v-if="item.product_image"
+                                                    :src="item.product_image"
+                                                    :alt="item.product_name"
+                                                    class="w-10 h-10 object-cover rounded border border-slate-200 shrink-0"
+                                                />
+                                                <div v-else class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center border border-slate-200 shrink-0">
+                                                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
+                                                    <div class="text-slate-500">
+                                                        {{ item.quantity }} × {{ formatPrice(item.unit_price || item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.unit_price || item.price || 0)), item.currency || 'JPY') }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -280,30 +262,31 @@ $shipment_products_component_template = <<<'HTML'
                             v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
                             class="mt-2 pt-2 border-t border-slate-200"
                         >
-                            <div class="space-y-2 mb-3">
+                            <div class="space-y-2">
                                 <div
                                     v-for="item in shipment.items"
                                     :key="item.id"
                                     class="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded"
                                 >
+                                    <!-- 商品圖片 -->
                                     <img
                                         v-if="item.product_image"
                                         :src="item.product_image"
                                         :alt="item.product_name"
-                                        class="w-8 h-8 object-cover rounded border border-slate-200"
+                                        class="w-8 h-8 object-cover rounded border border-slate-200 shrink-0"
                                     />
+                                    <div v-else class="w-8 h-8 bg-slate-100 rounded flex items-center justify-center border border-slate-200 shrink-0">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
                                         <div class="text-slate-500">
-                                            訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                                            {{ item.quantity }} × {{ formatPrice(item.unit_price || item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.unit_price || item.price || 0)), item.currency || 'JPY') }}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- 總數量 -->
-                            <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs bg-slate-50 p-2 rounded">
-                                <span class="text-slate-600 font-medium">總數量</span>
-                                <span class="text-slate-900 font-bold">{{ shipment.total_quantity }} 個</span>
                             </div>
                         </div>
                     </div>
@@ -519,10 +502,23 @@ const ShipmentProductsPageComponent = {
                 }
                 
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     shipments.value = result.data;
                     totalShipments.value = result.total || result.data.length;
+
+                    // Debug: 檢查第一筆出貨單的數據結構
+                    if (result.data.length > 0) {
+                        console.log('=== 備貨頁面數據調試 ===');
+                        console.log('第一筆出貨單完整數據:', result.data[0]);
+                        if (result.data[0].items && result.data[0].items.length > 0) {
+                            console.log('第一個商品項目:', result.data[0].items[0]);
+                            console.log('商品圖片欄位:', result.data[0].items[0].product_image);
+                            console.log('單價欄位:', result.data[0].items[0].unit_price);
+                            console.log('價格欄位:', result.data[0].items[0].price);
+                            console.log('幣別欄位:', result.data[0].items[0].currency);
+                        }
+                    }
                 } else {
                     throw new Error(result.message || '載入出貨單失敗');
                 }
