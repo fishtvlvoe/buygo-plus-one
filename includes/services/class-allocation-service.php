@@ -456,9 +456,16 @@ class AllocationService
                 return new WP_Error('PARENT_ITEM_NOT_FOUND', '父訂單中找不到此商品項目');
             }
 
-            // 3. 計算金額
-            $unit_price = (float)$parent_item->price;
+            // 3. 計算金額（FluentCart 使用 unit_price 欄位）
+            $unit_price = (float)$parent_item->unit_price;
             $child_total = $unit_price * $quantity;
+
+            $this->debugService->log('AllocationService', '取得父訂單項目價格', [
+                'parent_item_id' => $parent_item->id,
+                'unit_price' => $unit_price,
+                'quantity' => $quantity,
+                'child_total' => $child_total
+            ]);
 
             // 4. 生成子訂單編號
             $split_count = $wpdb->get_var($wpdb->prepare(
@@ -511,7 +518,8 @@ class AllocationService
                 'child_order_id' => $child_order_id
             ]);
 
-            // 6. 複製訂單項目
+            // 6. 複製訂單項目（FluentCart 使用 unit_price 欄位）
+            $item_subtotal = $unit_price * $quantity;
             $wpdb->insert(
                 $wpdb->prefix . 'fct_order_items',
                 [
@@ -519,10 +527,11 @@ class AllocationService
                     'post_id' => $parent_item->post_id,
                     'object_id' => $product_id,
                     'quantity' => $quantity,
-                    'price' => $unit_price,
+                    'unit_price' => $unit_price,
+                    'subtotal' => $item_subtotal,
                     'line_meta' => '{}',
                 ],
-                ['%d', '%d', '%d', '%d', '%f', '%s']
+                ['%d', '%d', '%d', '%d', '%f', '%f', '%s']
             );
 
             if ($wpdb->insert_id === 0) {
