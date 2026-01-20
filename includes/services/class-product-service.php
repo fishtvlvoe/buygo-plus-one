@@ -99,10 +99,18 @@ class ProductService
                     }
                 }
 
-                // 取得幣別資訊 (從 product_detail 或預設為 TWD)
-                $currency = 'TWD';
-                if ($product->product_detail && isset($product->product_detail->currency)) {
-                    $currency = $product->product_detail->currency;
+                // 取得幣別資訊
+                // 優先順序: 1. 商品自訂幣別 (_mygo_currency) → 2. FluentCart 系統幣別 → 3. TWD (後備)
+                $currency = get_post_meta($product->post_id, '_mygo_currency', true);
+
+                if (empty($currency)) {
+                    // 從 FluentCart 系統設定讀取預設幣別
+                    $currency = \FluentCart\Api\CurrencySettings::get('currency');
+                }
+
+                if (empty($currency)) {
+                    // 最終後備：台幣
+                    $currency = 'TWD';
                 }
 
                 // 取得已採購數量（從 post_meta）
@@ -485,9 +493,17 @@ class ProductService
             }
 
             // 取得幣別資訊
-            $currency = 'TWD';
-            if ($product->product_detail && isset($product->product_detail->currency)) {
-                $currency = $product->product_detail->currency;
+            // 優先順序: 1. 商品自訂幣別 (_mygo_currency) → 2. FluentCart 系統幣別 → 3. TWD (後備)
+            $currency = get_post_meta($product->post_id, '_mygo_currency', true);
+
+            if (empty($currency)) {
+                // 從 FluentCart 系統設定讀取預設幣別
+                $currency = \FluentCart\Api\CurrencySettings::get('currency');
+            }
+
+            if (empty($currency)) {
+                // 最終後備：台幣
+                $currency = 'TWD';
             }
 
             // 取得已採購數量（從 post_meta）
