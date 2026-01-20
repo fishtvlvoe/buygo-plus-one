@@ -203,7 +203,7 @@ class Shipments_API
                     oi.title,
                     oi.post_title,
                     oi.line_meta,
-                    oi.price,
+                    oi.unit_price,
                     o.invoice_no as order_invoice_no,
                     o.currency
                 FROM {$table_shipment_items} si
@@ -217,16 +217,37 @@ class Shipments_API
             // 處理商品名稱、圖片和價格
             foreach ($items as &$item) {
                 // 取得商品名稱（優先使用 title，其次使用 post_title）
-                $item['product_name'] = $item['title'] ?? $item['post_title'] ?? '未知商品';
+                $product_name = $item['title'] ?? $item['post_title'] ?? null;
+
+                // 如果從 order_items 沒有取得名稱，嘗試從 product_id 獲取
+                if (empty($product_name) && !empty($item['product_id'])) {
+                    $product = get_post($item['product_id']);
+                    if ($product) {
+                        $product_name = $product->post_title;
+                    }
+                }
+
+                $item['product_name'] = $product_name ?: '未知商品';
 
                 // 從 line_meta 解析商品圖片和其他 meta 資料
                 $line_meta = $item['line_meta'] ?? '{}';
                 $meta_data = is_string($line_meta) ? json_decode($line_meta, true) : ($line_meta ?: []);
-                $item['product_image'] = $meta_data['product_image'] ?? $meta_data['image'] ?? null;
+                $product_image = $meta_data['product_image'] ?? $meta_data['image'] ?? null;
 
-                // 處理價格（unit_price 就是商品單價）
-                $item['unit_price'] = floatval($item['price'] ?? 0);
-                $item['price'] = floatval($item['price'] ?? 0);
+                // 如果沒有圖片，從 product_id 獲取特色圖片
+                if (empty($product_image) && !empty($item['product_id'])) {
+                    $thumbnail_id = get_post_thumbnail_id($item['product_id']);
+                    if ($thumbnail_id) {
+                        $product_image = wp_get_attachment_image_url($thumbnail_id, 'thumbnail');
+                    }
+                }
+
+                $item['product_image'] = $product_image;
+
+                // 處理價格（unit_price 是數據庫中的欄位名稱）
+                $unit_price_value = floatval($item['unit_price'] ?? 0);
+                $item['unit_price'] = $unit_price_value;
+                $item['price'] = $unit_price_value;
 
                 // 移除不需要的欄位
                 unset($item['title'], $item['post_title'], $item['line_meta']);

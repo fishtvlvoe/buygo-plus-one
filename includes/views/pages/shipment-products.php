@@ -503,29 +503,9 @@ const ShipmentProductsPageComponent = {
                 
                 const result = await response.json();
 
-                // Debug: 完整 API 響應
-                console.log('=== 備貨頁面 API 完整響應 ===');
-                console.log('API URL:', url);
-                console.log('完整響應:', result);
-
                 if (result.success && result.data) {
                     shipments.value = result.data;
                     totalShipments.value = result.total || result.data.length;
-
-                    // Debug: 檢查每筆出貨單的數據
-                    console.log('=== 出貨單數據檢查 ===');
-                    console.log('總共出貨單數量:', result.data.length);
-                    result.data.forEach((shipment, index) => {
-                        console.log(`\n出貨單 ${index + 1} (${shipment.shipment_number}):`);
-                        console.log('  - items 是否存在:', !!shipment.items);
-                        console.log('  - items 類型:', Array.isArray(shipment.items) ? 'Array' : typeof shipment.items);
-                        console.log('  - items 長度:', shipment.items ? shipment.items.length : 'N/A');
-                        if (shipment.items && shipment.items.length > 0) {
-                            console.log('  - 第一個商品:', shipment.items[0]);
-                        } else {
-                            console.log('  - ⚠️ 沒有商品項目!');
-                        }
-                    });
                 } else {
                     throw new Error(result.message || '載入出貨單失敗');
                 }
@@ -568,7 +548,6 @@ const ShipmentProductsPageComponent = {
         // 格式化商品列表顯示
         const formatItemsDisplay = (shipment, maxLength = 50) => {
             if (!shipment.items || !Array.isArray(shipment.items) || shipment.items.length === 0) {
-                console.log('formatItemsDisplay: 無商品項目', shipment);
                 return `0 個項目`;
             }
 
