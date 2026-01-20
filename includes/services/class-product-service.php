@@ -380,6 +380,7 @@ class ProductService
                 INNER JOIN {$table_orders} o ON oi.order_id = o.id
                 WHERE oi.object_id IN ({$placeholders})
                 AND o.status NOT IN ('cancelled', 'refunded', 'completed')
+                AND o.parent_id IS NULL
                 GROUP BY oi.object_id
             ", ...$productVariationIds);
 
