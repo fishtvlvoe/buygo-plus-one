@@ -781,45 +781,21 @@ const ShipmentDetailsPageComponent = {
             }
 
             try {
-                showToast('正在準備匯出...', 'info');
+                // 建立 URL（使用 GET 參數）
+                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${shipmentId}`;
 
-                const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/export', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        shipment_ids: [shipmentId]
-                    })
-                });
+                // 直接開啟 URL（瀏覽器會自動下載檔案）
+                window.location.href = url;
 
-                if (!response.ok) {
-                    throw new Error('匯出失敗');
-                }
-
-                // 取得檔案 blob
-                const blob = await response.blob();
-
-                // 建立下載連結
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `出貨單_${new Date().getTime()}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-
-                showToast('匯出成功！', 'success');
+                showToast('正在匯出...', 'info');
             } catch (err) {
                 console.error('匯出失敗:', err);
                 showToast('匯出失敗：' + err.message, 'error');
             }
         };
 
-        // 批次匯出
-        const batchExport = async () => {
+        // 批次匯出（參考舊外掛，使用 GET 請求直接開啟 URL）
+        const batchExport = () => {
             console.log('[DEBUG] 批次匯出開始');
             console.log('[DEBUG] 選擇的出貨單:', selectedShipments.value);
 
@@ -830,56 +806,17 @@ const ShipmentDetailsPageComponent = {
             }
 
             try {
-                showToast('正在準備匯出...', 'info');
-                console.log('[DEBUG] 發送 API 請求...');
+                // 建立 URL（使用 GET 參數傳遞 shipment_ids）
+                const ids = selectedShipments.value.join(',');
+                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${ids}`;
 
-                const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/export', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        shipment_ids: selectedShipments.value
-                    })
-                });
+                console.log('[DEBUG] 匯出 URL:', url);
 
-                console.log('[DEBUG] API 回應狀態:', response.status);
-                console.log('[DEBUG] API 回應標頭:', {
-                    contentType: response.headers.get('content-type'),
-                    contentDisposition: response.headers.get('content-disposition'),
-                    contentLength: response.headers.get('content-length')
-                });
+                // 直接開啟 URL（瀏覽器會自動下載檔案）
+                window.location.href = url;
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('[DEBUG] API 錯誤:', errorData);
-                    throw new Error(errorData.message || '匯出失敗');
-                }
-
-                // 取得檔案 blob
-                console.log('[DEBUG] 正在下載檔案...');
-                const blob = await response.blob();
-                console.log('[DEBUG] Blob 大小:', blob.size, 'bytes');
-                console.log('[DEBUG] Blob 類型:', blob.type);
-
-                if (blob.size === 0) {
-                    throw new Error('匯出的檔案是空的');
-                }
-
-                // 建立下載連結
-                console.log('[DEBUG] 建立下載連結...');
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `出貨單_${new Date().getTime()}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-
-                console.log('[DEBUG] 匯出成功!');
-                showToast(`成功匯出 ${selectedShipments.value.length} 個出貨單！`, 'success');
+                console.log('[DEBUG] 匯出請求已發送');
+                showToast(`正在匯出 ${selectedShipments.value.length} 個出貨單...`, 'info');
             } catch (err) {
                 console.error('[DEBUG] 批次匯出失敗:', err);
                 console.error('[DEBUG] 錯誤堆疊:', err.stack);

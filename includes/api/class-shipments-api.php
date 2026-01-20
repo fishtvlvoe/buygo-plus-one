@@ -105,10 +105,10 @@ class Shipments_API
             ],
         ]);
 
-        // 匯出出貨單為 Excel/CSV
+        // 匯出出貨單為 Excel/CSV（改用 GET 方法，參考舊外掛實作）
         register_rest_route('buygo-plus-one/v1', '/shipments/export', [
             [
-                'methods' => 'POST',
+                'methods' => 'GET',
                 'callback' => [$this, 'export_shipments'],
                 'permission_callback' => '__return_true',
             ],
@@ -690,58 +690,189 @@ class Shipments_API
     /**
      * 匯出出貨單為 Excel/CSV
      *
+     * 參考舊外掛的 ShipmentController::export_csv() 實作
+     * 使用直接輸出模式（php://output + exit）而不是 WP_REST_Response
+     *
      * @param WP_REST_Request $request
-     * @return void 直接輸出檔案下載
+     * @return void 直接輸出檔案，呼叫 exit 結束
      */
     public function export_shipments(WP_REST_Request $request)
     {
+        global $wpdb;
+
         try {
+            // 從 GET 參數取得出貨單 IDs
             $shipment_ids = $request->get_param('shipment_ids');
 
             if (empty($shipment_ids)) {
-                return new WP_REST_Response([
-                    'success' => false,
-                    'message' => '請至少選擇一個出貨單'
-                ], 400);
+                header('HTTP/1.1 400 Bad Request');
+                echo json_encode(['success' => false, 'message' => '請至少選擇一個出貨單']);
+                exit;
             }
 
-            // 確保是陣列
+            // 確保是陣列（可能是逗號分隔的字串）
             if (!is_array($shipment_ids)) {
-                $shipment_ids = [$shipment_ids];
+                $shipment_ids = explode(',', $shipment_ids);
+            }
+            $shipment_ids = array_map('intval', $shipment_ids);
+
+            // 資料表名稱
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            $table_customers = $wpdb->prefix . 'fct_customers';
+            $table_order_items = $wpdb->prefix . 'fct_order_items';
+
+            // 生成檔名
+            $filename = 'shipments_' . date('Ymd_His') . '.csv';
+
+            // 設定 HTTP Headers（直接輸出，不使用 WP_REST_Response）
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+
+            // 開啟輸出流（直接輸出到瀏覽器）
+            $output = fopen('php://output', 'w');
+
+            // 寫入 UTF-8 BOM（讓 Excel 正確識別 UTF-8）
+            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // 寫入標題行
+            fputcsv($output, [
+                '出貨單號',
+                '客戶姓名',
+                '客戶電話',
+                '客戶地址',
+                'Email',
+                '商品名稱',
+                '數量',
+                '單價',
+                '小計',
+                '出貨日期',
+                '物流方式',
+                '追蹤號碼',
+                '狀態'
+            ]);
+
+            // 查詢每個出貨單
+            foreach ($shipment_ids as $shipment_id) {
+                // 取得出貨單基本資訊
+                $shipment = $wpdb->get_row($wpdb->prepare(
+                    "SELECT s.*,
+                            CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name,
+                            c.phone as customer_phone,
+                            c.address as customer_address,
+                            c.email as customer_email
+                     FROM {$table_shipments} s
+                     LEFT JOIN {$table_customers} c ON s.customer_id = c.id
+                     WHERE s.id = %d",
+                    $shipment_id
+                ), ARRAY_A);
+
+                if (!$shipment) {
+                    continue;
+                }
+
+                // 取得出貨單商品項目
+                $items = $wpdb->get_results($wpdb->prepare(
+                    "SELECT si.*,
+                            oi.title as product_name,
+                            oi.price
+                     FROM {$table_shipment_items} si
+                     LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
+                     WHERE si.shipment_id = %d",
+                    $shipment_id
+                ), ARRAY_A);
+
+                // 如果沒有商品，至少輸出一行出貨單資訊
+                if (empty($items)) {
+                    fputcsv($output, [
+                        $shipment['shipment_number'] ?? '',
+                        trim($shipment['customer_name'] ?? ''),
+                        $shipment['customer_phone'] ?? '',
+                        $shipment['customer_address'] ?? '',
+                        $shipment['customer_email'] ?? '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
+                        $shipment['shipping_method'] ?? '',
+                        $shipment['tracking_number'] ?? '',
+                        $this->get_status_label($shipment['status'] ?? 'pending')
+                    ]);
+                } else {
+                    // 每個商品一行
+                    foreach ($items as $index => $item) {
+                        $price = floatval($item['price'] ?? 0) / 100; // 轉換為元
+                        $quantity = intval($item['quantity'] ?? 0);
+                        $subtotal = $price * $quantity;
+
+                        // 第一個商品顯示完整出貨單資訊，後續商品只顯示商品資訊
+                        if ($index === 0) {
+                            fputcsv($output, [
+                                $shipment['shipment_number'] ?? '',
+                                trim($shipment['customer_name'] ?? ''),
+                                $shipment['customer_phone'] ?? '',
+                                $shipment['customer_address'] ?? '',
+                                $shipment['customer_email'] ?? '',
+                                $item['product_name'] ?? '未知商品',
+                                $quantity,
+                                $price,
+                                $subtotal,
+                                $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
+                                $shipment['shipping_method'] ?? '',
+                                $shipment['tracking_number'] ?? '',
+                                $this->get_status_label($shipment['status'] ?? 'pending')
+                            ]);
+                        } else {
+                            fputcsv($output, [
+                                '', // 出貨單號 (空白，避免重複)
+                                '', // 客戶姓名
+                                '', // 客戶電話
+                                '', // 客戶地址
+                                '', // Email
+                                $item['product_name'] ?? '未知商品',
+                                $quantity,
+                                $price,
+                                $subtotal,
+                                '', // 出貨日期
+                                '', // 物流方式
+                                '', // 追蹤號碼
+                                ''  // 狀態
+                            ]);
+                        }
+                    }
+                }
+
+                // 每個出貨單後加一個空行
+                fputcsv($output, ['', '', '', '', '', '', '', '', '', '', '', '', '']);
             }
 
-            // 生成 CSV 檔案
-            $filepath = $this->exportService->export_shipments_csv($shipment_ids);
-
-            if (!$filepath || !file_exists($filepath)) {
-                return new WP_REST_Response([
-                    'success' => false,
-                    'message' => '匯出失敗'
-                ], 500);
-            }
-
-            // 讀取檔案內容
-            $content = file_get_contents($filepath);
-
-            // 刪除臨時檔案
-            @unlink($filepath);
-
-            // 設定 HTTP 標頭並返回檔案內容
-            $filename = '出貨單_' . date('Ymd_His') . '.csv';
-
-            // 建立 Response
-            $response = new WP_REST_Response($content, 200);
-            $response->header('Content-Type', 'text/csv; charset=utf-8');
-            $response->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-            $response->header('Content-Length', strlen($content));
-
-            return $response;
+            fclose($output);
+            exit; // 直接結束，不返回 WP_REST_Response
 
         } catch (\Exception $e) {
-            return new WP_REST_Response([
-                'success' => false,
-                'message' => '匯出失敗：' . $e->getMessage()
-            ], 500);
+            header('HTTP/1.1 500 Internal Server Error');
+            echo json_encode(['success' => false, 'message' => '匯出失敗：' . $e->getMessage()]);
+            exit;
         }
+    }
+
+    /**
+     * 取得狀態標籤
+     *
+     * @param string $status 狀態
+     * @return string 狀態標籤
+     */
+    private function get_status_label($status)
+    {
+        $labels = [
+            'pending' => '待出貨',
+            'shipped' => '已出貨',
+            'archived' => '已存檔'
+        ];
+
+        return $labels[$status] ?? $status;
     }
 }
