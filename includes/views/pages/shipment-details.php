@@ -87,6 +87,15 @@ $shipment_details_template = <<<'HTML'
                 >
                     批次移至存檔（{{ selectedShipments.length }}）
                 </button>
+
+                <!-- 批次匯出 Excel -->
+                <button
+                    v-if="selectedShipments.length > 0"
+                    @click="batchExport"
+                    class="buygo-btn buygo-btn-accent"
+                >
+                    📥 批次匯出 Excel（{{ selectedShipments.length }}）
+                </button>
             </div>
         </div>
     </div>
@@ -450,6 +459,12 @@ $shipment_details_template = <<<'HTML'
                     關閉
                 </button>
                 <button
+                    @click="exportShipment(detailModal.shipment?.id)"
+                    class="buygo-btn buygo-btn-accent"
+                >
+                    📥 匯出 Excel
+                </button>
+                <button
                     @click="printDetail"
                     class="buygo-btn buygo-btn-primary"
                 >
@@ -750,6 +765,70 @@ const ShipmentDetailsPageComponent = {
                     }
                 }
             );
+        };
+
+        // 匯出單張出貨單
+        const exportShipment = async (shipmentId) => {
+            if (!shipmentId) {
+                showToast('出貨單 ID 無效', 'error');
+                return;
+            }
+
+            try {
+                showToast('正在準備匯出...', 'info');
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/wp-json/buygo-plus-one/v1/shipments/export';
+                form.target = '_blank';
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'shipment_ids';
+                input.value = JSON.stringify([shipmentId]);
+
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+
+                showToast('匯出成功！', 'success');
+            } catch (err) {
+                console.error('匯出失敗:', err);
+                showToast('匯出失敗', 'error');
+            }
+        };
+
+        // 批次匯出
+        const batchExport = async () => {
+            if (selectedShipments.value.length === 0) {
+                showToast('請先選擇出貨單', 'error');
+                return;
+            }
+
+            try {
+                showToast('正在準備匯出...', 'info');
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/wp-json/buygo-plus-one/v1/shipments/export';
+                form.target = '_blank';
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'shipment_ids';
+                input.value = JSON.stringify(selectedShipments.value);
+
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+
+                showToast(`成功匯出 ${selectedShipments.value.length} 個出貨單！`, 'success');
+            } catch (err) {
+                console.error('批次匯出失敗:', err);
+                showToast('批次匯出失敗', 'error');
+            }
         };
 
         // 查看詳情

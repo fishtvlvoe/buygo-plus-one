@@ -3,6 +3,7 @@
 namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\ShipmentService;
+use BuyGoPlus\Services\ExportService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -21,10 +22,12 @@ if (!defined('ABSPATH')) {
 class Shipments_API
 {
     private $shipmentService;
+    private $exportService;
 
     public function __construct()
     {
         $this->shipmentService = new ShipmentService();
+        $this->exportService = new ExportService();
     }
 
     /**
@@ -98,6 +101,15 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipment_detail'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
+
+        // 匯出出貨單為 Excel/CSV
+        register_rest_route('buygo-plus-one/v1', '/shipments/export', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'export_shipments'],
                 'permission_callback' => '__return_true',
             ],
         ]);
@@ -672,6 +684,52 @@ class Shipments_API
             
         } catch (\Exception $e) {
             return new WP_Error('get_detail_failed', '取得詳情失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * 匯出出貨單為 Excel/CSV
+     *
+     * @param WP_REST_Request $request
+     * @return void 直接輸出檔案下載
+     */
+    public function export_shipments(WP_REST_Request $request)
+    {
+        try {
+            $shipment_ids = $request->get_param('shipment_ids');
+
+            if (empty($shipment_ids)) {
+                wp_send_json_error([
+                    'message' => '請至少選擇一個出貨單'
+                ], 400);
+                return;
+            }
+
+            // 確保是陣列
+            if (!is_array($shipment_ids)) {
+                $shipment_ids = [$shipment_ids];
+            }
+
+            // 生成 CSV 檔案
+            $filepath = $this->exportService->export_shipments_csv($shipment_ids);
+
+            if (!$filepath) {
+                wp_send_json_error([
+                    'message' => '匯出失敗'
+                ], 500);
+                return;
+            }
+
+            // 生成檔名
+            $filename = '出貨單_' . date('Ymd_His') . '.csv';
+
+            // 下載檔案
+            $this->exportService->download_file($filepath, $filename);
+
+        } catch (\Exception $e) {
+            wp_send_json_error([
+                'message' => '匯出失敗：' . $e->getMessage()
+            ], 500);
         }
     }
 }
