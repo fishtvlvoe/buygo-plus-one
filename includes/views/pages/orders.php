@@ -151,10 +151,27 @@ $orders_component_template = <<<'HTML'
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-slate-900">
-                                #{{ order.invoice_no || order.id }}
-                                <span v-if="order.children && order.children.length > 0" class="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                    {{ order.children.length }} 批次
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        v-if="order.children && order.children.length > 0"
+                                        @click="toggleChildrenCollapse(order.id)"
+                                        class="text-slate-400 hover:text-primary transition flex-shrink-0"
+                                    >
+                                        <svg
+                                            class="w-4 h-4 transition-transform"
+                                            :class="{ 'rotate-180': isChildrenCollapsed(order.id) }"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <span>#{{ order.invoice_no || order.id }}</span>
+                                    <span v-if="order.children && order.children.length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        {{ order.children.length }} 批次
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">
@@ -247,18 +264,19 @@ $orders_component_template = <<<'HTML'
                                     <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
-                                    <button 
+                                    <button
                                         v-if="hasAllocatedItems(order)"
-                                        @click="shipOrder(order)" 
+                                        @click="shipOrder(order)"
                                         class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                                        執行出貨
+                                        轉備貨
                                     </button>
                                 </div>
                             </td>
                         </tr>
 
-                        <!-- 子訂單行（指定單） -->
+                        <!-- 子訂單行（拆單） -->
                         <tr
+                            v-if="!isChildrenCollapsed(order.id)"
                             v-for="childOrder in order.children"
                             :key="'child-' + childOrder.id"
                             class="bg-blue-50/30 hover:bg-blue-50/50 transition border-l-4 border-blue-400"
@@ -305,7 +323,7 @@ $orders_component_template = <<<'HTML'
                                     <button
                                         @click="shipChildOrder(childOrder, order)"
                                         class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                                        執行出貨
+                                        轉備貨
                                     </button>
                                 </div>
                             </td>
@@ -427,11 +445,11 @@ $orders_component_template = <<<'HTML'
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             查看詳情
                         </button>
-                        <button 
+                        <button
                             v-if="hasAllocatedItems(order)"
-                            @click="shipOrder(order)" 
+                            @click="shipOrder(order)"
                             class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
-                            執行出貨
+                            轉備貨
                         </button>
                     </div>
                 </div>
@@ -590,7 +608,7 @@ $orders_component_template = <<<'HTML'
                                 :disabled="shipping"
                                 class="w-full px-4 py-2 bg-accent text-white rounded-lg text-xs font-black shadow-[0_2px_10px_-3px_rgba(249,115,22,0.5)] hover:bg-orange-600 hover:scale-105 transition active:scale-95 uppercase tracking-tighter disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                {{ shipping ? '出貨中...' : ('執行出貨 (' + item.allocated_quantity + ' 個)') }}
+                                {{ shipping ? '備貨中...' : ('轉備貨 (' + item.allocated_quantity + ' 個)') }}
                             </button>
                             <div v-else class="text-sm text-slate-500 text-center py-2">
                                 本商品尚未分配現貨配額，請先至商品管理分配。
@@ -751,9 +769,12 @@ const OrdersPageComponent = {
 
         // 批次操作
         const selectedItems = ref([]);
-        
+
         // 展開狀態（用於商品列表展開）
         const expandedOrders = ref(new Set());
+
+        // 子訂單折疊狀態（預設展開）
+        const collapsedChildren = ref(new Set());
 
         // 狀態下拉選單狀態
         const openStatusDropdown = ref(null);
@@ -975,7 +996,21 @@ const OrdersPageComponent = {
         const isOrderExpanded = (orderId) => {
             return expandedOrders.value.has(orderId);
         };
-        
+
+        // 切換子訂單顯示/隱藏
+        const toggleChildrenCollapse = (orderId) => {
+            if (collapsedChildren.value.has(orderId)) {
+                collapsedChildren.value.delete(orderId);
+            } else {
+                collapsedChildren.value.add(orderId);
+            }
+        };
+
+        // 檢查子訂單是否已折疊
+        const isChildrenCollapsed = (orderId) => {
+            return collapsedChildren.value.has(orderId);
+        };
+
         // 運送狀態選項（6個）
         const shippingStatuses = [
             { value: 'unshipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
@@ -1519,6 +1554,9 @@ const OrdersPageComponent = {
             toggleOrderExpand,
             isOrderExpanded,
             expandedOrders,
+            toggleChildrenCollapse,
+            isChildrenCollapsed,
+            collapsedChildren,
             // 路由狀態（URL 驅動）
             currentView,
             currentOrderId,
