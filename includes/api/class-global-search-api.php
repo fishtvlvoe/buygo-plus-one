@@ -124,7 +124,7 @@ class GlobalSearch_API {
                 CONCAT('訂單 #', o.invoice_no) as display_field,
                 o.customer_name as display_sub_field,
                 9 as relevance_score
-            FROM {$wpdb->prefix}buygo_orders o
+            FROM {$wpdb->prefix}fct_orders o
             WHERE o.invoice_no LIKE %s
             OR o.customer_name LIKE %s
             OR o.id LIKE %s
@@ -164,7 +164,7 @@ class GlobalSearch_API {
                 c.full_name as display_field,
                 c.email as display_sub_field,
                 8 as relevance_score
-            FROM {$wpdb->prefix}buygo_customers c
+            FROM {$wpdb->prefix}fct_customers c
             WHERE c.full_name LIKE %s
             OR c.email LIKE %s
             OR c.phone LIKE %s
@@ -204,7 +204,7 @@ class GlobalSearch_API {
                 CONCAT('出貨單 #', s.shipment_number) as display_field,
                 s.customer_name as display_sub_field,
                 7 as relevance_score
-            FROM {$wpdb->prefix}buygo_shipments s
+            FROM {$wpdb->prefix}fct_shipments s
             WHERE s.shipment_number LIKE %s
             OR s.customer_name LIKE %s
             OR s.id LIKE %s

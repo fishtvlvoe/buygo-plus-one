@@ -1302,12 +1302,22 @@ const OrdersPageComponent = {
                     openStatusDropdown.value = null;
                 }
             });
+
+            // 監聽商品分配更新事件（同步執行出貨按鈕狀態）
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'buygo_allocation_updated' && e.newValue) {
+                    // 重新載入訂單列表以更新 allocated_quantity
+                    loadOrders();
+                    // 清除標記
+                    localStorage.removeItem('buygo_allocation_updated');
+                }
+            });
         });
 
         // Smart Search Box 事件處理器
         const handleOrderSelect = (order) => {
             if (order && order.id) {
-                viewOrder(order.id);
+                openOrderDetail(order.id);
             }
         };
 
