@@ -111,6 +111,8 @@ $orders_component_template = <<<'HTML'
                     :show-image="false"
                     :show-status="true"
                     @select="handleOrderSelect"
+                    @search="handleOrderSearch"
+                    @clear="handleOrderSearchClear"
                 ></smart-search-box>
 
                 <!-- Loading -->
@@ -1320,6 +1322,22 @@ const OrdersPageComponent = {
             }
         };
 
+        // 本地搜尋處理函數(輸入時過濾列表)
+        const handleOrderSearch = (query) => {
+            searchQuery.value = query;
+            currentPage.value = 1;  // 重置到第一頁
+            loadOrders();
+        };
+
+        // 清除搜尋
+        const handleOrderSearchClear = () => {
+            searchQuery.value = '';
+            searchFilter.value = null;
+            searchFilterName.value = '';
+            currentPage.value = 1;
+            loadOrders();
+        };
+
         return {
             orders,
             loading,
@@ -1384,6 +1402,8 @@ const OrdersPageComponent = {
             toggleCurrency,
             // Smart Search Box
             handleOrderSelect,
+            handleOrderSearch,
+            handleOrderSearchClear,
             // 運送狀態相關
             shippingStatuses,
             toggleStatusDropdown,
