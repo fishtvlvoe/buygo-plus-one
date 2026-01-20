@@ -672,6 +672,8 @@ class OrderService
         $customer_email = '';
         $customer_phone = '';
         $customer_address = '';
+        $customer_id = null;
+
         if (isset($order['customer'])) {
             $customer = $order['customer'];
             if (is_object($customer)) {
@@ -681,16 +683,43 @@ class OrderService
             $last_name = $customer['last_name'] ?? '';
             $customer_name = trim($first_name . ' ' . $last_name);
             $customer_email = $customer['email'] ?? '';
-            $customer_phone = $customer['phone'] ?? '';
-            $customer_address = $customer['address'] ?? '';
+            $customer_id = $customer['id'] ?? null;
+
+            // 從 fct_customer_addresses 讀取電話和地址（與客戶 API 保持一致）
+            if ($customer_id) {
+                global $wpdb;
+                $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
+
+                $address_data = $wpdb->get_row($wpdb->prepare(
+                    "SELECT phone, CONCAT(
+                        COALESCE(address_1, ''), ' ',
+                        COALESCE(address_2, ''), ', ',
+                        COALESCE(city, ''), ', ',
+                        COALESCE(state, ''), ' ',
+                        COALESCE(postcode, ''), ', ',
+                        COALESCE(country, '')
+                    ) as full_address
+                    FROM {$table_addresses}
+                    WHERE customer_id = %d AND is_primary = 1
+                    LIMIT 1",
+                    $customer_id
+                ), ARRAY_A);
+
+                if ($address_data) {
+                    $customer_phone = $address_data['phone'] ?? '';
+                    $customer_address = $address_data['full_address'] ?? '';
+                }
+            }
         }
 
         return [
             'id' => $order['id'] ?? 0,
             'invoice_no' => $order['invoice_no'] ?? '',
             'status' => $order['status'] ?? 'pending',
+            'shipping_status' => $order['shipping_status'] ?? 'not_shipped',
             'total_amount' => isset($order['total_amount']) ? ($order['total_amount'] / 100) : 0, // 轉換為元
             'currency' => $order['currency'] ?? 'TWD',
+            'payment_method' => $order['payment_method'] ?? '未提供',
             'customer_name' => $customer_name,
             'customer_email' => $customer_email,
             'customer_phone' => $customer_phone,
