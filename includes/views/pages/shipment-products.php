@@ -179,7 +179,7 @@ $shipment_products_component_template = <<<'HTML'
                                                 v-if="isShipmentExpanded(shipment.id) && shipment.items && shipment.items.length > 0"
                                                 class="mt-2 pt-2 border-t border-slate-200"
                                             >
-                                                <div class="space-y-2 mb-3">
+                                                <div class="space-y-2">
                                                     <div
                                                         v-for="item in shipment.items"
                                                         :key="item.id"
@@ -194,15 +194,10 @@ $shipment_products_component_template = <<<'HTML'
                                                         <div class="flex-1 min-w-0">
                                                             <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
                                                             <div class="text-slate-500">
-                                                                訂單：{{ item.order_invoice_no }} × {{ item.quantity }} 個
+                                                                {{ item.quantity }} × {{ formatPrice(item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.price || 0)), item.currency || 'JPY') }}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <!-- 總數量 -->
-                                                <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
-                                                    <span class="text-slate-600 font-medium">總數量</span>
-                                                    <span class="text-slate-900 font-bold">{{ shipment.total_quantity }} 個</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -609,6 +604,19 @@ const ShipmentProductsPageComponent = {
             };
             return statusTexts[status] || '待出貨';
         };
+
+        // 格式化價格顯示
+        const formatPrice = (price, currency = 'JPY') => {
+            const currencySymbols = {
+                'JPY': '¥',
+                'TWD': 'NT$',
+                'USD': '$',
+                'THB': '฿'
+            };
+            const symbol = currencySymbols[currency] || currency;
+            const formattedPrice = Math.round(price || 0).toLocaleString();
+            return `${symbol}${formattedPrice}`;
+        };
         
         // 顯示確認 Modal
         const showConfirm = (message, title = '確認操作', onConfirm = null) => {
@@ -881,6 +889,7 @@ const ShipmentProductsPageComponent = {
             changePerPage,
             formatDate,
             formatItemsDisplay,
+            formatPrice,
             getStatusClass,
             getStatusText,
             toggleShipmentExpand,
