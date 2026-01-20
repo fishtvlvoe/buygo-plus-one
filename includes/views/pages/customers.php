@@ -442,9 +442,7 @@ $customers_component_template = <<<'HTML'
 HTML;
 ?>
 
-<script type="module">
-import { useCurrency } from '../composables/useCurrency.js';
-
+<script>
 const CustomersPageComponent = {
     name: 'CustomersPage',
     components: {

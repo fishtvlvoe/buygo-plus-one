@@ -486,9 +486,7 @@ HTML;
     <?php echo $products_component_template; ?>
 </script>
 
-<script type="module">
-import { useCurrency } from '../composables/useCurrency.js';
-
+<script>
 const ProductsPageComponent = {
     name: 'ProductsPage',
     components: {
@@ -500,7 +498,7 @@ const ProductsPageComponent = {
 
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
-            formatPriceDisplay,
+            formatPrice,
             convertCurrency,
             getCurrencySymbol,
             systemCurrency,

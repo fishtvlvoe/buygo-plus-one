@@ -463,8 +463,7 @@ HTML;
 
 // Vue Component
 ?>
-<script type="module">
-import { useCurrency } from '../composables/useCurrency.js';
+<script>
 const { ref, onMounted, watch } = Vue;
 
 const ShipmentDetailsPageComponent = {

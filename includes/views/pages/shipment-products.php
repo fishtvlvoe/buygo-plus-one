@@ -405,9 +405,7 @@ $shipment_products_component_template = <<<'HTML'
 HTML;
 ?>
 
-<script type="module">
-import { useCurrency } from '../composables/useCurrency.js';
-
+<script>
 const ShipmentProductsPageComponent = {
     name: 'ShipmentProductsPage',
     components: {

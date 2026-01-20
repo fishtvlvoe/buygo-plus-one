@@ -79,7 +79,10 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- VueDraggable CDN -->
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
-    
+
+    <!-- useCurrency Composable (全站幣別處理邏輯) -->
+    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/composables/useCurrency.js'); ?>"></script>
+
     <?php
     // 載入頁面元件（如果存在）
     $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';

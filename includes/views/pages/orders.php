@@ -534,9 +534,7 @@ HTML;
 ?>
 
 
-<script type="module">
-import { useCurrency } from '../composables/useCurrency.js';
-
+<script>
 const OrdersPageComponent = {
     name: 'OrdersPage',
     components: {

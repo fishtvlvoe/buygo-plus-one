@@ -7,8 +7,6 @@
  * - 幣別符號管理
  *
  * 使用方式:
- * import { useCurrency } from './composables/useCurrency.js';
- *
  * const { formatPrice, convertCurrency, getCurrencySymbol } = useCurrency();
  * formatPrice(1000, 'JPY'); // "¥1,000"
  *
@@ -16,9 +14,10 @@
  * @date 2026-01-20
  */
 
-import { ref, computed } from 'vue';
-
-export function useCurrency() {
+// 注意: 這是一個全局函數,不使用 ES6 import/export
+// 因為 WordPress 環境中 ES6 模組可能不被支持
+function useCurrency() {
+    const { ref, computed } = Vue;
     // 系統幣別 (從 WordPress 全局設定讀取)
     const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
 
