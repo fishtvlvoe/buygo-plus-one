@@ -55,7 +55,7 @@ $shipment_products_component_template = <<<'HTML'
             </div>
             
             <!-- 桌面版表格 -->
-            <div class="hidden md:block buygo-card overflow-hidden">
+            <div class="hidden md:block buygo-card overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -291,9 +291,106 @@ $shipment_products_component_template = <<<'HTML'
             </div>
         </div>
     </div>
-    
+
+    <!-- 出貨單詳情 Modal -->
+    <div
+        v-if="showDetailModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+        @click.self="closeDetailModal"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 class="text-xl font-bold text-slate-900">出貨單詳情</h2>
+                <button @click="closeDetailModal" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div v-if="currentShipment" class="p-6">
+                <!-- 出貨單基本資訊 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">出貨單資訊</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm text-slate-500">出貨單號：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.shipment_no }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">狀態：</span>
+                            <span :class="getStatusClass(currentShipment.status)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                {{ getStatusText(currentShipment.status) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶名稱：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_name }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶電話：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_phone || '-' }}</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-sm text-slate-500">客戶地址：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentShipment.customer_address || '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">建立日期：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ formatDate(currentShipment.created_at) }}</span>
+                        </div>
+                        <div v-if="currentShipment.shipped_at">
+                            <span class="text-sm text-slate-500">出貨日期：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ formatDate(currentShipment.shipped_at) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商品列表 -->
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">商品明細</h3>
+                    <div class="space-y-3">
+                        <div v-for="item in currentShipment.items" :key="item.id" class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-slate-900">{{ item.product_name }}</h4>
+                                    <div class="text-sm text-slate-600 mt-1">
+                                        數量: {{ item.quantity }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 總數量 -->
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-slate-600">總數量：</span>
+                            <span class="text-lg font-bold text-slate-900">{{ currentShipment.total_quantity }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+                <button @click="closeDetailModal" class="buygo-btn buygo-btn-secondary">
+                    關閉
+                </button>
+                <button
+                    v-if="currentShipment && currentShipment.status === 'pending'"
+                    @click="markShipped(currentShipment.id); closeDetailModal();"
+                    class="buygo-btn buygo-btn-accent">
+                    標記已出貨
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 確認 Modal -->
-    <div 
+    <div
         v-if="showConfirmModal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
         @click.self="cancelConfirm"
@@ -395,7 +492,11 @@ const ShipmentProductsPageComponent = {
             message: '',
             type: 'success' // 'success' | 'error' | 'info'
         });
-        
+
+        // 出貨單詳情 Modal 狀態
+        const showDetailModal = ref(false);
+        const currentShipment = ref(null);
+
         // 顯示 Toast 訊息
         const showToast = (message, type = 'success') => {
             toastMessage.value = { show: true, message, type };
@@ -717,9 +818,31 @@ const ShipmentProductsPageComponent = {
             );
         };
         
-        // 查看詳情（導航到出貨明細頁面）
-        const viewDetail = (shipmentId) => {
-            window.location.href = '/buygo-portal/shipment-details/?id=' + shipmentId;
+        // 查看詳情（顯示 Modal）
+        const viewDetail = async (shipmentId) => {
+            try {
+                loading.value = true;
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    currentShipment.value = result.data;
+                    showDetailModal.value = true;
+                } else {
+                    showToast('載入出貨單詳情失敗', 'error');
+                }
+            } catch (err) {
+                console.error('載入出貨單詳情錯誤:', err);
+                showToast('載入出貨單詳情失敗', 'error');
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // 關閉詳情 Modal
+        const closeDetailModal = () => {
+            showDetailModal.value = false;
+            currentShipment.value = null;
         };
         
         // 分頁
@@ -830,7 +953,12 @@ const ShipmentProductsPageComponent = {
             executeConfirm,
             cancelConfirm,
             toastMessage,
-            showToast
+            showToast,
+
+            // 出貨單詳情 Modal
+            showDetailModal,
+            currentShipment,
+            closeDetailModal
         };
     }
 };

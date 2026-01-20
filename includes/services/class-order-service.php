@@ -667,9 +667,11 @@ class OrderService
             }
         }
 
-        // 取得客戶名稱
+        // 取得客戶資料（含地址和電話）
         $customer_name = '';
         $customer_email = '';
+        $customer_phone = '';
+        $customer_address = '';
         if (isset($order['customer'])) {
             $customer = $order['customer'];
             if (is_object($customer)) {
@@ -679,6 +681,8 @@ class OrderService
             $last_name = $customer['last_name'] ?? '';
             $customer_name = trim($first_name . ' ' . $last_name);
             $customer_email = $customer['email'] ?? '';
+            $customer_phone = $customer['phone'] ?? '';
+            $customer_address = $customer['address'] ?? '';
         }
 
         return [
@@ -689,6 +693,8 @@ class OrderService
             'currency' => $order['currency'] ?? 'TWD',
             'customer_name' => $customer_name,
             'customer_email' => $customer_email,
+            'customer_phone' => $customer_phone,
+            'customer_address' => $customer_address,
             'total_items' => $total_items,
             'items' => $items,
             'created_at' => $order['created_at'] ?? '',

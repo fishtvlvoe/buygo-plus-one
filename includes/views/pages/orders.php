@@ -130,7 +130,7 @@ $orders_component_template = <<<'HTML'
                             <td class="px-4 py-3">
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ order.invoice_no }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900">#{{ order.invoice_no || order.id }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">
                                 <div class="flex items-center gap-2">
@@ -211,7 +211,7 @@ $orders_component_template = <<<'HTML'
                 <div v-for="order in orders" :key="order.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <div class="text-sm font-bold text-slate-900 mb-1">{{ order.invoice_no }}</div>
+                            <div class="text-sm font-bold text-slate-900 mb-1">#{{ order.invoice_no || order.id }}</div>
                             <div class="text-xs text-slate-500">{{ order.customer_name }}</div>
                         </div>
                         <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
@@ -380,7 +380,7 @@ $orders_component_template = <<<'HTML'
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <span class="text-sm text-slate-500">訂單編號：</span>
-                            <span class="text-sm font-medium text-slate-900">{{ currentOrder.invoice_no }}</span>
+                            <span class="text-sm font-medium text-slate-900">#{{ currentOrder.invoice_no || currentOrder.id }}</span>
                         </div>
                         <div>
                             <span class="text-sm text-slate-500">狀態：</span>
@@ -395,6 +395,14 @@ $orders_component_template = <<<'HTML'
                         <div>
                             <span class="text-sm text-slate-500">客戶 Email：</span>
                             <span class="text-sm font-medium text-slate-900">{{ currentOrder.customer_email }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶電話：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentOrder.customer_phone || '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-slate-500">客戶地址：</span>
+                            <span class="text-sm font-medium text-slate-900">{{ currentOrder.customer_address || '-' }}</span>
                         </div>
                         <div>
                             <span class="text-sm text-slate-500">總金額：</span>
