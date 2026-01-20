@@ -950,24 +950,37 @@ class SettingsPage
             // 6. 清除 FluentCart 商品
             $wpdb->query("DELETE FROM {$wpdb->prefix}fct_products");
 
-            // 7. 清除商品的 meta 資料
-            $wpdb->query(
-                "DELETE FROM {$wpdb->prefix}postmeta
-                 WHERE post_id IN (
-                     SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'product'
-                 )"
+            // 7. 獲取所有商品 ID
+            $product_ids = $wpdb->get_col(
+                "SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'product'"
             );
 
-            // 8. 清除商品分類關聯
-            $wpdb->query(
-                "DELETE FROM {$wpdb->prefix}term_relationships
-                 WHERE object_id IN (
-                     SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'product'
-                 )"
-            );
+            // 8. 清除商品的 meta 資料
+            if (!empty($product_ids)) {
+                $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}postmeta WHERE post_id IN ($placeholders)",
+                        ...$product_ids
+                    )
+                );
 
-            // 9. 清除商品
-            $wpdb->query("DELETE FROM {$wpdb->prefix}posts WHERE post_type = 'product'");
+                // 9. 清除商品分類關聯
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}term_relationships WHERE object_id IN ($placeholders)",
+                        ...$product_ids
+                    )
+                );
+
+                // 10. 清除商品
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->prefix}posts WHERE ID IN ($placeholders)",
+                        ...$product_ids
+                    )
+                );
+            }
 
             // 提交交易
             $wpdb->query('COMMIT');
