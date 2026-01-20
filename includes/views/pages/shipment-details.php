@@ -630,26 +630,6 @@ const ShipmentDetailsPageComponent = {
             selectedShipments.value = [];
         };
 
-        // 全局搜尋處理函數
-        const handleGlobalSearchInput = (query) => {
-            // 全局搜索不需要在本頁面載入資料，因為會跳轉到對應頁面
-            console.log('全局搜索輸入:', query);
-        };
-
-        const handleGlobalSearchSelect = (item) => {
-            // 根據選擇的項目類型跳轉到對應頁面
-            if (item.url) {
-                window.location.href = item.url;
-            } else {
-                console.log('搜索項目沒有URL:', item);
-            }
-        };
-
-        const handleGlobalSearchClear = () => {
-            // 清除全局搜索
-            console.log('清除全局搜索');
-        };
-
         // 分頁處理函數
         const changePerPage = () => {
             currentPage.value = 1; // 重置到第一頁
@@ -837,6 +817,13 @@ const ShipmentDetailsPageComponent = {
         };
 
         // 智慧搜尋處理
+        const handleSearchInput = (query) => {
+            // 本地搜尋處理函數（輸入時過濾列表）
+            searchQuery.value = query;
+            currentPage.value = 1;  // 重置到第一頁
+            loadShipments();
+        };
+
         const handleSearchSelect = (item) => {
             // 搜尋選中項目後的處理
             if (item && item.id) {
@@ -847,6 +834,7 @@ const ShipmentDetailsPageComponent = {
         const handleSearchClear = () => {
             // 清除搜尋後重新載入列表
             searchQuery.value = null;
+            currentPage.value = 1;
             loadShipments();
         };
 
@@ -886,9 +874,9 @@ const ShipmentDetailsPageComponent = {
             printDetail,
             getCurrencySymbol,
             systemCurrency,
+            handleSearchInput,
             handleSearchSelect,
             handleSearchClear,
-            handleSearchInput: handleGlobalSearchInput,
             showToast,
             // 分頁相關
             currentPage,
