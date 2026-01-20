@@ -21,14 +21,14 @@ $shipment_details_template = <<<'HTML'
     <!-- 分頁 Tabs -->
     <div class="bg-white border-b border-slate-200">
         <div class="flex gap-8 px-6">
-            <button 
-                @click="activeTab = 'pending'"
-                :class="activeTab === 'pending' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+            <button
+                @click="activeTab = 'ready_to_ship'"
+                :class="activeTab === 'ready_to_ship' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
                 class="py-4 px-1 border-b-2 font-medium text-sm transition"
             >
-                待出貨 
-                <span v-if="stats.pending > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
-                    {{ stats.pending }}
+                待出貨
+                <span v-if="stats.ready_to_ship > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
+                    {{ stats.ready_to_ship }}
                 </span>
             </button>
             <button 
@@ -72,7 +72,7 @@ $shipment_details_template = <<<'HTML'
             <div class="flex items-center gap-3">
                 <!-- 待出貨分頁：批次標記已出貨 -->
                 <button
-                    v-if="activeTab === 'pending'"
+                    v-if="activeTab === 'ready_to_ship'"
                     @click="batchMarkShipped"
                     class="buygo-btn buygo-btn-accent"
                 >
@@ -173,12 +173,12 @@ $shipment_details_template = <<<'HTML'
                                 {{ shipment.total_quantity }} 件
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                {{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}
+                                {{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-2">
                                     <button
-                                        v-if="activeTab === 'pending'"
+                                        v-if="activeTab === 'ready_to_ship'"
                                         @click="markShipped(shipment.id)"
                                         class="buygo-btn buygo-btn-accent buygo-btn-sm"
                                     >
@@ -223,23 +223,23 @@ $shipment_details_template = <<<'HTML'
                                     </div>
                                     <span :class="[
                                         'px-2 py-0.5 text-xs font-medium rounded-full',
-                                        activeTab === 'pending' ? 'bg-orange-100 text-orange-600' :
+                                        activeTab === 'ready_to_ship' ? 'bg-orange-100 text-orange-600' :
                                         activeTab === 'shipped' ? 'bg-green-100 text-green-600' :
                                         'bg-slate-100 text-slate-600'
                                     ]">
-                                        {{ activeTab === 'pending' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
+                                        {{ activeTab === 'ready_to_ship' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
                                     </span>
                                 </div>
                                 <div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
                                     <span>{{ shipment.total_quantity }} 件</span>
-                                    <span>{{ formatDate(activeTab === 'pending' ? shipment.created_at : shipment.shipped_at) }}</span>
+                                    <span>{{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
                         <button
-                            v-if="activeTab === 'pending'"
+                            v-if="activeTab === 'ready_to_ship'"
                             @click="markShipped(shipment.id)"
                             class="py-3 flex items-center justify-center gap-1.5 text-accent hover:bg-orange-50 bg-white transition active:bg-orange-100"
                         >
@@ -498,10 +498,10 @@ const ShipmentDetailsPageComponent = {
 
         // 使用 useCurrency Composable 處理幣別邏輯
         const { formatPrice, getCurrencySymbol, systemCurrency } = useCurrency();
-        const activeTab = ref('pending');
+        const activeTab = ref('ready_to_ship');
         const shipments = ref([]);
         const loading = ref(false);
-        const stats = ref({ pending: 0, shipped: 0, archived: 0 });
+        const stats = ref({ ready_to_ship: 0, shipped: 0, archived: 0 });
         
         // 勾選狀態
         const selectedShipments = ref([]);
@@ -558,7 +558,7 @@ const ShipmentDetailsPageComponent = {
         // 載入統計數據
         const loadStats = async () => {
             try {
-                const statuses = ['pending', 'shipped', 'archived'];
+                const statuses = ['ready_to_ship', 'shipped', 'archived'];
                 for (const status of statuses) {
                     const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments?status=${status}&per_page=1`, {
                         credentials: 'include'

@@ -113,6 +113,24 @@ class Shipments_API
                 'permission_callback' => '__return_true',
             ],
         ]);
+
+        // 轉出貨（單一出貨單）
+        register_rest_route('buygo-plus-one/v1', '/shipments/(?P<id>\d+)/transfer', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'transfer_to_shipment'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
+
+        // 批次轉出貨
+        register_rest_route('buygo-plus-one/v1', '/shipments/batch-transfer', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'batch_transfer_to_shipment'],
+                'permission_callback' => '__return_true',
+            ],
+        ]);
     }
 
     /**
@@ -860,6 +878,115 @@ class Shipments_API
     }
 
     /**
+     * 轉出貨（單一出貨單）
+     * 將出貨單狀態從 pending 更新為 ready_to_ship
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function transfer_to_shipment(WP_REST_Request $request)
+    {
+        global $wpdb;
+
+        try {
+            $shipment_id = (int)$request->get_param('id');
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+
+            // 檢查出貨單是否存在且狀態為 pending
+            $shipment = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, status, shipment_number FROM {$table_shipments} WHERE id = %d",
+                $shipment_id
+            ));
+
+            if (!$shipment) {
+                return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
+            }
+
+            if ($shipment->status !== 'pending') {
+                return new WP_Error('invalid_status', '只有備貨中的出貨單才能轉出貨', ['status' => 400]);
+            }
+
+            // 更新狀態為 ready_to_ship
+            $result = $wpdb->update(
+                $table_shipments,
+                [
+                    'status' => 'ready_to_ship',
+                    'updated_at' => current_time('mysql')
+                ],
+                ['id' => $shipment_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+
+            if ($result === false) {
+                return new WP_Error('update_failed', '轉出貨失敗：' . $wpdb->last_error, ['status' => 500]);
+            }
+
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => "出貨單 {$shipment->shipment_number} 已轉為待出貨"
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new WP_Error('transfer_failed', '轉出貨失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * 批次轉出貨
+     * 將多個出貨單狀態從 pending 更新為 ready_to_ship
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function batch_transfer_to_shipment(WP_REST_Request $request)
+    {
+        global $wpdb;
+
+        try {
+            $shipment_ids = $request->get_param('shipment_ids');
+
+            if (empty($shipment_ids) || !is_array($shipment_ids)) {
+                return new WP_Error('invalid_input', '請提供有效的出貨單 ID 陣列', ['status' => 400]);
+            }
+
+            // 確保所有 ID 都是整數
+            $shipment_ids = array_map('intval', $shipment_ids);
+            $shipment_ids = array_filter($shipment_ids, function($id) { return $id > 0; });
+
+            if (empty($shipment_ids)) {
+                return new WP_Error('invalid_input', '請提供有效的出貨單 ID', ['status' => 400]);
+            }
+
+            $table_shipments = $wpdb->prefix . 'buygo_shipments';
+
+            // 批次更新狀態（只更新 pending 狀態的出貨單）
+            $ids_placeholder = implode(',', array_fill(0, count($shipment_ids), '%d'));
+            $update_query = $wpdb->prepare(
+                "UPDATE {$table_shipments}
+                 SET status = 'ready_to_ship', updated_at = %s
+                 WHERE id IN ({$ids_placeholder}) AND status = 'pending'",
+                current_time('mysql'),
+                ...$shipment_ids
+            );
+            $result = $wpdb->query($update_query);
+
+            if ($result === false) {
+                throw new \Exception($wpdb->last_error);
+            }
+
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => "已將 {$result} 個出貨單轉為待出貨",
+                'count' => $result
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new WP_Error('batch_transfer_failed', '批次轉出貨失敗：' . $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
      * 取得狀態標籤
      *
      * @param string $status 狀態
@@ -868,7 +995,8 @@ class Shipments_API
     private function get_status_label($status)
     {
         $labels = [
-            'pending' => '待出貨',
+            'pending' => '備貨中',
+            'ready_to_ship' => '待出貨',
             'shipped' => '已出貨',
             'archived' => '已存檔'
         ];

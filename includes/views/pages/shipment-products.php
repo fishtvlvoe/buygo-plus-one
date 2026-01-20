@@ -435,7 +435,8 @@ const ShipmentProductsPageComponent = {
         const currentStatusFilter = ref('pending');
         const statusFilters = [
             { value: 'all', label: '全部' },
-            { value: 'pending', label: '待出貨' },
+            { value: 'pending', label: '備貨中' },
+            { value: 'ready_to_ship', label: '待出貨' },
             { value: 'shipped', label: '已出貨' }
         ];
         
@@ -591,6 +592,7 @@ const ShipmentProductsPageComponent = {
         const getStatusClass = (status) => {
             const statusClasses = {
                 'pending': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                'ready_to_ship': 'bg-orange-100 text-orange-800 border border-orange-200',
                 'shipped': 'bg-green-100 text-green-800 border border-green-200',
                 'archived': 'bg-slate-100 text-slate-800 border border-slate-200',
                 'delivered': 'bg-blue-100 text-blue-800 border border-blue-200'
@@ -601,14 +603,15 @@ const ShipmentProductsPageComponent = {
         // 取得狀態文字（中文化）
         const getStatusText = (status) => {
             const statusTexts = {
-                'pending': '待出貨',
-                '備貨中': '待出貨',
+                'pending': '備貨中',
+                '備貨中': '備貨中',
+                'ready_to_ship': '待出貨',
                 'shipped': '已出貨',
                 '已出貨': '已出貨',
                 'archived': '已存檔',
                 'delivered': '已送達'
             };
-            return statusTexts[status] || '待出貨';
+            return statusTexts[status] || '備貨中';
         };
 
         // 顯示確認 Modal
@@ -728,33 +731,30 @@ const ShipmentProductsPageComponent = {
             return customerIds.every(id => id === customerIds[0]);
         });
         
-        // 標記出貨單為已出貨
+        // 轉出貨（將狀態從 pending 改為 ready_to_ship）
         const moveToShipment = async (shipmentId) => {
             showConfirm(
-                '確認標記已出貨',
-                '確定要將此出貨單標記為已出貨嗎？',
+                '確認轉出貨',
+                '確定要將此出貨單轉為待出貨嗎？轉出貨後將出現在「出貨」頁面。',
                 async () => {
                     try {
-                        // 呼叫 batch-mark-shipped API 標記為已出貨
-                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped', {
+                        // 呼叫 transfer API 將狀態改為 ready_to_ship
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/transfer`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                shipment_ids: [shipmentId]
-                            })
+                            credentials: 'include'
                         });
 
                         const result = await response.json();
 
                         if (result.success) {
-                            showToast('已標記為出貨', 'success');
+                            showToast('已轉為待出貨', 'success');
                             await loadShipments();
                         } else {
-                            showToast('標記出貨失敗：' + result.message, 'error');
+                            showToast('轉出貨失敗：' + result.message, 'error');
                         }
                     } catch (err) {
-                        showToast('標記出貨失敗', 'error');
+                        showToast('轉出貨失敗', 'error');
                     }
                 }
             );
