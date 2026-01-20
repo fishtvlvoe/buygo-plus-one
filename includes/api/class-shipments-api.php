@@ -194,7 +194,7 @@ class Shipments_API
 
             // 查詢出貨單明細
             $items_query = "
-                SELECT 
+                SELECT
                     si.id,
                     si.order_id,
                     si.order_item_id,
@@ -203,7 +203,9 @@ class Shipments_API
                     oi.title,
                     oi.post_title,
                     oi.line_meta,
-                    o.invoice_no as order_invoice_no
+                    oi.price,
+                    o.invoice_no as order_invoice_no,
+                    o.currency
                 FROM {$table_shipment_items} si
                 LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
                 LEFT JOIN {$table_orders} o ON si.order_id = o.id
@@ -211,17 +213,21 @@ class Shipments_API
             ";
 
             $items = $wpdb->get_results($wpdb->prepare($items_query, $shipment_id), ARRAY_A);
-            
-            // 處理商品名稱和圖片
+
+            // 處理商品名稱、圖片和價格
             foreach ($items as &$item) {
                 // 取得商品名稱（優先使用 title，其次使用 post_title）
                 $item['product_name'] = $item['title'] ?? $item['post_title'] ?? '未知商品';
-                
-                // 從 line_meta 解析商品圖片（如果有的話）
+
+                // 從 line_meta 解析商品圖片和其他 meta 資料
                 $line_meta = $item['line_meta'] ?? '{}';
                 $meta_data = is_string($line_meta) ? json_decode($line_meta, true) : ($line_meta ?: []);
                 $item['product_image'] = $meta_data['product_image'] ?? $meta_data['image'] ?? null;
-                
+
+                // 處理價格（unit_price 就是商品單價）
+                $item['unit_price'] = floatval($item['price'] ?? 0);
+                $item['price'] = floatval($item['price'] ?? 0);
+
                 // 移除不需要的欄位
                 unset($item['title'], $item['post_title'], $item['line_meta']);
             }
