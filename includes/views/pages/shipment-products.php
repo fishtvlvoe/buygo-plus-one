@@ -59,16 +59,16 @@ $shipment_products_component_template = <<<'HTML'
                 <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-10">
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">出貨單號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶名稱</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">商品清單</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">總數量</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">狀態</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">建立日期</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[20%]">出貨單號</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">客戶名稱</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[30%]">商品清單</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">總數量</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">狀態</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">建立日期</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">操作</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
@@ -574,19 +574,12 @@ const ShipmentProductsPageComponent = {
         // 格式化商品列表顯示
         const formatItemsDisplay = (shipment, maxLength = 50) => {
             if (!shipment.items || !Array.isArray(shipment.items) || shipment.items.length === 0) {
-                return `${shipment.items_count || 0} 件商品`;
+                return `0 個項目`;
             }
-            
-            const itemsText = shipment.items
-                .map(item => `${item.product_name || '未知商品'} x${item.quantity || 0}`)
-                .join(', ');
-            
-            // 如果文字太長，截斷並加上省略號
-            if (itemsText.length > maxLength) {
-                return itemsText.substring(0, maxLength) + '...';
-            }
-            
-            return itemsText;
+
+            // 簡潔模式：只顯示項目數
+            const itemCount = shipment.items.length;
+            return `${itemCount} 個項目`;
         };
         
         // 切換出貨單展開狀態
