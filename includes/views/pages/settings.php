@@ -3,12 +3,27 @@
 
 $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    <!-- 頁面標題 -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 sticky top-0 z-30 md:static">
-        <div class="pl-12 md:pl-0">
-            <h1 class="text-xl font-bold text-slate-900">設定</h1>
+    <!-- Header（與其他頁面一致） -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">設定</h1>
+                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
+                    <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="text-slate-900 font-medium">設定</span>
+                </nav>
+            </div>
         </div>
-    </div>
+
+        <!-- 右側操作區 -->
+        <div class="flex items-center gap-2 md:gap-3 shrink-0">
+            <!-- 通知鈴鐺 -->
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </button>
+        </div>
+    </header>
 
     <!-- 設定內容容器 -->
     <div class="p-6">
@@ -1648,10 +1663,7 @@ const SettingsPageComponent = {
                 }
                 
                 const result = await response.json();
-                
-                // 除錯日誌
-                console.log('關鍵字 API 回應:', result);
-                
+
                 if (result.success && result.data && Array.isArray(result.data)) {
                     keywords.value = result.data.map(kw => ({
                         ...kw,
@@ -1669,8 +1681,6 @@ const SettingsPageComponent = {
                             };
                         }
                     });
-                    
-                    console.log('載入的關鍵字數量:', keywords.value.length);
                 } else {
                     console.warn('關鍵字 API 回應格式不正確:', result);
                     keywords.value = [];
@@ -1953,7 +1963,10 @@ const SettingsPageComponent = {
             addAlias,
             removeAlias,
             addNewAlias,
-            removeNewAlias
+            removeNewAlias,
+            editingKeywordId,
+            expandedKeywordsSet,
+            showToast
         };
     }
 };
