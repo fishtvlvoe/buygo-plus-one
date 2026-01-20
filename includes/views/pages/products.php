@@ -274,11 +274,10 @@ $products_component_template = <<<'HTML'
                 <div class="flex items-center gap-3">
                     <!-- Per Page Selector -->
                     <select v-model.number="perPage" @change="currentPage = 1; loadProducts()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-                        <option :value="5">5 / 頁</option>
-                        <option :value="10">10 / 頁</option>
-                        <option :value="20">20 / 頁</option>
-                        <option :value="30">30 / 頁</option>
-                        <option :value="-1">全部</option>
+                        <option :value="5">5 筆</option>
+                        <option :value="10">10 筆</option>
+                        <option :value="20">20 筆</option>
+                        <option :value="50">50 筆</option>
                     </select>
                     <!-- Page Navigation -->
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
@@ -549,7 +548,7 @@ const ProductsPageComponent = {
         
         // Pagination
         const currentPage = ref(1);
-        const perPage = ref(10);
+        const perPage = ref(5);
         const totalProducts = ref(0);
 
         // 當前顯示幣別

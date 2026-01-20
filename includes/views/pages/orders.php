@@ -380,11 +380,10 @@ $orders_component_template = <<<'HTML'
                 </div>
                 <div class="flex items-center gap-3">
                     <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-                        <option :value="5">5 / 頁</option>
-                        <option :value="10">10 / 頁</option>
-                        <option :value="20">20 / 頁</option>
-                        <option :value="50">50 / 頁</option>
-                        <option :value="-1">全部</option>
+                        <option :value="5">5 筆</option>
+                        <option :value="10">10 筆</option>
+                        <option :value="20">20 筆</option>
+                        <option :value="50">50 筆</option>
                     </select>
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
