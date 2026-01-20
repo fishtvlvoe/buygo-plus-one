@@ -544,8 +544,8 @@ const OrdersPageComponent = {
         const searchFilterName = ref('');
         const searchQuery = ref('');
 
-        // 幣別設定
-        const systemCurrency = ref('JPY');
+        // 幣別設定 - 動態讀取 FluentCart 設定
+        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
         
         // 批次操作
         const batchDelete = async () => {

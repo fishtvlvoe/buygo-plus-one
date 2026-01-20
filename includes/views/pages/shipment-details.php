@@ -405,15 +405,15 @@ $shipment_details_template = <<<'HTML'
                                 <tr v-for="item in detailModal.items" :key="item.id">
                                     <td class="px-4 py-3 text-sm text-slate-900">{{ item.product_name }}</td>
                                     <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">NT$ {{ formatPrice(item.price) }}</td>
-                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">NT$ {{ formatPrice(item.quantity * item.price) }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ getCurrencySymbol() }} {{ formatPrice(item.price) }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ getCurrencySymbol() }} {{ formatPrice(item.quantity * item.price) }}</td>
                                 </tr>
                             </tbody>
                             <tfoot class="bg-slate-50">
                                 <tr>
                                     <td colspan="3" class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">總計</td>
                                     <td class="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                                        NT$ {{ formatPrice(detailModal.total) }}
+                                        {{ getCurrencySymbol() }} {{ formatPrice(detailModal.total) }}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -502,7 +502,17 @@ const ShipmentDetailsPageComponent = {
         // 搜尋狀態
         const searchQuery = ref(null);
         const searchFilter = ref(null);
-        
+
+        // 幣別設定 - 動態讀取 FluentCart 設定
+        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
+        const currencySymbols = {
+            'TWD': 'NT$',
+            'JPY': '¥',
+            'USD': '$',
+            'THB': '฿'
+        };
+        const getCurrencySymbol = () => currencySymbols[systemCurrency.value] || 'NT$';
+
         // 載入出貨單列表
         const loadShipments = async () => {
             loading.value = true;
@@ -872,6 +882,8 @@ const ShipmentDetailsPageComponent = {
             closeDetailModal,
             formatPrice,
             printDetail,
+            getCurrencySymbol,
+            systemCurrency,
             // 分頁相關
             currentPage,
             perPage,
