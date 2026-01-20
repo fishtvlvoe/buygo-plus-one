@@ -202,10 +202,10 @@ $orders_component_template = <<<'HTML'
                                 <div class="relative inline-block">
                                     <button
                                         @click.stop="toggleStatusDropdown(order.id)"
-                                        :class="getStatusClass(order.shipping_status || 'not_shipped')"
+                                        :class="getStatusClass(order.shipping_status || 'unshipped')"
                                         class="px-3 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition whitespace-nowrap flex-shrink-0 overflow-hidden flex items-center gap-1"
                                     >
-                                        <span>{{ getStatusText(order.shipping_status || 'not_shipped') }}</span>
+                                        <span>{{ getStatusText(order.shipping_status || 'unshipped') }}</span>
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
@@ -915,7 +915,7 @@ const OrdersPageComponent = {
         
         // 運送狀態選項（6個）
         const shippingStatuses = [
-            { value: 'not_shipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
+            { value: 'unshipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
             { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
             { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
             { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },

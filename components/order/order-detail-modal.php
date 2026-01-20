@@ -249,7 +249,7 @@ const OrderDetailModal = {
 
         // 運送狀態選項（與訂單列表保持一致）
         const shippingStatuses = [
-            { value: 'not_shipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
+            { value: 'unshipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
             { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
             { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
             { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
@@ -317,7 +317,7 @@ const OrderDetailModal = {
 
                     // 初始化本地狀態
                     localOrderStatus.value = orderData.value.status || 'pending';
-                    localShippingStatus.value = orderData.value.shipping_status || 'not_shipped';
+                    localShippingStatus.value = orderData.value.shipping_status || 'unshipped';
                     statusError.value = null;
                 } else {
                     error.value = result.message || '載入訂單失敗';
@@ -378,7 +378,7 @@ const OrderDetailModal = {
         const hasStatusChanges = computed(() => {
             if (!orderData.value) return false;
             const orderStatusChanged = localOrderStatus.value !== (orderData.value.status || 'pending');
-            const shippingStatusChanged = localShippingStatus.value !== (orderData.value.shipping_status || 'not_shipped');
+            const shippingStatusChanged = localShippingStatus.value !== (orderData.value.shipping_status || 'unshipped');
             return orderStatusChanged || shippingStatusChanged;
         });
         
@@ -422,7 +422,7 @@ const OrderDetailModal = {
                 }
                 
                 // 更新運送狀態
-                if (localShippingStatus.value !== (orderData.value.shipping_status || 'not_shipped')) {
+                if (localShippingStatus.value !== (orderData.value.shipping_status || 'unshipped')) {
                     const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/shipping-status`, {
                         method: 'PUT',
                         headers: {

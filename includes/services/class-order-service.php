@@ -716,7 +716,7 @@ class OrderService
             'id' => $order['id'] ?? 0,
             'invoice_no' => $order['invoice_no'] ?? '',
             'status' => $order['status'] ?? 'pending',
-            'shipping_status' => $order['shipping_status'] ?? 'not_shipped',
+            'shipping_status' => $order['shipping_status'] ?? 'unshipped',
             'total_amount' => isset($order['total_amount']) ? ($order['total_amount'] / 100) : 0, // 轉換為元
             'currency' => $order['currency'] ?? 'TWD',
             'payment_method' => $order['payment_method'] ?? '未提供',
