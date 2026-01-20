@@ -133,7 +133,7 @@ $orders_component_template = <<<'HTML'
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">編號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名稱</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">項目</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">總金額</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">運送狀態</th>
@@ -953,7 +953,7 @@ const OrdersPageComponent = {
         const updateShippingStatus = async (orderId, newStatus) => {
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}/shipping-status`, {
-                    method: 'POST',
+                    method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
