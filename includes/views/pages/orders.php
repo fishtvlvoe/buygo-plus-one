@@ -272,21 +272,28 @@ $orders_component_template = <<<'HTML'
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                     </svg>
                                     #{{ childOrder.invoice_no }}
-                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">指定單</span>
+                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600">
-                                <!-- 子訂單商品資訊（簡化顯示） -->
-                                <span class="text-xs text-blue-700">待出貨批次</span>
+                                <!-- 子訂單商品資訊 -->
+                                <div class="text-xs text-slate-600">
+                                    <template v-if="childOrder.items && childOrder.items.length > 0">
+                                        <div v-for="item in childOrder.items" :key="item.id" class="truncate">
+                                            {{ item.product_title }} × {{ item.quantity }}
+                                        </div>
+                                    </template>
+                                    <span v-else class="text-blue-700">拆單商品</span>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm font-semibold text-blue-700">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
                             <td class="px-4 py-3">
                                 <span
-                                    :class="getStatusClass(childOrder.status || 'pending')"
+                                    :class="getStatusClass(childOrder.shipping_status || 'pending')"
                                     class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
                                 >
-                                    {{ getStatusText(childOrder.status || 'pending') }}
+                                    {{ getStatusText(childOrder.shipping_status || 'pending') }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(childOrder.created_at) }}</td>
