@@ -326,6 +326,7 @@ class FluentCartService {
 			'available' => $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
+			'compare_price' => $compare_price ?? 0, // 【關鍵修復】儲存原價到資料庫欄位
 			'payment_type' => 'onetime', // 【關鍵修復】FluentCart 核心欄位
 			'other_info' => wp_json_encode( $other_info ), // 【新增】包含 payment_type 和原價
 			'created_at' => current_time( 'mysql' ),
@@ -400,6 +401,7 @@ class FluentCartService {
 			'available' => $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
+			'compare_price' => $compare_price ?? 0, // 【關鍵修復】儲存原價到資料庫欄位
 			'payment_type' => 'onetime', // 【關鍵修復】FluentCart 核心欄位
 			'other_info' => wp_json_encode( $other_info ), // 【新增】包含 payment_type 和原價
 			'created_at' => current_time( 'mysql' ),
