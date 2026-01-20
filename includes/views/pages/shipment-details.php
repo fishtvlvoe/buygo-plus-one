@@ -950,6 +950,9 @@ const ShipmentDetailsPageComponent = {
             handleSearchSelect,
             handleSearchClear,
             showToast,
+            // 匯出功能
+            exportShipment,
+            batchExport,
             // 分頁相關
             currentPage,
             perPage,

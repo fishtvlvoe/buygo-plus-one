@@ -143,12 +143,15 @@ class ShipmentService
             }
         }
         
+        // 【新增】建立出貨單後，自動更新相關訂單狀態為「處理中」
+        $this->update_orders_status_to_processing($items);
+
         $this->debugService->log('ShipmentService', '出貨單建立成功', [
             'shipment_id' => $shipment_id,
             'shipment_number' => $shipment_number,
             'items_count' => count($items)
         ]);
-        
+
         return $shipment_id;
     }
 
@@ -436,6 +439,68 @@ class ShipmentService
         } catch (\Exception $e) {
             $this->debugService->log('ShipmentService', '檢查父訂單完成狀態失敗', [
                 'shipment_id' => $shipment_id,
+                'error' => $e->getMessage()
+            ], 'error');
+        }
+    }
+
+    /**
+     * 建立出貨單後，更新相關訂單狀態為「處理中」
+     *
+     * 當訂單被分配到出貨單後，自動將訂單狀態從 pending 更新為 processing
+     * 這樣用戶就知道訂單已經在處理中，等待出貨
+     *
+     * @param array $items 出貨單項目
+     * @return void
+     */
+    private function update_orders_status_to_processing($items)
+    {
+        global $wpdb;
+
+        try {
+            // 收集所有需要更新的訂單 ID
+            $order_ids = [];
+            foreach ($items as $item) {
+                if (!empty($item['order_id'])) {
+                    $order_ids[] = (int)$item['order_id'];
+                }
+            }
+
+            if (empty($order_ids)) {
+                return;
+            }
+
+            // 去除重複
+            $order_ids = array_unique($order_ids);
+
+            // 更新訂單狀態為 processing（如果當前狀態為 pending）
+            foreach ($order_ids as $order_id) {
+                // 只更新狀態為 pending 的訂單
+                $current_status = $wpdb->get_var($wpdb->prepare(
+                    "SELECT status FROM {$wpdb->prefix}fct_orders WHERE id = %d",
+                    $order_id
+                ));
+
+                if ($current_status === 'pending') {
+                    $wpdb->update(
+                        $wpdb->prefix . 'fct_orders',
+                        [
+                            'status' => 'processing',
+                            'updated_at' => current_time('mysql')
+                        ],
+                        ['id' => $order_id],
+                        ['%s', '%s'],
+                        ['%d']
+                    );
+
+                    $this->debugService->log('ShipmentService', '更新訂單狀態為 processing', [
+                        'order_id' => $order_id,
+                        'previous_status' => $current_status
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->debugService->log('ShipmentService', '更新訂單狀態失敗', [
                 'error' => $e->getMessage()
             ], 'error');
         }
