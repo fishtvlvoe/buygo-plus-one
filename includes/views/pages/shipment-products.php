@@ -817,7 +817,12 @@ const ShipmentProductsPageComponent = {
             moveToShipment,
             mergeShipments,
             loadShipments,
-            
+
+            // Smart Search Box 事件處理
+            handleSearchInput: handleGlobalSearchInput,
+            handleSearchSelect: handleGlobalSearchSelect,
+            handleSearchClear: handleGlobalSearchClear,
+
             // Modal 和 Toast
             showConfirmModal,
             confirmModal,
