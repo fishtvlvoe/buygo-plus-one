@@ -959,7 +959,7 @@ const OrdersPageComponent = {
                         'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
                     },
                     credentials: 'include',
-                    body: JSON.stringify({ shipping_status: newStatus })
+                    body: JSON.stringify({ status: newStatus })
                 });
 
                 const result = await response.json();
