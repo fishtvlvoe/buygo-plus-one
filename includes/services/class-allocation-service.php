@@ -470,9 +470,9 @@ class AllocationService
                 return new WP_Error('PARENT_ITEM_NOT_FOUND', '父訂單中找不到此商品項目');
             }
 
-            // 3. 計算金額（FluentCart 使用 unit_price 欄位，並以分為單位儲存）
+            // 3. 計算金額（FluentCart 使用 unit_price 欄位，已經是分為單位）
             $unit_price = (float)$parent_item->unit_price;
-            $child_total_cents = $unit_price * $quantity * 100;  // 轉換為分，與 FluentCart 格式一致
+            $child_total_cents = $unit_price * $quantity;  // unit_price 已經是分單位，直接相乘即可
 
             $this->debugService->log('AllocationService', '取得父訂單項目價格', [
                 'parent_item_id' => $parent_item->id,
