@@ -868,20 +868,19 @@ const ProductsPageComponent = {
             else selectedItems.value = products.value.map(p => p.id);
         };
 
-        // 格式化價格（支援多幣別顯示）
         // 格式化價格（根據 currentCurrency 顯示）
-        const formatPriceDisplayDisplay = (price, productCurrency = null) => {
+        const formatPriceDisplay = (price, productCurrency = null) => {
             const safePrice = price ?? 0;
             const sourceCurrency = productCurrency || systemCurrency.value;
 
             // 如果當前顯示幣別與商品幣別相同,直接格式化
             if (currentCurrency.value === sourceCurrency) {
-                return formatPriceDisplay(safePrice, sourceCurrency);
+                return formatPrice(safePrice, sourceCurrency);
             }
 
             // 否則進行匯率轉換
             const convertedPrice = convertCurrency(safePrice, sourceCurrency, currentCurrency.value);
-            return formatPriceDisplay(convertedPrice, currentCurrency.value);
+            return formatPrice(convertedPrice, currentCurrency.value);
         };
 
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
