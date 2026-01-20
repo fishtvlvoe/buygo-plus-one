@@ -1,6 +1,9 @@
 <?php
 // 訂單管理頁面元件
 
+// 載入智慧搜尋框元件
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
+
 // 載入 OrderDetailModal 元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
 ?>
@@ -97,15 +100,28 @@ $orders_component_template = <<<'HTML'
         <div class="flex-1 overflow-auto bg-slate-50/50 relative">
             <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
             <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+
+                <!-- Smart Search Box -->
+                <smart-search-box
+                    api-endpoint="/wp-json/buygo-plus-one/v1/orders"
+                    :search-fields="['invoice_no', 'customer_name', 'customer_email']"
+                    display-field="invoice_no"
+                    display-sub-field="customer_name"
+                    placeholder="搜尋訂單編號、客戶名稱或 Email..."
+                    :show-image="false"
+                    :show-status="true"
+                    @select="handleOrderSelect"
+                ></smart-search-box>
+
                 <!-- Loading -->
                 <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
-                
+
                 <!-- Error -->
                 <div v-else-if="error" class="text-center py-12">
                     <p class="text-red-600 mb-4">{{ error }}</p>
                     <button @click="loadOrders" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">重新載入</button>
                 </div>
-                
+
                 <!-- Content -->
                 <div v-else>
             <!-- 桌面版表格 -->
@@ -522,7 +538,8 @@ HTML;
 const OrdersPageComponent = {
     name: 'OrdersPage',
     components: {
-        'order-detail-modal': OrderDetailModal
+        'order-detail-modal': OrderDetailModal,
+        'smart-search-box': BuyGoSmartSearchBox
     },
     template: `<?php echo $orders_component_template; ?>`,
     setup() {
@@ -1161,7 +1178,14 @@ const OrdersPageComponent = {
             // 監聽瀏覽器上一頁/下一頁
             window.BuyGoRouter.setupPopstateListener(checkUrlParams);
         });
-        
+
+        // Smart Search Box 事件處理器
+        const handleOrderSelect = (order) => {
+            if (order && order.id) {
+                viewOrder(order.id);
+            }
+        };
+
         return {
             orders,
             loading,
@@ -1223,7 +1247,9 @@ const OrdersPageComponent = {
             showMobileSearch,
             // 新增方法
             batchDelete,
-            toggleCurrency
+            toggleCurrency,
+            // Smart Search Box
+            handleOrderSelect
         };
     }
 };
