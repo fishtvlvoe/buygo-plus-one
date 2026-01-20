@@ -92,9 +92,12 @@ $shipment_details_template = <<<'HTML'
                 <button
                     v-if="selectedShipments.length > 0"
                     @click="batchExport"
-                    class="buygo-btn buygo-btn-accent"
+                    class="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
                 >
-                    📥 批次匯出 Excel（{{ selectedShipments.length }}）
+                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    匯出 Excel（{{ selectedShipments.length }}）
                 </button>
             </div>
         </div>
@@ -460,9 +463,12 @@ $shipment_details_template = <<<'HTML'
                 </button>
                 <button
                     @click="exportShipment(detailModal.shipment?.id)"
-                    class="buygo-btn buygo-btn-accent"
+                    class="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition font-medium"
                 >
-                    📥 匯出 Excel
+                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    匯出 Excel
                 </button>
                 <button
                     @click="printDetail"
@@ -777,57 +783,107 @@ const ShipmentDetailsPageComponent = {
             try {
                 showToast('正在準備匯出...', 'info');
 
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/wp-json/buygo-plus-one/v1/shipments/export';
-                form.target = '_blank';
+                const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        shipment_ids: [shipmentId]
+                    })
+                });
 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'shipment_ids';
-                input.value = JSON.stringify([shipmentId]);
+                if (!response.ok) {
+                    throw new Error('匯出失敗');
+                }
 
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
+                // 取得檔案 blob
+                const blob = await response.blob();
+
+                // 建立下載連結
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `出貨單_${new Date().getTime()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
 
                 showToast('匯出成功！', 'success');
             } catch (err) {
                 console.error('匯出失敗:', err);
-                showToast('匯出失敗', 'error');
+                showToast('匯出失敗：' + err.message, 'error');
             }
         };
 
         // 批次匯出
         const batchExport = async () => {
+            console.log('[DEBUG] 批次匯出開始');
+            console.log('[DEBUG] 選擇的出貨單:', selectedShipments.value);
+
             if (selectedShipments.value.length === 0) {
+                console.log('[DEBUG] 錯誤: 沒有選擇出貨單');
                 showToast('請先選擇出貨單', 'error');
                 return;
             }
 
             try {
                 showToast('正在準備匯出...', 'info');
+                console.log('[DEBUG] 發送 API 請求...');
 
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/wp-json/buygo-plus-one/v1/shipments/export';
-                form.target = '_blank';
+                const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        shipment_ids: selectedShipments.value
+                    })
+                });
 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'shipment_ids';
-                input.value = JSON.stringify(selectedShipments.value);
+                console.log('[DEBUG] API 回應狀態:', response.status);
+                console.log('[DEBUG] API 回應標頭:', {
+                    contentType: response.headers.get('content-type'),
+                    contentDisposition: response.headers.get('content-disposition'),
+                    contentLength: response.headers.get('content-length')
+                });
 
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('[DEBUG] API 錯誤:', errorData);
+                    throw new Error(errorData.message || '匯出失敗');
+                }
 
+                // 取得檔案 blob
+                console.log('[DEBUG] 正在下載檔案...');
+                const blob = await response.blob();
+                console.log('[DEBUG] Blob 大小:', blob.size, 'bytes');
+                console.log('[DEBUG] Blob 類型:', blob.type);
+
+                if (blob.size === 0) {
+                    throw new Error('匯出的檔案是空的');
+                }
+
+                // 建立下載連結
+                console.log('[DEBUG] 建立下載連結...');
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `出貨單_${new Date().getTime()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                console.log('[DEBUG] 匯出成功!');
                 showToast(`成功匯出 ${selectedShipments.value.length} 個出貨單！`, 'success');
             } catch (err) {
-                console.error('批次匯出失敗:', err);
-                showToast('批次匯出失敗', 'error');
+                console.error('[DEBUG] 批次匯出失敗:', err);
+                console.error('[DEBUG] 錯誤堆疊:', err.stack);
+                showToast('批次匯出失敗：' + err.message, 'error');
             }
         };
 

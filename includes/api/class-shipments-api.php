@@ -699,10 +699,10 @@ class Shipments_API
             $shipment_ids = $request->get_param('shipment_ids');
 
             if (empty($shipment_ids)) {
-                wp_send_json_error([
+                return new WP_REST_Response([
+                    'success' => false,
                     'message' => '請至少選擇一個出貨單'
                 ], 400);
-                return;
             }
 
             // 確保是陣列
@@ -713,21 +713,33 @@ class Shipments_API
             // 生成 CSV 檔案
             $filepath = $this->exportService->export_shipments_csv($shipment_ids);
 
-            if (!$filepath) {
-                wp_send_json_error([
+            if (!$filepath || !file_exists($filepath)) {
+                return new WP_REST_Response([
+                    'success' => false,
                     'message' => '匯出失敗'
                 ], 500);
-                return;
             }
 
-            // 生成檔名
+            // 讀取檔案內容
+            $content = file_get_contents($filepath);
+
+            // 刪除臨時檔案
+            @unlink($filepath);
+
+            // 設定 HTTP 標頭並返回檔案內容
             $filename = '出貨單_' . date('Ymd_His') . '.csv';
 
-            // 下載檔案
-            $this->exportService->download_file($filepath, $filename);
+            // 建立 Response
+            $response = new WP_REST_Response($content, 200);
+            $response->header('Content-Type', 'text/csv; charset=utf-8');
+            $response->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            $response->header('Content-Length', strlen($content));
+
+            return $response;
 
         } catch (\Exception $e) {
-            wp_send_json_error([
+            return new WP_REST_Response([
+                'success' => false,
                 'message' => '匯出失敗：' . $e->getMessage()
             ], 500);
         }
