@@ -109,19 +109,20 @@ $shipment_products_component_template = <<<'HTML'
             
             <!-- 桌面版表格 -->
             <div class="hidden md:block buygo-card overflow-x-auto">
-                <table class="w-full min-w-max">
+                <table class="w-full">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-10">
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 40px; white-space: nowrap;">
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">出貨單號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[15%]">客戶名稱</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[30%]">商品清單</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[8%]">總數量</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[12%]">狀態</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">建立日期</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-[10%]">操作</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 12%; white-space: nowrap;">出貨單號</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 10%; white-space: nowrap;">客戶</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 50px; white-space: nowrap;">圖</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 25%; white-space: nowrap;">商品清單</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 8%; white-space: nowrap;">總數量</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 10%; white-space: nowrap;">狀態</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 12%; white-space: nowrap;">建立日期</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" style="width: 10%; white-space: nowrap;">操作</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
@@ -129,8 +130,21 @@ $shipment_products_component_template = <<<'HTML'
                             <td class="px-4 py-3">
                                 <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300">
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ shipment.shipment_number }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ shipment.customer_name || '未知客戶' }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900" style="white-space: nowrap;">{{ shipment.shipment_number }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600" style="white-space: nowrap;">{{ shipment.customer_name || '未知客戶' }}</td>
+                            <td class="px-4 py-3">
+                                <img
+                                    v-if="shipment.items && shipment.items[0] && shipment.items[0].product_image"
+                                    :src="shipment.items[0].product_image"
+                                    :alt="shipment.items[0].product_name"
+                                    class="w-10 h-10 object-cover rounded border border-slate-200"
+                                />
+                                <div v-else class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-sm text-slate-600">
                                 <div class="flex items-center gap-2">
                                     <span 
@@ -188,10 +202,11 @@ $shipment_products_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-center text-sm font-semibold text-slate-900">{{ shipment.total_quantity || 0 }}</td>
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-slate-900" style="white-space: nowrap;">{{ shipment.total_quantity || 0 }}</td>
                             <td class="px-4 py-3 text-center">
                                 <span
-                                    class="px-2 py-1 text-xs font-medium rounded-full"
+                                    class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                                    style="white-space: nowrap;"
                                     :class="{
                                         'bg-yellow-100 text-yellow-800 border border-yellow-200': shipment.status === 'pending' || shipment.status === '備貨中',
                                         'bg-green-100 text-green-800 border border-green-200': shipment.status === 'shipped' || shipment.status === '已出貨'
@@ -200,14 +215,15 @@ $shipment_products_component_template = <<<'HTML'
                                     {{ getStatusText(shipment.status) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(shipment.created_at) }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600" style="white-space: nowrap;">{{ formatDate(shipment.created_at) }}</td>
                             <td class="px-4 py-3 text-center">
                                 <!-- 操作按鈕（僅待出貨狀態顯示） -->
                                 <button
                                     v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
                                     @click="moveToShipment(shipment.id)"
-                                    class="px-2 py-1 text-xs font-bold text-primary hover:text-primary-dark hover:underline transition">
-                                    標記已出貨
+                                    class="inline-block px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-sm"
+                                    style="white-space: nowrap; min-width: 80px;">
+                                    已出貨
                                 </button>
                             </td>
                         </tr>
@@ -291,7 +307,8 @@ $shipment_products_component_template = <<<'HTML'
                             <span class="font-bold text-slate-900">{{ shipment.total_quantity || 0 }}</span>
                         </div>
                         <span
-                            class="px-2 py-1 text-xs font-medium rounded-full"
+                            class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                            style="white-space: nowrap;"
                             :class="{
                                 'bg-yellow-100 text-yellow-800 border border-yellow-200': shipment.status === 'pending' || shipment.status === '備貨中',
                                 'bg-green-100 text-green-800 border border-green-200': shipment.status === 'shipped' || shipment.status === '已出貨'
@@ -310,8 +327,9 @@ $shipment_products_component_template = <<<'HTML'
                     <button
                         v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
                         @click="moveToShipment(shipment.id)"
-                        class="w-full px-3 py-2 text-xs font-bold text-primary bg-blue-50 hover:bg-blue-100 rounded-lg transition">
-                        標記已出貨
+                        class="w-full px-3 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-sm"
+                        style="white-space: nowrap;">
+                        已出貨
                     </button>
                 </div>
             </div>
