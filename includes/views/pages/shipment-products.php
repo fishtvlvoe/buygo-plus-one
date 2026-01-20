@@ -728,15 +728,15 @@ const ShipmentProductsPageComponent = {
             return customerIds.every(id => id === customerIds[0]);
         });
         
-        // 移至待出貨（建立出貨單）
+        // 標記出貨單為已出貨
         const moveToShipment = async (shipmentId) => {
             showConfirm(
-                '確認移至待出貨',
-                '確定要將此商品移至出貨流程嗎？',
+                '確認標記已出貨',
+                '確定要將此出貨單標記為已出貨嗎？',
                 async () => {
                     try {
-                        // 呼叫 API 建立出貨單
-                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments', {
+                        // 呼叫 batch-mark-shipped API 標記為已出貨
+                        const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
@@ -744,17 +744,17 @@ const ShipmentProductsPageComponent = {
                                 shipment_ids: [shipmentId]
                             })
                         });
-                        
+
                         const result = await response.json();
-                        
+
                         if (result.success) {
-                            showToast('已移至待出貨', 'success');
+                            showToast('已標記為出貨', 'success');
                             await loadShipments();
                         } else {
-                            showToast('移至待出貨失敗：' + result.message, 'error');
+                            showToast('標記出貨失敗：' + result.message, 'error');
                         }
                     } catch (err) {
-                        showToast('移至待出貨失敗', 'error');
+                        showToast('標記出貨失敗', 'error');
                     }
                 }
             );

@@ -73,8 +73,19 @@ class ShipmentService
     public function create_shipment($customer_id, $seller_id, $items = [])
     {
         global $wpdb;
-        
+
+        // 【Debug Log】記錄建立出貨單的輸入參數
+        $this->debugService->log('ShipmentService', '開始建立出貨單', [
+            'customer_id' => $customer_id,
+            'seller_id' => $seller_id,
+            'items_count' => count($items),
+            'items' => $items
+        ]);
+
         if (empty($items)) {
+            $this->debugService->log('ShipmentService', '建立出貨單失敗：items 為空', [
+                'customer_id' => $customer_id
+            ], 'error');
             return new WP_Error('NO_ITEMS', '出貨單必須至少包含一個商品');
         }
         
@@ -293,7 +304,12 @@ class ShipmentService
     public function mark_shipped($shipment_ids)
     {
         global $wpdb;
-        
+
+        // 【Debug Log】記錄標記出貨的輸入參數
+        $this->debugService->log('ShipmentService', '開始標記出貨單為已出貨', [
+            'shipment_ids' => $shipment_ids
+        ]);
+
         if (empty($shipment_ids)) {
             return new WP_Error('INVALID_INPUT', '請選擇要標記的出貨單');
         }
