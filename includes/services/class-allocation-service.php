@@ -470,15 +470,15 @@ class AllocationService
                 return new WP_Error('PARENT_ITEM_NOT_FOUND', '父訂單中找不到此商品項目');
             }
 
-            // 3. 計算金額（FluentCart 使用 unit_price 欄位）
+            // 3. 計算金額（FluentCart 使用 unit_price 欄位，並以分為單位儲存）
             $unit_price = (float)$parent_item->unit_price;
-            $child_total = $unit_price * $quantity;
+            $child_total_cents = $unit_price * $quantity * 100;  // 轉換為分，與 FluentCart 格式一致
 
             $this->debugService->log('AllocationService', '取得父訂單項目價格', [
                 'parent_item_id' => $parent_item->id,
                 'unit_price' => $unit_price,
                 'quantity' => $quantity,
-                'child_total' => $child_total
+                'child_total_cents' => $child_total_cents
             ]);
 
             // 4. 生成子訂單編號
@@ -497,7 +497,7 @@ class AllocationService
                 'parent_id' => $parent_order_id,
                 'customer_id' => $parent_order->customer_id,
                 'invoice_no' => $child_invoice_no,
-                'total_amount' => $child_total,
+                'total_amount' => $child_total_cents,
                 'currency' => $parent_order->currency
             ]);
 
@@ -508,7 +508,7 @@ class AllocationService
                     'type' => 'split',
                     'customer_id' => $parent_order->customer_id,
                     'status' => 'pending',
-                    'total_amount' => $child_total,
+                    'total_amount' => $child_total_cents,
                     'currency' => $parent_order->currency,
                     'payment_method' => $parent_order->payment_method,
                     'invoice_no' => $child_invoice_no,
@@ -573,7 +573,7 @@ class AllocationService
                 'invoice_no' => $child_invoice_no,
                 'parent_id' => $parent_order_id,
                 'quantity' => $quantity,
-                'total_amount' => $child_total
+                'total_amount' => $child_total_cents
             ];
 
         } catch (\Exception $e) {
