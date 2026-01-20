@@ -534,6 +534,13 @@ class AllocationService
 
             // 6. 複製訂單項目（FluentCart 使用 unit_price 欄位）
             $item_subtotal = $unit_price * $quantity;
+
+            // 準備子訂單項目的 meta 資料（重要：設定分配數量）
+            $child_item_meta = json_encode([
+                '_allocated_qty' => $quantity,  // 設定分配數量 = 子訂單數量（出貨驗證需要）
+                '_shipped_qty' => 0              // 已出貨數量初始為 0
+            ]);
+
             $wpdb->insert(
                 $wpdb->prefix . 'fct_order_items',
                 [
@@ -543,7 +550,7 @@ class AllocationService
                     'quantity' => $quantity,
                     'unit_price' => $unit_price,
                     'subtotal' => $item_subtotal,
-                    'line_meta' => '{}',
+                    'line_meta' => $child_item_meta,  // 使用包含 _allocated_qty 的 meta
                 ],
                 ['%d', '%d', '%d', '%d', '%f', '%f', '%s']
             );
