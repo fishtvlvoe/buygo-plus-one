@@ -22,7 +22,7 @@ class ShippingStatusService
      * 運送狀態定義（6 個狀態）
      */
     const SHIPPING_STATUSES = [
-        'pending'      => '未出貨',
+        'unshipped'    => '未出貨',
         'preparing'    => '備貨中',
         'processing'   => '處理中',
         'shipped'      => '已出貨',
@@ -34,7 +34,7 @@ class ShippingStatusService
      * 狀態流程順序（用於判斷異常變更）
      */
     const STATUS_ORDER = [
-        'pending'      => 1,
+        'unshipped'    => 1,
         'preparing'    => 2,
         'processing'   => 3,
         'shipped'      => 4,
@@ -46,7 +46,7 @@ class ShippingStatusService
      * 狀態顏色（用於前端顯示）
      */
     const STATUS_COLORS = [
-        'pending'      => 'gray',
+        'unshipped'    => 'gray',
         'preparing'    => 'blue',
         'processing'   => 'yellow',
         'shipped'      => 'green',
@@ -58,7 +58,7 @@ class ShippingStatusService
      * 狀態圖示（用於前端顯示）
      */
     const STATUS_ICONS = [
-        'pending'      => 'clock',
+        'unshipped'    => 'clock',
         'preparing'    => 'box',
         'processing'   => 'truck-loading',
         'shipped'      => 'truck',
@@ -149,7 +149,7 @@ class ShippingStatusService
         }
 
         // 從已出貨變回未出貨、備貨中、處理中是異常
-        if ($oldStatus === 'shipped' && in_array($newStatus, ['pending', 'preparing', 'processing'], true)) {
+        if ($oldStatus === 'shipped' && in_array($newStatus, ['unshipped', 'preparing', 'processing'], true)) {
             return true;
         }
 
@@ -519,7 +519,7 @@ class ShippingStatusService
             $totalAmount = 0;
 
             foreach ($results as $row) {
-                $status = $row['shipping_status'] ?: 'pending';
+                $status = $row['shipping_status'] ?: 'unshipped';
                 $count = (int)$row['count'];
                 $amount = (float)$row['total_amount'];
 
