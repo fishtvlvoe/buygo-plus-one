@@ -326,15 +326,118 @@ class ShipmentService
             
             if ($result !== false) {
                 $shipped_count++;
+
+                // 【新增】自動檢查並完成父訂單
+                $this->check_parent_completion($shipment_id);
             } else {
                 $errors[] = "更新出貨單 #{$shipment_id} 失敗";
             }
         }
-        
+
         if ($shipped_count === 0 && !empty($errors)) {
             return new WP_Error('MARK_SHIPPED_FAILED', implode('; ', $errors));
         }
-        
+
         return $shipped_count;
+    }
+
+    /**
+     * 檢查並自動完成父訂單
+     *
+     * 當出貨單標記為已出貨時，檢查該出貨單包含的所有子訂單
+     * 如果子訂單的父訂單所有子訂單都已出貨，則自動將父訂單標記為完成
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @return void
+     */
+    private function check_parent_completion($shipment_id)
+    {
+        global $wpdb;
+
+        $this->debugService->log('ShipmentService', '檢查父訂單完成狀態', [
+            'shipment_id' => $shipment_id
+        ]);
+
+        try {
+            // 1. 獲取此出貨單的所有訂單
+            $order_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT order_id
+                 FROM {$wpdb->prefix}buygo_shipment_items
+                 WHERE shipment_id = %d",
+                $shipment_id
+            ));
+
+            if (empty($order_ids)) {
+                $this->debugService->log('ShipmentService', '出貨單沒有訂單項目', [
+                    'shipment_id' => $shipment_id
+                ]);
+                return;
+            }
+
+            // 2. 更新每個訂單為 shipped
+            foreach ($order_ids as $order_id) {
+                $wpdb->update(
+                    $wpdb->prefix . 'fct_orders',
+                    ['status' => 'shipped'],
+                    ['id' => $order_id],
+                    ['%s'],
+                    ['%d']
+                );
+
+                $this->debugService->log('ShipmentService', '更新訂單狀態為 shipped', [
+                    'order_id' => $order_id
+                ]);
+
+                // 3. 檢查是否為子訂單（type = 'split'）
+                $order = $wpdb->get_row($wpdb->prepare(
+                    "SELECT parent_id, type FROM {$wpdb->prefix}fct_orders WHERE id = %d",
+                    $order_id
+                ));
+
+                if ($order && $order->parent_id && $order->type === 'split') {
+                    $parent_id = $order->parent_id;
+
+                    // 4. 檢查父訂單是否所有子訂單都已出貨
+                    $pending_count = $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*)
+                         FROM {$wpdb->prefix}fct_orders
+                         WHERE parent_id = %d
+                         AND type = 'split'
+                         AND status != 'shipped'",
+                        $parent_id
+                    ));
+
+                    $this->debugService->log('ShipmentService', '檢查父訂單子訂單狀態', [
+                        'parent_id' => $parent_id,
+                        'pending_count' => $pending_count
+                    ]);
+
+                    // 5. 如果所有子訂單都已出貨，自動完成父訂單
+                    if ($pending_count == 0) {
+                        $wpdb->update(
+                            $wpdb->prefix . 'fct_orders',
+                            ['status' => 'completed'],
+                            ['id' => $parent_id],
+                            ['%s'],
+                            ['%d']
+                        );
+
+                        // 觸發 Hook
+                        do_action('buygo/parent_order_completed', $parent_id);
+
+                        $this->debugService->log('ShipmentService', '父訂單自動完成', [
+                            'parent_id' => $parent_id,
+                            'reason' => '所有子訂單都已出貨'
+                        ]);
+                    }
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ShipmentService', '檢查父訂單完成狀態失敗', [
+                'shipment_id' => $shipment_id,
+                'error' => $e->getMessage()
+            ], 'error');
+        }
     }
 }
