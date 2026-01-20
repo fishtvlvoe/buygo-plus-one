@@ -299,6 +299,23 @@ class FluentCartService {
 		$quantity = intval( $variation['quantity'] ?? 0 );
 		$variation_title = $variation['variation_title'] ?? $variation['name'] ?? $product_data['name'] ?? '';
 
+		// 處理原價 (compare_price / original_price)
+		$compare_price = null;
+		if ( ! empty( $variation['original_price'] ) || ! empty( $variation['compare_price'] ) ) {
+			$compare_price = intval( $variation['original_price'] ?? $variation['compare_price'] ?? 0 ) * 100;
+		}
+
+		// 建立 other_info JSON
+		$other_info = array(
+			'payment_type' => 'onetime', // 【關鍵修復】設定為單次購買
+			'description' => $variation['description'] ?? $product_data['description'] ?? '',
+		);
+
+		// 如果有原價，加入到 other_info
+		if ( $compare_price && $compare_price > $price ) {
+			$other_info['compare_price'] = $compare_price;
+		}
+
 		$variation_data = array(
 			'post_id' => $product_id,
 			'variation_title' => sanitize_text_field( $variation_title ),
@@ -309,6 +326,8 @@ class FluentCartService {
 			'available' => $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
+			'payment_type' => 'onetime', // 【關鍵修復】FluentCart 核心欄位
+			'other_info' => wp_json_encode( $other_info ), // 【新增】包含 payment_type 和原價
 			'created_at' => current_time( 'mysql' ),
 			'updated_at' => current_time( 'mysql' ),
 		);
@@ -345,6 +364,23 @@ class FluentCartService {
 		$price = intval( $data['price'] ?? 0 ) * 100;
 		$quantity = intval( $data['quantity'] ?? 0 );
 
+		// 處理原價 (compare_price / original_price)
+		$compare_price = null;
+		if ( ! empty( $data['original_price'] ) || ! empty( $data['compare_price'] ) ) {
+			$compare_price = intval( $data['original_price'] ?? $data['compare_price'] ?? 0 ) * 100;
+		}
+
+		// 建立 other_info JSON (包含 payment_type 和原價)
+		$other_info = array(
+			'payment_type' => 'onetime', // 【關鍵修復】設定為單次購買
+			'description' => $data['description'] ?? '',
+		);
+
+		// 如果有原價，加入到 other_info
+		if ( $compare_price && $compare_price > $price ) {
+			$other_info['compare_price'] = $compare_price;
+		}
+
 		$table_name = $wpdb->prefix . 'fct_product_variations';
 
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
@@ -364,6 +400,8 @@ class FluentCartService {
 			'available' => $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
+			'payment_type' => 'onetime', // 【關鍵修復】FluentCart 核心欄位
+			'other_info' => wp_json_encode( $other_info ), // 【新增】包含 payment_type 和原價
 			'created_at' => current_time( 'mysql' ),
 			'updated_at' => current_time( 'mysql' ),
 		);
