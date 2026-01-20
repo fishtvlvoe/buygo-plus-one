@@ -115,6 +115,7 @@ class GlobalSearch_API {
         $sql = $wpdb->prepare("
             SELECT
                 o.id,
+                o.invoice_no,
                 CONCAT('訂單 #', o.invoice_no) as name,
                 o.customer_name,
                 o.total_amount,
@@ -136,6 +137,7 @@ class GlobalSearch_API {
         return array_map(function($order) {
             return [
                 'id' => $order['id'],
+                'invoice_no' => $order['invoice_no'],
                 'name' => $order['name'],
                 'type' => $order['type'],
                 'type_label' => $order['type_label'],

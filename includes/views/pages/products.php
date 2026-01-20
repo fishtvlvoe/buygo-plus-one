@@ -123,6 +123,7 @@ $products_component_template = <<<'HTML'
                 <smart-search-box
                     api-endpoint="/wp-json/buygo-plus-one/v1/products"
                     :search-fields="['name', 'sku']"
+                    @select="handleProductSelect"
                 ></smart-search-box>
 
                 <!-- Loading -->
@@ -897,7 +898,15 @@ const ProductsPageComponent = {
 
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
-        
+
+        // Smart Search Box 處理函數
+        const handleProductSelect = (product) => {
+            if (product && product.id) {
+                // 導航到商品編輯頁面
+                navigateTo('edit', product);
+            }
+        };
+
         onMounted(() => {
             loadProducts();
             // 使用 BuyGoRouter 核心模組的 popstate 監聽
@@ -921,6 +930,7 @@ const ProductsPageComponent = {
             loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
             toggleSelectAll, formatPriceDisplay, getTWDPrice, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
+            handleProductSelect,
              fileInput,
              handleTabClick: (id) => {
                  currentTab.value = id;

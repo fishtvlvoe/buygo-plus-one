@@ -520,24 +520,26 @@ const ShipmentProductsPageComponent = {
             }
         };
 
-        // 全局搜尋處理函數
-        const handleGlobalSearchInput = (query) => {
-            // 全局搜索不需要在本頁面載入資料，因為會跳轉到對應頁面
-            console.log('全局搜索輸入:', query);
+        // 本地搜尋處理函數（在本頁過濾出貨單）
+        const handleLocalSearchInput = (query) => {
+            searchQuery.value = query;
+            currentPage.value = 1;  // 重置到第一頁
+            loadShipments();
         };
 
-        const handleGlobalSearchSelect = (item) => {
-            // 根據選擇的項目類型跳轉到對應頁面
-            if (item.url) {
-                window.location.href = item.url;
-            } else {
-                console.log('搜索項目沒有URL:', item);
+        const handleLocalSearchSelect = (item) => {
+            // 選擇後過濾顯示該出貨單
+            if (item && item.shipment_number) {
+                searchQuery.value = item.shipment_number;
+                currentPage.value = 1;
+                loadShipments();
             }
         };
 
-        const handleGlobalSearchClear = () => {
-            // 清除全局搜索
-            console.log('清除全局搜索');
+        const handleLocalSearchClear = () => {
+            searchQuery.value = null;
+            currentPage.value = 1;
+            loadShipments();
         };
 
         // 格式化日期
@@ -904,9 +906,9 @@ const ShipmentProductsPageComponent = {
             handleGlobalSearch,
 
             // Smart Search Box 事件處理
-            handleSearchInput: handleGlobalSearchInput,
-            handleSearchSelect: handleGlobalSearchSelect,
-            handleSearchClear: handleGlobalSearchClear,
+            handleSearchInput: handleLocalSearchInput,
+            handleSearchSelect: handleLocalSearchSelect,
+            handleSearchClear: handleLocalSearchClear,
 
             // Modal 和 Toast
             showConfirmModal,
