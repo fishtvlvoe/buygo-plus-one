@@ -354,15 +354,30 @@ class AllocationService
             
             // 提交 Transaction
             $wpdb->query('COMMIT');
-            
+
             $this->debugService->log('AllocationService', '更新訂單分配數量成功', [
                 'product_id' => $product_id,
-                'new_total_allocated' => $new_total_allocated,
+                'new_total_allocated' => $total_allocated,
                 'new_product_allocated' => $new_product_allocated
             ]);
-            
-            return true;
-            
+
+            // 8. 【新增】自動建立子訂單
+            $child_orders = [];
+            foreach ($allocations as $order_id => $allocated_qty) {
+                if ($allocated_qty > 0) {
+                    $child_order = $this->create_child_order($product_id, $order_id, $allocated_qty);
+                    if (!is_wp_error($child_order)) {
+                        $child_orders[] = $child_order;
+                    }
+                }
+            }
+
+            return [
+                'success' => true,
+                'child_orders' => $child_orders,
+                'total_allocated' => $total_allocated
+            ];
+
         } catch (\Exception $e) {
             $wpdb->query('ROLLBACK');
             $this->debugService->log('AllocationService', '更新訂單分配數量失敗', [
@@ -370,6 +385,137 @@ class AllocationService
                 'error' => $e->getMessage()
             ], 'error');
             return new WP_Error('ALLOCATION_UPDATE_FAILED', '更新分配數量失敗：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 建立子訂單
+     *
+     * 當分配庫存給父訂單時，自動建立子訂單
+     * 利用 FluentCart 原生的 parent_id 機制
+     *
+     * @param int $product_id 商品 ID (FluentCart variation ID)
+     * @param int $parent_order_id 父訂單 ID
+     * @param int $quantity 分配數量
+     * @return array|WP_Error 子訂單資訊或錯誤
+     */
+    private function create_child_order($product_id, $parent_order_id, $quantity)
+    {
+        global $wpdb;
+
+        $this->debugService->log('AllocationService', '開始建立子訂單', [
+            'product_id' => $product_id,
+            'parent_order_id' => $parent_order_id,
+            'quantity' => $quantity
+        ]);
+
+        try {
+            // 1. 獲取父訂單
+            $parent_order = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}fct_orders WHERE id = %d",
+                $parent_order_id
+            ));
+
+            if (!$parent_order) {
+                return new WP_Error('PARENT_ORDER_NOT_FOUND', '父訂單不存在');
+            }
+
+            // 2. 獲取父訂單中的商品項目
+            $parent_item = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}fct_order_items
+                 WHERE order_id = %d AND object_id = %d",
+                $parent_order_id, $product_id
+            ));
+
+            if (!$parent_item) {
+                return new WP_Error('PARENT_ITEM_NOT_FOUND', '父訂單中找不到此商品項目');
+            }
+
+            // 3. 計算金額
+            $unit_price = (float)$parent_item->price;
+            $child_total = $unit_price * $quantity;
+
+            // 4. 生成子訂單編號
+            $split_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders
+                 WHERE parent_id = %d AND type = 'split'",
+                $parent_order_id
+            )) + 1;
+
+            $child_invoice_no = $parent_order->invoice_no . '-' . $split_count;
+
+            // 5. 建立子訂單
+            $wpdb->insert(
+                $wpdb->prefix . 'fct_orders',
+                [
+                    'parent_id' => $parent_order_id,
+                    'type' => 'split',
+                    'customer_id' => $parent_order->customer_id,
+                    'status' => 'pending',
+                    'total_amount' => $child_total,
+                    'currency' => $parent_order->currency,
+                    'payment_method' => $parent_order->payment_method,
+                    'invoice_no' => $child_invoice_no,
+                    'created_at' => current_time('mysql'),
+                ],
+                ['%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s']
+            );
+
+            if ($wpdb->insert_id === 0) {
+                return new WP_Error('DB_ERROR', '建立子訂單失敗：' . $wpdb->last_error);
+            }
+
+            $child_order_id = $wpdb->insert_id;
+
+            // 6. 複製訂單項目
+            $wpdb->insert(
+                $wpdb->prefix . 'fct_order_items',
+                [
+                    'order_id' => $child_order_id,
+                    'post_id' => $parent_item->post_id,
+                    'object_id' => $product_id,
+                    'quantity' => $quantity,
+                    'price' => $unit_price,
+                    'line_meta' => '{}',
+                ],
+                ['%d', '%d', '%d', '%d', '%f', '%s']
+            );
+
+            if ($wpdb->insert_id === 0) {
+                // 回滾：刪除剛建立的子訂單
+                $wpdb->delete(
+                    $wpdb->prefix . 'fct_orders',
+                    ['id' => $child_order_id],
+                    ['%d']
+                );
+                return new WP_Error('DB_ERROR', '建立子訂單項目失敗：' . $wpdb->last_error);
+            }
+
+            // 7. 觸發 Hook
+            do_action('buygo/child_order_created', $child_order_id, $parent_order_id);
+
+            $this->debugService->log('AllocationService', '子訂單建立成功', [
+                'child_order_id' => $child_order_id,
+                'child_invoice_no' => $child_invoice_no,
+                'parent_order_id' => $parent_order_id
+            ]);
+
+            // 8. 返回子訂單資訊
+            return [
+                'id' => $child_order_id,
+                'invoice_no' => $child_invoice_no,
+                'parent_id' => $parent_order_id,
+                'quantity' => $quantity,
+                'total_amount' => $child_total
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('AllocationService', '建立子訂單失敗', [
+                'product_id' => $product_id,
+                'parent_order_id' => $parent_order_id,
+                'error' => $e->getMessage()
+            ], 'error');
+            return new WP_Error('CHILD_ORDER_CREATION_FAILED', '建立子訂單失敗：' . $e->getMessage());
         }
     }
 }
