@@ -116,13 +116,13 @@ $shipment_products_component_template = <<<'HTML'
                                 <th class="px-4 py-4 w-12 text-center">
                                     <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
                                 </th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">出貨單號</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">客戶</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[35%]">商品清單</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">總數量</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">狀態</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">建立日期</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">操作</th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[12%]">出貨單號</th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[10%]">客戶</th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[40%]">商品清單</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[8%]">總數量</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[10%]">狀態</th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[12%]">建立日期</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[8%]">操作</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-100">
@@ -185,16 +185,22 @@ $shipment_products_component_template = <<<'HTML'
                                                         :key="item.id"
                                                         class="flex items-center gap-3 text-xs"
                                                     >
+                                                        <!-- 商品圖片 -->
                                                         <img
                                                             v-if="item.product_image"
                                                             :src="item.product_image"
                                                             :alt="item.product_name"
-                                                            class="w-10 h-10 object-cover rounded border border-slate-200"
+                                                            class="w-10 h-10 object-cover rounded border border-slate-200 shrink-0"
                                                         />
+                                                        <div v-else class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center border border-slate-200 shrink-0">
+                                                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                            </svg>
+                                                        </div>
                                                         <div class="flex-1 min-w-0">
                                                             <div class="font-medium text-slate-900 truncate">{{ item.product_name }}</div>
                                                             <div class="text-slate-500">
-                                                                {{ item.quantity }} × {{ formatPrice(item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.price || 0)), item.currency || 'JPY') }}
+                                                                {{ item.quantity }} × {{ formatPrice(item.unit_price || item.price || 0, item.currency || 'JPY') }} = {{ formatPrice((item.quantity * (item.unit_price || item.price || 0)), item.currency || 'JPY') }}
                                                             </div>
                                                         </div>
                                                     </div>
