@@ -467,10 +467,20 @@ class AllocationService
                 $parent_order_id
             )) + 1;
 
-            $child_invoice_no = $parent_order->invoice_no . '-' . $split_count;
+            // 如果父訂單沒有 invoice_no，使用訂單 ID
+            $parent_invoice = !empty($parent_order->invoice_no) ? $parent_order->invoice_no : "#{$parent_order_id}";
+            $child_invoice_no = $parent_invoice . '-' . $split_count;
 
             // 5. 建立子訂單
-            $wpdb->insert(
+            $this->debugService->log('AllocationService', '準備建立子訂單', [
+                'parent_id' => $parent_order_id,
+                'customer_id' => $parent_order->customer_id,
+                'invoice_no' => $child_invoice_no,
+                'total_amount' => $child_total,
+                'currency' => $parent_order->currency
+            ]);
+
+            $result = $wpdb->insert(
                 $wpdb->prefix . 'fct_orders',
                 [
                     'parent_id' => $parent_order_id,
@@ -486,11 +496,20 @@ class AllocationService
                 ['%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s']
             );
 
-            if ($wpdb->insert_id === 0) {
+            if ($result === false || $wpdb->insert_id === 0) {
+                $this->debugService->log('AllocationService', '建立子訂單失敗 - DB Error', [
+                    'wpdb_last_error' => $wpdb->last_error,
+                    'wpdb_insert_id' => $wpdb->insert_id,
+                    'result' => $result
+                ], 'error');
                 return new WP_Error('DB_ERROR', '建立子訂單失敗：' . $wpdb->last_error);
             }
 
             $child_order_id = $wpdb->insert_id;
+
+            $this->debugService->log('AllocationService', '子訂單 INSERT 成功', [
+                'child_order_id' => $child_order_id
+            ]);
 
             // 6. 複製訂單項目
             $wpdb->insert(
