@@ -38,8 +38,8 @@ class OrderService
         ]);
 
         try {
-            $page = $params['page'] ?? 1;
-            $per_page = $params['per_page'] ?? 10;
+            $page = (int)($params['page'] ?? 1);
+            $per_page = (int)($params['per_page'] ?? 10);
             $search = $params['search'] ?? '';
             $status = $params['status'] ?? 'all';
             $id = $params['id'] ?? null;
