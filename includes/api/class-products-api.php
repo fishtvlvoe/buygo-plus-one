@@ -747,146 +747,108 @@ class Products_API {
     
     /**
      * 分配庫存給訂單
+     *
+     * 此方法調用 AllocationService::updateOrderAllocations()
+     * 該方法會：
+     * 1. 更新訂單項目的 _allocated_qty
+     * 2. 更新商品的 _buygo_allocated
+     * 3. 自動建立子訂單（利用 FluentCart 的 parent_id 機制）
      */
     public function allocate_stock($request) {
         try {
             $params = $request->get_json_params();
-            
+
             // Debug: 記錄收到的參數
-            error_log('=== 商品分配 API 開始 ===');
+            error_log('=== 商品分配 API 開始（使用 AllocationService）===');
             error_log('收到的參數: ' . json_encode($params, JSON_UNESCAPED_UNICODE));
-            
+
             // 1. 取得參數
             $product_id = (int)($params['product_id'] ?? 0);
-            $allocations = $params['allocations'] ?? []; // 格式：[{ order_id: 123, allocated: 5 }, ...] 或 { "124": 1, "116": 1 }
-            
-            if (empty($allocations) || !is_array($allocations)) {
+            $raw_allocations = $params['allocations'] ?? [];
+
+            if (empty($raw_allocations) || !is_array($raw_allocations)) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '缺少分配資料'
                 ], 400);
             }
-            
+
             if ($product_id <= 0) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '無效的商品 ID'
                 ], 400);
             }
-            
-            // 2. 取得商品的 post_id
-            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
-            if (!$product) {
-                return new \WP_REST_Response([
-                    'success' => false,
-                    'message' => '商品不存在'
-                ], 404);
-            }
-            
-            $post_id = $product->post_id;
-            
-            // 3. 檢查配額是否足夠
-            $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
-            $current_allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
-            
-            $total_new_allocated = 0;
-            // 支援兩種格式：物件格式 { "124": 1 } 或陣列格式 [{ order_id: 124, allocated: 1 }]
-            foreach ($allocations as $key => $value) {
+
+            // 2. 轉換前端傳來的格式為 AllocationService 需要的格式
+            // AllocationService 需要：['order_id' => quantity, ...]
+            $allocations = [];
+            foreach ($raw_allocations as $key => $value) {
                 if (is_array($value)) {
-                    // 陣列格式
-                    $total_new_allocated += (int)($value['allocated'] ?? 0);
+                    // 陣列格式：[{ order_id: 124, allocated: 1 }] 或 [{ order_id: 124, quantity: 1 }]
+                    $order_id = (int)($value['order_id'] ?? 0);
+                    $quantity = (int)($value['allocated'] ?? $value['quantity'] ?? 0);
                 } else {
-                    // 物件格式（key 是 order_id，value 是 allocated_qty）
-                    $total_new_allocated += (int)$value;
+                    // 物件格式：{ "124": 1, "116": 1 }
+                    $order_id = (int)$key;
+                    $quantity = (int)$value;
+                }
+
+                if ($order_id > 0 && $quantity > 0) {
+                    $allocations[$order_id] = $quantity;
                 }
             }
-            
-            $available = $purchased - $current_allocated;
-            if ($total_new_allocated > $available) {
+
+            if (empty($allocations)) {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'message' => "配額不足！可分配數量：{$available}，需求數量：{$total_new_allocated}"
+                    'message' => '沒有有效的分配資料'
                 ], 400);
             }
-            
-            // 4. 更新每筆訂單的 allocated_qty
-            global $wpdb;
-            $table_order_items = $wpdb->prefix . 'fct_order_items';
-            
-            $total_allocated_count = 0;
-            
-            // 支援三種格式：
-            // 1. 物件格式：{ "124": 1, "116": 1 }
-            // 2. 陣列格式：[{ order_id: 124, allocated: 1 }]
-            // 3. 陣列格式：[{ order_id: 124, quantity: 1 }]（前端目前使用）
-            foreach ($allocations as $key => $value) {
-                // 判斷格式
-                if (is_array($value)) {
-                    // 陣列格式（同時支援 allocated 和 quantity 欄位）
-                    $order_id = (int)($value['order_id'] ?? 0);
-                    $allocated_qty = (int)($value['allocated'] ?? $value['quantity'] ?? 0);
-                } else {
-                    // 物件格式（key 是 order_id，value 是 allocated_qty）
-                    $order_id = (int)$key;
-                    $allocated_qty = (int)$value;
-                }
-                
-                if ($allocated_qty <= 0 || $order_id <= 0) continue;
-                
-                // 找到該訂單中對應的 order_item（使用 object_id，這是 FluentCart 的標準欄位）
-                $order_item = $wpdb->get_row($wpdb->prepare(
-                    "SELECT * FROM {$table_order_items} WHERE order_id = %d AND object_id = %d LIMIT 1",
-                    $order_id,
-                    $product_id
-                ), ARRAY_A);
-                
-                if (!$order_item) {
-                    error_log("找不到訂單項目: order_id={$order_id}, product_id={$product_id}");
-                    continue;
-                }
-                
-                // 更新 line_meta 中的 _allocated_qty（FluentCart 使用 line_meta 欄位）
-                $meta_data = json_decode($order_item['line_meta'] ?? '{}', true) ?: [];
-                $meta_data['_allocated_qty'] = $allocated_qty;
-                
-                $result = $wpdb->update(
-                    $table_order_items,
-                    ['line_meta' => json_encode($meta_data)],
-                    ['id' => $order_item['id']],
-                    ['%s'],
-                    ['%d']
-                );
-                
-                if ($result === false) {
-                    error_log("更新訂單項目失敗: order_item_id={$order_item['id']}, error={$wpdb->last_error}");
-                    continue;
-                }
-                
-                // 記錄成功
-                error_log("成功更新訂單項目: order_item_id={$order_item['id']}, order_id={$order_id}, allocated_qty={$allocated_qty}");
-                
-                $total_allocated_count += $allocated_qty;
+
+            error_log('轉換後的分配資料: ' . json_encode($allocations, JSON_UNESCAPED_UNICODE));
+
+            // 3. 調用 AllocationService 進行分配（會自動建立子訂單）
+            $allocationService = new \BuyGoPlus\Services\AllocationService();
+            $result = $allocationService->updateOrderAllocations($product_id, $allocations);
+
+            // 4. 處理結果
+            if (is_wp_error($result)) {
+                error_log('AllocationService 錯誤: ' . $result->get_error_message());
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result->get_error_message()
+                ], 400);
             }
-            
-            // 5. 更新商品的 _buygo_allocated meta
-            $new_allocated = $current_allocated + $total_allocated_count;
-            update_post_meta($post_id, '_buygo_allocated', $new_allocated);
-            
+
+            // 5. 成功返回
+            $total_allocated = array_sum($allocations);
+            $child_orders = $result['child_orders'] ?? [];
+
             error_log("=== 商品分配 API 完成 ===");
-            error_log("總共分配: {$total_allocated_count} 個配額");
-            error_log("更新的 post meta: post_id={$post_id}, _buygo_allocated={$new_allocated}");
-            
+            error_log("總共分配: {$total_allocated} 個配額");
+            error_log("建立的子訂單數: " . count($child_orders));
+
+            $message = "成功分配 {$total_allocated} 個配額";
+            if (!empty($child_orders)) {
+                $child_order_numbers = array_map(function($co) {
+                    return $co['invoice_no'] ?? $co['id'];
+                }, $child_orders);
+                $message .= "，已建立子訂單：" . implode(', ', $child_order_numbers);
+            }
+
             return new \WP_REST_Response([
                 'success' => true,
-                'message' => "成功分配 {$total_allocated_count} 個配額",
-                'allocated_count' => $total_allocated_count,
-                'new_total_allocated' => $new_allocated  // 新增：回傳更新後的總分配數
+                'message' => $message,
+                'allocated_count' => $total_allocated,
+                'new_total_allocated' => $result['total_allocated'] ?? $total_allocated,
+                'child_orders' => $child_orders
             ], 200);
-            
+
         } catch (\Exception $e) {
             error_log('商品分配錯誤: ' . $e->getMessage());
             error_log('Stack trace: ' . $e->getTraceAsString());
-            
+
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '分配時發生錯誤：' . $e->getMessage()
