@@ -453,22 +453,27 @@ const CustomersPageComponent = {
         const { ref, computed, onMounted } = Vue;
 
         // 使用 useCurrency Composable 處理幣別邏輯
-        const { formatPrice: formatCurrency, systemCurrency } = useCurrency();
-        
+        const {
+            formatPrice: formatCurrency,
+            systemCurrency,
+            currencySymbols,
+            exchangeRates
+        } = useCurrency();
+
         // 狀態變數
         const customers = ref([]);
         const loading = ref(false);
         const error = ref(null);
-        
+
         // 分頁狀態
         const currentPage = ref(1);
         const perPage = ref(20);
         const totalCustomers = ref(0);
-        
+
         // 搜尋篩選狀態
         const searchFilter = ref(null);
         const searchFilterName = ref('');
-        
+
         // ========== 路由狀態（新增）==========
         const currentView = ref('list');  // 'list' | 'detail'
         const currentCustomerId = ref(null);
@@ -479,28 +484,29 @@ const CustomersPageComponent = {
         const showMobileSearch = ref(false);
         const globalSearchQuery = ref('');
 
-        // 幣別（從系統設定讀取）
-        const displayCurrency = ref(window.buygoSettings?.currency || 'JPY');
+        // 幣別切換狀態
+        const displayCurrency = ref(systemCurrency.value);
+        const currentCurrency = ref(systemCurrency.value);
 
         // 訂單搜尋（子頁面內用）
         const orderSearchQuery = ref('');
-        
+
         // Tab 分頁狀態
         const activeTab = ref('orders');
-        
+
         // 備註狀態
         const customerNote = ref('');
         const noteSaving = ref(false);
         const noteSaved = ref(false);
 
-        // 當前顯示幣別 (systemCurrency 已從 useCurrency composable 取得)
-        const currentCurrency = ref(systemCurrency.value);
-
         // 訂單展開狀態
         const expandedOrderId = ref(null);
         const orderItems = ref({});
         const loadingOrderItems = ref(false);
-        
+
+        // 批次操作
+        const selectedItems = ref([]);
+
         // Toast 通知狀態
         const toastMessage = ref({
             show: false,
@@ -637,14 +643,16 @@ const CustomersPageComponent = {
 
         // 幣別切換
         const toggleCurrency = () => {
-            const currencies = ['JPY', 'TWD', 'USD'];
-            const currentIndex = currencies.indexOf(displayCurrency.value);
-            const nextIndex = (currentIndex + 1) % currencies.length;
-            displayCurrency.value = currencies[nextIndex];
-
-            // 儲存使用者偏好
-            localStorage.setItem('buygo_display_currency', displayCurrency.value);
-            showToast(`已切換為 ${displayCurrency.value}`);
+            // 在系統幣別和台幣之間切換
+            if (currentCurrency.value === 'TWD') {
+                currentCurrency.value = systemCurrency.value;
+                displayCurrency.value = systemCurrency.value;
+                showToast(`已切換為 ${currencySymbols[systemCurrency.value]} ${systemCurrency.value}`);
+            } else {
+                currentCurrency.value = 'TWD';
+                displayCurrency.value = 'TWD';
+                showToast(`已切換為 NT$ TWD`);
+            }
         };
 
         // 跳轉到訂單管理頁面（更新：使用 Deep Link）
@@ -652,13 +660,14 @@ const CustomersPageComponent = {
             window.location.href = `/buygo-portal/orders/?view=detail&id=${orderId}`;
         };
 
-        // 格式化金額（amount 單位為分，除以 100 顯示；currency 可選，缺則用 currentCurrency 或 JPY）
+        // 格式化金額（amount 單位為分，除以 100 顯示；currency 可選，缺則用 currentCurrency）
         const formatPrice = (amount, currency = null) => {
             if (amount !== 0 && !amount) return '-';
-            const currencyCode = currency || currentCurrency.value || systemCurrency.value;
+            // 使用當前顯示幣別
+            const displayCurr = currentCurrency.value;
             const value = amount / 100;
             // 使用 composable 的 formatCurrency 來格式化
-            return formatCurrency(value, currencyCode);
+            return formatCurrency(value, displayCurr);
         };
 
         // 格式化日期
@@ -867,7 +876,28 @@ const CustomersPageComponent = {
             currentPage.value = 1;
             loadCustomers();
         };
-        
+
+        // 全選/取消全選
+        const toggleSelectAll = (event) => {
+            if (event.target.checked) {
+                selectedItems.value = customers.value.map(c => c.id);
+            } else {
+                selectedItems.value = [];
+            }
+        };
+
+        // 檢查是否全選
+        const isAllSelected = computed(() => {
+            return customers.value.length > 0 && selectedItems.value.length === customers.value.length;
+        });
+
+        // 處理客戶選擇（從 smart-search-box 選擇客戶）
+        const handleCustomerSelect = (customer) => {
+            if (customer && customer.id) {
+                navigateTo('detail', customer.id);
+            }
+        };
+
         // 初始化
         onMounted(() => {
             loadCustomers();
@@ -916,11 +946,15 @@ const CustomersPageComponent = {
             handleSearchSelect,
             handleSearchInput,
             handleSearchClear,
+            handleCustomerSelect,
             searchFilter,
             searchFilterName,
             loadCustomers,
             toastMessage,
             showToast,
+            selectedItems,
+            toggleSelectAll,
+            isAllSelected,
             // 新增路由相關
             currentView,
             currentCustomerId,

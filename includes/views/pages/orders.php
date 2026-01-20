@@ -546,7 +546,12 @@ const OrdersPageComponent = {
         const { ref, computed, onMounted, watch } = Vue;
 
         // 使用 useCurrency Composable 處理幣別邏輯
-        const { formatPrice } = useCurrency();
+        const {
+            formatPrice: formatCurrency,
+            systemCurrency: systemCurrencyFromComposable,
+            currencySymbols,
+            exchangeRates
+        } = useCurrency();
 
         // ============================================
         // 路由狀態（使用 BuyGoRouter 核心模組）
@@ -572,9 +577,10 @@ const OrdersPageComponent = {
         const searchFilterName = ref('');
         const searchQuery = ref('');
 
-        // 幣別設定 - 動態讀取 FluentCart 設定
-        const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
-        
+        // 幣別設定 - 使用 composable 的系統幣別
+        const systemCurrency = ref(systemCurrencyFromComposable.value);
+        const currentCurrency = ref(systemCurrencyFromComposable.value);
+
         // 批次操作
         const batchDelete = async () => {
             if(!confirm(`確認刪除 ${selectedItems.value.length} 項？`)) return;
@@ -601,9 +607,16 @@ const OrdersPageComponent = {
         
         // 切換幣別
         const toggleCurrency = () => {
-            systemCurrency.value = systemCurrency.value === 'JPY' ? 'TWD' : 'JPY';
-            showToast(`已切換為 ${systemCurrency.value}`);
-            handleCurrencyChange(systemCurrency.value);
+            // 在系統幣別和台幣之間切換
+            if (currentCurrency.value === 'TWD') {
+                currentCurrency.value = systemCurrencyFromComposable.value;
+                systemCurrency.value = systemCurrencyFromComposable.value;
+                showToast(`已切換為 ${currencySymbols[systemCurrencyFromComposable.value]} ${systemCurrencyFromComposable.value}`);
+            } else {
+                currentCurrency.value = 'TWD';
+                systemCurrency.value = 'TWD';
+                showToast(`已切換為 NT$ TWD`);
+            }
         };
 
         // Modal 狀態（保留向下相容）
@@ -671,13 +684,13 @@ const OrdersPageComponent = {
             }, 3000);
         };
 
-        // 處理幣別切換
-        const handleCurrencyChange = async (currency) => {
-            console.log('切換幣別:', currency);
-
-            // 更新當前幣別（如果有exchangeRates相關邏輯，這裡可以加入）
-            // 目前先記錄日誌，實際邏輯可根據需要調整
-            console.log('訂單頁面幣別切換:', currency);
+        // 格式化價格（使用當前顯示幣別）
+        const formatPrice = (amount, originalCurrency = null) => {
+            if (amount == null) return '-';
+            // 使用當前顯示幣別
+            const displayCurr = currentCurrency.value;
+            // 使用 composable 的 formatCurrency 來格式化
+            return formatCurrency(amount, displayCurr);
         };
 
         // 搜尋處理函數
@@ -1211,13 +1224,13 @@ const OrdersPageComponent = {
             handleSearchSelect,
             handleSearchInput,
             handleSearchClear,
-            handleCurrencyChange,
             toggleSelectAll,
             selectedItems,
             searchFilter,
             searchFilterName,
             searchQuery,
             systemCurrency,
+            currentCurrency,
             showOrderModal,
             currentOrder,
             loadOrders,
