@@ -414,6 +414,17 @@ $shipment_details_template = <<<'HTML'
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
+                                <tr v-if="!detailModal.items || detailModal.items.length === 0">
+                                    <td colspan="4" class="px-4 py-6 text-sm text-slate-500 text-center">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                            <span>尚無商品資料</span>
+                                            <span class="text-xs text-slate-400">此出貨單可能是手動建立或資料已遺失</span>
+                                        </div>
+                                    </td>
+                                </tr>
                                 <tr v-for="item in detailModal.items" :key="item.id">
                                     <td class="px-4 py-3 text-sm text-slate-900">{{ item.product_name }}</td>
                                     <td class="px-4 py-3 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
@@ -546,6 +557,8 @@ const ShipmentDetailsPageComponent = {
                 if (result.success) {
                     shipments.value = result.data || [];
                     totalShipments.value = result.total || result.data.length;
+                    // Debug: 顯示載入的出貨單 ID
+                    console.log('[BuyGo Debug] Loaded shipments:', result.data.map(s => ({ id: s.id, shipment_number: s.shipment_number })));
                 }
             } catch (err) {
                 console.error('載入出貨單失敗:', err);
@@ -826,12 +839,16 @@ const ShipmentDetailsPageComponent = {
 
         // 查看詳情
         const viewDetail = async (shipmentId) => {
+            console.log('[BuyGo Debug] viewDetail called with shipmentId:', shipmentId, 'type:', typeof shipmentId);
             try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`, {
+                const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+                console.log('[BuyGo Debug] Fetching URL:', url);
+                const response = await fetch(url, {
                     credentials: 'include'
                 });
                 const result = await response.json();
-                
+                console.log('[BuyGo Debug] API Response:', result);
+
                 if (result.success) {
                     detailModal.value = {
                         show: true,
