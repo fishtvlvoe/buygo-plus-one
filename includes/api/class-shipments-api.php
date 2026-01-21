@@ -807,31 +807,13 @@ class Shipments_API
         try {
             $shipment_id = (int)$request->get_param('id');
 
-            // Debug: 記錄接收到的 ID
-            error_log("[BuyGo Debug] get_shipment_detail called with ID: {$shipment_id}");
-
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             $table_customers = $wpdb->prefix . 'fct_customers';
             $table_customer_addresses = $wpdb->prefix . 'fct_customer_addresses';
             $table_order_items = $wpdb->prefix . 'fct_order_items';
 
-            // Debug: 先檢查資料表中有多少筆資料
-            $total_count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_shipments}");
-            error_log("[BuyGo Debug] Total shipments in table: {$total_count}");
-
-            // Debug: 列出所有出貨單 ID
-            $all_ids = $wpdb->get_col("SELECT id FROM {$table_shipments} LIMIT 20");
-            error_log("[BuyGo Debug] Existing shipment IDs: " . implode(', ', $all_ids));
-
-            // Debug: 先用簡單查詢測試
-            $simple_test = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table_shipments} WHERE id = %d",
-                $shipment_id
-            ), ARRAY_A);
-            error_log("[BuyGo Debug] Simple query result: " . ($simple_test ? 'found - ' . json_encode($simple_test) : 'NOT FOUND'));
-
-            // 取得出貨單基本資訊（改用分開查詢避免 JOIN 問題）
+            // 取得出貨單基本資訊
             $shipment = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$table_shipments} WHERE id = %d",
                 $shipment_id
@@ -873,26 +855,9 @@ class Shipments_API
                 }
             }
 
-            // Debug: 記錄查詢結果
-            error_log("[BuyGo Debug] Query result: " . ($shipment ? 'found' : 'NOT FOUND'));
-            if ($wpdb->last_error) {
-                error_log("[BuyGo Debug] SQL Error: " . $wpdb->last_error);
-            }
-
             if (!$shipment) {
-                return new WP_Error('shipment_not_found', "出貨單不存在 (ID: {$shipment_id}, 資料表共 {$total_count} 筆, 現有ID: " . implode(',', array_slice($all_ids, 0, 5)) . ")", ['status' => 404]);
+                return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
             }
-            
-            // Debug: 檢查 shipment_items 表中有多少筆資料
-            $total_items_count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_shipment_items}");
-            error_log("[BuyGo Debug] Total items in shipment_items table: {$total_items_count}");
-
-            // Debug: 檢查該出貨單的 items
-            $items_for_shipment = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table_shipment_items} WHERE shipment_id = %d",
-                $shipment_id
-            ));
-            error_log("[BuyGo Debug] Items for shipment #{$shipment_id}: {$items_for_shipment}");
 
             // 取得出貨單商品項目
             $items = $wpdb->get_results($wpdb->prepare(
@@ -905,11 +870,6 @@ class Shipments_API
                  WHERE si.shipment_id = %d",
                 $shipment_id
             ), ARRAY_A);
-
-            error_log("[BuyGo Debug] Items query returned: " . count($items) . " items");
-            if ($wpdb->last_error) {
-                error_log("[BuyGo Debug] Items SQL Error: " . $wpdb->last_error);
-            }
 
             // 處理商品名稱和價格
             foreach ($items as &$item) {
@@ -998,7 +958,7 @@ class Shipments_API
             // 寫入 UTF-8 BOM（讓 Excel 正確識別 UTF-8）
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // 寫入標題行
+            // 寫入標題行（新增「備註」欄位）
             fputcsv($output, [
                 '出貨單號',
                 '客戶姓名',
@@ -1009,37 +969,22 @@ class Shipments_API
                 '數量',
                 '單價',
                 '小計',
+                '備註',
                 '出貨日期',
                 '物流方式',
                 '追蹤號碼',
                 '狀態'
             ]);
 
-            // Debug: 記錄匯出的出貨單 IDs
-            error_log("[BuyGo Debug] export_shipments called with IDs: " . implode(', ', $shipment_ids));
-
-            // Debug: 檢查資料表中有多少筆資料
-            $total_count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_shipments}");
-            error_log("[BuyGo Debug] Total shipments in table: {$total_count}");
-
-            // Debug: 列出所有出貨單 ID
-            $all_ids = $wpdb->get_col("SELECT id FROM {$table_shipments} LIMIT 20");
-            error_log("[BuyGo Debug] Existing shipment IDs: " . implode(', ', $all_ids));
-
             // 查詢每個出貨單
             foreach ($shipment_ids as $shipment_id) {
-                error_log("[BuyGo Debug] Processing shipment ID: {$shipment_id}");
-
-                // 取得出貨單基本資訊（分開查詢避免 JOIN 問題）
+                // 取得出貨單基本資訊
                 $shipment = $wpdb->get_row($wpdb->prepare(
                     "SELECT * FROM {$table_shipments} WHERE id = %d",
                     $shipment_id
                 ), ARRAY_A);
 
-                error_log("[BuyGo Debug] Query result for ID {$shipment_id}: " . ($shipment ? 'found' : 'NOT FOUND'));
-
                 if (!$shipment) {
-                    error_log("[BuyGo Debug] Skipping shipment ID {$shipment_id} - not found in database");
                     continue;
                 }
 
@@ -1076,19 +1021,22 @@ class Shipments_API
                     $shipment['customer_email'] = '';
                 }
 
-                // 取得出貨單商品項目
+                // 取得出貨單商品項目（合併相同商品）
+                // 使用 GROUP BY 合併同一商品，計算總數量和來源訂單數
                 $items = $wpdb->get_results($wpdb->prepare(
-                    "SELECT si.*,
+                    "SELECT
+                            si.product_id,
+                            SUM(si.quantity) as total_quantity,
+                            COUNT(DISTINCT si.order_id) as order_count,
                             oi.title,
                             oi.post_title,
                             oi.unit_price as price
                      FROM {$table_shipment_items} si
                      LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
-                     WHERE si.shipment_id = %d",
+                     WHERE si.shipment_id = %d
+                     GROUP BY si.product_id",
                     $shipment_id
                 ), ARRAY_A);
-
-                error_log("[BuyGo Debug] Items for shipment {$shipment_id}: " . count($items) . " items found");
 
                 // 處理商品名稱（處理空字串情況，與 get_shipment_detail 一致）
                 foreach ($items as &$item) {
@@ -1105,8 +1053,19 @@ class Shipments_API
 
                     $item['product_name'] = $product_name ?: '未知商品';
 
+                    // 使用合併後的總數量
+                    $item['quantity'] = intval($item['total_quantity']);
+
+                    // 建立備註（來自幾筆訂單）
+                    $order_count = intval($item['order_count']);
+                    if ($order_count > 1) {
+                        $item['note'] = "來自 {$order_count} 筆訂單";
+                    } else {
+                        $item['note'] = '';
+                    }
+
                     // 移除不需要的欄位
-                    unset($item['title'], $item['post_title']);
+                    unset($item['title'], $item['post_title'], $item['total_quantity'], $item['order_count']);
                 }
                 unset($item);
 
@@ -1122,52 +1081,35 @@ class Shipments_API
                         '',
                         '',
                         '',
+                        '',
                         $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
                         $shipment['shipping_method'] ?? '',
                         $shipment['tracking_number'] ?? '',
                         $this->get_status_label($shipment['status'] ?? 'pending')
                     ]);
                 } else {
-                    // 每個商品一行
-                    foreach ($items as $index => $item) {
+                    // 每個商品一行（所有行都顯示完整客戶資料）
+                    foreach ($items as $item) {
                         $price = floatval($item['price'] ?? 0) / 100; // 轉換為元
                         $quantity = intval($item['quantity'] ?? 0);
                         $subtotal = $price * $quantity;
 
-                        // 第一個商品顯示完整出貨單資訊，後續商品只顯示商品資訊
-                        if ($index === 0) {
-                            fputcsv($output, [
-                                $shipment['shipment_number'] ?? '',
-                                trim($shipment['customer_name'] ?? ''),
-                                $shipment['customer_phone'] ?? '',
-                                $shipment['customer_address'] ?? '',
-                                $shipment['customer_email'] ?? '',
-                                $item['product_name'] ?? '未知商品',
-                                $quantity,
-                                $price,
-                                $subtotal,
-                                $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
-                                $shipment['shipping_method'] ?? '',
-                                $shipment['tracking_number'] ?? '',
-                                $this->get_status_label($shipment['status'] ?? 'pending')
-                            ]);
-                        } else {
-                            fputcsv($output, [
-                                '', // 出貨單號 (空白，避免重複)
-                                '', // 客戶姓名
-                                '', // 客戶電話
-                                '', // 客戶地址
-                                '', // Email
-                                $item['product_name'] ?? '未知商品',
-                                $quantity,
-                                $price,
-                                $subtotal,
-                                '', // 出貨日期
-                                '', // 物流方式
-                                '', // 追蹤號碼
-                                ''  // 狀態
-                            ]);
-                        }
+                        fputcsv($output, [
+                            $shipment['shipment_number'] ?? '',
+                            trim($shipment['customer_name'] ?? ''),
+                            $shipment['customer_phone'] ?? '',
+                            $shipment['customer_address'] ?? '',
+                            $shipment['customer_email'] ?? '',
+                            $item['product_name'] ?? '未知商品',
+                            $quantity,
+                            $price,
+                            $subtotal,
+                            $item['note'] ?? '', // 備註（來自幾筆訂單）
+                            $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
+                            $shipment['shipping_method'] ?? '',
+                            $shipment['tracking_number'] ?? '',
+                            $this->get_status_label($shipment['status'] ?? 'pending')
+                        ]);
                     }
                 }
 

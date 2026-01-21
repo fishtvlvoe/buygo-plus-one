@@ -557,8 +557,6 @@ const ShipmentDetailsPageComponent = {
                 if (result.success) {
                     shipments.value = result.data || [];
                     totalShipments.value = result.total || result.data.length;
-                    // Debug: 顯示載入的出貨單 ID
-                    console.log('[BuyGo Debug] Loaded shipments:', result.data.map(s => ({ id: s.id, shipment_number: s.shipment_number })));
                 }
             } catch (err) {
                 console.error('載入出貨單失敗:', err);
@@ -839,15 +837,12 @@ const ShipmentDetailsPageComponent = {
 
         // 查看詳情
         const viewDetail = async (shipmentId) => {
-            console.log('[BuyGo Debug] viewDetail called with shipmentId:', shipmentId, 'type:', typeof shipmentId);
             try {
                 const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
-                console.log('[BuyGo Debug] Fetching URL:', url);
                 const response = await fetch(url, {
                     credentials: 'include'
                 });
                 const result = await response.json();
-                console.log('[BuyGo Debug] API Response:', result);
 
                 if (result.success) {
                     detailModal.value = {
