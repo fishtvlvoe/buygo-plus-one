@@ -1301,22 +1301,30 @@ const OrdersPageComponent = {
             navigateTo('list');
         };
         
-        // 檢查訂單是否有可出貨的商品
+        // 檢查訂單是否有可出貨的商品（用於父訂單）
+        // 重要：如果父訂單已有子訂單（拆單），父訂單本身不應顯示「轉備貨」按鈕
+        // 因為此時應該在子訂單上操作，而非父訂單
         const hasAllocatedItems = (order) => {
             if (!order) {
                 return false;
             }
-            
+
+            // 【關鍵邏輯】如果父訂單已有子訂單，父訂單不應顯示「轉備貨」按鈕
+            // 使用者應該在子訂單上執行轉備貨操作
+            if (order.children && order.children.length > 0) {
+                return false;
+            }
+
             // 優先檢查 has_allocation 欄位（如果 API 有提供）
             if (order.has_allocation === true) {
                 return true;
             }
-            
+
             // 如果沒有 has_allocation 欄位，檢查 items 中的 allocated_quantity
             if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 return false;
             }
-            
+
             // 檢查每個 item 的 allocated_quantity
             return order.items.some(item => {
                 // 處理各種可能的資料類型：數字、字串、null、undefined
