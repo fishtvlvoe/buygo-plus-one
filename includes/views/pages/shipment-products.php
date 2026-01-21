@@ -1,6 +1,27 @@
 <?php
 // 出貨管理頁面元件
 
+// CSS 動畫樣式（放在 template 外面避免 Vue 警告）
+?>
+<style>
+/* 浮動工具列動畫 */
+@keyframes slide-in-from-bottom {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.shipment-animate-in {
+    animation: slide-in-from-bottom 0.3s ease-out;
+}
+</style>
+<?php
+
 $shipment_products_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- Header（固定高度 64px）-->
@@ -94,16 +115,20 @@ $shipment_products_component_template = <<<'HTML'
         
         <!-- 出貨單列表 -->
         <div v-else>
-            <!-- 批次操作工具列 -->
-            <div v-if="selectedShipments.length > 0" class="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
-                <div class="text-sm text-blue-700 font-medium">
+            <!-- 批次操作工具列（桌面版） -->
+            <div v-if="selectedShipments.length > 0" class="hidden md:flex mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 items-center justify-between">
+                <div class="flex items-center gap-2 text-sm text-blue-700 font-medium">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                    </svg>
                     已選擇 {{ selectedShipments.length }} 個出貨單
                 </div>
                 <button
                     @click="mergeShipments"
                     :disabled="!canMerge"
-                    :class="canMerge ? 'buygo-btn buygo-btn-accent' : 'buygo-btn bg-slate-300 cursor-not-allowed text-white'">
-                    合併出貨單
+                    :class="canMerge ? 'px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition shadow-sm' : 'px-4 py-2 bg-slate-300 cursor-not-allowed text-white font-medium rounded-lg'">
+                    合併
                 </button>
             </div>
             
@@ -111,28 +136,28 @@ $shipment_products_component_template = <<<'HTML'
             <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50/50">
+                        <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th class="px-4 py-4 w-12 text-center">
-                                    <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                                <th class="px-4 py-3 w-12 text-center">
+                                    <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
                                 </th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[12%]">出貨單號</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[10%]">客戶</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[40%]">商品清單</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[8%]">總數量</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[10%]">狀態</th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[12%]">建立日期</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[8%]">操作</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">出貨單號</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">客戶</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">商品清單</th>
+                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">總數量</th>
+                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">狀態</th>
+                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">操作</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">建立日期</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-100">
                             <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center">
+                                <td class="px-4 py-3 text-center">
                                     <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
                                 </td>
-                                <td class="px-4 py-4 text-sm font-medium text-slate-900 whitespace-nowrap">{{ shipment.shipment_number }}</td>
-                                <td class="px-4 py-4 text-sm text-slate-600 whitespace-nowrap">{{ shipment.customer_name || '未知客戶' }}</td>
-                                <td class="px-4 py-4">
+                                <td class="px-4 py-3 text-sm font-medium text-slate-900 whitespace-nowrap">{{ shipment.shipment_number }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{{ shipment.customer_name || '未知客戶' }}</td>
+                                <td class="px-4 py-3">
                                     <!-- 商品清單（移除外部圖片） -->
                                     <div class="flex items-center gap-2">
                                         <span
@@ -191,29 +216,28 @@ $shipment_products_component_template = <<<'HTML'
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-2 py-4 text-center text-sm font-semibold text-slate-900 whitespace-nowrap">{{ shipment.total_quantity || 0 }}</td>
-                                <td class="px-2 py-4 text-center">
+                                <td class="px-2 py-3 text-center text-sm font-semibold text-slate-900 whitespace-nowrap">{{ shipment.total_quantity || 0 }}</td>
+                                <td class="px-2 py-3 text-center">
                                     <span
-                                        class="inline-block px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+                                        class="inline-block px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
                                         :class="{
-                                            'bg-yellow-100 text-yellow-800 border border-yellow-200': shipment.status === 'pending' || shipment.status === '備貨中',
-                                            'bg-green-100 text-green-800 border border-green-200': shipment.status === 'shipped' || shipment.status === '已出貨'
+                                            'bg-yellow-100 text-yellow-800 border border-yellow-300': shipment.status === 'pending' || shipment.status === '備貨中',
+                                            'bg-green-100 text-green-800 border border-green-300': shipment.status === 'shipped' || shipment.status === '已出貨'
                                         }"
                                     >
                                         {{ getStatusText(shipment.status) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 text-sm text-slate-600 whitespace-nowrap">{{ formatDate(shipment.created_at) }}</td>
-                                <td class="px-2 py-4 text-center">
+                                <td class="px-2 py-3 text-center">
                                     <!-- 操作按鈕（僅待出貨狀態顯示） -->
                                     <button
                                         v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
                                         @click="moveToShipment(shipment.id)"
-                                        class="inline-block px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-sm whitespace-nowrap"
-                                        style="min-width: 80px;">
+                                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm whitespace-nowrap">
                                         轉出貨
                                     </button>
                                 </td>
+                                <td class="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{{ formatDate(shipment.created_at) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -222,6 +246,22 @@ $shipment_products_component_template = <<<'HTML'
 
             <!-- 手機版卡片 -->
             <div class="md:hidden space-y-4">
+                <!-- 手機版全選區域 -->
+                <div class="flex items-center gap-3 px-1 mb-4">
+                    <input
+                        type="checkbox"
+                        @change="toggleSelectAll"
+                        :checked="isAllSelected"
+                        class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"
+                    >
+                    <span class="text-sm font-medium text-slate-700">
+                        全選
+                        <span v-if="selectedShipments.length > 0" class="text-primary">
+                            ({{ selectedShipments.length }})
+                        </span>
+                    </span>
+                </div>
+
                 <div v-for="shipment in shipments" :key="shipment.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
@@ -323,7 +363,31 @@ $shipment_products_component_template = <<<'HTML'
                     </button>
                 </div>
             </div>
-            
+
+            <!-- 手機版浮動合併工具列 -->
+            <div
+                v-if="selectedShipments.length > 0"
+                class="fixed bottom-20 left-0 right-0 z-40 mx-4 mb-4 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 flex items-center justify-between shadow-2xl shipment-animate-in md:hidden"
+            >
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="font-bold">已選擇 {{ selectedShipments.length }} 個出貨單</span>
+                </div>
+                <button
+                    @click="mergeShipments"
+                    :disabled="!canMerge"
+                    :class="canMerge
+                        ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                        : 'bg-slate-300 text-slate-500 cursor-not-allowed'"
+                    class="px-4 py-2 rounded-lg font-bold text-sm transition shadow-lg"
+                >
+                    合併
+                </button>
+            </div>
+
             <!-- 統一分頁樣式 -->
             <div v-if="totalShipments > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
                 <div class="text-sm text-slate-700 text-center sm:text-left">
@@ -717,16 +781,22 @@ const ShipmentProductsPageComponent = {
             }
         };
         
+        // 檢查是否全選
+        const isAllSelected = computed(() => {
+            return shipments.value.length > 0 &&
+                   selectedShipments.value.length === shipments.value.length;
+        });
+
         // 檢查是否可以合併（必須是相同客戶）
         const canMerge = computed(() => {
             if (selectedShipments.value.length < 2) return false;
-            
+
             // 取得所有選中出貨單的客戶 ID
             const customerIds = selectedShipments.value.map(id => {
                 const shipment = shipments.value.find(s => s.id === id);
                 return shipment?.customer_id;
             });
-            
+
             // 檢查是否都是同一個客戶
             return customerIds.every(id => id === customerIds[0]);
         });
@@ -889,6 +959,7 @@ const ShipmentProductsPageComponent = {
             toggleSelectAll,
             selectedItems,
             selectedShipments,
+            isAllSelected,
             canMerge,
             moveToShipment,
             mergeShipments,
