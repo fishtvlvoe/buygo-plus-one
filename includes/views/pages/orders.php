@@ -264,12 +264,25 @@ $orders_component_template = <<<'HTML'
                                     <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
+                                    <!-- 根據狀態顯示不同按鈕（父訂單） -->
                                     <button
-                                        v-if="hasAllocatedItems(order)"
+                                        v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                                         @click="shipOrder(order)"
                                         class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                                         轉備貨
                                     </button>
+                                    <span
+                                        v-else-if="order.shipping_status === 'preparing' || order.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="order.shipping_status === 'shipped'"
+                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        已出貨
+                                    </span>
                                 </div>
                             </td>
                         </tr>
@@ -320,11 +333,25 @@ $orders_component_template = <<<'HTML'
                                     <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
+                                    <!-- 根據狀態顯示不同按鈕 -->
                                     <button
+                                        v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
                                         @click="shipChildOrder(childOrder, order)"
                                         class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                                         轉備貨
                                     </button>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'preparing' || childOrder.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'shipped'"
+                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        已出貨
+                                    </span>
                                 </div>
                             </td>
                         </tr>
@@ -445,12 +472,25 @@ $orders_component_template = <<<'HTML'
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             查看詳情
                         </button>
+                        <!-- 根據狀態顯示不同按鈕（手機版） -->
                         <button
-                            v-if="hasAllocatedItems(order)"
+                            v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                             @click="shipOrder(order)"
                             class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                             轉備貨
                         </button>
+                        <span
+                            v-else-if="order.shipping_status === 'preparing' || order.shipping_status === 'ready_to_ship'"
+                            class="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            備貨中
+                        </span>
+                        <span
+                            v-else-if="order.shipping_status === 'shipped'"
+                            class="flex-1 px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            已出貨
+                        </span>
                     </div>
                 </div>
             </div> <!-- End md:hidden (mobile cards) -->
@@ -1180,16 +1220,25 @@ const OrdersPageComponent = {
             // 檢查每個 item 的 allocated_quantity
             return order.items.some(item => {
                 // 處理各種可能的資料類型：數字、字串、null、undefined
-                const allocatedQty = item.allocated_quantity != null 
-                    ? parseInt(item.allocated_quantity, 10) 
+                const allocatedQty = item.allocated_quantity != null
+                    ? parseInt(item.allocated_quantity, 10)
                     : 0;
-                
+
                 // 確保是有效數字
                 const isValidNumber = !isNaN(allocatedQty) && isFinite(allocatedQty);
                 return isValidNumber && allocatedQty > 0;
             });
         };
-        
+
+        // 檢查是否可以顯示「轉備貨」按鈕
+        // 只有在未出貨狀態才顯示按鈕，已備貨或已出貨則顯示狀態標籤
+        const canShowShipButton = (order) => {
+            if (!order) return false;
+            const status = order.shipping_status || 'unshipped';
+            // 只有 unshipped 狀態才顯示轉備貨按鈕
+            return status === 'unshipped' || status === '';
+        };
+
         // 執行訂單出貨
         const shipOrder = async (order) => {
             // 轉備貨：將訂單狀態更新為 'preparing'
@@ -1522,6 +1571,7 @@ const OrdersPageComponent = {
             viewOrderDetails,
             closeOrderModal,
             hasAllocatedItems,
+            canShowShipButton,
             shipOrder,
             shipOrderItem,
             shipChildOrder,
