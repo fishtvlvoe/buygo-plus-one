@@ -118,22 +118,35 @@ $products_component_template = <<<'HTML'
         <div class="flex-1 overflow-auto bg-slate-50/50 relative">
             <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
                 
-                <!-- Smart Search Box -->
-                <smart-search-box
-                    api-endpoint="/wp-json/buygo-plus-one/v1/products"
-                    :search-fields="['name', 'sku']"
-                    @select="handleProductSelect"
-                    @search="handleProductSearch"
-                    @clear="handleProductSearchClear"
-                ></smart-search-box>
+                <!-- Toolbar: Search + View Toggle -->
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="flex-1">
+                        <smart-search-box
+                            api-endpoint="/wp-json/buygo-plus-one/v1/products"
+                            :search-fields="['name', 'sku']"
+                            @select="handleProductSelect"
+                            @search="handleProductSearch"
+                            @clear="handleProductSearchClear"
+                        ></smart-search-box>
+                    </div>
+                    <!-- View Mode Toggle (支援手機版和桌面版) -->
+                    <div class="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 md:p-1 shadow-sm shrink-0">
+                        <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-primary text-white' : 'text-slate-500 hover:bg-slate-100'" class="p-1.5 md:p-2 rounded-md transition" title="列表檢視">
+                            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        </button>
+                        <button @click="viewMode = 'grid'" :class="viewMode === 'grid' ? 'bg-primary text-white' : 'text-slate-500 hover:bg-slate-100'" class="p-1.5 md:p-2 rounded-md transition" title="網格檢視">
+                            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Loading -->
                 <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
                 
                 <!-- Content (Desktop & Mobile) -->
                 <div v-else>
-                    <!-- Desktop Table -->
-                    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <!-- Desktop Table View -->
+                    <div v-show="viewMode === 'table'" class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-200">
                                 <thead class="bg-slate-50/50">
@@ -192,71 +205,224 @@ $products_component_template = <<<'HTML'
                             </table>
                         </div>
                     </div>
-                    
-                    <!-- Mobile Card View (Updated) -->
-                    <div class="md:hidden space-y-3">
-                     <div class="flex items-center gap-3 px-1 mb-2">
-                        <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
-                            <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
-                            全選
-                        </label>
-                    </div>
-                    <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="p-3 flex gap-3 relative">
-                            <div class="absolute top-3 left-3 z-10 w-6 h-6 flex items-center justify-center">
-                                <input type="checkbox" :value="product.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 bg-white shadow-sm">
-                            </div>
-                            <div class="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 ml-6 cursor-pointer hover:border-primary transition relative group" @click="openImageModal(product)">
-                                <img v-if="product.image" :src="product.image" class="w-full h-full object-cover rounded-lg">
-                                <svg v-else class="w-8 h-8 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
-                                <div>
-                                    <div class="flex justify-between items-start gap-2">
-                                        <h3 class="text-sm font-bold text-slate-900 leading-tight cursor-pointer hover:text-primary transition-colors" @click="navigateTo('edit', product)">{{ product.name }}</h3>
-                                        <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2 py-0.5 text-[10px] font-medium rounded-full border shrink-0 whitespace-nowrap">{{ product.status === 'published' ? '上架' : '下架' }}</button>
+
+                    <!-- Desktop Grid View -->
+                    <div v-show="viewMode === 'grid'" class="hidden md:block">
+                        <!-- Grid Header with Select All -->
+                        <div class="flex items-center justify-between mb-4 px-1">
+                            <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                                全選 ({{ selectedItems.length }}/{{ products.length }})
+                            </label>
+                            <span class="text-xs text-slate-500">{{ products.length }} 件商品</span>
+                        </div>
+                        <!-- Grid Container -->
+                        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                            <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md hover:border-primary/30 transition group">
+                                <!-- Image with checkbox overlay -->
+                                <div class="relative aspect-square bg-slate-100 cursor-pointer" @click="openImageModal(product)">
+                                    <img v-if="product.image" :src="product.image" class="w-full h-full object-cover">
+                                    <div v-else class="w-full h-full flex items-center justify-center text-slate-300">
+                                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     </div>
-                                    <div class="mt-1">
-                                        <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                    <!-- Checkbox -->
+                                    <div class="absolute top-2 left-2">
+                                        <input type="checkbox" :value="product.id" v-model="selectedItems" @click.stop class="rounded border-slate-300 text-primary w-5 h-5 bg-white/90 shadow-sm cursor-pointer">
+                                    </div>
+                                    <!-- Status Badge -->
+                                    <div class="absolute top-2 right-2">
+                                        <span :class="product.status === 'published' ? 'bg-green-500' : 'bg-slate-400'" class="px-2 py-0.5 text-[10px] font-bold text-white rounded-full shadow">
+                                            {{ product.status === 'published' ? '上架' : '下架' }}
+                                        </span>
+                                    </div>
+                                    <!-- Quick Stats Overlay (on hover) -->
+                                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="flex justify-around text-white text-xs">
+                                            <div class="text-center">
+                                                <div class="font-bold text-green-400">{{ product.ordered || 0 }}</div>
+                                                <div class="text-[10px] text-white/70">下單</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="font-bold text-blue-400">{{ product.allocated || 0 }}</div>
+                                                <div class="text-[10px] text-white/70">分配</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="font-bold text-orange-400">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
+                                                <div class="text-[10px] text-white/70">待出</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-end gap-2 mt-2">
-                                    <span class="text-[10px] text-slate-400">採購</span>
-                                    <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="w-20 px-2 py-1 text-right text-sm font-bold border rounded bg-slate-50 focus:bg-white focus:border-primary focus:outline-none">
+                                <!-- Product Info -->
+                                <div class="p-3">
+                                    <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-tight mb-1 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <span class="text-sm font-bold text-primary">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">ID: {{ product.id }}</span>
+                                    </div>
+                                    <!-- Purchased Input -->
+                                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                                        <span class="text-[10px] text-slate-500">採購數量</span>
+                                        <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" @click.stop class="w-16 px-2 py-1 text-right text-xs font-bold border rounded bg-slate-50 focus:bg-white focus:border-primary focus:outline-none">
+                                    </div>
+                                </div>
+                                <!-- Action Buttons -->
+                                <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
+                                    <button @click="navigateTo('buyers', product)" class="py-2.5 flex items-center justify-center text-green-600 hover:bg-green-50 transition" title="下單名單">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    </button>
+                                    <button @click="navigateTo('edit', product)" class="py-2.5 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition" title="編輯">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                    <button @click="deleteProduct(product.id)" class="py-2.5 flex items-center justify-center text-red-500 hover:bg-red-50 transition" title="刪除">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
-                            <div class="px-2 py-3 text-center clickable active:bg-green-100" @click="navigateTo('buyers', product)">
-                                <div class="text-[10px] text-slate-400 mb-0.5">下單</div>
-                                <div class="font-bold text-green-600 text-base underline decoration-green-200">{{ product.ordered || 0 }}</div>
+                    </div>
+
+                    <!-- Mobile Views -->
+                    <div class="md:hidden">
+                        <!-- Mobile List View (原始 Card View) -->
+                        <div v-show="viewMode === 'table'" class="space-y-3">
+                            <div class="flex items-center gap-3 px-1 mb-2">
+                                <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                    <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                                    全選
+                                </label>
                             </div>
-                            <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-slate-400 mb-0.5">預訂</div>
-                                <div class="font-bold text-slate-400 text-base">{{ calculateReserved(product) }}</div>
+                            <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div class="p-3 flex gap-3 relative">
+                                    <div class="absolute top-3 left-3 z-10 w-6 h-6 flex items-center justify-center">
+                                        <input type="checkbox" :value="product.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 bg-white shadow-sm">
+                                    </div>
+                                    <div class="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 ml-6 cursor-pointer hover:border-primary transition relative group" @click="openImageModal(product)">
+                                        <img v-if="product.image" :src="product.image" class="w-full h-full object-cover rounded-lg">
+                                        <svg v-else class="w-8 h-8 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
+                                        <div>
+                                            <div class="flex justify-between items-start gap-2">
+                                                <h3 class="text-sm font-bold text-slate-900 leading-tight cursor-pointer hover:text-primary transition-colors" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                                <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2 py-0.5 text-[10px] font-medium rounded-full border shrink-0 whitespace-nowrap">{{ product.status === 'published' ? '上架' : '下架' }}</button>
+                                            </div>
+                                            <div class="mt-1">
+                                                <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-end gap-2 mt-2">
+                                            <span class="text-[10px] text-slate-400">採購</span>
+                                            <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="w-20 px-2 py-1 text-right text-sm font-bold border rounded bg-slate-50 focus:bg-white focus:border-primary focus:outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                                    <div class="px-2 py-3 text-center clickable active:bg-green-100" @click="navigateTo('buyers', product)">
+                                        <div class="text-[10px] text-slate-400 mb-0.5">下單</div>
+                                        <div class="font-bold text-green-600 text-base underline decoration-green-200">{{ product.ordered || 0 }}</div>
+                                    </div>
+                                    <div class="px-2 py-3 text-center">
+                                        <div class="text-[10px] text-slate-400 mb-0.5">預訂</div>
+                                        <div class="font-bold text-slate-400 text-base">{{ calculateReserved(product) }}</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                                    <div class="px-2 py-3 text-center">
+                                        <div class="text-[10px] text-slate-400 mb-0.5">已分配</div>
+                                        <div class="font-bold text-blue-600 text-base">{{ product.allocated || 0 }}</div>
+                                    </div>
+                                    <div class="px-2 py-3 text-center">
+                                        <div class="text-[10px] text-slate-400 mb-0.5">已出貨</div>
+                                        <div class="font-bold text-slate-500 text-base">{{ product.shipped || 0 }}</div>
+                                    </div>
+                                    <div class="px-2 py-3 text-center">
+                                        <div class="text-[10px] text-orange-500 mb-0.5">待出貨</div>
+                                        <div class="font-bold text-orange-600 text-base">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
+                                    <button @click="navigateTo('allocation', product)" class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 bg-white transition active:bg-blue-100"><span class="text-xs font-bold">分配</span></button>
+                                    <button @click="navigateTo('edit', product)" class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"><span class="text-xs font-bold">編輯</span></button>
+                                    <button @click="deleteProduct(product.id)" class="py-3 flex items-center justify-center gap-1.5 text-red-500 hover:bg-red-50 bg-white transition active:bg-red-100"><span class="text-xs font-bold">刪除</span></button>
+                                </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
-                            <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-slate-400 mb-0.5">已分配</div>
-                                <div class="font-bold text-blue-600 text-base">{{ product.allocated || 0 }}</div>
+
+                        <!-- Mobile Grid View (單欄滿版大圖) -->
+                        <div v-show="viewMode === 'grid'">
+                            <!-- Grid Header with Select All -->
+                            <div class="flex items-center justify-between mb-3 px-1">
+                                <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                    <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                                    全選 ({{ selectedItems.length }}/{{ products.length }})
+                                </label>
+                                <span class="text-xs text-slate-500">{{ products.length }} 件商品</span>
                             </div>
-                            <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-slate-400 mb-0.5">已出貨</div>
-                                <div class="font-bold text-slate-500 text-base">{{ product.shipped || 0 }}</div>
+                            <!-- Grid Container (手機版單欄滿版) -->
+                            <div class="space-y-3">
+                                <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <!-- 大圖區域 -->
+                                    <div class="relative aspect-[4/3] bg-slate-100 cursor-pointer" @click="openImageModal(product)">
+                                        <img v-if="product.image" :src="product.image" class="w-full h-full object-cover">
+                                        <div v-else class="w-full h-full flex items-center justify-center text-slate-300">
+                                            <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </div>
+                                        <!-- Checkbox -->
+                                        <div class="absolute top-3 left-3">
+                                            <input type="checkbox" :value="product.id" v-model="selectedItems" @click.stop class="rounded border-slate-300 text-primary w-6 h-6 bg-white/90 shadow-sm cursor-pointer">
+                                        </div>
+                                        <!-- Status Badge -->
+                                        <div class="absolute top-3 right-3">
+                                            <span :class="product.status === 'published' ? 'bg-green-500' : 'bg-slate-400'" class="px-2 py-1 text-xs font-bold text-white rounded-full shadow">
+                                                {{ product.status === 'published' ? '上架' : '下架' }}
+                                            </span>
+                                        </div>
+                                        <!-- Quick Stats Overlay -->
+                                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                            <div class="flex justify-around text-white">
+                                                <div class="text-center">
+                                                    <div class="text-xl font-bold text-green-400">{{ product.ordered || 0 }}</div>
+                                                    <div class="text-xs text-white/80">下單</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div class="text-xl font-bold text-blue-400">{{ product.allocated || 0 }}</div>
+                                                    <div class="text-xs text-white/80">分配</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div class="text-xl font-bold text-orange-400">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
+                                                    <div class="text-xs text-white/80">待出</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Product Info -->
+                                    <div class="p-3">
+                                        <h3 class="text-base font-bold text-slate-900 leading-tight mb-2 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-lg font-bold text-primary">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                            <span class="text-xs text-slate-400 font-mono">ID: {{ product.id }}</span>
+                                        </div>
+                                    </div>
+                                    <!-- Action Buttons -->
+                                    <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
+                                        <button @click="navigateTo('buyers', product)" class="py-3 flex items-center justify-center gap-1.5 text-green-600 hover:bg-green-50 active:bg-green-100 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                            <span class="text-xs font-bold">名單</span>
+                                        </button>
+                                        <button @click="navigateTo('allocation', product)" class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                            <span class="text-xs font-bold">分配</span>
+                                        </button>
+                                        <button @click="navigateTo('edit', product)" class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                            <span class="text-xs font-bold">編輯</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="px-2 py-3 text-center">
-                                <div class="text-[10px] text-orange-500 mb-0.5">待出貨</div>
-                                <div class="font-bold text-orange-600 text-base">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
-                            <button @click="navigateTo('allocation', product)" class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 bg-white transition active:bg-blue-100"><span class="text-xs font-bold">分配</span></button>
-                            <button @click="navigateTo('edit', product)" class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"><span class="text-xs font-bold">編輯</span></button>
-                            <button @click="deleteProduct(product.id)" class="py-3 flex items-center justify-center gap-1.5 text-red-500 hover:bg-red-50 bg-white transition active:bg-red-100"><span class="text-xs font-bold">刪除</span></button>
                         </div>
                     </div>
-                </div>
                 </div>
             </div> <!-- End List View Container -->
 
@@ -634,6 +800,7 @@ const ProductsPageComponent = {
         const currentTab = ref('products');
         const currentView = ref('list'); // 'list', 'edit', 'allocation', 'buyers'
         const currentId = ref(null);
+        const viewMode = ref('table'); // 'table' or 'grid' - 商品列表顯示模式
         
         // --- Data Refs ---
         const products = ref([]);
@@ -1180,7 +1347,7 @@ const ProductsPageComponent = {
 
         return {
             // State
-            isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId,
+            isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery,
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading,
             showImageModal, currentImage, toastMessage,
