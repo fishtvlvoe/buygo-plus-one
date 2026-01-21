@@ -454,6 +454,7 @@ const CustomersPageComponent = {
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice: formatCurrency,
+            formatPriceWithConversion,
             systemCurrency,
             currencySymbols,
             exchangeRates
@@ -662,11 +663,16 @@ const CustomersPageComponent = {
         // 格式化金額（amount 單位為分，除以 100 顯示；currency 可選，缺則用 currentCurrency）
         const formatPrice = (amount, currency = null) => {
             if (amount !== 0 && !amount) return '-';
-            // 使用當前顯示幣別
-            const displayCurr = currentCurrency.value;
+
             const value = amount / 100;
-            // 使用 composable 的 formatCurrency 來格式化
-            return formatCurrency(value, displayCurr);
+
+            // 如果有原始幣別且與當前顯示幣別不同，需要做匯率轉換
+            if (currency && currency !== currentCurrency.value) {
+                return formatPriceWithConversion(value, currency, currentCurrency.value);
+            }
+
+            // 否則直接格式化（不轉換）
+            return formatCurrency(value, currentCurrency.value);
         };
 
         // 格式化日期

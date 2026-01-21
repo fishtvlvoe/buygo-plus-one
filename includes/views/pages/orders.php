@@ -687,6 +687,7 @@ const OrdersPageComponent = {
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice: formatCurrency,
+            formatPriceWithConversion,
             systemCurrency: systemCurrencyFromComposable,
             currencySymbols,
             exchangeRates
@@ -829,13 +830,17 @@ const OrdersPageComponent = {
             }, 3000);
         };
 
-        // 格式化價格（使用當前顯示幣別）
+        // 格式化價格（使用當前顯示幣別，並做匯率轉換）
         const formatPrice = (amount, originalCurrency = null) => {
             if (amount == null) return '-';
-            // 使用當前顯示幣別
-            const displayCurr = currentCurrency.value;
-            // 使用 composable 的 formatCurrency 來格式化
-            return formatCurrency(amount, displayCurr);
+
+            // 如果有原始幣別且與當前顯示幣別不同，需要做匯率轉換
+            if (originalCurrency && originalCurrency !== currentCurrency.value) {
+                return formatPriceWithConversion(amount, originalCurrency, currentCurrency.value);
+            }
+
+            // 否則直接格式化（不轉換）
+            return formatCurrency(amount, currentCurrency.value);
         };
 
         // 搜尋處理函數
