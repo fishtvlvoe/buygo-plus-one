@@ -885,11 +885,7 @@ const ShipmentDetailsPageComponent = {
 
         // 批次匯出（參考舊外掛，使用 GET 請求直接開啟 URL）
         const batchExport = () => {
-            console.log('[DEBUG] 批次匯出開始');
-            console.log('[DEBUG] 選擇的出貨單:', selectedShipments.value);
-
             if (selectedShipments.value.length === 0) {
-                console.log('[DEBUG] 錯誤: 沒有選擇出貨單');
                 showToast('請先選擇出貨單', 'error');
                 return;
             }
@@ -899,16 +895,12 @@ const ShipmentDetailsPageComponent = {
                 const ids = selectedShipments.value.join(',');
                 const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${ids}`;
 
-                console.log('[DEBUG] 匯出 URL:', url);
-
                 // 直接開啟 URL（瀏覽器會自動下載檔案）
                 window.location.href = url;
 
-                console.log('[DEBUG] 匯出請求已發送');
                 showToast(`正在匯出 ${selectedShipments.value.length} 個出貨單...`, 'info');
             } catch (err) {
-                console.error('[DEBUG] 批次匯出失敗:', err);
-                console.error('[DEBUG] 錯誤堆疊:', err.stack);
+                console.error('批次匯出失敗:', err);
                 showToast('批次匯出失敗：' + err.message, 'error');
             }
         };

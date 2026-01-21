@@ -470,7 +470,7 @@ const ShipmentProductsPageComponent = {
         const handleGlobalSearch = () => {
             if (globalSearchQuery.value.trim()) {
                 // 可以實作跨頁面搜尋邏輯
-                console.log('全域搜尋:', globalSearchQuery.value);
+                // TODO: 實作跨頁面搜尋功能
             }
         };
 
@@ -766,10 +766,7 @@ const ShipmentProductsPageComponent = {
                 showToast('只能合併相同客戶的出貨單', 'error');
                 return;
             }
-            
-            // 確認這裡有正確的資料
-            console.log('準備合併的出貨單 IDs:', selectedShipments.value);
-            
+
             showConfirm(
                 '確認合併出貨單',
                 `確定要合併 ${selectedShipments.value.length} 個出貨單嗎？`,
@@ -780,15 +777,12 @@ const ShipmentProductsPageComponent = {
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
                             body: JSON.stringify({
-                                shipment_ids: selectedShipments.value  // 確認這裡傳送的是 array
+                                shipment_ids: selectedShipments.value
                             })
                         });
-                        
+
                         const result = await response.json();
-                        
-                        // 加入詳細的錯誤訊息
-                        console.log('合併 API 回應:', result);
-                        
+
                         if (result.success) {
                             showToast('合併成功！', 'success');
                             selectedShipments.value = [];
@@ -797,7 +791,7 @@ const ShipmentProductsPageComponent = {
                             showToast('合併失敗：' + (result.message || '未知錯誤'), 'error');
                         }
                     } catch (err) {
-                        console.error('合併失敗錯誤:', err);
+                        console.error('合併失敗:', err);
                         showToast('合併失敗：' + err.message, 'error');
                     }
                 }
