@@ -1526,6 +1526,27 @@ const OrdersPageComponent = {
                     localStorage.removeItem('buygo_allocation_updated');
                 }
             });
+
+            // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
+            // 當使用者從其他頁面切換回來時，重新載入資料
+            window.addEventListener('pageshow', (e) => {
+                // persisted 表示頁面是從 bfcache 恢復的
+                if (e.persisted) {
+                    loadOrders();
+                }
+            });
+
+            // 監聽頁面可見性變化（從其他標籤頁切換回來）
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    // 檢查是否有分配更新標記
+                    const allocationUpdated = localStorage.getItem('buygo_allocation_updated');
+                    if (allocationUpdated) {
+                        loadOrders();
+                        localStorage.removeItem('buygo_allocation_updated');
+                    }
+                }
+            });
         });
 
         // Smart Search Box 事件處理器

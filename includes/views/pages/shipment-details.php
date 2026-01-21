@@ -1011,8 +1011,24 @@ const ShipmentDetailsPageComponent = {
         onMounted(() => {
             loadShipments();
             loadStats();
+
+            // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
+            window.addEventListener('pageshow', (e) => {
+                if (e.persisted) {
+                    loadShipments();
+                    loadStats();
+                }
+            });
+
+            // 監聽頁面可見性變化
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    loadShipments();
+                    loadStats();
+                }
+            });
         });
-        
+
         return {
             activeTab,
             shipments,
