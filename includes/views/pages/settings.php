@@ -933,7 +933,7 @@ const SettingsPageComponent = {
         // 全域搜尋處理
         const handleGlobalSearch = (event) => {
             // 預留給未來實作全域搜尋邏輯
-            console.log('Global search:', event.target.value);
+            // TODO: 實作全域搜尋功能
         };
 
         // 模板定義（包含分類和變數資訊）

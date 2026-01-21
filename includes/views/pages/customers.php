@@ -638,7 +638,7 @@ const CustomersPageComponent = {
         // 全域搜尋處理
         const handleGlobalSearch = (event) => {
             // 可以在這裡實作全域搜尋邏輯
-            console.log('Global search:', event.target.value);
+            // TODO: 實作全域搜尋功能
         };
 
         // 幣別切換
