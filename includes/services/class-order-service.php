@@ -269,6 +269,11 @@ class OrderService
                 'new_status' => $status
             ]);
 
+            // 【重要】如果是子訂單，同步更新父訂單的 shipping_status
+            if (!empty($order->parent_id)) {
+                $this->syncParentShippingStatus($order->parent_id);
+            }
+
             return true;
 
         } catch (\Exception $e) {
@@ -279,6 +284,104 @@ class OrderService
             ], 'error');
 
             throw new \Exception('運送狀態更新失敗：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 同步父訂單的 shipping_status
+     * 根據所有子訂單的狀態，計算父訂單應該顯示的狀態
+     *
+     * 邏輯：
+     * - 如果有任何子訂單是 preparing/processing/shipped/completed，父訂單至少是 preparing
+     * - 如果所有子訂單都是 shipped 或 completed，父訂單也應該是 shipped
+     * - 如果所有子訂單都是 completed，父訂單也應該是 completed
+     *
+     * @param int $parentId 父訂單 ID
+     */
+    private function syncParentShippingStatus(int $parentId): void
+    {
+        try {
+            // 取得父訂單
+            $parentOrder = Order::find($parentId);
+            if (!$parentOrder) {
+                return;
+            }
+
+            // 取得所有子訂單的 shipping_status
+            $childOrders = Order::where('parent_id', $parentId)
+                ->where('type', 'split')
+                ->get();
+
+            if ($childOrders->isEmpty()) {
+                return;
+            }
+
+            // 統計子訂單狀態
+            $statusCounts = [
+                'unshipped' => 0,
+                'preparing' => 0,
+                'processing' => 0,
+                'shipped' => 0,
+                'completed' => 0,
+                'out_of_stock' => 0
+            ];
+
+            foreach ($childOrders as $child) {
+                $status = $child->shipping_status ?? 'unshipped';
+                if (isset($statusCounts[$status])) {
+                    $statusCounts[$status]++;
+                }
+            }
+
+            $totalChildren = count($childOrders);
+
+            // 決定父訂單的狀態
+            $newParentStatus = 'unshipped';
+
+            // 如果所有子訂單都 completed
+            if ($statusCounts['completed'] === $totalChildren) {
+                $newParentStatus = 'completed';
+            }
+            // 如果所有子訂單都 shipped 或 completed
+            elseif (($statusCounts['shipped'] + $statusCounts['completed']) === $totalChildren) {
+                $newParentStatus = 'shipped';
+            }
+            // 如果所有子訂單都至少是 processing 以上
+            elseif (($statusCounts['processing'] + $statusCounts['shipped'] + $statusCounts['completed']) === $totalChildren) {
+                $newParentStatus = 'processing';
+            }
+            // 如果有任何子訂單開始處理（preparing 以上）
+            elseif (($statusCounts['preparing'] + $statusCounts['processing'] + $statusCounts['shipped'] + $statusCounts['completed']) > 0) {
+                $newParentStatus = 'preparing';
+            }
+
+            // 只有當父訂單狀態需要更新時才更新
+            $currentParentStatus = $parentOrder->shipping_status ?? 'unshipped';
+            if ($currentParentStatus !== $newParentStatus) {
+                $parentOrder->shipping_status = $newParentStatus;
+                $parentOrder->save();
+
+                $this->debugService->log('OrderService', '同步父訂單 shipping_status', [
+                    'parent_id' => $parentId,
+                    'old_status' => $currentParentStatus,
+                    'new_status' => $newParentStatus,
+                    'child_status_counts' => $statusCounts
+                ]);
+
+                // 記錄狀態變更歷史
+                $this->shippingStatusService->logStatusChange(
+                    (string)$parentId,
+                    $currentParentStatus,
+                    $newParentStatus,
+                    '子訂單狀態同步'
+                );
+            }
+
+        } catch (\Exception $e) {
+            $this->debugService->log('OrderService', '同步父訂單狀態失敗', [
+                'parent_id' => $parentId,
+                'error' => $e->getMessage()
+            ], 'error');
         }
     }
 
