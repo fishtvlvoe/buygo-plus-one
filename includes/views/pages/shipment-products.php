@@ -550,16 +550,17 @@ const ShipmentProductsPageComponent = {
         const loadShipments = async () => {
             loading.value = true;
             error.value = null;
-            
+
             try {
                 // 載入待出貨的出貨單（用於建立出貨單時的參考）
-                let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
+                // 加入時間戳記強制繞過所有快取
+                let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending&_t=${Date.now()}`;
 
                 // 加入搜尋參數
                 if (searchQuery.value) {
                     url += `&search=${encodeURIComponent(searchQuery.value)}`;
                 }
-                
+
                 const response = await fetch(url, {
                     credentials: 'include',
                     cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料

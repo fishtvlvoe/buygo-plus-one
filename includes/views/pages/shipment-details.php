@@ -601,7 +601,8 @@ const ShipmentDetailsPageComponent = {
         const loadShipments = async () => {
             loading.value = true;
             try {
-                let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+                // 加入時間戳記強制繞過所有快取
+                let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
 
                 // 加入搜尋參數
                 if (searchQuery.value) {

@@ -272,10 +272,16 @@ $orders_component_template = <<<'HTML'
                                         轉備貨
                                     </button>
                                     <span
-                                        v-else-if="order.shipping_status === 'preparing' || order.shipping_status === 'ready_to_ship'"
+                                        v-else-if="order.shipping_status === 'preparing'"
                                         class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        待出貨
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'shipped'"
@@ -341,10 +347,16 @@ $orders_component_template = <<<'HTML'
                                         轉備貨
                                     </button>
                                     <span
-                                        v-else-if="childOrder.shipping_status === 'preparing' || childOrder.shipping_status === 'ready_to_ship'"
+                                        v-else-if="childOrder.shipping_status === 'preparing'"
                                         class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        待出貨
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'shipped'"
@@ -480,10 +492,16 @@ $orders_component_template = <<<'HTML'
                             轉備貨
                         </button>
                         <span
-                            v-else-if="order.shipping_status === 'preparing' || order.shipping_status === 'ready_to_ship'"
+                            v-else-if="order.shipping_status === 'preparing'"
                             class="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             備貨中
+                        </span>
+                        <span
+                            v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
+                            class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            待出貨
                         </span>
                         <span
                             v-else-if="order.shipping_status === 'shipped'"
@@ -918,17 +936,18 @@ const OrdersPageComponent = {
         const loadOrders = async () => {
             loading.value = true;
             error.value = null;
-            
+
             try {
-                let url = `/wp-json/buygo-plus-one/v1/orders?page=${currentPage.value}&per_page=${perPage.value}`;
-                
+                // 加入時間戳記強制繞過所有快取
+                let url = `/wp-json/buygo-plus-one/v1/orders?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+
                 if (searchFilter.value) {
                     url += `&id=${searchFilter.value}`;
                 } else if (searchQuery.value && searchQuery.value.trim()) {
                     // 如果沒有特定篩選，但有搜尋關鍵字，使用 search 參數
                     url += `&search=${encodeURIComponent(searchQuery.value.trim())}`;
                 }
-                
+
                 const response = await fetch(url, {
                     credentials: 'include',
                     cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
@@ -1072,7 +1091,7 @@ const OrdersPageComponent = {
         const shippingStatuses = [
             { value: 'unshipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
             { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
-            { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
+            { value: 'processing', label: '待出貨', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
             { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
             { value: 'completed', label: '交易完成', color: 'bg-green-100 text-green-800 border border-green-300' },
             { value: 'out_of_stock', label: '斷貨', color: 'bg-red-100 text-red-800 border border-red-300' }
@@ -1345,77 +1364,55 @@ const OrdersPageComponent = {
             );
         };
 
-        // 執行子訂單出貨
+        // 執行子訂單轉備貨（不是直接出貨）
         const shipChildOrder = async (childOrder, parentOrder) => {
-            // 先載入子訂單的完整資訊
-            try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${childOrder.id}`, {
-                    credentials: 'include'
-                });
+            // 確認轉備貨
+            showConfirm(
+                '確認轉備貨',
+                `確定要將指定單 #${childOrder.invoice_no} 轉為備貨狀態嗎？`,
+                async () => {
+                    shipping.value = true;
 
-                const result = await response.json();
+                    try {
+                        // 呼叫 /prepare 端點，將狀態改為 'preparing'
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${childOrder.id}/prepare`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include'
+                        });
 
-                if (!result.success || !result.data || result.data.length === 0) {
-                    showToast('無法載入子訂單資訊', 'error');
-                    return;
-                }
+                        const result = await response.json();
 
-                const fullChildOrder = result.data[0];
-
-                // 收集所有可出貨的商品
-                const itemsToShip = (fullChildOrder.items || []).filter(item => (item.quantity || 0) > 0);
-
-                if (itemsToShip.length === 0) {
-                    showToast('此指定單沒有可出貨的商品', 'error');
-                    return;
-                }
-
-                // 確認出貨
-                const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.quantity || 0), 0);
-                showConfirm(
-                    '確認出貨指定單',
-                    `確定要出貨指定單 #${childOrder.invoice_no}（${totalQuantity} 個商品）嗎？`,
-                    async () => {
-                        shipping.value = true;
-
-                        try {
-                            // 準備 items 陣列
-                            const items = itemsToShip.map(item => ({
-                                order_item_id: item.id,
-                                quantity: item.quantity,
-                                product_id: item.product_id
-                            }));
-
-                            const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${childOrder.id}/ship`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                credentials: 'include',
-                                body: JSON.stringify({ items })
-                            });
-
-                            const result = await response.json();
-
-                            if (result.success) {
-                                showToast(`指定單出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
-                                // 刷新列表
-                                await loadOrders();
-                            } else {
-                                showToast('出貨失敗：' + result.message, 'error');
-                            }
-                        } catch (err) {
-                            console.error('出貨失敗:', err);
-                            showToast('出貨失敗：' + err.message, 'error');
-                        } finally {
-                            shipping.value = false;
+                        if (result.success) {
+                            showToast('已轉為備貨狀態', 'success');
+                            // 刷新列表
+                            await loadOrders();
+                        } else {
+                            showToast('轉備貨失敗：' + result.message, 'error');
                         }
+                    } catch (err) {
+                        console.error('轉備貨失敗:', err);
+                        showToast('轉備貨失敗：' + err.message, 'error');
+
+                        // 記錄到除錯中心
+                        fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                module: 'Orders',
+                                message: '子訂單轉備貨失敗',
+                                level: 'error',
+                                data: { error: err.message, order_id: childOrder.id }
+                            })
+                        });
+                    } finally {
+                        shipping.value = false;
                     }
-                );
-            } catch (err) {
-                console.error('載入子訂單失敗:', err);
-                showToast('載入子訂單失敗：' + err.message, 'error');
-            }
+                }
+            );
         };
 
         // 載入訂單詳情
@@ -1537,14 +1534,12 @@ const OrdersPageComponent = {
             });
 
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
+            // 只要頁面變為可見就重新載入，確保資料永遠是最新的
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    // 檢查是否有分配更新標記
-                    const allocationUpdated = localStorage.getItem('buygo_allocation_updated');
-                    if (allocationUpdated) {
-                        loadOrders();
-                        localStorage.removeItem('buygo_allocation_updated');
-                    }
+                    loadOrders();
+                    // 清除可能的分配更新標記
+                    localStorage.removeItem('buygo_allocation_updated');
                 }
             });
         });

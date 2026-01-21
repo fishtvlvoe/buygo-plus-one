@@ -342,9 +342,32 @@ class ShipmentService
                 ['%s', '%s', '%s'],
                 ['%d']
             );
-            
+
             if ($result !== false) {
                 $shipped_count++;
+
+                // 【新增】更新此出貨單關聯的訂單 shipping_status 為 shipped
+                $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+                $table_orders = $wpdb->prefix . 'fct_orders';
+
+                $order_ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT DISTINCT order_id FROM {$table_shipment_items} WHERE shipment_id = %d",
+                    $shipment_id
+                ));
+
+                if (!empty($order_ids)) {
+                    $order_ids_str = implode(',', array_map('intval', $order_ids));
+                    $wpdb->query(
+                        "UPDATE {$table_orders}
+                         SET shipping_status = 'shipped', updated_at = '" . current_time('mysql') . "'
+                         WHERE id IN ({$order_ids_str})"
+                    );
+
+                    $this->debugService->log('ShipmentService', '已更新訂單 shipping_status 為 shipped', [
+                        'shipment_id' => $shipment_id,
+                        'order_ids' => $order_ids
+                    ]);
+                }
 
                 // 【新增】自動檢查並完成父訂單
                 $this->check_parent_completion($shipment_id);

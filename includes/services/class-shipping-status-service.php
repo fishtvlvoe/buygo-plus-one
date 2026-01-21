@@ -24,7 +24,7 @@ class ShippingStatusService
     const SHIPPING_STATUSES = [
         'unshipped'    => '未出貨',
         'preparing'    => '備貨中',
-        'processing'   => '處理中',
+        'processing'   => '待出貨',
         'shipped'      => '已出貨',
         'completed'    => '交易完成',
         'out_of_stock' => '斷貨'

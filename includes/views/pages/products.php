@@ -629,7 +629,8 @@ const ProductsPageComponent = {
         const loadProducts = async () => {
             loading.value = true;
             try {
-                let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}`;
+                // 加入時間戳記強制繞過所有快取
+                let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
                 if (globalSearchQuery.value) {
                     url += `&search=${encodeURIComponent(globalSearchQuery.value)}`;
                 }
@@ -930,8 +931,23 @@ const ProductsPageComponent = {
 
         onMounted(() => {
             loadProducts();
-            // 使用 BuyGoRouter 核心模組的 popstate 監聽
+            // 使用 BuyGoRouter 核心模組的 popstate 監聯
             window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+
+            // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
+            window.addEventListener('pageshow', (e) => {
+                if (e.persisted) {
+                    loadProducts();
+                }
+            });
+
+            // 監聽頁面可見性變化（從其他標籤頁切換回來）
+            // 只要頁面變為可見就重新載入，確保資料永遠是最新的
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    loadProducts();
+                }
+            });
         });
 
         return {
