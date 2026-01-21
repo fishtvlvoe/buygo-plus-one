@@ -633,7 +633,13 @@ const ProductsPageComponent = {
                 if (globalSearchQuery.value) {
                     url += `&search=${encodeURIComponent(globalSearchQuery.value)}`;
                 }
-                const res = await fetch(url);
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 const data = await res.json();
                 if (data.success) {
                     products.value = data.data;
@@ -654,7 +660,10 @@ const ProductsPageComponent = {
         const loadBuyers = async (id) => {
             buyersLoading.value = true;
             try {
-                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers`);
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                });
                 const data = await res.json();
                 if (data.success) buyers.value = data.data;
             } catch(e) { console.error(e); }
@@ -664,7 +673,10 @@ const ProductsPageComponent = {
         const loadProductOrders = async (id) => {
             allocationLoading.value = true;
              try {
-                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/orders`);
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/orders`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                });
                 const data = await res.json();
                 // Adapter for old API response structure if needed
                 if (data.success) productOrders.value = data.data;

@@ -891,14 +891,19 @@ const OrdersPageComponent = {
                 
                 const response = await fetch(url, {
                     credentials: 'include',
+                    cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     // 為每個訂單加上 has_allocation 標記和確保 items 存在
                     orders.value = result.data.map(order => ({

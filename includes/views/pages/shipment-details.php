@@ -609,7 +609,12 @@ const ShipmentDetailsPageComponent = {
                 }
 
                 const response = await fetch(url, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 });
                 const result = await response.json();
 
@@ -910,7 +915,12 @@ const ShipmentDetailsPageComponent = {
             try {
                 const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
                 const response = await fetch(url, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 });
                 const result = await response.json();
 
