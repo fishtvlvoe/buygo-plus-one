@@ -294,6 +294,11 @@ class Shipments_API
      */
     public function get_shipments(WP_REST_Request $request)
     {
+        // 設置 no-cache 標頭，確保瀏覽器不會快取 API 回應
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         global $wpdb;
 
         $page = $request->get_param('page') ?: 1;
@@ -1130,6 +1135,7 @@ class Shipments_API
     /**
      * 轉出貨（單一出貨單）
      * 將出貨單狀態從 pending 更新為 ready_to_ship
+     * 同時更新相關訂單的 shipping_status 為 processing（處理中/待出貨）
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response|WP_Error
@@ -1141,6 +1147,8 @@ class Shipments_API
         try {
             $shipment_id = (int)$request->get_param('id');
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            $table_orders = $wpdb->prefix . 'fct_orders';
 
             // 檢查出貨單是否存在且狀態為 pending
             $shipment = $wpdb->get_row($wpdb->prepare(
@@ -1156,7 +1164,7 @@ class Shipments_API
                 return new WP_Error('invalid_status', '只有備貨中的出貨單才能轉出貨', ['status' => 400]);
             }
 
-            // 更新狀態為 ready_to_ship
+            // 更新出貨單狀態為 ready_to_ship
             $result = $wpdb->update(
                 $table_shipments,
                 [
@@ -1172,9 +1180,26 @@ class Shipments_API
                 return new WP_Error('update_failed', '轉出貨失敗：' . $wpdb->last_error, ['status' => 500]);
             }
 
+            // 取得此出貨單關聯的所有訂單 ID
+            $order_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT order_id FROM {$table_shipment_items} WHERE shipment_id = %d",
+                $shipment_id
+            ));
+
+            // 更新相關訂單的 shipping_status 為 processing（處理中/待出貨）
+            if (!empty($order_ids)) {
+                $ids_placeholder = implode(',', array_map('intval', $order_ids));
+                $wpdb->query(
+                    "UPDATE {$table_orders}
+                     SET shipping_status = 'processing', updated_at = '" . current_time('mysql') . "'
+                     WHERE id IN ({$ids_placeholder})"
+                );
+            }
+
             return new WP_REST_Response([
                 'success' => true,
-                'message' => "出貨單 {$shipment->shipment_number} 已轉為待出貨"
+                'message' => "出貨單 {$shipment->shipment_number} 已轉為待出貨",
+                'updated_orders' => count($order_ids)
             ], 200);
 
         } catch (\Exception $e) {
@@ -1185,6 +1210,7 @@ class Shipments_API
     /**
      * 批次轉出貨
      * 將多個出貨單狀態從 pending 更新為 ready_to_ship
+     * 同時更新相關訂單的 shipping_status 為 processing（處理中/待出貨）
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response|WP_Error
@@ -1209,8 +1235,10 @@ class Shipments_API
             }
 
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
+            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
+            $table_orders = $wpdb->prefix . 'fct_orders';
 
-            // 批次更新狀態（只更新 pending 狀態的出貨單）
+            // 批次更新出貨單狀態（只更新 pending 狀態的出貨單）
             $ids_placeholder = implode(',', array_fill(0, count($shipment_ids), '%d'));
             $update_query = $wpdb->prepare(
                 "UPDATE {$table_shipments}
@@ -1225,10 +1253,29 @@ class Shipments_API
                 throw new \Exception($wpdb->last_error);
             }
 
+            // 取得這些出貨單關聯的所有訂單 ID
+            $shipment_ids_str = implode(',', array_map('intval', $shipment_ids));
+            $order_ids = $wpdb->get_col(
+                "SELECT DISTINCT order_id FROM {$table_shipment_items} WHERE shipment_id IN ({$shipment_ids_str})"
+            );
+
+            // 更新相關訂單的 shipping_status 為 processing（處理中/待出貨）
+            $updated_orders = 0;
+            if (!empty($order_ids)) {
+                $order_ids_str = implode(',', array_map('intval', $order_ids));
+                $wpdb->query(
+                    "UPDATE {$table_orders}
+                     SET shipping_status = 'processing', updated_at = '" . current_time('mysql') . "'
+                     WHERE id IN ({$order_ids_str})"
+                );
+                $updated_orders = count($order_ids);
+            }
+
             return new WP_REST_Response([
                 'success' => true,
                 'message' => "已將 {$result} 個出貨單轉為待出貨",
-                'count' => $result
+                'count' => $result,
+                'updated_orders' => $updated_orders
             ], 200);
 
         } catch (\Exception $e) {

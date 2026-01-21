@@ -292,14 +292,34 @@ class ProductService
     }
 
     /**
-     * 取得商品的下單客戶列表
-     * 
-     * @param int $productId 商品 ID
+     * 取得商品的下單客戶列表（每筆訂單獨立顯示）
+     *
+     * @param int $productId 商品 ID（product_variation_id）
      * @return array
      */
     public function getProductBuyers(int $productId): array
     {
         try {
+            // 取得商品資訊（名稱和圖片）
+            $productVariation = \FluentCart\App\Models\ProductVariation::with(['product'])->find($productId);
+            $productName = '未知商品';
+            $productImage = '';
+
+            if ($productVariation) {
+                $productName = $productVariation->variation_title ?? '';
+                if (empty($productName) && $productVariation->product) {
+                    $productName = $productVariation->product->post_title ?? '未知商品';
+                }
+
+                // 取得商品圖片
+                if ($productVariation->post_id) {
+                    $thumbnailId = get_post_thumbnail_id($productVariation->post_id);
+                    if ($thumbnailId) {
+                        $productImage = wp_get_attachment_image_url($thumbnailId, 'medium') ?: '';
+                    }
+                }
+            }
+
             // 查詢訂單項目（只計算父訂單，排除子訂單、已取消和已退款的訂單）
             $orderItems = OrderItem::where('object_id', $productId)
                 ->whereHas('order', function($query) {
@@ -308,43 +328,100 @@ class ProductService
                 })
                 ->with(['order', 'order.customer'])
                 ->get();
-            
-            // 整理客戶資料
-            $buyerMap = [];
-            
+
+            // 每筆訂單獨立顯示（不再整合）
+            $orders = [];
+
             foreach ($orderItems as $item) {
                 if (!$item->order || !$item->order->customer) {
                     continue;
                 }
-                
+
                 $customer = $item->order->customer;
-                $customerId = $customer->id;
-                
-                // 如果客戶已存在，累加數量
-                if (isset($buyerMap[$customerId])) {
-                    $buyerMap[$customerId]['quantity'] += $item->quantity;
-                    $buyerMap[$customerId]['order_count']++;
+                $order = $item->order;
+
+                // 從 line_meta 讀取 _allocated_qty 和 _shipped_qty
+                $lineMeta = $item->line_meta ?? '{}';
+                if (is_array($lineMeta)) {
+                    $metaData = $lineMeta;
+                } elseif (is_string($lineMeta)) {
+                    $metaData = json_decode($lineMeta, true) ?: [];
                 } else {
-                    $buyerMap[$customerId] = [
-                        'customer_id' => $customerId,
-                        'customer_name' => $customer->full_name ?? $customer->email,
-                        'customer_email' => $customer->email,
-                        'quantity' => $item->quantity,
-                        'order_count' => 1,
-                        'latest_order_date' => $item->order->created_at
-                    ];
+                    $metaData = [];
                 }
+
+                $quantity = (int)$item->quantity;
+                $allocatedQty = (int)($metaData['_allocated_qty'] ?? 0);
+                $shippedQty = (int)($metaData['_shipped_qty'] ?? 0);
+
+                // 計算待處理數量
+                $pendingQty = max(0, $quantity - $allocatedQty - $shippedQty);
+
+                // 判斷狀態
+                // - 已全部出貨：shipped_qty >= quantity
+                // - 已全部分配：allocated_qty + shipped_qty >= quantity
+                // - 待分配：有待處理數量
+                $isFullyShipped = $shippedQty >= $quantity;
+                $isFullyAllocated = ($allocatedQty + $shippedQty) >= $quantity;
+
+                // 決定顯示狀態
+                $status = 'pending';  // 待分配
+                if ($isFullyShipped) {
+                    $status = 'shipped';  // 已出貨
+                } elseif ($isFullyAllocated) {
+                    $status = 'allocated';  // 已分配
+                } elseif ($shippedQty > 0 || $allocatedQty > 0) {
+                    $status = 'partial';  // 部分處理
+                }
+
+                // 格式化日期
+                $orderDate = '';
+                if ($order->created_at) {
+                    if (is_object($order->created_at) && method_exists($order->created_at, 'format')) {
+                        $orderDate = $order->created_at->format('Y/m/d');
+                    } elseif (is_string($order->created_at)) {
+                        $orderDate = date('Y/m/d', strtotime($order->created_at));
+                    }
+                }
+
+                $orders[] = [
+                    'order_item_id' => $item->id,
+                    'order_id' => $order->id,
+                    'invoice_no' => $order->invoice_no ?? "#{$order->id}",
+                    'customer_id' => $customer->id,
+                    'customer_name' => $customer->full_name ?? $customer->email,
+                    'customer_email' => $customer->email,
+                    'quantity' => $quantity,
+                    'allocated_quantity' => $allocatedQty,
+                    'shipped_quantity' => $shippedQty,
+                    'pending_quantity' => $pendingQty,
+                    'status' => $status,
+                    'is_allocated' => $isFullyAllocated,  // 保持向後相容
+                    'order_date' => $orderDate,
+                    'shipping_status' => $order->shipping_status ?? 'unshipped'
+                ];
             }
-            
-            // 轉換為陣列並排序
-            $buyers = array_values($buyerMap);
-            usort($buyers, function($a, $b) {
-                return $b['quantity'] - $a['quantity'];
+
+            // 排序：按狀態優先級 pending > partial > allocated > shipped
+            $statusOrder = ['pending' => 0, 'partial' => 1, 'allocated' => 2, 'shipped' => 3];
+            usort($orders, function($a, $b) use ($statusOrder) {
+                $aOrder = $statusOrder[$a['status']] ?? 99;
+                $bOrder = $statusOrder[$b['status']] ?? 99;
+                if ($aOrder !== $bOrder) {
+                    return $aOrder - $bOrder;
+                }
+                // 同樣狀態按待處理數量降序
+                return $b['pending_quantity'] - $a['pending_quantity'];
             });
 
             return [
                 'success' => true,
-                'data' => $buyers
+                'data' => $orders,
+                'product' => [
+                    'id' => $productId,
+                    'name' => $productName,
+                    'image' => $productImage
+                ]
             ];
 
         } catch (\Exception $e) {
@@ -522,11 +599,36 @@ class ProductService
     }
 
     /**
+     * 取得幣別符號
+     *
+     * @param string $currency 幣別代碼
+     * @return string 幣別符號
+     */
+    private function getCurrencySymbol(string $currency): string
+    {
+        $symbols = [
+            'JPY' => '¥',
+            'TWD' => 'NT$',
+            'USD' => '$',
+            'THB' => '฿',
+            'CNY' => '¥',
+            'EUR' => '€',
+            'GBP' => '£'
+        ];
+
+        return $symbols[$currency] ?? 'NT$';
+    }
+
+    /**
      * 格式化價格顯示
      */
     private function formatPrice(int $priceInCents): string
     {
-        return 'NT$ ' . number_format($priceInCents / 100, 2);
+        // 從 FluentCart 系統讀取幣別設定
+        $currency = \FluentCart\Api\CurrencySettings::get('currency') ?: 'TWD';
+        $symbol = $this->getCurrencySymbol($currency);
+
+        return $symbol . ' ' . number_format($priceInCents / 100, 2);
     }
 
     /**

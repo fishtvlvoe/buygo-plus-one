@@ -2,18 +2,21 @@
 namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\OrderService;
+use BuyGoPlus\Services\ShipmentService;
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
 class Orders_API {
-    
+
     private $namespace = 'buygo-plus-one/v1';
     private $orderService;
-    
+    private $shipmentService;
+
     public function __construct() {
         $this->orderService = new OrderService();
+        $this->shipmentService = new ShipmentService();
     }
     
     /**
@@ -147,9 +150,14 @@ class Orders_API {
      * 取得訂單列表
      */
     public function get_orders($request) {
+        // 設置 no-cache 標頭，確保瀏覽器不會快取 API 回應
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         try {
             $params = $request->get_params();
-            
+
             // 如果有 ID 參數，只取得單一訂單
             if (!empty($params['id'])) {
                 $order = $this->orderService->getOrderById($params['id']);
@@ -605,14 +613,26 @@ class Orders_API {
     }
 
     /**
-     * 轉備貨（更新訂單狀態為 preparing）
+     * 轉備貨（更新訂單狀態為 preparing 並建立出貨單）
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
     public function prepare_order($request) {
+        global $wpdb;
+
         try {
             $order_id = (string)$request['id'];
+
+            // 取得訂單資訊
+            $order = \FluentCart\App\Models\Order::with(['customer', 'order_items'])->find($order_id);
+
+            if (!$order) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '訂單不存在'
+                ], 404);
+            }
 
             // 更新 shipping_status 為 'preparing'
             $result = $this->orderService->updateShippingStatus($order_id, 'preparing', '轉備貨');
@@ -624,9 +644,41 @@ class Orders_API {
                 ], 500);
             }
 
+            // 建立出貨單
+            $shipment_items = [];
+            foreach ($order->order_items as $item) {
+                // FluentCart 使用 post_id 作為商品 ID，不是 product_id
+                $product_id = $item->post_id ?? $item->product_id ?? null;
+                $shipment_items[] = [
+                    'order_id' => $order_id,
+                    'order_item_id' => $item->id,
+                    'product_id' => $product_id,
+                    'quantity' => $item->quantity
+                ];
+            }
+
+            // 取得 seller_id（從設定或使用預設值）
+            $seller_id = get_current_user_id() ?: 1;
+
+            $shipment_id = $this->shipmentService->create_shipment(
+                (int)$order->customer_id,
+                $seller_id,
+                $shipment_items
+            );
+
+            if (is_wp_error($shipment_id)) {
+                // 即使出貨單建立失敗，訂單狀態已更新成功
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'message' => '已轉為備貨狀態（出貨單建立失敗：' . $shipment_id->get_error_message() . '）',
+                    'shipment_id' => null
+                ], 200);
+            }
+
             return new \WP_REST_Response([
                 'success' => true,
-                'message' => '已轉為備貨狀態'
+                'message' => '已轉為備貨狀態',
+                'shipment_id' => $shipment_id
             ], 200);
 
         } catch (\Exception $e) {

@@ -63,6 +63,9 @@ $orders_component_template = <<<'HTML'
                 <!-- Batch Actions -->
                 <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
                     <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
+                    <button @click="batchPrepare" :disabled="batchProcessing" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 border border-orange-200 transition disabled:opacity-50">
+                        {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
+                    </button>
                     <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
                 </div>
 
@@ -264,12 +267,31 @@ $orders_component_template = <<<'HTML'
                                     <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
+                                    <!-- 根據狀態顯示不同按鈕（父訂單） -->
                                     <button
-                                        v-if="hasAllocatedItems(order)"
+                                        v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                                         @click="shipOrder(order)"
                                         class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                                         轉備貨
                                     </button>
+                                    <span
+                                        v-else-if="order.shipping_status === 'preparing'"
+                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        待出貨
+                                    </span>
+                                    <span
+                                        v-else-if="order.shipping_status === 'shipped'"
+                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        已出貨
+                                    </span>
                                 </div>
                             </td>
                         </tr>
@@ -320,11 +342,31 @@ $orders_component_template = <<<'HTML'
                                     <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
+                                    <!-- 根據狀態顯示不同按鈕 -->
                                     <button
+                                        v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
                                         @click="shipChildOrder(childOrder, order)"
                                         class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                                         轉備貨
                                     </button>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'preparing'"
+                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        備貨中
+                                    </span>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
+                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        待出貨
+                                    </span>
+                                    <span
+                                        v-else-if="childOrder.shipping_status === 'shipped'"
+                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        已出貨
+                                    </span>
                                 </div>
                             </td>
                         </tr>
@@ -445,12 +487,31 @@ $orders_component_template = <<<'HTML'
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             查看詳情
                         </button>
+                        <!-- 根據狀態顯示不同按鈕（手機版） -->
                         <button
-                            v-if="hasAllocatedItems(order)"
+                            v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                             @click="shipOrder(order)"
                             class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
                             轉備貨
                         </button>
+                        <span
+                            v-else-if="order.shipping_status === 'preparing'"
+                            class="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            備貨中
+                        </span>
+                        <span
+                            v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
+                            class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            待出貨
+                        </span>
+                        <span
+                            v-else-if="order.shipping_status === 'shipped'"
+                            class="flex-1 px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            已出貨
+                        </span>
                     </div>
                 </div>
             </div> <!-- End md:hidden (mobile cards) -->
@@ -687,6 +748,7 @@ const OrdersPageComponent = {
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice: formatCurrency,
+            formatPriceWithConversion,
             systemCurrency: systemCurrencyFromComposable,
             currencySymbols,
             exchangeRates
@@ -720,7 +782,115 @@ const OrdersPageComponent = {
         const systemCurrency = ref(systemCurrencyFromComposable.value);
         const currentCurrency = ref(systemCurrencyFromComposable.value);
 
-        // 批次操作
+        // 批次轉備貨
+        const batchPrepare = async () => {
+            if (selectedItems.value.length === 0) return;
+
+            // 收集要處理的訂單（考慮父子訂單關係）
+            // 如果父訂單有子訂單，應該處理子訂單而非父訂單
+            const ordersToProcess = [];
+
+            for (const orderId of selectedItems.value) {
+                const order = orders.value.find(o => o.id === orderId);
+                if (!order) continue;
+
+                // 如果父訂單有子訂單，處理其下的未出貨子訂單
+                if (order.children && order.children.length > 0) {
+                    for (const child of order.children) {
+                        // 只處理未出貨的子訂單
+                        if (!child.shipping_status || child.shipping_status === 'unshipped') {
+                            ordersToProcess.push({
+                                id: child.id,
+                                invoice_no: child.invoice_no,
+                                isChild: true,
+                                parentInvoice: order.invoice_no || order.id
+                            });
+                        }
+                    }
+                } else {
+                    // 沒有子訂單的父訂單，直接處理
+                    if (!order.shipping_status || order.shipping_status === 'unshipped') {
+                        ordersToProcess.push({
+                            id: order.id,
+                            invoice_no: order.invoice_no || order.id,
+                            isChild: false
+                        });
+                    }
+                }
+            }
+
+            if (ordersToProcess.length === 0) {
+                showToast('所選訂單都不是「未出貨」狀態，無法轉備貨', 'error');
+                return;
+            }
+
+            const childCount = ordersToProcess.filter(o => o.isChild).length;
+            const parentCount = ordersToProcess.filter(o => !o.isChild).length;
+
+            let confirmMessage = `確定要將 ${ordersToProcess.length} 筆訂單轉為備貨狀態嗎？`;
+            if (childCount > 0 && parentCount > 0) {
+                confirmMessage += `\n（包含 ${parentCount} 筆父訂單、${childCount} 筆子訂單）`;
+            } else if (childCount > 0) {
+                confirmMessage += `\n（${childCount} 筆子訂單）`;
+            }
+
+            showConfirm(
+                '批次轉備貨',
+                confirmMessage,
+                async () => {
+                    batchProcessing.value = true;
+                    let successCount = 0;
+                    let failCount = 0;
+
+                    try {
+                        // 逐一呼叫 prepare API
+                        for (const order of ordersToProcess) {
+                            try {
+                                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/prepare`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    credentials: 'include'
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success) {
+                                    successCount++;
+                                } else {
+                                    failCount++;
+                                    console.error(`訂單 #${order.invoice_no} 轉備貨失敗:`, result.message);
+                                }
+                            } catch (err) {
+                                failCount++;
+                                console.error(`訂單 #${order.invoice_no} 轉備貨錯誤:`, err);
+                            }
+                        }
+
+                        // 顯示結果
+                        if (failCount === 0) {
+                            showToast(`成功將 ${successCount} 筆訂單轉為備貨狀態`, 'success');
+                        } else {
+                            showToast(`${successCount} 筆成功，${failCount} 筆失敗`, failCount > 0 ? 'error' : 'success');
+                        }
+
+                        // 清空選取並重新載入
+                        selectedItems.value = [];
+                        await loadOrders();
+
+                    } catch (err) {
+                        console.error('批次轉備貨錯誤:', err);
+                        showToast('批次轉備貨失敗：' + err.message, 'error');
+                    } finally {
+                        batchProcessing.value = false;
+                    }
+                },
+                { confirmText: '確認轉備貨', cancelText: '取消' }
+            );
+        };
+
+        // 批次刪除
         const batchDelete = async () => {
             if(!confirm(`確認刪除 ${selectedItems.value.length} 項？`)) return;
             try {
@@ -754,7 +924,7 @@ const OrdersPageComponent = {
             } else {
                 currentCurrency.value = 'TWD';
                 systemCurrency.value = 'TWD';
-                showToast(`已切換為 NT$ TWD`);
+                showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
             }
         };
 
@@ -769,6 +939,7 @@ const OrdersPageComponent = {
 
         // 批次操作
         const selectedItems = ref([]);
+        const batchProcessing = ref(false);
 
         // 展開狀態（用於商品列表展開）
         const expandedOrders = ref(new Set());
@@ -829,13 +1000,17 @@ const OrdersPageComponent = {
             }, 3000);
         };
 
-        // 格式化價格（使用當前顯示幣別）
+        // 格式化價格（使用當前顯示幣別，並做匯率轉換）
         const formatPrice = (amount, originalCurrency = null) => {
             if (amount == null) return '-';
-            // 使用當前顯示幣別
-            const displayCurr = currentCurrency.value;
-            // 使用 composable 的 formatCurrency 來格式化
-            return formatCurrency(amount, displayCurr);
+
+            // 如果有原始幣別且與當前顯示幣別不同，需要做匯率轉換
+            if (originalCurrency && originalCurrency !== currentCurrency.value) {
+                return formatPriceWithConversion(amount, originalCurrency, currentCurrency.value);
+            }
+
+            // 否則直接格式化（不轉換）
+            return formatCurrency(amount, currentCurrency.value);
         };
 
         // 搜尋處理函數
@@ -873,27 +1048,33 @@ const OrdersPageComponent = {
         const loadOrders = async () => {
             loading.value = true;
             error.value = null;
-            
+
             try {
-                let url = `/wp-json/buygo-plus-one/v1/orders?page=${currentPage.value}&per_page=${perPage.value}`;
-                
+                // 加入時間戳記強制繞過所有快取
+                let url = `/wp-json/buygo-plus-one/v1/orders?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+
                 if (searchFilter.value) {
                     url += `&id=${searchFilter.value}`;
                 } else if (searchQuery.value && searchQuery.value.trim()) {
                     // 如果沒有特定篩選，但有搜尋關鍵字，使用 search 參數
                     url += `&search=${encodeURIComponent(searchQuery.value.trim())}`;
                 }
-                
+
                 const response = await fetch(url, {
                     credentials: 'include',
+                    cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     // 為每個訂單加上 has_allocation 標記和確保 items 存在
                     orders.value = result.data.map(order => ({
@@ -1022,7 +1203,7 @@ const OrdersPageComponent = {
         const shippingStatuses = [
             { value: 'unshipped', label: '未出貨', color: 'bg-gray-100 text-gray-800 border border-gray-300' },
             { value: 'preparing', label: '備貨中', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
-            { value: 'processing', label: '處理中', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
+            { value: 'processing', label: '待出貨', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
             { value: 'shipped', label: '已出貨', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
             { value: 'completed', label: '交易完成', color: 'bg-green-100 text-green-800 border border-green-300' },
             { value: 'out_of_stock', label: '斷貨', color: 'bg-red-100 text-red-800 border border-red-300' }
@@ -1151,35 +1332,52 @@ const OrdersPageComponent = {
             navigateTo('list');
         };
         
-        // 檢查訂單是否有可出貨的商品
+        // 檢查訂單是否有可出貨的商品（用於父訂單）
+        // 重要：如果父訂單已有子訂單（拆單），父訂單本身不應顯示「轉備貨」按鈕
+        // 因為此時應該在子訂單上操作，而非父訂單
         const hasAllocatedItems = (order) => {
             if (!order) {
                 return false;
             }
-            
+
+            // 【關鍵邏輯】如果父訂單已有子訂單，父訂單不應顯示「轉備貨」按鈕
+            // 使用者應該在子訂單上執行轉備貨操作
+            if (order.children && order.children.length > 0) {
+                return false;
+            }
+
             // 優先檢查 has_allocation 欄位（如果 API 有提供）
             if (order.has_allocation === true) {
                 return true;
             }
-            
+
             // 如果沒有 has_allocation 欄位，檢查 items 中的 allocated_quantity
             if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 return false;
             }
-            
+
             // 檢查每個 item 的 allocated_quantity
             return order.items.some(item => {
                 // 處理各種可能的資料類型：數字、字串、null、undefined
-                const allocatedQty = item.allocated_quantity != null 
-                    ? parseInt(item.allocated_quantity, 10) 
+                const allocatedQty = item.allocated_quantity != null
+                    ? parseInt(item.allocated_quantity, 10)
                     : 0;
-                
+
                 // 確保是有效數字
                 const isValidNumber = !isNaN(allocatedQty) && isFinite(allocatedQty);
                 return isValidNumber && allocatedQty > 0;
             });
         };
-        
+
+        // 檢查是否可以顯示「轉備貨」按鈕
+        // 只有在未出貨狀態才顯示按鈕，已備貨或已出貨則顯示狀態標籤
+        const canShowShipButton = (order) => {
+            if (!order) return false;
+            const status = order.shipping_status || 'unshipped';
+            // 只有 unshipped 狀態才顯示轉備貨按鈕
+            return status === 'unshipped' || status === '';
+        };
+
         // 執行訂單出貨
         const shipOrder = async (order) => {
             // 轉備貨：將訂單狀態更新為 'preparing'
@@ -1286,77 +1484,55 @@ const OrdersPageComponent = {
             );
         };
 
-        // 執行子訂單出貨
+        // 執行子訂單轉備貨（不是直接出貨）
         const shipChildOrder = async (childOrder, parentOrder) => {
-            // 先載入子訂單的完整資訊
-            try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${childOrder.id}`, {
-                    credentials: 'include'
-                });
+            // 確認轉備貨
+            showConfirm(
+                '確認轉備貨',
+                `確定要將指定單 #${childOrder.invoice_no} 轉為備貨狀態嗎？`,
+                async () => {
+                    shipping.value = true;
 
-                const result = await response.json();
+                    try {
+                        // 呼叫 /prepare 端點，將狀態改為 'preparing'
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${childOrder.id}/prepare`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include'
+                        });
 
-                if (!result.success || !result.data || result.data.length === 0) {
-                    showToast('無法載入子訂單資訊', 'error');
-                    return;
-                }
+                        const result = await response.json();
 
-                const fullChildOrder = result.data[0];
-
-                // 收集所有可出貨的商品
-                const itemsToShip = (fullChildOrder.items || []).filter(item => (item.quantity || 0) > 0);
-
-                if (itemsToShip.length === 0) {
-                    showToast('此指定單沒有可出貨的商品', 'error');
-                    return;
-                }
-
-                // 確認出貨
-                const totalQuantity = itemsToShip.reduce((sum, item) => sum + (item.quantity || 0), 0);
-                showConfirm(
-                    '確認出貨指定單',
-                    `確定要出貨指定單 #${childOrder.invoice_no}（${totalQuantity} 個商品）嗎？`,
-                    async () => {
-                        shipping.value = true;
-
-                        try {
-                            // 準備 items 陣列
-                            const items = itemsToShip.map(item => ({
-                                order_item_id: item.id,
-                                quantity: item.quantity,
-                                product_id: item.product_id
-                            }));
-
-                            const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${childOrder.id}/ship`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                credentials: 'include',
-                                body: JSON.stringify({ items })
-                            });
-
-                            const result = await response.json();
-
-                            if (result.success) {
-                                showToast(`指定單出貨成功！出貨單號：SH-${result.shipment_id}`, 'success');
-                                // 刷新列表
-                                await loadOrders();
-                            } else {
-                                showToast('出貨失敗：' + result.message, 'error');
-                            }
-                        } catch (err) {
-                            console.error('出貨失敗:', err);
-                            showToast('出貨失敗：' + err.message, 'error');
-                        } finally {
-                            shipping.value = false;
+                        if (result.success) {
+                            showToast('已轉為備貨狀態', 'success');
+                            // 刷新列表
+                            await loadOrders();
+                        } else {
+                            showToast('轉備貨失敗：' + result.message, 'error');
                         }
+                    } catch (err) {
+                        console.error('轉備貨失敗:', err);
+                        showToast('轉備貨失敗：' + err.message, 'error');
+
+                        // 記錄到除錯中心
+                        fetch('/wp-json/buygo-plus-one/v1/debug/log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                module: 'Orders',
+                                message: '子訂單轉備貨失敗',
+                                level: 'error',
+                                data: { error: err.message, order_id: childOrder.id }
+                            })
+                        });
+                    } finally {
+                        shipping.value = false;
                     }
-                );
-            } catch (err) {
-                console.error('載入子訂單失敗:', err);
-                showToast('載入子訂單失敗：' + err.message, 'error');
-            }
+                }
+            );
         };
 
         // 載入訂單詳情
@@ -1467,6 +1643,25 @@ const OrdersPageComponent = {
                     localStorage.removeItem('buygo_allocation_updated');
                 }
             });
+
+            // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
+            // 當使用者從其他頁面切換回來時，重新載入資料
+            window.addEventListener('pageshow', (e) => {
+                // persisted 表示頁面是從 bfcache 恢復的
+                if (e.persisted) {
+                    loadOrders();
+                }
+            });
+
+            // 監聽頁面可見性變化（從其他標籤頁切換回來）
+            // 只要頁面變為可見就重新載入，確保資料永遠是最新的
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    loadOrders();
+                    // 清除可能的分配更新標記
+                    localStorage.removeItem('buygo_allocation_updated');
+                }
+            });
         });
 
         // Smart Search Box 事件處理器
@@ -1512,6 +1707,7 @@ const OrdersPageComponent = {
             viewOrderDetails,
             closeOrderModal,
             hasAllocatedItems,
+            canShowShipButton,
             shipOrder,
             shipOrderItem,
             shipChildOrder,
@@ -1556,6 +1752,8 @@ const OrdersPageComponent = {
             // UI 狀態
             showMobileSearch,
             // 新增方法
+            batchPrepare,
+            batchProcessing,
             batchDelete,
             toggleCurrency,
             // Smart Search Box
