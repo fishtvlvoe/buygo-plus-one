@@ -178,7 +178,7 @@ $products_component_template = <<<'HTML'
                                             <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="inline-edit-input text-gray-700 bg-slate-50 focus:bg-white" @click.stop>
                                         </td>
                                         <td class="px-2 py-4 text-center font-bold text-blue-600 font-mono text-sm hidden xl:table-cell">{{ product.shipped || 0 }}</td>
-                                        <td class="px-2 py-4 text-center font-bold text-orange-600 font-mono text-sm">{{ (product.allocated || 0) - (product.shipped || 0) }}</td>
+                                        <td class="px-2 py-4 text-center font-bold text-orange-600 font-mono text-sm">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</td>
                                         <td class="px-2 py-4 text-center font-bold text-slate-400 font-mono text-sm">{{ calculateReserved(product) }}</td>
                                         <td class="px-2 py-4 text-center">
                                             <div class="flex items-center justify-center gap-1">
@@ -247,7 +247,7 @@ $products_component_template = <<<'HTML'
                             </div>
                             <div class="px-2 py-3 text-center">
                                 <div class="text-[10px] text-orange-500 mb-0.5">待出貨</div>
-                                <div class="font-bold text-orange-600 text-base">{{ (product.allocated || 0) - (product.shipped || 0) }}</div>
+                                <div class="font-bold text-orange-600 text-base">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
@@ -311,21 +311,147 @@ $products_component_template = <<<'HTML'
                     <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
                         <!-- Buyers List -->
                         <div v-if="currentView === 'buyers'">
-                             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <!-- 商品資訊卡片 -->
+                            <div v-if="buyersProduct" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center gap-4">
+                                <img v-if="buyersProduct.image" :src="buyersProduct.image" class="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                                <div v-else class="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-slate-900 truncate">{{ buyersProduct.name }}</h4>
+                                    <div class="text-xs text-slate-500 mt-1">商品 ID: {{ buyersProduct.id }}</div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-2xl font-bold text-primary">{{ buyers.length }}</div>
+                                    <div class="text-xs text-slate-500">筆訂單</div>
+                                </div>
+                            </div>
+
+                            <!-- 統計摘要區塊 -->
+                            <div class="grid grid-cols-4 gap-2 mb-4">
+                                <div class="bg-white rounded-lg border border-slate-200 p-3 text-center">
+                                    <div class="text-lg font-bold text-slate-900">{{ buyersSummary.totalQuantity }}</div>
+                                    <div class="text-[10px] text-slate-500">總數量</div>
+                                </div>
+                                <div class="bg-green-50 rounded-lg border border-green-200 p-3 text-center">
+                                    <div class="text-lg font-bold text-green-600">{{ buyersSummary.totalAllocated }}</div>
+                                    <div class="text-[10px] text-green-600">已分配</div>
+                                </div>
+                                <div class="bg-amber-50 rounded-lg border border-amber-200 p-3 text-center">
+                                    <div class="text-lg font-bold text-amber-600">{{ buyersSummary.totalPending }}</div>
+                                    <div class="text-[10px] text-amber-600">待分配</div>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg border border-blue-200 p-3 text-center">
+                                    <div class="text-lg font-bold text-blue-600">{{ buyersSummary.totalShipped }}</div>
+                                    <div class="text-[10px] text-blue-600">已出貨</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                 <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                    <h3 class="font-bold text-slate-800">購買名單明細</h3>
+                                    <h3 class="font-bold text-slate-800">訂單明細</h3>
+                                    <span class="text-xs text-slate-500">共 {{ buyers.length }} 筆訂單</span>
                                 </div>
                                 <div v-if="buyersLoading" class="p-8 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
-                                <table v-else class="min-w-full divide-y divide-slate-100">
-                                    <thead class="bg-white"><tr><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">客戶</th><th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">數量</th><th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">狀態</th></tr></thead>
+                                <div v-else-if="buyers.length === 0" class="p-8 text-center text-slate-500">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    <p>目前沒有訂單</p>
+                                </div>
+                                <!-- 桌面版表格 -->
+                                <table v-else class="hidden md:table min-w-full divide-y divide-slate-100">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">日期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">數量</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-green-600 uppercase tracking-wider bg-green-50/50">已分配</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">狀態</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+                                        </tr>
+                                    </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
-                                        <tr v-for="buyer in buyers" :key="buyer.customer_id" class="hover:bg-slate-50">
-                                            <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ buyer.customer_name }}</td>
-                                            <td class="px-6 py-4 text-sm text-right font-mono">{{ buyer.quantity }}</td>
-                                            <td class="px-6 py-4 text-right"><span class="px-2 py-1 text-xs rounded-full bg-slate-100">已下單</span></td>
+                                        <tr v-for="order in buyers" :key="order.order_item_id" class="hover:bg-slate-50">
+                                            <td class="px-4 py-4">
+                                                <div class="text-sm font-medium text-slate-900">{{ formatDate(order.order_date) }}</div>
+                                                <div class="text-xs text-primary font-medium">{{ order.invoice_no }}</div>
+                                            </td>
+                                            <td class="px-4 py-4">
+                                                <div class="text-sm font-medium text-slate-900">{{ order.customer_name }}</div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <div class="text-xl font-bold text-slate-900">{{ order.quantity }}</div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center bg-green-50/30">
+                                                <div class="text-xl font-bold text-green-600">{{ order.allocated_quantity }}</div>
+                                                <div v-if="order.shipped_quantity > 0" class="text-xs text-blue-500 mt-0.5">(已出貨 {{ order.shipped_quantity }})</div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span :class="getStatusClass(order.status)" class="px-3 py-1.5 text-sm rounded-full font-medium">
+                                                    {{ getStatusText(order.status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <button
+                                                    v-if="order.pending_quantity > 0"
+                                                    @click="allocateOrder(order)"
+                                                    :disabled="allocatingOrderItemId === order.order_item_id"
+                                                    class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : '一鍵分配' }}
+                                                </button>
+                                                <span v-else class="text-sm text-green-600 font-medium inline-flex items-center gap-1">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    完成
+                                                </span>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
+                                <!-- 手機版卡片 -->
+                                <div v-if="!buyersLoading && buyers.length > 0" class="md:hidden divide-y divide-slate-100">
+                                    <div v-for="order in buyers" :key="order.order_item_id" class="p-4 hover:bg-slate-50">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div>
+                                                <div class="text-sm font-bold text-primary">{{ order.invoice_no }}</div>
+                                                <div class="font-medium text-slate-900 mt-1">{{ order.customer_name }}</div>
+                                                <div class="text-xs text-slate-400 mt-0.5">{{ formatDate(order.order_date) }}</div>
+                                            </div>
+                                            <span :class="getStatusClass(order.status)" class="px-3 py-1 text-xs rounded-full font-medium">
+                                                {{ getStatusText(order.status) }}
+                                            </span>
+                                        </div>
+                                        <!-- 數量明細 - 更大更清晰 -->
+                                        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+                                            <div class="bg-slate-50 rounded-lg p-2">
+                                                <div class="text-lg font-bold text-slate-900">{{ order.quantity }}</div>
+                                                <div class="text-xs text-slate-500">數量</div>
+                                            </div>
+                                            <div class="bg-green-50 rounded-lg p-2">
+                                                <div class="text-lg font-bold text-green-600">{{ order.allocated_quantity }}</div>
+                                                <div class="text-xs text-green-600">已分配</div>
+                                            </div>
+                                            <div class="bg-amber-50 rounded-lg p-2">
+                                                <div class="text-lg font-bold text-amber-600">{{ order.pending_quantity }}</div>
+                                                <div class="text-xs text-amber-600">待分配</div>
+                                            </div>
+                                        </div>
+                                        <div v-if="order.shipped_quantity > 0" class="text-xs text-blue-600 mb-3 text-center">
+                                            已出貨: {{ order.shipped_quantity }}
+                                        </div>
+                                        <div>
+                                            <button
+                                                v-if="order.pending_quantity > 0"
+                                                @click="allocateOrder(order)"
+                                                :disabled="allocatingOrderItemId === order.order_item_id"
+                                                class="w-full px-3 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                                {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : `一鍵分配 (${order.pending_quantity} 個)` }}
+                                            </button>
+                                            <div v-else class="text-center text-sm text-green-600 font-medium py-2 flex items-center justify-center gap-1">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                已處理完成
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -523,7 +649,26 @@ const ProductsPageComponent = {
         // Buyers
         const buyers = ref([]);
         const buyersLoading = ref(false);
-        
+        const buyersProduct = ref(null);  // 商品資訊（名稱、圖片）
+        const allocatingOrderItemId = ref(null);  // 改用 order_item_id
+
+        // 統計摘要
+        const buyersSummary = computed(() => {
+            const summary = {
+                totalQuantity: 0,
+                totalAllocated: 0,
+                totalPending: 0,
+                totalShipped: 0
+            };
+            buyers.value.forEach(order => {
+                summary.totalQuantity += order.quantity || 0;
+                summary.totalAllocated += order.allocated_quantity || 0;
+                summary.totalPending += order.pending_quantity || 0;
+                summary.totalShipped += order.shipped_quantity || 0;
+            });
+            return summary;
+        });
+
         // Allocation
         const productOrders = ref([]);
         const allocationLoading = ref(false);
@@ -624,7 +769,29 @@ const ProductsPageComponent = {
         const isAllSelected = computed(() => {
             return products.value.length > 0 && selectedItems.value.length === products.value.length;
         });
-        
+
+        // 訂單狀態樣式
+        const getStatusClass = (status) => {
+            const classes = {
+                'pending': 'bg-amber-100 text-amber-700',
+                'partial': 'bg-blue-100 text-blue-700',
+                'allocated': 'bg-green-100 text-green-700',
+                'shipped': 'bg-slate-100 text-slate-600'
+            };
+            return classes[status] || 'bg-slate-100 text-slate-600';
+        };
+
+        // 訂單狀態文字
+        const getStatusText = (status) => {
+            const texts = {
+                'pending': '待分配',
+                'partial': '部分處理',
+                'allocated': '已分配',
+                'shipped': '已出貨'
+            };
+            return texts[status] || '未知';
+        };
+
         // --- API Methods ---
         const loadProducts = async () => {
             loading.value = true;
@@ -660,15 +827,76 @@ const ProductsPageComponent = {
 
         const loadBuyers = async (id) => {
             buyersLoading.value = true;
+            buyersProduct.value = null;
             try {
-                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers`, {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers?_t=${Date.now()}`, {
                     cache: 'no-store',
                     headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
                 });
                 const data = await res.json();
-                if (data.success) buyers.value = data.data;
+                if (data.success) {
+                    buyers.value = data.data;
+                    // 儲存商品資訊
+                    if (data.product) {
+                        buyersProduct.value = data.product;
+                    }
+                }
             } catch(e) { console.error(e); }
             finally { buyersLoading.value = false; }
+        };
+
+        // 一鍵分配：將單筆訂單分配
+        const allocateOrder = async (order) => {
+            if (!currentId.value || !order.order_item_id) return;
+
+            allocatingOrderItemId.value = order.order_item_id;
+
+            try {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${currentId.value}/allocate-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        order_item_id: order.order_item_id
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(`已分配 ${data.total_allocated} 個商品給 ${order.customer_name}`, 'success');
+                    // 標記該訂單為已分配
+                    order.is_allocated = true;
+                    order.allocated_quantity = order.quantity;
+                    // 重新載入購買名單以更新狀態
+                    await loadBuyers(currentId.value);
+                    // 重新載入商品列表以更新已分配數量
+                    await loadProducts();
+                } else {
+                    showToast(data.message || '分配失敗', 'error');
+                }
+            } catch (e) {
+                console.error('一鍵分配錯誤:', e);
+                showToast('分配時發生錯誤', 'error');
+            } finally {
+                allocatingOrderItemId.value = null;
+            }
+        };
+
+        // 日期格式化（後端已格式化，直接返回；若需解析則處理）
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            // 如果已經是 YYYY/MM/DD 格式，直接返回
+            if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateString)) {
+                return dateString;
+            }
+            // 嘗試解析日期
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString; // 無法解析則原樣返回
+            return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
         };
 
         const loadProductOrders = async (id) => {
@@ -954,17 +1182,18 @@ const ProductsPageComponent = {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId,
             products, selectedItems, loading, error, globalSearchQuery,
-            editingProduct, selectedProduct, buyers, buyersLoading, productOrders, allocationLoading,
+            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading,
             showImageModal, currentImage, toastMessage,
             currentPage, perPage, totalProducts, menuItems: [
                 { id: 'products', label: '商品管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>' },
                 { id: 'orders', label: '訂單管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>' },
                  { id: 'settings', label: '系統設定', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' },
             ],
-            
+
             // Methods
             navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
-            loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete,
+            loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete, allocateOrder, formatDate,
+            getStatusClass, getStatusText,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
             toggleSelectAll, formatPriceDisplay, getTWDPrice, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
             handleProductSelect,

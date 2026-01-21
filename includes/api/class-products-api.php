@@ -162,6 +162,21 @@ class Products_API {
             'callback' => [$this, 'allocate_stock'],
             'permission_callback' => '__return_true',
         ]);
+
+        // POST /products/{id}/allocate-all - 一鍵分配（將某客戶的所有訂單全部分配）
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/allocate-all', [
+            'methods' => 'POST',
+            'callback' => [$this, 'allocate_all_for_customer'],
+            'permission_callback' => '__return_true',
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -699,6 +714,7 @@ class Products_API {
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $result['data'],
+                'product' => $result['product'] ?? null,
                 'total' => count($result['data'])
             ], 200);
             
@@ -856,6 +872,198 @@ class Products_API {
         }
     }
     
+    /**
+     * 一鍵分配：將某客戶購買某商品的所有訂單全部分配
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function allocate_all_for_customer($request) {
+        global $wpdb;
+
+        try {
+            $product_id = (int)$request->get_param('id');
+            $params = $request->get_json_params();
+            $order_item_id = (int)($params['order_item_id'] ?? 0);
+            $customer_id = (int)($params['customer_id'] ?? 0);
+
+            if ($product_id <= 0) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的商品 ID'
+                ], 400);
+            }
+
+            $table_items = $wpdb->prefix . 'fct_order_items';
+            $table_orders = $wpdb->prefix . 'fct_orders';
+
+            // 如果有 order_item_id，只分配該單筆訂單項目
+            if ($order_item_id > 0) {
+                $order_items = $wpdb->get_results($wpdb->prepare(
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.quantity, o.invoice_no
+                     FROM {$table_items} oi
+                     INNER JOIN {$table_orders} o ON oi.order_id = o.id
+                     WHERE oi.id = %d
+                       AND oi.object_id = %d
+                       AND o.parent_id IS NULL
+                       AND o.status NOT IN ('cancelled', 'refunded')",
+                    $order_item_id,
+                    $product_id
+                ));
+            } elseif ($customer_id > 0) {
+                // 舊邏輯：分配該客戶的所有訂單
+                $order_items = $wpdb->get_results($wpdb->prepare(
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.quantity, o.invoice_no
+                     FROM {$table_items} oi
+                     INNER JOIN {$table_orders} o ON oi.order_id = o.id
+                     WHERE oi.object_id = %d
+                       AND o.customer_id = %d
+                       AND o.parent_id IS NULL
+                       AND o.status NOT IN ('cancelled', 'refunded')",
+                    $product_id,
+                    $customer_id
+                ));
+            } else {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '需要提供 order_item_id 或 customer_id'
+                ], 400);
+            }
+
+            if (empty($order_items)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '找不到訂單'
+                ], 404);
+            }
+
+            // 更新每個訂單項目的 line_meta 中的 _allocated_qty
+            $total_allocated = 0;
+            $updated_orders = [];
+            $skipped_orders = [];
+
+            foreach ($order_items as $item) {
+                // 讀取現有的 line_meta
+                $existing_meta = $wpdb->get_var($wpdb->prepare(
+                    "SELECT line_meta FROM {$table_items} WHERE id = %d",
+                    $item->order_item_id
+                ));
+
+                $meta_data = [];
+                if (!empty($existing_meta)) {
+                    $meta_data = json_decode($existing_meta, true) ?: [];
+                }
+
+                // 取得已出貨數量
+                $shipped_qty = (int)($meta_data['_shipped_qty'] ?? 0);
+                $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+                $quantity = (int)$item->quantity;
+
+                // 計算可分配數量 = 總數量 - 已出貨數量
+                $max_allocatable = $quantity - $shipped_qty;
+
+                // 如果已經全部出貨，跳過
+                if ($max_allocatable <= 0) {
+                    $skipped_orders[] = [
+                        'order_id' => $item->order_id,
+                        'invoice_no' => $item->invoice_no,
+                        'reason' => '已全部出貨'
+                    ];
+                    continue;
+                }
+
+                // 如果已經分配到最大值，跳過
+                if ($current_allocated >= $max_allocatable) {
+                    $skipped_orders[] = [
+                        'order_id' => $item->order_id,
+                        'invoice_no' => $item->invoice_no,
+                        'reason' => '已全部分配'
+                    ];
+                    continue;
+                }
+
+                // 設定 _allocated_qty 為可分配最大值（總數量 - 已出貨數量）
+                $meta_data['_allocated_qty'] = $max_allocatable;
+
+                // 更新 line_meta
+                $result = $wpdb->update(
+                    $table_items,
+                    ['line_meta' => json_encode($meta_data)],
+                    ['id' => $item->order_item_id],
+                    ['%s'],
+                    ['%d']
+                );
+
+                if ($result !== false) {
+                    // 計算實際新增分配的數量
+                    $newly_allocated = $max_allocatable - $current_allocated;
+                    $total_allocated += $newly_allocated;
+                    $updated_orders[] = [
+                        'order_id' => $item->order_id,
+                        'invoice_no' => $item->invoice_no,
+                        'quantity' => $newly_allocated,
+                        'total_allocated' => $max_allocatable
+                    ];
+                }
+            }
+
+            // 更新商品的已分配總數
+            $this->updateProductAllocatedCount($product_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => "已分配 {$total_allocated} 個商品給此客戶",
+                'total_allocated' => $total_allocated,
+                'updated_orders' => $updated_orders
+            ], 200);
+
+        } catch (\Exception $e) {
+            error_log('一鍵分配錯誤: ' . $e->getMessage());
+
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '分配時發生錯誤：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 更新商品的已分配總數（從 line_meta 讀取 _allocated_qty）
+     */
+    private function updateProductAllocatedCount($product_id) {
+        global $wpdb;
+
+        $table_items = $wpdb->prefix . 'fct_order_items';
+        $table_orders = $wpdb->prefix . 'fct_orders';
+
+        // 取得該商品所有訂單項目的 line_meta
+        $items = $wpdb->get_results($wpdb->prepare(
+            "SELECT oi.line_meta
+             FROM {$table_items} oi
+             INNER JOIN {$table_orders} o ON oi.order_id = o.id
+             WHERE oi.object_id = %d
+               AND o.status NOT IN ('cancelled', 'refunded')
+               AND o.parent_id IS NULL",
+            $product_id
+        ));
+
+        // 計算總已分配數量
+        $total = 0;
+        foreach ($items as $item) {
+            $meta_data = [];
+            if (!empty($item->line_meta)) {
+                $meta_data = json_decode($item->line_meta, true) ?: [];
+            }
+            $total += (int)($meta_data['_allocated_qty'] ?? 0);
+        }
+
+        // 更新商品的 post meta
+        $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+        if ($product && $product->post_id) {
+            update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
+        }
+    }
+
     /**
      * 權限檢查
      */
