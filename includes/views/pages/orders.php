@@ -786,21 +786,52 @@ const OrdersPageComponent = {
         const batchPrepare = async () => {
             if (selectedItems.value.length === 0) return;
 
-            // 過濾出可以轉備貨的訂單（只有 unshipped 狀態的訂單可以轉備貨）
-            const eligibleOrders = orders.value.filter(o =>
-                selectedItems.value.includes(o.id) &&
-                (!o.shipping_status || o.shipping_status === 'unshipped')
-            );
+            // 收集要處理的訂單（考慮父子訂單關係）
+            // 如果父訂單有子訂單，應該處理子訂單而非父訂單
+            const ordersToProcess = [];
 
-            if (eligibleOrders.length === 0) {
+            for (const orderId of selectedItems.value) {
+                const order = orders.value.find(o => o.id === orderId);
+                if (!order) continue;
+
+                // 如果父訂單有子訂單，處理其下的未出貨子訂單
+                if (order.children && order.children.length > 0) {
+                    for (const child of order.children) {
+                        // 只處理未出貨的子訂單
+                        if (!child.shipping_status || child.shipping_status === 'unshipped') {
+                            ordersToProcess.push({
+                                id: child.id,
+                                invoice_no: child.invoice_no,
+                                isChild: true,
+                                parentInvoice: order.invoice_no || order.id
+                            });
+                        }
+                    }
+                } else {
+                    // 沒有子訂單的父訂單，直接處理
+                    if (!order.shipping_status || order.shipping_status === 'unshipped') {
+                        ordersToProcess.push({
+                            id: order.id,
+                            invoice_no: order.invoice_no || order.id,
+                            isChild: false
+                        });
+                    }
+                }
+            }
+
+            if (ordersToProcess.length === 0) {
                 showToast('所選訂單都不是「未出貨」狀態，無法轉備貨', 'error');
                 return;
             }
 
-            const skippedCount = selectedItems.value.length - eligibleOrders.length;
-            let confirmMessage = `確定要將 ${eligibleOrders.length} 筆訂單轉為備貨狀態嗎？`;
-            if (skippedCount > 0) {
-                confirmMessage += `\n（${skippedCount} 筆非「未出貨」狀態的訂單將被略過）`;
+            const childCount = ordersToProcess.filter(o => o.isChild).length;
+            const parentCount = ordersToProcess.filter(o => !o.isChild).length;
+
+            let confirmMessage = `確定要將 ${ordersToProcess.length} 筆訂單轉為備貨狀態嗎？`;
+            if (childCount > 0 && parentCount > 0) {
+                confirmMessage += `\n（包含 ${parentCount} 筆父訂單、${childCount} 筆子訂單）`;
+            } else if (childCount > 0) {
+                confirmMessage += `\n（${childCount} 筆子訂單）`;
             }
 
             showConfirm(
@@ -813,7 +844,7 @@ const OrdersPageComponent = {
 
                     try {
                         // 逐一呼叫 prepare API
-                        for (const order of eligibleOrders) {
+                        for (const order of ordersToProcess) {
                             try {
                                 const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/prepare`, {
                                     method: 'POST',
@@ -829,11 +860,11 @@ const OrdersPageComponent = {
                                     successCount++;
                                 } else {
                                     failCount++;
-                                    console.error(`訂單 #${order.id} 轉備貨失敗:`, result.message);
+                                    console.error(`訂單 #${order.invoice_no} 轉備貨失敗:`, result.message);
                                 }
                             } catch (err) {
                                 failCount++;
-                                console.error(`訂單 #${order.id} 轉備貨錯誤:`, err);
+                                console.error(`訂單 #${order.invoice_no} 轉備貨錯誤:`, err);
                             }
                         }
 
