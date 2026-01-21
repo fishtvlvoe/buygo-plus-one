@@ -522,11 +522,36 @@ class ProductService
     }
 
     /**
+     * 取得幣別符號
+     *
+     * @param string $currency 幣別代碼
+     * @return string 幣別符號
+     */
+    private function getCurrencySymbol(string $currency): string
+    {
+        $symbols = [
+            'JPY' => '¥',
+            'TWD' => 'NT$',
+            'USD' => '$',
+            'THB' => '฿',
+            'CNY' => '¥',
+            'EUR' => '€',
+            'GBP' => '£'
+        ];
+
+        return $symbols[$currency] ?? 'NT$';
+    }
+
+    /**
      * 格式化價格顯示
      */
     private function formatPrice(int $priceInCents): string
     {
-        return 'NT$ ' . number_format($priceInCents / 100, 2);
+        // 從 FluentCart 系統讀取幣別設定
+        $currency = \FluentCart\Api\CurrencySettings::get('currency') ?: 'TWD';
+        $symbol = $this->getCurrencySymbol($currency);
+
+        return $symbol . ' ' . number_format($priceInCents / 100, 2);
     }
 
     /**

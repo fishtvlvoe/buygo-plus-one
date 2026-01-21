@@ -754,7 +754,7 @@ const OrdersPageComponent = {
             } else {
                 currentCurrency.value = 'TWD';
                 systemCurrency.value = 'TWD';
-                showToast(`已切換為 NT$ TWD`);
+                showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
             }
         };
 

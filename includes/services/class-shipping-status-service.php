@@ -72,6 +72,42 @@ class ShippingStatusService
     }
 
     /**
+     * 取得幣別符號
+     *
+     * @param string $currency 幣別代碼
+     * @return string 幣別符號
+     */
+    private function getCurrencySymbol(string $currency): string
+    {
+        $symbols = [
+            'JPY' => '¥',
+            'TWD' => 'NT$',
+            'USD' => '$',
+            'THB' => '฿',
+            'CNY' => '¥',
+            'EUR' => '€',
+            'GBP' => '£'
+        ];
+
+        return $symbols[$currency] ?? 'NT$';
+    }
+
+    /**
+     * 格式化金額顯示
+     *
+     * @param float $amount 金額（單位：元）
+     * @return string 格式化後的金額字串
+     */
+    private function formatAmount(float $amount): string
+    {
+        // 從 FluentCart 系統讀取幣別設定
+        $currency = \FluentCart\Api\CurrencySettings::get('currency') ?: 'TWD';
+        $symbol = $this->getCurrencySymbol($currency);
+
+        return $symbol . ' ' . number_format($amount, 2);
+    }
+
+    /**
      * 取得所有運送狀態
      * 
      * @param bool $includeMetadata 是否包含元資料（顏色、圖示等）
@@ -528,7 +564,7 @@ class ShippingStatusService
                     'label' => $this->getStatusLabel($status),
                     'count' => $count,
                     'total_amount' => $amount / 100, // 轉換為元
-                    'formatted_amount' => 'NT$ ' . number_format($amount / 100, 2),
+                    'formatted_amount' => $this->formatAmount($amount / 100),
                     'color' => self::STATUS_COLORS[$status] ?? 'gray'
                 ];
 
@@ -545,7 +581,7 @@ class ShippingStatusService
                 'statistics' => $statistics,
                 'total_orders' => $totalOrders,
                 'total_amount' => $totalAmount / 100,
-                'formatted_total_amount' => 'NT$ ' . number_format($totalAmount / 100, 2)
+                'formatted_total_amount' => $this->formatAmount($totalAmount / 100)
             ];
 
         } catch (\Exception $e) {
@@ -557,7 +593,7 @@ class ShippingStatusService
                 'statistics' => [],
                 'total_orders' => 0,
                 'total_amount' => 0,
-                'formatted_total_amount' => 'NT$ 0.00'
+                'formatted_total_amount' => $this->formatAmount(0)
             ];
         }
     }

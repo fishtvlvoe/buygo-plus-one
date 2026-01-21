@@ -650,7 +650,7 @@ const CustomersPageComponent = {
             } else {
                 currentCurrency.value = 'TWD';
                 displayCurrency.value = 'TWD';
-                showToast(`已切換為 NT$ TWD`);
+                showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
             }
         };
 

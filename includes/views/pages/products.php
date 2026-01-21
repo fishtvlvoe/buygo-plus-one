@@ -98,8 +98,7 @@ $products_component_template = <<<'HTML'
                 
                 <!-- Currency Toggle -->
                 <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold hover:border-primary hover:text-primary transition shadow-sm" :class="currentCurrency === 'TWD' ? 'text-green-600 border-green-200' : 'text-slate-600'">
-                    <span v-if="currentCurrency === 'TWD'">NT$</span>
-                    <span v-else>{{ currentCurrency }}</span>
+                    <span>{{ currencySymbols[currentCurrency] || currentCurrency }}</span>
                 </button>
             </div>
 
@@ -966,7 +965,7 @@ const ProductsPageComponent = {
                      showToast(`已切換為 ${currencySymbols[systemCurrency.value]} ${systemCurrency.value}`);
                  } else {
                      currentCurrency.value = 'TWD';
-                     showToast(`已切換為 NT$ TWD`);
+                     showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
                  }
              }
         };
