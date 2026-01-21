@@ -166,12 +166,7 @@ $products_component_template = <<<'HTML'
                                             </div>
                                         </td>
                                         <td class="px-2 py-4 text-right font-mono text-sm font-medium hidden lg:table-cell">
-                                            <div class="flex flex-col items-end">
-                                                <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
-                                                <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-xs text-slate-400 font-normal">
-                                                    ≈ NT${{ getTWDPrice(product.price, product.currency || systemCurrency).toLocaleString() }}
-                                                </span>
-                                            </div>
+                                            <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                         </td>
                                         <td class="px-2 py-4 text-center">
                                              <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2.5 py-1 text-xs font-semibold rounded-full border hover:opacity-80 transition cursor-pointer">{{ product.status === 'published' ? '已上架' : '已下架' }}</button>
@@ -223,9 +218,6 @@ $products_component_template = <<<'HTML'
                                     </div>
                                     <div class="mt-1">
                                         <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
-                                        <span v-if="systemCurrency !== 'TWD' && currentCurrency !== 'TWD'" class="text-[10px] text-slate-400 ml-1">
-                                            ≈ NT${{ getTWDPrice(product.price, product.currency || systemCurrency).toLocaleString() }}
-                                        </span>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 mt-2">
