@@ -55,20 +55,21 @@ $shipment_details_template = <<<'HTML'
     </div>
     
     <!-- 批次操作工具列（只在有勾選時顯示） -->
-    <div v-if="selectedShipments.length > 0" class="bg-orange-50 border-b border-orange-200 px-6 py-3">
-        <div class="flex items-center justify-between">
+    <div v-if="selectedShipments.length > 0" class="bg-orange-50 border-b border-orange-200 px-4 md:px-6 py-3">
+        <!-- 桌面版 -->
+        <div class="hidden md:flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <span class="text-sm text-slate-700">
                     已選擇 {{ selectedShipments.length }} 個出貨單
                 </span>
-                <button 
+                <button
                     @click="clearSelection"
                     class="text-sm text-slate-600 hover:text-slate-900"
                 >
                     清除勾選
                 </button>
             </div>
-            
+
             <div class="flex items-center gap-3">
                 <!-- 待出貨分頁：批次標記已出貨 -->
                 <button
@@ -98,6 +99,57 @@ $shipment_details_template = <<<'HTML'
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     匯出 Excel（{{ selectedShipments.length }}）
+                </button>
+            </div>
+        </div>
+
+        <!-- 手機版 -->
+        <div class="md:hidden space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-slate-700">
+                    已選 {{ selectedShipments.length }} 筆
+                </span>
+                <button
+                    @click="clearSelection"
+                    class="text-xs text-slate-600"
+                >
+                    清除
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <!-- 待出貨分頁：批次出貨 -->
+                <button
+                    v-if="activeTab === 'ready_to_ship'"
+                    @click="batchMarkShipped"
+                    class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium active:bg-blue-600"
+                >
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    出貨 ({{ selectedShipments.length }})
+                </button>
+
+                <!-- 已出貨分頁：批次存檔 -->
+                <button
+                    v-if="activeTab === 'shipped'"
+                    @click="batchArchive"
+                    class="flex-1 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium active:bg-slate-700"
+                >
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                    </svg>
+                    存檔 ({{ selectedShipments.length }})
+                </button>
+
+                <!-- 批次匯出 Excel -->
+                <button
+                    @click="batchExport"
+                    class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600"
+                >
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Excel
                 </button>
             </div>
         </div>
@@ -147,9 +199,9 @@ $shipment_details_template = <<<'HTML'
                                 >
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">出貨單號</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">日期</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">客戶</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">商品數量</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">日期</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
                         </tr>
                     </thead>
@@ -167,35 +219,46 @@ $shipment_details_template = <<<'HTML'
                                 {{ shipment.shipment_number }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                 {{ shipment.customer_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                 {{ shipment.total_quantity }} 件
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                {{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}
-                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-2">
                                     <button
-                                        v-if="activeTab === 'ready_to_ship'"
-                                        @click="markShipped(shipment.id)"
-                                        class="buygo-btn buygo-btn-accent buygo-btn-sm"
-                                    >
-                                        已出貨
-                                    </button>
-                                    <button
-                                        v-if="activeTab === 'shipped'"
-                                        @click="archiveShipment(shipment.id)"
-                                        class="buygo-btn buygo-btn-secondary buygo-btn-sm"
-                                    >
-                                        存檔
-                                    </button>
-                                    <button
                                         @click="viewDetail(shipment.id)"
-                                        class="buygo-btn buygo-btn-primary buygo-btn-sm"
+                                        class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
                                     >
                                         查看
+                                    </button>
+                                    <!-- 待出貨頁面：出貨按鈕 (iOS 風格) -->
+                                    <button
+                                        v-if="activeTab === 'ready_to_ship'"
+                                        @click="showMarkShippedConfirm(shipment)"
+                                        :title="'點擊標記為已出貨'"
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 hover:shadow-md transition-all duration-200 font-medium text-sm active:scale-95"
+                                    >
+                                        出貨
+                                    </button>
+                                    <!-- 已出貨頁面：狀態指示器 (不可點擊) -->
+                                    <button
+                                        v-if="activeTab === 'shipped'"
+                                        disabled
+                                        class="px-4 py-2 bg-green-50 text-green-600 rounded-lg cursor-default opacity-80 font-medium text-sm"
+                                    >
+                                        已出貨 ✓
+                                    </button>
+                                    <!-- 存檔區：存檔按鈕 -->
+                                    <button
+                                        v-if="activeTab === 'archived'"
+                                        class="px-4 py-2 bg-slate-100 text-slate-500 rounded-lg cursor-default opacity-60 font-medium text-sm"
+                                        disabled
+                                    >
+                                        已存檔
                                     </button>
                                 </div>
                             </td>
@@ -237,43 +300,39 @@ $shipment_details_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
-                        <button
-                            v-if="activeTab === 'ready_to_ship'"
-                            @click="markShipped(shipment.id)"
-                            class="py-3 flex items-center justify-center gap-1.5 text-accent hover:bg-orange-50 bg-white transition active:bg-orange-100"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            <span class="text-xs font-bold">出貨</span>
-                        </button>
-                        <button
-                            v-if="activeTab === 'shipped'"
-                            @click="archiveShipment(shipment.id)"
-                            class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
-                            <span class="text-xs font-bold">存檔</span>
-                        </button>
-                        <button
-                            v-if="activeTab === 'archived'"
-                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 bg-white cursor-default col-span-1"
-                        >
-                            <span class="text-xs">-</span>
-                        </button>
+                    <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200">
                         <button
                             @click="viewDetail(shipment.id)"
-                            class="py-3 flex items-center justify-center gap-1.5 text-primary hover:bg-blue-50 bg-white transition active:bg-blue-100"
-                            :class="activeTab === 'archived' ? 'col-span-2' : ''"
+                            class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             <span class="text-xs font-bold">查看</span>
                         </button>
+                        <!-- 待出貨頁面：出貨按鈕 (iOS 風格) -->
                         <button
-                            v-if="activeTab !== 'archived'"
-                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 hover:bg-slate-50 bg-white transition"
+                            v-if="activeTab === 'ready_to_ship'"
+                            @click="showMarkShippedConfirm(shipment)"
+                            class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 bg-white transition active:bg-blue-100"
                         >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                            <span class="text-xs font-bold">列印</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-xs font-bold">出貨</span>
+                        </button>
+                        <!-- 已出貨頁面：狀態指示器 (不可點擊) -->
+                        <button
+                            v-if="activeTab === 'shipped'"
+                            disabled
+                            class="py-3 flex items-center justify-center gap-1.5 text-green-600 bg-green-50 cursor-default opacity-80"
+                        >
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            <span class="text-xs font-bold">已出貨 ✓</span>
+                        </button>
+                        <!-- 存檔區：狀態指示器 -->
+                        <button
+                            v-if="activeTab === 'archived'"
+                            disabled
+                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 bg-slate-50 cursor-default opacity-60"
+                        >
+                            <span class="text-xs font-bold">已存檔</span>
                         </button>
                     </div>
                 </div>
@@ -584,34 +643,53 @@ const ShipmentDetailsPageComponent = {
             }
         };
         
-        // 標記已出貨
-        const markShipped = (shipmentId) => {
+        // 顯示標記已出貨確認對話框（含出貨單詳細資訊）
+        const showMarkShippedConfirm = (shipment) => {
+            const formattedDate = formatDate(shipment.created_at || shipment.shipped_at);
+            const message = `
+                出貨單號: ${shipment.shipment_number}
+                客戶姓名: ${shipment.customer_name || '未知客戶'}
+                商品數量: ${shipment.total_quantity || 0} 件
+                出貨日期: ${formattedDate}
+
+                ⚠️ 此操作無法撤銷
+            `;
+
             showConfirm(
-                '確認標記已出貨',
-                '確定要標記此出貨單為已出貨嗎？',
+                '⚠️ 確認出貨',
+                message.trim(),
                 async () => {
                     try {
                         const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
-                            body: JSON.stringify({ shipment_ids: [shipmentId] })
+                            body: JSON.stringify({ shipment_ids: [shipment.id] })
                         });
                         const result = await response.json();
-                        
+
                         if (result.success) {
-                            showToast('標記成功！', 'success');
+                            showToast('✓ 出貨單已標記為已出貨', 'success');
                             selectedShipments.value = [];
                             await loadShipments();
                             await loadStats();
                         } else {
-                            showToast('標記失敗：' + result.message, 'error');
+                            showToast('✗ 操作失敗：' + result.message, 'error');
                         }
                     } catch (err) {
-                        showToast('標記失敗', 'error');
+                        showToast('✗ 操作失敗，請稍後再試', 'error');
                     }
                 }
             );
+        };
+
+        // 標記已出貨（保留原有函數供批次操作使用）
+        const markShipped = (shipmentId) => {
+            // 從列表中找到對應的出貨單
+            const shipment = shipments.value.find(s => s.id === shipmentId);
+            if (shipment) {
+                showMarkShippedConfirm(shipment);
+            }
         };
         
         // 移至存檔
@@ -943,6 +1021,7 @@ const ShipmentDetailsPageComponent = {
             confirmModal,
             toastMessage,
             detailModal,
+            showMarkShippedConfirm,
             markShipped,
             archiveShipment,
             viewDetail,

@@ -15,3 +15,11 @@ Thumbs.db
 # 臨時檔案
 *.tmp
 *.temp
+
+# Composer
+vendor/
+composer.lock
+
+# PHPUnit
+coverage/
+.phpunit.result.cache

@@ -83,9 +83,12 @@ class ProductService
             // 計算下單數量
             $productIds = $products->pluck('id')->toArray();
             $orderCounts = $this->calculateOrderCounts($productIds);
-            
+
             // 計算已出貨數量
             $shippedCounts = $this->calculateShippedCounts($productIds);
+
+            // 計算已分配到子訂單的數量（取代不可靠的 post_meta）
+            $allocatedToChildCounts = $this->calculateAllocatedToChildOrders($productIds);
 
             // 格式化資料
             $formattedProducts = [];
@@ -115,20 +118,22 @@ class ProductService
 
                 // 取得已採購數量（從 post_meta）
                 $purchased = (int) get_post_meta($product->post_id, '_buygo_purchased', true);
-                
-                // 取得已分配數量（從 post_meta）
-                $allocated = (int) get_post_meta($product->post_id, '_buygo_allocated', true);
-                
-                // 計算已下單數量
+
+                // 計算已下單數量（只計算父訂單）
                 $ordered = $orderCounts[$product->id] ?? 0;
-                
-                // 計算已出貨數量
+
+                // 計算已分配數量（從子訂單計算，而不是 post_meta）
+                // 這樣更準確，因為 post_meta 可能沒有正確同步
+                $allocated = $allocatedToChildCounts[$product->id] ?? 0;
+
+                // 計算已出貨數量（從出貨單計算）
                 $shipped = $shippedCounts[$product->id] ?? 0;
-                
-                // 計算待出貨數量（採購了但還沒寄的）
-                $pending = max(0, $purchased - $shipped);
-                
-                // 計算預訂數量（還沒採購到的）
+
+                // 計算待出貨數量（已分配但還沒出貨的）
+                // 待出貨 = 已分配 - 已出貨
+                $pending = max(0, $allocated - $shipped);
+
+                // 計算預訂數量（客戶下單了但還沒採購到的）
                 $reserved = max(0, $ordered - $purchased);
 
                 $productData = [
@@ -295,10 +300,11 @@ class ProductService
     public function getProductBuyers(int $productId): array
     {
         try {
-            // 查詢訂單項目（只包含未完成、未取消、未退款的訂單）
+            // 查詢訂單項目（只計算父訂單，排除子訂單、已取消和已退款的訂單）
             $orderItems = OrderItem::where('object_id', $productId)
                 ->whereHas('order', function($query) {
-                    $query->whereNotIn('status', ['cancelled', 'refunded', 'completed']);
+                    $query->whereNotIn('status', ['cancelled', 'refunded'])
+                          ->whereNull('parent_id');  // 只查詢父訂單
                 })
                 ->with(['order', 'order.customer'])
                 ->get();
@@ -379,7 +385,7 @@ class ProductService
                 FROM {$table_items} oi
                 INNER JOIN {$table_orders} o ON oi.order_id = o.id
                 WHERE oi.object_id IN ({$placeholders})
-                AND o.status NOT IN ('cancelled', 'refunded', 'completed')
+                AND o.status NOT IN ('cancelled', 'refunded')
                 AND o.parent_id IS NULL
                 GROUP BY oi.object_id
             ", ...$productVariationIds);
@@ -417,34 +423,96 @@ class ProductService
 
         try {
             global $wpdb;
-            
+
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
-            
+            $table_variations = $wpdb->prefix . 'fct_product_variations';
+
             $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
-            
+
+            // 【重要】buygo_shipment_items.product_id 存的是 WordPress post_id
+            // 而傳入的 productVariationIds 是 FluentCart ProductVariation ID
+            // 需要透過 fct_product_variations 表做轉換
             $sql = $wpdb->prepare("
-                SELECT 
-                    si.product_id,
+                SELECT
+                    pv.id as product_variation_id,
                     SUM(si.quantity) as shipped_count
                 FROM {$table_shipment_items} si
                 INNER JOIN {$table_shipments} s ON si.shipment_id = s.id
-                WHERE si.product_id IN ({$placeholders})
+                INNER JOIN {$table_variations} pv ON si.product_id = pv.post_id
+                WHERE pv.id IN ({$placeholders})
                 AND s.status IN ('shipped', 'archived')
-                GROUP BY si.product_id
+                GROUP BY pv.id
             ", ...$productVariationIds);
 
             $results = $wpdb->get_results($sql, ARRAY_A);
-            
+
             $shippedCounts = [];
             foreach ($results as $result) {
-                $shippedCounts[$result['product_id']] = (int)$result['shipped_count'];
+                $shippedCounts[$result['product_variation_id']] = (int)$result['shipped_count'];
             }
 
             return $shippedCounts;
 
         } catch (\Exception $e) {
             $this->debugService->log('ProductService', '計算已出貨數量失敗', [
+                'error' => $e->getMessage(),
+                'product_variation_ids' => $productVariationIds
+            ], 'error');
+
+            return [];
+        }
+    }
+
+    /**
+     * 計算已分配到子訂單的數量
+     *
+     * 【重要】這個方法計算的是實際已建立子訂單的商品數量
+     * 用於取代從 post_meta 讀取的 _buygo_allocated（因為 post_meta 可能不同步）
+     *
+     * @param array $productVariationIds 商品變體 ID 陣列
+     * @return array 商品 ID => 已分配到子訂單的數量
+     */
+    private function calculateAllocatedToChildOrders(array $productVariationIds): array
+    {
+        if (empty($productVariationIds)) {
+            return [];
+        }
+
+        try {
+            global $wpdb;
+
+            $table_items = $wpdb->prefix . 'fct_order_items';
+            $table_orders = $wpdb->prefix . 'fct_orders';
+
+            $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
+
+            // 計算每個商品在子訂單中的總數量
+            // 子訂單的特徵：parent_id IS NOT NULL 且 type = 'split'
+            $sql = $wpdb->prepare("
+                SELECT
+                    oi.object_id as product_variation_id,
+                    SUM(oi.quantity) as allocated_count
+                FROM {$table_items} oi
+                INNER JOIN {$table_orders} o ON oi.order_id = o.id
+                WHERE oi.object_id IN ({$placeholders})
+                AND o.parent_id IS NOT NULL
+                AND o.type = 'split'
+                AND o.status NOT IN ('cancelled', 'refunded')
+                GROUP BY oi.object_id
+            ", ...$productVariationIds);
+
+            $results = $wpdb->get_results($sql, ARRAY_A);
+
+            $allocatedCounts = [];
+            foreach ($results as $result) {
+                $allocatedCounts[$result['product_variation_id']] = (int)$result['allocated_count'];
+            }
+
+            return $allocatedCounts;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '計算已分配到子訂單數量失敗', [
                 'error' => $e->getMessage(),
                 'product_variation_ids' => $productVariationIds
             ], 'error');

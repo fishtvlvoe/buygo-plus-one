@@ -127,10 +127,15 @@ class AllocationService
             // 7. 更新商品的「已分配」總數
             $new_allocated = $allocated + $allocated_count;
             $result = update_post_meta($post_id, '_buygo_allocated', $new_allocated);
-            
+
+            // 注意：update_post_meta 在新值與舊值相同時會回傳 false，這不是錯誤
+            // 需要用 get_post_meta 確認實際值是否正確
             if ($result === false) {
-                $wpdb->query('ROLLBACK');
-                return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
+                $actual_value = get_post_meta($post_id, '_buygo_allocated', true);
+                if (intval($actual_value) !== intval($new_allocated)) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
+                }
             }
             
             // 提交 Transaction
@@ -204,7 +209,7 @@ class AllocationService
              LEFT JOIN {$wpdb->prefix}fct_customers c ON o.customer_id = c.id
              WHERE oi.object_id = %d
              AND o.parent_id IS NULL
-             AND o.status NOT IN ('cancelled', 'refunded', 'completed')
+             AND o.status NOT IN ('cancelled', 'refunded')
              ORDER BY o.created_at DESC",
             $product_id
         ), ARRAY_A);
@@ -383,12 +388,17 @@ class AllocationService
             
             // 7. 更新商品的「已分配」總數
             $new_product_allocated = $total_allocated;
-            
+
             $result = update_post_meta($post_id, '_buygo_allocated', $new_product_allocated);
-            
+
+            // 注意：update_post_meta 在新值與舊值相同時會回傳 false，這不是錯誤
+            // 需要用 get_post_meta 確認實際值是否正確
             if ($result === false) {
-                $wpdb->query('ROLLBACK');
-                return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
+                $actual_value = get_post_meta($post_id, '_buygo_allocated', true);
+                if (intval($actual_value) !== intval($new_product_allocated)) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
+                }
             }
             
             // 提交 Transaction

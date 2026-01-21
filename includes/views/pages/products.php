@@ -401,7 +401,7 @@ $products_component_template = <<<'HTML'
                                         </div>
                                         <div class="bg-primary/10 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-primary">可分配</div>
-                                            <div class="font-bold text-primary">{{ (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0) }}</div>
+                                            <div class="font-bold text-primary">{{ (selectedProduct?.ordered || 0) - (selectedProduct?.allocated || 0) }}</div>
                                         </div>
                                     </div>
                                 </div>
