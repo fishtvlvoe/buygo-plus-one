@@ -1,0 +1,22 @@
+{
+  "name": "buygo/plugin-name",
+  "description": "BuyGo Plugin - Unit Tests Configuration",
+  "require": {
+    "php": "^7.4 || ^8.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "phpunit/php-code-coverage": "^9.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BuyGoPlus\\": "includes/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit -c phpunit-unit.xml",
+    "test:unit": "phpunit -c phpunit-unit.xml --verbose",
+    "test:coverage": "phpunit -c phpunit-unit.xml --coverage-html coverage",
+    "test:setup-db": "php bin/setup-test-db.php"
+  }
+}
