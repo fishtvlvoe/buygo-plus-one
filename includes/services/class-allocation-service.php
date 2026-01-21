@@ -210,6 +210,7 @@ class AllocationService
              WHERE oi.object_id = %d
              AND o.parent_id IS NULL
              AND o.status NOT IN ('cancelled', 'refunded')
+             AND o.shipping_status NOT IN ('shipped', 'completed')
              ORDER BY o.created_at DESC",
             $product_id
         ), ARRAY_A);

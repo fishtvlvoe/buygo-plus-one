@@ -43,7 +43,9 @@
     .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
     .search-slide-enter-active, .search-slide-leave-active { transition: all 0.2s ease; }
     .search-slide-enter-from, .search-slide-leave-to { opacity: 0; transform: translateY(-10px); }
-    
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+
     [v-cloak] { display: none; }
 </style>
 
@@ -378,22 +380,20 @@ $products_component_template = <<<'HTML'
                                                 {{ product.status === 'published' ? '上架' : '下架' }}
                                             </span>
                                         </div>
-                                        <!-- Quick Stats Overlay -->
-                                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                                            <div class="flex justify-around text-white">
-                                                <div class="text-center">
-                                                    <div class="text-xl font-bold text-green-400">{{ product.ordered || 0 }}</div>
-                                                    <div class="text-xs text-white/80">下單</div>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="text-xl font-bold text-blue-400">{{ product.allocated || 0 }}</div>
-                                                    <div class="text-xs text-white/80">分配</div>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="text-xl font-bold text-orange-400">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
-                                                    <div class="text-xs text-white/80">待出</div>
-                                                </div>
-                                            </div>
+                                    </div>
+                                    <!-- Stats Row (獨立一排，不遮擋圖片) -->
+                                    <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
+                                        <div class="py-3 text-center">
+                                            <div class="text-xl font-bold text-green-600">{{ product.ordered || 0 }}</div>
+                                            <div class="text-[10px] text-slate-500">下單</div>
+                                        </div>
+                                        <div class="py-3 text-center">
+                                            <div class="text-xl font-bold text-blue-600">{{ product.allocated || 0 }}</div>
+                                            <div class="text-[10px] text-slate-500">分配</div>
+                                        </div>
+                                        <div class="py-3 text-center">
+                                            <div class="text-xl font-bold text-orange-600">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
+                                            <div class="text-[10px] text-slate-500">待出</div>
                                         </div>
                                     </div>
                                     <!-- Product Info -->
@@ -558,12 +558,16 @@ $products_component_template = <<<'HTML'
                                             </td>
                                             <td class="px-4 py-4 text-center">
                                                 <button
-                                                    v-if="order.pending_quantity > 0"
+                                                    v-if="order.pending_quantity > 0 && !['shipped', 'completed'].includes(order.shipping_status)"
                                                     @click="allocateOrder(order)"
                                                     :disabled="allocatingOrderItemId === order.order_item_id"
                                                     class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                                     {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : '一鍵分配' }}
                                                 </button>
+                                                <span v-else-if="['shipped', 'completed'].includes(order.shipping_status)" class="text-sm text-blue-600 font-medium inline-flex items-center gap-1">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    已出貨
+                                                </span>
                                                 <span v-else class="text-sm text-green-600 font-medium inline-flex items-center gap-1">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                     完成
@@ -605,12 +609,16 @@ $products_component_template = <<<'HTML'
                                         </div>
                                         <div>
                                             <button
-                                                v-if="order.pending_quantity > 0"
+                                                v-if="order.pending_quantity > 0 && !['shipped', 'completed'].includes(order.shipping_status)"
                                                 @click="allocateOrder(order)"
                                                 :disabled="allocatingOrderItemId === order.order_item_id"
                                                 class="w-full px-3 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                                 {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : `一鍵分配 (${order.pending_quantity} 個)` }}
                                             </button>
+                                            <div v-else-if="['shipped', 'completed'].includes(order.shipping_status)" class="text-center text-sm text-blue-600 font-medium py-2 flex items-center justify-center gap-1">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                已出貨
+                                            </div>
                                             <div v-else class="text-center text-sm text-green-600 font-medium py-2 flex items-center justify-center gap-1">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                 已處理完成
@@ -689,57 +697,69 @@ $products_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </div>
-                            <!-- Orders Table implementation for Allocation... (Simplified for this step, using existing logic) -->
-                            <!-- Orders Table implementation for Allocation -->
-                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-300px)]">
-                                <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-                                    <h3 class="font-bold text-slate-800">待分配訂單</h3>
-                                    <button @click="handleSubPageSave" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow hover:bg-primary-dark transition">儲存分配</button>
+                            <!-- Orders List for Allocation -->
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                                <!-- 標題列 -->
+                                <div class="p-3 border-b border-slate-200 bg-slate-50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-bold text-slate-800">待分配訂單 <span class="text-sm font-normal text-slate-500">({{ filteredProductOrders.length }}/{{ productOrders.length }} 筆)</span></h3>
+                                    </div>
+                                    <!-- 搜尋框（整條） -->
+                                    <div class="relative">
+                                        <input type="text" v-model="allocationSearch" placeholder="搜尋訂單編號或客戶名稱..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                        <button v-if="allocationSearch" @click="allocationSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="flex-1 overflow-auto p-0">
-                                    <div v-if="allocationLoading" class="flex flex-col items-center justify-center h-full py-12">
+                                <div class="overflow-auto max-h-[50vh]">
+                                    <div v-if="allocationLoading" class="flex flex-col items-center justify-center py-12">
                                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                                         <p class="text-slate-500">載入訂單中...</p>
                                     </div>
-                                    <div v-else-if="productOrders.length === 0" class="flex flex-col items-center justify-center h-full py-12 text-slate-500">
+                                    <div v-else-if="filteredProductOrders.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-500">
                                         <svg class="w-12 h-12 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                                        <p>目前沒有此商品的待處理訂單</p>
+                                        <p v-if="allocationSearch">找不到符合「{{ allocationSearch }}」的訂單</p>
+                                        <p v-else>目前沒有此商品的待處理訂單</p>
                                     </div>
-                                    <table v-else class="min-w-full divide-y divide-slate-200">
-                                        <thead class="bg-white sticky top-0 z-10 shadow-sm">
-                                            <tr>
-                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">訂單編號 / 客戶</th>
-                                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">下單時間</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">下單量</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">已分配</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-32">本次分配</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">待分配</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100 bg-white">
-                                            <tr v-for="order in productOrders" :key="order.order_id" class="hover:bg-slate-50 transition">
-                                                <td class="px-4 py-3">
-                                                    <div class="font-medium text-slate-900">#{{ order.order_id }}</div>
-                                                    <div class="text-xs text-slate-500">{{ order.customer || '訪客' }}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-center text-sm text-slate-500">{{ order.date || '-' }}</td>
-                                                <td class="px-4 py-3 text-right font-medium text-slate-900">{{ order.required || order.quantity }}</td>
-                                                <td class="px-4 py-3 text-right font-medium text-blue-600">{{ order.already_allocated || 0 }}</td>
-                                                <td class="px-4 py-3 text-right">
-                                                    <input type="number" v-model.number="order.allocated" min="0" :max="order.pending || (order.required - (order.already_allocated || 0))" class="w-20 px-2 py-1 border border-slate-300 rounded text-right focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-                                                </td>
-                                                <td class="px-4 py-3 text-right font-medium text-red-600">{{ order.pending || ((order.required || order.quantity) - (order.already_allocated || 0)) }}</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot class="bg-slate-50 font-bold text-slate-700">
-                                            <tr>
-                                                <td colspan="3" class="px-4 py-3 text-right">總計分配：</td>
-                                                <td class="px-4 py-3 text-right text-primary">{{ productOrders.reduce((acc, o) => acc + (o.allocated||0), 0) }}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                    <!-- 訂單列表 -->
+                                    <div v-else class="divide-y divide-slate-100">
+                                        <div v-for="order in filteredProductOrders" :key="order.order_id" class="px-3 py-2.5 hover:bg-slate-50 transition">
+                                            <!-- 手機版：兩行佈局 -->
+                                            <div class="flex items-center justify-between gap-2">
+                                                <!-- 左側：編號+客戶+統計 -->
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span class="font-bold text-slate-900">#{{ order.order_id }}</span>
+                                                        <span class="text-sm text-slate-500 truncate">{{ order.customer || '訪客' }}</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-3 text-xs">
+                                                        <span><span class="text-slate-400">下單</span> <span class="font-bold text-slate-700">{{ order.required || order.quantity }}</span></span>
+                                                        <span><span class="text-slate-400">已配</span> <span class="font-bold text-blue-600">{{ order.already_allocated || 0 }}</span></span>
+                                                        <span><span class="text-slate-400">待配</span> <span class="font-bold text-red-600">{{ order.pending || ((order.required || order.quantity) - (order.already_allocated || 0)) }}</span></span>
+                                                    </div>
+                                                </div>
+                                                <!-- 右側：輸入框 -->
+                                                <input type="number" v-model.number="order.allocated" min="0" :max="order.pending || (order.required - (order.already_allocated || 0))" class="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-center text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none shrink-0">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                                <!-- 總計 -->
+                                <div v-if="productOrders.length > 0" class="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-sm">
+                                    <span class="text-slate-600">總計分配：</span>
+                                    <span class="text-lg font-bold text-primary">{{ totalAllocation }}</span>
+                                </div>
+                                <!-- 浮動儲存按鈕（有輸入時才顯示） -->
+                                <transition name="fade">
+                                    <div v-if="totalAllocation > 0" class="sticky bottom-0 p-3 bg-white border-t border-slate-200 shadow-lg">
+                                        <button @click="handleSubPageSave" class="w-full py-3 bg-primary text-white text-base font-bold rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            確認分配 {{ totalAllocation }} 件
+                                        </button>
+                                    </div>
+                                </transition>
                             </div>
                         </div>
                     </div>
@@ -839,7 +859,26 @@ const ProductsPageComponent = {
         // Allocation
         const productOrders = ref([]);
         const allocationLoading = ref(false);
-        
+        const allocationSearch = ref('');
+
+        // 過濾後的訂單列表（根據搜尋關鍵字）
+        const filteredProductOrders = computed(() => {
+            if (!allocationSearch.value.trim()) {
+                return productOrders.value;
+            }
+            const keyword = allocationSearch.value.toLowerCase().trim();
+            return productOrders.value.filter(order => {
+                const orderId = String(order.order_id || '').toLowerCase();
+                const customer = String(order.customer || '').toLowerCase();
+                return orderId.includes(keyword) || customer.includes(keyword);
+            });
+        });
+
+        // 總分配數量（用於顯示浮動按鈕）
+        const totalAllocation = computed(() => {
+            return productOrders.value.reduce((acc, o) => acc + (o.allocated || 0), 0);
+        });
+
         // Image Modal
         const showImageModal = ref(false);
         const currentImage = ref(null);
@@ -1349,7 +1388,7 @@ const ProductsPageComponent = {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery,
-            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading,
+            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
             showImageModal, currentImage, toastMessage,
             currentPage, perPage, totalProducts, menuItems: [
                 { id: 'products', label: '商品管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>' },
