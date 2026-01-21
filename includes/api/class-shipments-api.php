@@ -229,6 +229,54 @@ class Shipments_API
                         'found_count' => count($existing_order_items)
                     ];
                 }
+
+                // 檢查客戶資料對應關係
+                $first_shipment = $result['recent_shipments'][0];
+                $customer_id = $first_shipment['customer_id'];
+                $table_customers = $wpdb->prefix . 'fct_customers';
+                $table_customer_addresses = $wpdb->prefix . 'fct_customer_addresses';
+
+                // 取得該客戶資料
+                $customer_data = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM {$table_customers} WHERE id = %d",
+                    $customer_id
+                ), ARRAY_A);
+
+                $result['customer_check'] = [
+                    'shipment_customer_id' => $customer_id,
+                    'customer_found' => !empty($customer_data),
+                    'customer_data' => $customer_data,
+                ];
+
+                // 列出 fct_customers 表的前 5 筆資料
+                $all_customers = $wpdb->get_results(
+                    "SELECT id, first_name, last_name, email FROM {$table_customers} ORDER BY id LIMIT 5",
+                    ARRAY_A
+                );
+                $result['customer_check']['sample_customers'] = $all_customers;
+
+                // 檢查表結構
+                $customer_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_customers}", ARRAY_A);
+                $result['customer_check']['table_columns'] = array_column($customer_columns, 'Field');
+
+                // 檢查 fct_customer_addresses 表
+                $address_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customer_addresses}'") === $table_customer_addresses;
+                $result['address_check'] = [
+                    'table_exists' => $address_table_exists,
+                ];
+
+                if ($address_table_exists) {
+                    // 檢查地址表結構
+                    $address_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_customer_addresses}", ARRAY_A);
+                    $result['address_check']['table_columns'] = array_column($address_columns, 'Field');
+
+                    // 取得該客戶的地址資料
+                    $customer_addresses = $wpdb->get_results($wpdb->prepare(
+                        "SELECT * FROM {$table_customer_addresses} WHERE customer_id = %d",
+                        $customer_id
+                    ), ARRAY_A);
+                    $result['address_check']['customer_addresses'] = $customer_addresses;
+                }
             }
         }
 
@@ -765,6 +813,7 @@ class Shipments_API
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             $table_customers = $wpdb->prefix . 'fct_customers';
+            $table_customer_addresses = $wpdb->prefix . 'fct_customer_addresses';
             $table_order_items = $wpdb->prefix . 'fct_order_items';
 
             // Debug: 先檢查資料表中有多少筆資料
@@ -790,10 +839,24 @@ class Shipments_API
 
             // 如果找到出貨單，再查詢客戶資訊
             if ($shipment) {
+                // 從 fct_customers 取得基本資料，從 fct_customer_addresses 取得電話和地址
+                // 欄位名稱：address_1, address_2, postcode（不是 address_line_1, zip）
                 $customer = $wpdb->get_row($wpdb->prepare(
-                    "SELECT first_name, last_name, phone, address
-                     FROM {$table_customers}
-                     WHERE id = %d",
+                    "SELECT
+                        c.first_name,
+                        c.last_name,
+                        c.email,
+                        (SELECT a.phone FROM {$table_customer_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
+                        (SELECT CONCAT_WS(', ',
+                            NULLIF(a.address_1, ''),
+                            NULLIF(a.address_2, ''),
+                            NULLIF(a.city, ''),
+                            NULLIF(a.state, ''),
+                            NULLIF(a.postcode, ''),
+                            NULLIF(a.country, '')
+                        ) FROM {$table_customer_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
+                     FROM {$table_customers} c
+                     WHERE c.id = %d",
                     $shipment['customer_id']
                 ), ARRAY_A);
 
@@ -801,10 +864,12 @@ class Shipments_API
                     $shipment['customer_name'] = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
                     $shipment['customer_phone'] = $customer['phone'] ?? '';
                     $shipment['customer_address'] = $customer['address'] ?? '';
+                    $shipment['customer_email'] = $customer['email'] ?? '';
                 } else {
                     $shipment['customer_name'] = '未知客戶';
                     $shipment['customer_phone'] = '';
                     $shipment['customer_address'] = '';
+                    $shipment['customer_email'] = '';
                 }
             }
 
@@ -915,6 +980,7 @@ class Shipments_API
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             $table_customers = $wpdb->prefix . 'fct_customers';
+            $table_customer_addresses = $wpdb->prefix . 'fct_customer_addresses';
             $table_order_items = $wpdb->prefix . 'fct_order_items';
 
             // 生成檔名
@@ -977,11 +1043,24 @@ class Shipments_API
                     continue;
                 }
 
-                // 另外查詢客戶資訊
+                // 從 fct_customers 取得基本資料，從 fct_customer_addresses 取得電話和地址
+                // 欄位名稱：address_1, address_2, postcode（不是 address_line_1, zip）
                 $customer = $wpdb->get_row($wpdb->prepare(
-                    "SELECT first_name, last_name, phone, address, email
-                     FROM {$table_customers}
-                     WHERE id = %d",
+                    "SELECT
+                        c.first_name,
+                        c.last_name,
+                        c.email,
+                        (SELECT a.phone FROM {$table_customer_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
+                        (SELECT CONCAT_WS(', ',
+                            NULLIF(a.address_1, ''),
+                            NULLIF(a.address_2, ''),
+                            NULLIF(a.city, ''),
+                            NULLIF(a.state, ''),
+                            NULLIF(a.postcode, ''),
+                            NULLIF(a.country, '')
+                        ) FROM {$table_customer_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
+                     FROM {$table_customers} c
+                     WHERE c.id = %d",
                     $shipment['customer_id']
                 ), ARRAY_A);
 
