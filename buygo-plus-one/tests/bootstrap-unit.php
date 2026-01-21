@@ -1,38 +1,20 @@
 <?php
 /**
- * Bootstrap for unit tests
+ * PHPUnit Bootstrap File - 單元測試版本
  *
- * This bootstrap file is used by PHPUnit to set up the test environment
- * without requiring the full WordPress installation.
+ * 不依賴 WordPress 環境，只測試純邏輯
  */
 
-// Prevent errors from different WordPress versions
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+// Composer autoloader
+require_once dirname(dirname(__FILE__)) . '/vendor/autoload.php';
 
-// Get the path to vendor/autoload.php (in the plugin's own directory)
-$composer_autoload = dirname(__DIR__) . '/vendor/autoload.php';
-
-if (file_exists($composer_autoload)) {
-    require_once $composer_autoload;
-} else {
-    die('Unable to find Composer autoloader: ' . $composer_autoload);
+// 定義外掛常數（方便測試引用）
+if (!defined('BUYGO_PLUS_ONE_VERSION')) {
+    define('BUYGO_PLUS_ONE_VERSION', '0.0.1');
 }
 
-// Define WordPress constants if not already defined (for unit tests)
-if (!defined('ABSPATH')) {
-    define('ABSPATH', dirname(__DIR__) . '/../../');
+if (!defined('BUYGO_PLUS_ONE_PLUGIN_DIR')) {
+    define('BUYGO_PLUS_ONE_PLUGIN_DIR', dirname(dirname(__FILE__)) . '/');
 }
 
-if (!defined('WPINC')) {
-    define('WPINC', 'wp-includes');
-}
-
-// Define plugin constants
-if (!defined('BUYGO_PLUGIN_DIR')) {
-    define('BUYGO_PLUGIN_DIR', dirname(__DIR__) . '/');
-}
-
-if (!defined('BUYGO_PLUGIN_URL')) {
-    define('BUYGO_PLUGIN_URL', 'http://example.local/wp-content/plugins/buygo-plus-one/');
-}
+echo "PHPUnit 單元測試環境已載入\n";
