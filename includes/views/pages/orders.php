@@ -63,6 +63,9 @@ $orders_component_template = <<<'HTML'
                 <!-- Batch Actions -->
                 <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
                     <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
+                    <button @click="batchPrepare" :disabled="batchProcessing" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 border border-orange-200 transition disabled:opacity-50">
+                        {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
+                    </button>
                     <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
                 </div>
 
@@ -779,7 +782,84 @@ const OrdersPageComponent = {
         const systemCurrency = ref(systemCurrencyFromComposable.value);
         const currentCurrency = ref(systemCurrencyFromComposable.value);
 
-        // 批次操作
+        // 批次轉備貨
+        const batchPrepare = async () => {
+            if (selectedItems.value.length === 0) return;
+
+            // 過濾出可以轉備貨的訂單（只有 unshipped 狀態的訂單可以轉備貨）
+            const eligibleOrders = orders.value.filter(o =>
+                selectedItems.value.includes(o.id) &&
+                (!o.shipping_status || o.shipping_status === 'unshipped')
+            );
+
+            if (eligibleOrders.length === 0) {
+                showToast('所選訂單都不是「未出貨」狀態，無法轉備貨', 'error');
+                return;
+            }
+
+            const skippedCount = selectedItems.value.length - eligibleOrders.length;
+            let confirmMessage = `確定要將 ${eligibleOrders.length} 筆訂單轉為備貨狀態嗎？`;
+            if (skippedCount > 0) {
+                confirmMessage += `\n（${skippedCount} 筆非「未出貨」狀態的訂單將被略過）`;
+            }
+
+            showConfirm(
+                '批次轉備貨',
+                confirmMessage,
+                async () => {
+                    batchProcessing.value = true;
+                    let successCount = 0;
+                    let failCount = 0;
+
+                    try {
+                        // 逐一呼叫 prepare API
+                        for (const order of eligibleOrders) {
+                            try {
+                                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${order.id}/prepare`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    credentials: 'include'
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success) {
+                                    successCount++;
+                                } else {
+                                    failCount++;
+                                    console.error(`訂單 #${order.id} 轉備貨失敗:`, result.message);
+                                }
+                            } catch (err) {
+                                failCount++;
+                                console.error(`訂單 #${order.id} 轉備貨錯誤:`, err);
+                            }
+                        }
+
+                        // 顯示結果
+                        if (failCount === 0) {
+                            showToast(`成功將 ${successCount} 筆訂單轉為備貨狀態`, 'success');
+                        } else {
+                            showToast(`${successCount} 筆成功，${failCount} 筆失敗`, failCount > 0 ? 'error' : 'success');
+                        }
+
+                        // 清空選取並重新載入
+                        selectedItems.value = [];
+                        await loadOrders();
+
+                    } catch (err) {
+                        console.error('批次轉備貨錯誤:', err);
+                        showToast('批次轉備貨失敗：' + err.message, 'error');
+                    } finally {
+                        batchProcessing.value = false;
+                    }
+                },
+                { confirmText: '確認轉備貨', cancelText: '取消' }
+            );
+        };
+
+        // 批次刪除
         const batchDelete = async () => {
             if(!confirm(`確認刪除 ${selectedItems.value.length} 項？`)) return;
             try {
@@ -828,6 +908,7 @@ const OrdersPageComponent = {
 
         // 批次操作
         const selectedItems = ref([]);
+        const batchProcessing = ref(false);
 
         // 展開狀態（用於商品列表展開）
         const expandedOrders = ref(new Set());
@@ -1632,6 +1713,8 @@ const OrdersPageComponent = {
             // UI 狀態
             showMobileSearch,
             // 新增方法
+            batchPrepare,
+            batchProcessing,
             batchDelete,
             toggleCurrency,
             // Smart Search Box
