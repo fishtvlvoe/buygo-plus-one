@@ -136,7 +136,10 @@ class Plugin {
 
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
-        
+
+        // 初始化 Cloudflare 效能修復
+        new \BuyGoPlus\Admin\CloudflareFix();
+
         // 初始化 Routes
         new Routes();
         
