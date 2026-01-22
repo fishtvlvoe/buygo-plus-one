@@ -42,12 +42,12 @@ class LineWebhookHandler {
 
 	/**
 	 * 檢查使用者是否有上傳權限
-	 * 
+	 *
 	 * 允許三種人上傳：
 	 * 1. WordPress 管理員（administrator）
 	 * 2. buygo 管理員（buygo_admin）
-	 * 3. buygo_helper 小幫手（buygo_helper 角色或 buygo_helpers 列表中）
-	 * 
+	 * 3. buygo_helper 小幫手（buygo_helper 角色或 wp_buygo_helpers 資料表中）
+	 *
 	 * @param \WP_User $user WordPress 使用者物件
 	 * @return bool 是否有權限
 	 */
@@ -73,12 +73,29 @@ class LineWebhookHandler {
 			return true;
 		}
 
-		// 3. buygo_helper 小幫手（檢查角色或列表）
+		// 3. buygo_helper 小幫手（檢查角色）
 		if ( in_array( 'buygo_helper', $roles, true ) ) {
 			return true;
 		}
 
-		// 檢查是否在小幫手列表中（可能沒有角色但有記錄）
+		// 4. 檢查是否在 wp_buygo_helpers 資料表中（新版權限系統）
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'buygo_helpers';
+
+		// 檢查資料表是否存在
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) === $table_name ) {
+			// 查詢資料表，檢查該用戶是否為任何賣家的小幫手
+			$is_helper = $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
+				$user->ID
+			) );
+
+			if ( $is_helper > 0 ) {
+				return true;
+			}
+		}
+
+		// 5. 向後相容：檢查舊的 buygo_helpers option
 		$helper_ids = get_option( 'buygo_helpers', [] );
 		if ( is_array( $helper_ids ) && in_array( $user->ID, $helper_ids, true ) ) {
 			return true;
@@ -228,14 +245,23 @@ class LineWebhookHandler {
 		// 允許三種人上傳：
 		// 1. WordPress 管理員（administrator）
 		// 2. buygo 管理員（buygo_admin）
-		// 3. buygo_helper 小幫手（buygo_helper 角色或 buygo_helpers 列表中）
+		// 3. buygo_helper 小幫手（buygo_helper 角色或 wp_buygo_helpers 資料表中）
 		if ( ! $this->can_upload_product( $user ) ) {
-			// Silent processing for unauthorized users
+			// 記錄權限被拒絕的詳細資訊
 			$this->logger->log( 'permission_denied', array(
 				'message' => 'User does not have permission to upload products',
 				'user_id' => $user->ID,
+				'user_login' => $user->user_login,
 				'roles' => $user->roles ?? [],
+				'display_name' => $user->display_name,
 			), $user->ID, $line_uid );
+
+			// 發送權限不足訊息給用戶（不再是 silent）
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
+				'display_name' => $user->display_name ?: $user->user_login,
+			) );
+			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
+			$this->send_reply( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -355,12 +381,22 @@ class LineWebhookHandler {
 
 		// Check permissions (使用統一的權限檢查方法)
 		if ( ! $this->can_upload_product( $user ) ) {
-			// Silent processing for unauthorized users
+			// 記錄權限被拒絕的詳細資訊
 			$this->logger->log( 'permission_denied', array(
 				'message' => 'User does not have permission to upload products',
 				'user_id' => $user->ID,
+				'user_login' => $user->user_login,
 				'roles' => $user->roles ?? [],
+				'display_name' => $user->display_name,
+				'message_type' => 'text',
 			), $user->ID, $line_uid );
+
+			// 發送權限不足訊息給用戶（不再是 silent）
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
+				'display_name' => $user->display_name ?: $user->user_login,
+			) );
+			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
+			$this->send_reply( $reply_token, $message, $line_uid );
 			return;
 		}
 
