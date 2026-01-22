@@ -875,62 +875,64 @@ class SettingsPage
     {
         global $wpdb;
 
-        $stats = [];
+        $stats = [
+            'wp_products' => 0,
+            'fct_products' => 0,
+            'orders' => 0,
+            'parent_orders' => 0,
+            'child_orders' => 0,
+            'order_items' => 0,
+            'shipments' => 0,
+            'shipment_items' => 0,
+            'customers' => 0,
+        ];
 
-        // WordPress 商品數量
-        $wp_products_query = "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'";
-        $stats['wp_products'] = (int) $wpdb->get_var($wp_products_query);
+        // 輔助函數：安全查詢資料表數量（先檢查資料表是否存在）
+        $safe_count = function($table_name, $where = '') use ($wpdb) {
+            $full_table_name = $wpdb->prefix . $table_name;
+            $table_exists = $wpdb->get_var(
+                $wpdb->prepare("SHOW TABLES LIKE %s", $full_table_name)
+            );
+            if (!$table_exists) {
+                return 0;
+            }
+            $query = "SELECT COUNT(*) FROM {$full_table_name}";
+            if ($where) {
+                $query .= " WHERE {$where}";
+            }
+            return (int) $wpdb->get_var($query);
+        };
 
-        // 如果查詢失敗，記錄錯誤
-        if ($wpdb->last_error) {
-            error_log('BuyGo Stats Error (wp_products): ' . $wpdb->last_error);
-            error_log('Query: ' . $wp_products_query);
-        }
+        // WordPress 商品數量 (posts 資料表一定存在)
+        $stats['wp_products'] = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'"
+        );
 
         // FluentCart 商品數量 (存在 wp_posts 中，post_type = 'fluent-products')
-        // 注意：這是 BuyGo 系統自訂的 post_type，不是 FluentCart 官方的 'fc_product'
         $stats['fct_products'] = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'"
         );
 
-        // 訂單數量
-        $stats['orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders"
-        );
+        // 訂單數量（安全查詢）
+        $stats['orders'] = $safe_count('fct_orders');
 
         // 父訂單數量
-        $stats['parent_orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders WHERE parent_id IS NULL"
-        );
+        $stats['parent_orders'] = $safe_count('fct_orders', 'parent_id IS NULL');
 
         // 子訂單數量
-        $stats['child_orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders WHERE parent_id IS NOT NULL AND type = 'split'"
-        );
+        $stats['child_orders'] = $safe_count('fct_orders', "parent_id IS NOT NULL AND type = 'split'");
 
         // 訂單項目數量
-        $stats['order_items'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_order_items"
-        );
+        $stats['order_items'] = $safe_count('fct_order_items');
 
         // 出貨單數量
-        $stats['shipments'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}buygo_shipments"
-        );
+        $stats['shipments'] = $safe_count('buygo_shipments');
 
         // 出貨單項目數量
-        $stats['shipment_items'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}buygo_shipment_items"
-        );
+        $stats['shipment_items'] = $safe_count('buygo_shipment_items');
 
         // 客戶數量
-        $stats['customers'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_customers"
-        );
-
-        // Debug: 記錄統計資料
-        error_log('BuyGo Test Data Stats: ' . print_r($stats, true));
-        error_log('DB Prefix: ' . $wpdb->prefix);
+        $stats['customers'] = $safe_count('fct_customers');
 
         return $stats;
     }
@@ -942,27 +944,44 @@ class SettingsPage
     {
         global $wpdb;
 
+        // 輔助函數：檢查資料表是否存在
+        $table_exists = function($table_name) use ($wpdb) {
+            $full_table_name = $wpdb->prefix . $table_name;
+            return $wpdb->get_var(
+                $wpdb->prepare("SHOW TABLES LIKE %s", $full_table_name)
+            ) === $full_table_name;
+        };
+
+        // 輔助函數：安全刪除資料表內容
+        $safe_delete = function($table_name) use ($wpdb, $table_exists) {
+            if ($table_exists($table_name)) {
+                $wpdb->query("DELETE FROM {$wpdb->prefix}{$table_name}");
+                return true;
+            }
+            return false;
+        };
+
         try {
             // 開始交易
             $wpdb->query('START TRANSACTION');
 
             // 1. 清除出貨單項目
-            $wpdb->query("DELETE FROM {$wpdb->prefix}buygo_shipment_items");
+            $safe_delete('buygo_shipment_items');
 
             // 2. 清除出貨單
-            $wpdb->query("DELETE FROM {$wpdb->prefix}buygo_shipments");
+            $safe_delete('buygo_shipments');
 
             // 3. 清除訂單項目
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_order_items");
+            $safe_delete('fct_order_items');
 
             // 4. 清除訂單
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_orders");
+            $safe_delete('fct_orders');
 
             // 5. 清除 FluentCart 商品變體 (如果表存在)
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_variations");
+            $safe_delete('fct_product_variations');
 
             // 6. 清除 FluentCart 商品 (如果表存在)
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_products");
+            $safe_delete('fct_products');
 
             // 7. 獲取所有 WordPress 商品 ID (post_type = 'product')
             $product_ids = $wpdb->get_col(
