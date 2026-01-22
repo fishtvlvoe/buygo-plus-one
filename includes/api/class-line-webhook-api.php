@@ -59,28 +59,31 @@ class Line_Webhook_API {
 			return rest_ensure_response( array( 'success' => false ) );
 		}
 
-		// Immediately respond to LINE to prevent timeout
-		// LINE requires response within 30 seconds
-		$response = rest_ensure_response( array( 'success' => true ) );
-		
+		// 【重要】立即返回 200 響應給 LINE，避免 timeout
+		// LINE 要求在 30 秒內返回響應，否則會重試
+		// 我們先返回成功，然後在背景處理事件
+
 		// Send response immediately if fastcgi_finish_request is available
-		// This allows us to respond to LINE quickly while processing continues in background
 		if ( function_exists( 'fastcgi_finish_request' ) ) {
-			// Send response to LINE immediately (before processing events)
+			// FastCGI 環境：立即發送響應，然後繼續背景處理
+			echo wp_json_encode( array( 'success' => true ) );
+			header( 'Content-Type: application/json' );
+			header( 'Content-Length: ' . ob_get_length() );
+			header( 'Connection: close' );
+
+			// 立即關閉連線並返回響應給 LINE
 			fastcgi_finish_request();
-			
-			// Process events in background (after response sent to LINE)
-			// This prevents timeout even if processing takes longer than 30 seconds
-			// Note: $return_response = false because response already sent
+
+			// 背景處理事件（LINE 已經收到 200 響應）
 			$this->webhook_handler->process_events( $data['events'], false );
 		} else {
-			// Fallback for non-FastCGI environments
-			// Process events normally (may timeout on slow servers)
-			// Note: This is less ideal but necessary for compatibility
-			$response = $this->webhook_handler->process_events( $data['events'], true );
+			// 非 FastCGI 環境：使用 WordPress Cron 在背景處理
+			// 立即返回響應，避免 timeout
+			wp_schedule_single_event( time(), 'buygo_process_line_webhook', array( $data['events'] ) );
 		}
 
-		return $response;
+		// 無論如何都立即返回 200
+		return rest_ensure_response( array( 'success' => true ) );
 	}
 
 	/**

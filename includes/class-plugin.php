@@ -156,6 +156,12 @@ class Plugin {
         $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
         add_action('rest_api_init', array($webhook_api, 'register_routes'));
 
+        // 註冊 WordPress Cron 處理 LINE webhook 事件（用於非 FastCGI 環境）
+        add_action('buygo_process_line_webhook', function($events) {
+            $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
+            $webhook_handler->process_events($events, false);
+        });
+
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
             new FluentCommunity();
