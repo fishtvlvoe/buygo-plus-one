@@ -300,10 +300,17 @@ class SettingsService
         foreach ($helper_ids as $user_id) {
             $user = get_userdata($user_id);
             if ($user) {
+                // 取得頭像：優先使用 FluentCommunity 照片，否則使用 Gravatar
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
                 $helpers[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $user->user_email,
+                    'avatar' => $avatar_url,
                 ];
             }
         }
