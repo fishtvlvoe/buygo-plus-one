@@ -1,6 +1,6 @@
 # BuyGo+1 待完成任務清單
 
-> 更新日期：2026-01-22
+> 更新日期：2026-01-23
 
 ---
 
@@ -37,6 +37,25 @@
 ---
 
 ## 已完成任務歸檔
+
+<details>
+<summary>小幫手管理 UI 優化（2026-01-23）</summary>
+
+**完成項目：**
+- [x] 「會員管理」更名為「小幫手管理」
+- [x] 刪除 LINE 模板通知副標題，簡化介面
+- [x] 搜尋結果、最近會員、小幫手列表顯示用戶頭像
+- [x] 手機版小幫手卡片改為垂直佈局（標題 + 頭像資訊 + 刪除按鈕）
+- [x] 手機版新增按鈕加上「新增」文字
+
+**修改的檔案：**
+- `/includes/views/pages/settings.php`
+- `/includes/api/class-settings-api.php`
+- `/includes/services/class-settings-service.php`
+
+**Commits:** `f0eaa28`, `840918c`, `311e127`
+
+</details>
 
 <details>
 <summary>設定頁面 - 會員管理改版（2026-01-22）</summary>
