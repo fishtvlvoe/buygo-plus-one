@@ -952,6 +952,86 @@ const ShipmentDetailsPageComponent = {
             detailModal.value = { show: false, shipment: null, items: [], total: 0 };
         };
 
+        // ============================================
+        // 路由邏輯（子分頁切換）
+        // ============================================
+
+        // 檢查 URL 參數
+        const checkUrlParams = () => {
+            const params = window.BuyGoRouter.checkUrlParams();
+            const { view, id } = params;
+
+            if (view === 'detail' && id) {
+                currentView.value = 'detail';
+                currentShipmentId.value = id;
+                loadShipmentDetail(id);
+            } else {
+                currentView.value = 'list';
+                currentShipmentId.value = null;
+            }
+        };
+
+        // 導航函數
+        const navigateTo = (view, shipmentId = null, updateUrl = true) => {
+            currentView.value = view;
+
+            if (shipmentId) {
+                currentShipmentId.value = shipmentId;
+                loadShipmentDetail(shipmentId);
+
+                if (updateUrl) {
+                    window.BuyGoRouter.navigateTo(view, shipmentId);
+                }
+            } else {
+                currentShipmentId.value = null;
+                detailModal.value = { show: false, shipment: null, items: [], total: 0 };
+
+                if (updateUrl) {
+                    window.BuyGoRouter.goToList();
+                }
+            }
+        };
+
+        // 載入出貨單詳情（供子分頁使用）
+        const loadShipmentDetail = async (shipmentId) => {
+            try {
+                const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    detailModal.value = {
+                        show: true,
+                        shipment: result.data.shipment,
+                        items: result.data.items,
+                        total: result.data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+                    };
+                } else {
+                    showToast('載入詳情失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('載入詳情失敗:', err);
+                showToast('載入詳情失敗', 'error');
+            }
+        };
+
+        // 開啟出貨單詳情
+        const openShipmentDetail = (shipmentId) => {
+            navigateTo('detail', shipmentId);
+        };
+
+        // 關閉出貨單詳情
+        const closeShipmentDetail = () => {
+            navigateTo('list');
+        };
+
         // 列印收據
         const printDetail = () => {
             window.print();
