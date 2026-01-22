@@ -790,6 +790,8 @@ const OrdersPageComponent = {
             // 如果父訂單有子訂單，應該處理子訂單而非父訂單
             const ordersToProcess = [];
 
+            const skippedNoAllocation = []; // 記錄因無分配而跳過的訂單
+
             for (const orderId of selectedItems.value) {
                 const order = orders.value.find(o => o.id === orderId);
                 if (!order) continue;
@@ -799,28 +801,43 @@ const OrdersPageComponent = {
                     for (const child of order.children) {
                         // 只處理未出貨的子訂單
                         if (!child.shipping_status || child.shipping_status === 'unshipped') {
-                            ordersToProcess.push({
-                                id: child.id,
-                                invoice_no: child.invoice_no,
-                                isChild: true,
-                                parentInvoice: order.invoice_no || order.id
-                            });
+                            // 檢查子訂單是否有分配
+                            if (hasAllocatedItems(child)) {
+                                ordersToProcess.push({
+                                    id: child.id,
+                                    invoice_no: child.invoice_no,
+                                    isChild: true,
+                                    parentInvoice: order.invoice_no || order.id
+                                });
+                            } else {
+                                skippedNoAllocation.push(child.invoice_no || child.id);
+                            }
                         }
                     }
                 } else {
                     // 沒有子訂單的父訂單，直接處理
                     if (!order.shipping_status || order.shipping_status === 'unshipped') {
-                        ordersToProcess.push({
-                            id: order.id,
-                            invoice_no: order.invoice_no || order.id,
-                            isChild: false
-                        });
+                        // 檢查父訂單是否有分配
+                        if (hasAllocatedItems(order)) {
+                            ordersToProcess.push({
+                                id: order.id,
+                                invoice_no: order.invoice_no || order.id,
+                                isChild: false
+                            });
+                        } else {
+                            skippedNoAllocation.push(order.invoice_no || order.id);
+                        }
                     }
                 }
             }
 
             if (ordersToProcess.length === 0) {
-                showToast('所選訂單都不是「未出貨」狀態，無法轉備貨', 'error');
+                // 根據跳過原因顯示不同訊息
+                if (skippedNoAllocation.length > 0) {
+                    showToast('所選訂單尚未分配庫存，無法轉備貨', 'error');
+                } else {
+                    showToast('所選訂單都不是「未出貨」狀態，無法轉備貨', 'error');
+                }
                 return;
             }
 
@@ -832,6 +849,11 @@ const OrdersPageComponent = {
                 confirmMessage += `\n（包含 ${parentCount} 筆父訂單、${childCount} 筆子訂單）`;
             } else if (childCount > 0) {
                 confirmMessage += `\n（${childCount} 筆子訂單）`;
+            }
+
+            // 如果有被跳過的訂單（因無分配），提示使用者
+            if (skippedNoAllocation.length > 0) {
+                confirmMessage += `\n\n注意：${skippedNoAllocation.length} 筆訂單因尚未分配庫存而跳過`;
             }
 
             showConfirm(
