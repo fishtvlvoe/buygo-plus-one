@@ -121,24 +121,20 @@ class Plugin {
     
     /**
      * 註冊 WordPress Hooks
-     * 
+     *
      * 初始化順序：
      * 1. 角色權限（init_roles）
-     * 2. 後台頁面（DebugPage, SettingsPage）
+     * 2. 後台頁面（SettingsPage）
      * 3. 路由（Routes）
      * 4. REST API（API, Debug_API, Settings_API, Keywords_API）
-     * 
+     *
      * @return void
      */
     private function register_hooks() {
         // 初始化角色權限
         \BuyGoPlus\Services\SettingsService::init_roles();
-        
+
         // 初始化 Admin Pages
-        // 將 DebugPage 實例儲存為全域變數，供 SettingsPage 使用
-        // 注意：DebugPage 必須在 SettingsPage 之前初始化
-        global $buygo_plus_one_debug_page;
-        $buygo_plus_one_debug_page = new \BuyGoPlus\Admin\DebugPage();
         new \BuyGoPlus\Admin\SettingsPage();
         
         // 初始化 Routes

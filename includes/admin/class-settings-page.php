@@ -16,20 +16,12 @@ if (!defined('ABSPATH')) {
  */
 class SettingsPage
 {
-    private $debugPage = null;
-    
     public function __construct()
     {
-        add_action('admin_menu', [$this, 'add_admin_menu'], 20); // 優先級設為 20，確保在 DebugPage 之後執行
+        add_action('admin_menu', [$this, 'add_admin_menu'], 20);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
-        
-        // 取得 DebugPage 實例
-        global $buygo_plus_one_debug_page;
-        if (isset($buygo_plus_one_debug_page)) {
-            $this->debugPage = $buygo_plus_one_debug_page;
-        }
     }
 
     /**
@@ -46,30 +38,17 @@ class SettingsPage
             'dashicons-admin-generic',
             30
         );
-        
-        // 獨立的通知模板管理頁面
+
+        // Line 模板頁面（放在第一個位置）
         add_submenu_page(
             'buygo-settings',
-            'Line 通知模板管理',
-            'Line 通知模板管理',
+            'Line 模板',
+            'Line 模板',
             'manage_options',
             'buygo-templates',
             [$this, 'render_templates_page'],
-            1
+            0
         );
-        
-        // 將 BuyGo 除錯移入成為子選單
-        if ($this->debugPage) {
-            add_submenu_page(
-                'buygo-settings',
-                'BuyGo 除錯',
-                'BuyGo 除錯',
-                'manage_options',
-                'buygo-plus-one-debug',
-                [$this->debugPage, 'render_debug_page'],
-                99
-            );
-        }
     }
 
     /**
@@ -1615,7 +1594,7 @@ LIMIT 10`,
         
         ?>
         <div class="wrap">
-            <h1>Line 通知模板管理</h1>
+            <h1>Line 模板</h1>
             <?php settings_errors('buygo_settings'); ?>
             <?php $this->render_templates_tab(); ?>
         </div>
@@ -1727,8 +1706,8 @@ LIMIT 10`,
         <div id="buygo-templates-page">
             <form method="post" action="">
                 <?php wp_nonce_field('buygo_settings'); ?>
-                
-                <h2>Line 通知模板管理</h2>
+
+                <h2>Line 模板</h2>
                 <p class="description">
                     編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
                 </p>
@@ -2149,7 +2128,7 @@ LIMIT 10`,
                                 </tbody>
                             </table>
                             <p class="description" style="margin-top: 15px;">
-                                💡 提示：關鍵字的新增、編輯、刪除功能請使用前端 Portal 的「Line 通知模板管理」頁面進行管理。
+                                💡 提示：關鍵字的新增、編輯、刪除功能請使用前端 Portal 的「Line 模板」頁面進行管理。
                             </p>
                         <?php endif; ?>
                     </div>
