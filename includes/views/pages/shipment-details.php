@@ -1133,7 +1133,15 @@ const ShipmentDetailsPageComponent = {
             changePerPage,
             previousPage,
             nextPage,
-            goToPage
+            goToPage,
+            // 路由相關（子分頁切換）
+            currentView,
+            currentShipmentId,
+            navigateTo,
+            checkUrlParams,
+            openShipmentDetail,
+            closeShipmentDetail,
+            loadShipmentDetail
         };
     }
 };
