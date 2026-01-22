@@ -90,8 +90,28 @@ class Line_Webhook_API {
 	 * @return bool
 	 */
 	public function verify_signature( $request ) {
-		// For webhook, we allow all requests (LINE will verify)
-		// Actual signature verification should be done here in production
-		return true;
+		$signature = $request->get_header( 'X-Line-Signature' );
+
+		// 如果沒有簽名，拒絕請求
+		if ( empty( $signature ) ) {
+			return false;
+		}
+
+		// 取得 channel secret
+		$channel_secret = get_option( 'buygo_line_channel_secret', '' );
+
+		// 如果沒有設定 channel secret，記錄警告並拒絕
+		if ( empty( $channel_secret ) ) {
+			error_log( 'BuyGo+1: LINE channel secret not configured' );
+			return false;
+		}
+
+		// 計算簽名
+		$body         = $request->get_body();
+		$hash         = hash_hmac( 'sha256', $body, $channel_secret, true );
+		$computed_sig = base64_encode( $hash );
+
+		// 使用安全的字串比較防止時序攻擊
+		return hash_equals( $signature, $computed_sig );
 	}
 }

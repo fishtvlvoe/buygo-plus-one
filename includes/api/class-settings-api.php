@@ -292,33 +292,47 @@ class Settings_API {
     
     /**
      * 搜尋使用者
+     * 注意：此 API 已使用 check_permission_for_admin 保護，僅管理員可存取
      */
     public function search_users($request) {
         try {
             $query = $request->get_param('query');
-            
+
             if (empty($query)) {
                 return new \WP_REST_Response([
                     'success' => true,
                     'data' => []
                 ], 200);
             }
-            
+
+            // 限制搜尋字串長度，避免過度查詢
+            $query = substr($query, 0, 50);
+
             $users = get_users([
                 'search' => '*' . $query . '*',
                 'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
-                'number' => 20,
+                'number' => 10, // 限制結果數量
             ]);
-            
+
             $results = [];
             foreach ($users as $user) {
+                // 遮罩電子郵件（只顯示前3字元和域名）
+                $email = $user->user_email;
+                $email_parts = explode('@', $email);
+                if (count($email_parts) === 2) {
+                    $local = $email_parts[0];
+                    $domain = $email_parts[1];
+                    $masked_local = substr($local, 0, 3) . '***';
+                    $email = $masked_local . '@' . $domain;
+                }
+
                 $results[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
-                    'email' => $user->user_email,
+                    'email' => $email,
                 ];
             }
-            
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $results
@@ -483,17 +497,12 @@ class Settings_API {
     
     /**
      * 權限檢查（僅管理員）
-     * TODO: 測試完成後，統一設定權限檢查
      */
     public function check_permission_for_admin() {
-        // 暫時允許所有請求（測試階段）
-        // 測試完成後，改為：
-        // if (!is_user_logged_in()) {
-        //     return false;
-        // }
-        // return current_user_can('buygo_admin') || current_user_can('manage_options');
-        
-        return true;
+        if (!is_user_logged_in()) {
+            return false;
+        }
+        return current_user_can('buygo_admin') || current_user_can('manage_options');
     }
     
     /**

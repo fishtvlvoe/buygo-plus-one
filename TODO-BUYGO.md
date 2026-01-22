@@ -1,6 +1,6 @@
 # BuyGo+1 待完成任務清單
 
-> 更新日期：2026-01-23（凌晨 01:30 更新）
+> 更新日期：2026-01-22（Code Review 後更新）
 
 ---
 
@@ -15,33 +15,28 @@
 
 ---
 
-## 緊急 Bug 修復
+## 待測試項目
 
-### Bug: Settings 頁面 API 401 Unauthorized 錯誤
-**優先級：緊急**
-**發現時間：2026-01-23**
+### Settings 頁面 401 Bug 修復驗證 ✅ 已完成
+**優先級：高**
+**測試日期：2026-01-22**
 
-**問題描述：**
-啟用 API 權限檢查後，Settings 頁面出現 401 Unauthorized 錯誤。前端呼叫 `/wp-json/buygo-plus-one/v1/settings` 等 API 時返回 401。
+**已完成的修復：**
+- [x] 前端 API 呼叫添加 `X-WP-Nonce` header（11 個 API 呼叫）
+- [x] 添加 `wpNonce` 變數（`wp_create_nonce("wp_rest")`）
 
-**影響範圍：**
-- Settings 頁面無法載入設定資料
-- 可能影響所有需要權限的 API 呼叫
+**測試結果：**
+- [x] 開啟 Settings 頁面，確認無 401 錯誤 ✅
+- [x] 測試模板載入功能 - API 返回 200 ✅
+- [x] 測試會員權限管理功能 - API 返回 200 ✅
+- [x] 測試關鍵字管理功能 - API 返回 200 ✅
 
-**可能原因：**
-1. 前端 API 呼叫沒有攜帶 WordPress nonce
-2. 使用者沒有被正確授予 `buygo_admin` 或 `buygo_helper` 權限
-3. WordPress REST API 認證問題
-
-**相關檔案：**
-- `/includes/api/class-api.php` - 權限檢查邏輯
-- `/includes/api/class-settings-api.php` - Settings API
-- `/includes/views/pages/settings.php` - 前端 API 呼叫
-
-**待執行：**
-- [ ] 檢查前端 API 呼叫是否正確攜帶 nonce
-- [ ] 確認使用者角色與權限設定
-- [ ] 使用 Chrome MCP 測試驗證修復
+**驗證的 API 端點（全部返回 200）：**
+- `GET /settings/user/permissions`
+- `GET /settings/templates`
+- `GET /settings/helpers`
+- `GET /settings/line-keywords`
+- `GET /settings/templates/order`
 
 ---
 
@@ -67,6 +62,23 @@
 ---
 
 ## 已完成任務
+
+### Code Review 安全性修復（2026-01-22 完成）
+
+**高風險問題修復：**
+- [x] **HR-1**: Settings API `check_permission_for_admin()` 從 `return true` 改為正確的權限檢查
+- [x] **HR-2**: LINE Webhook API 簽名驗證實作（使用 HMAC-SHA256）
+- [x] **HR-3**: 用戶搜尋 API 限制結果數量（10筆）並遮罩電子郵件
+
+**中等風險問題修復：**
+- [x] **MR-2**: DEBUG API 權限從 `is_user_logged_in()` 改為 `manage_options` 或 `buygo_admin`
+- [x] **MR-5**: Settings 頁面所有 API 呼叫添加 `X-WP-Nonce` header（修復 401 Bug）
+
+**修改的檔案：**
+- `/includes/api/class-settings-api.php` - 權限檢查、用戶搜尋安全性
+- `/includes/api/class-line-webhook-api.php` - LINE 簽名驗證
+- `/includes/api/class-debug-api.php` - DEBUG API 權限
+- `/includes/views/pages/settings.php` - 前端 nonce 認證
 
 ### 會員權限管理功能（2026-01-23 完成）
 - [x] 建立 `wp_buygo_helpers` 資料表（含 seller_id 欄位）

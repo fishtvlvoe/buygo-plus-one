@@ -876,6 +876,9 @@ const SettingsPageComponent = {
     setup() {
         const { ref, onMounted, onUnmounted } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // UI 狀態（全域搜尋）
         const showMobileSearch = ref(false);
         const globalSearchQuery = ref('');
@@ -1058,6 +1061,7 @@ const SettingsPageComponent = {
             try {
                 // 從 API 讀取模板順序
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates/order', {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
                 
@@ -1221,6 +1225,7 @@ const SettingsPageComponent = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({
@@ -1426,6 +1431,7 @@ const SettingsPageComponent = {
         const loadTemplates = async () => {
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates', {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
                 
@@ -1552,6 +1558,7 @@ const SettingsPageComponent = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({
@@ -1580,11 +1587,12 @@ const SettingsPageComponent = {
             
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/helpers', {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     helpers.value = result.data;
                 }
@@ -1605,6 +1613,7 @@ const SettingsPageComponent = {
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/settings/helpers/${userId}`, {
                     method: 'DELETE',
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
                 
@@ -1633,6 +1642,7 @@ const SettingsPageComponent = {
             
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/settings/users/search?query=${encodeURIComponent(userSearchQuery.value)}`, {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
                 
@@ -1658,6 +1668,7 @@ const SettingsPageComponent = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({ user_id: user.id })
@@ -1689,6 +1700,7 @@ const SettingsPageComponent = {
         const checkAdmin = async () => {
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/user/permissions', {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
                 
@@ -1709,9 +1721,10 @@ const SettingsPageComponent = {
             
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/line-keywords', {
+                    headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
-                
+
                 // 檢查 HTTP 狀態
                 if (!response.ok) {
                     console.error('API 回應錯誤:', response.status, response.statusText);
@@ -1782,6 +1795,7 @@ const SettingsPageComponent = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({
