@@ -30,8 +30,8 @@ class SettingsPage
     public function add_admin_menu(): void
     {
         add_menu_page(
-            'BuyGo+1 設定',
-            'BuyGo+1 設定',
+            '設定',
+            '設定',
             'manage_options',
             'buygo-settings',
             [$this, 'render_settings_page'],
@@ -118,7 +118,7 @@ class SettingsPage
 
         ?>
         <div class="wrap">
-            <h1>BuyGo+1 設定</h1>
+            <h1>設定</h1>
             
             <!-- Tab 導航 -->
             <nav class="nav-tab-wrapper">
