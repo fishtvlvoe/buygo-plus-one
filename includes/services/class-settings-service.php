@@ -14,10 +14,11 @@ class SettingsService
 {
     /**
      * 加密金鑰（可在 wp-config.php 中定義 BUYGO_ENCRYPTION_KEY）
+     * 注意：必須與舊外掛使用相同的預設金鑰，才能正確解密舊資料
      */
     private static function get_encryption_key(): string
     {
-        return defined('BUYGO_ENCRYPTION_KEY') ? BUYGO_ENCRYPTION_KEY : 'buygo-secret-key-default-change-in-production';
+        return defined('BUYGO_ENCRYPTION_KEY') ? BUYGO_ENCRYPTION_KEY : 'buygo-secret-key-default';
     }
     
     /**
