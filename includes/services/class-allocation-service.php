@@ -321,34 +321,46 @@ class AllocationService
                 return new WP_Error('NO_ORDER_ITEMS', '找不到對應的訂單項目');
             }
             
-            // 4. 先計算所有訂單的總分配數量（包括未在此次更新的訂單）
-            // 取得所有訂單項目的當前分配數量
-            $all_items = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}fct_order_items 
-                 WHERE object_id = %d",
+            // 4. 計算本次分配後的總分配數量
+            // 【重要】直接從子訂單數量計算，而不是依賴 _allocated_qty（可能不同步）
+
+            // 4.1 查詢當前已分配的總數量（從子訂單計算）
+            $current_child_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_orders child_o
+                 INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                 WHERE child_o.type = 'split'
+                 AND child_oi.object_id = %d",
                 $product_id
-            ), ARRAY_A);
-            
-            $total_allocated = 0;
-            $items_to_update = [];
-            
-            // 建立要更新的訂單項目索引
-            foreach ($items as $item) {
-                $items_to_update[(int)$item['order_id']] = $item;
-            }
-            
-            // 計算總分配數量
-            foreach ($all_items as $item) {
-                $order_id = (int)$item['order_id'];
-                if (isset($items_to_update[$order_id])) {
-                    // 使用新的分配數量
-                    $total_allocated += isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
-                } else {
-                    // 使用現有的分配數量
-                    $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                    $total_allocated += (int)($meta_data['_allocated_qty'] ?? 0);
-                }
-            }
+            ));
+
+            // 4.2 查詢本次要更新的訂單目前已有的子訂單數量
+            $order_ids_str = implode(',', array_map('intval', array_keys($allocations)));
+            $existing_child_for_orders = (int)$wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_orders child_o
+                 INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                 WHERE child_o.type = 'split'
+                 AND child_o.parent_id IN ({$order_ids_str})
+                 AND child_oi.object_id = %d",
+                $product_id
+            ));
+
+            // 4.3 計算本次要新增的分配數量
+            $new_allocation_total = array_sum($allocations);
+
+            // 4.4 計算最終的總分配數量
+            // = 當前已分配 - 本次訂單已有的子訂單 + 本次新分配
+            // （因為本次分配會「覆蓋」這些訂單的現有子訂單數量）
+            $total_allocated = $current_child_allocated - $existing_child_for_orders + $new_allocation_total;
+
+            $this->debugService->log('AllocationService', '分配數量計算', [
+                'current_child_allocated' => $current_child_allocated,
+                'existing_child_for_orders' => $existing_child_for_orders,
+                'new_allocation_total' => $new_allocation_total,
+                'total_allocated' => $total_allocated,
+                'purchased' => $purchased
+            ]);
             
             // 5. 驗證總分配數量不超過已採購數量
             if ($total_allocated > $purchased) {

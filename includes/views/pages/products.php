@@ -495,39 +495,54 @@ $products_component_template = <<<'HTML'
 
                             <!-- 統計摘要區塊 -->
                             <div class="grid grid-cols-4 gap-2 mb-4">
-                                <div class="bg-white rounded-lg border border-slate-200 p-3 text-center">
-                                    <div class="text-lg font-bold text-slate-900">{{ buyersSummary.totalQuantity }}</div>
-                                    <div class="text-[10px] text-slate-500">總數量</div>
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center">
+                                    <div class="text-2xl font-bold text-slate-900">{{ buyersSummary.totalQuantity }}</div>
+                                    <div class="text-xs text-slate-500 mt-1">總數量</div>
                                 </div>
-                                <div class="bg-green-50 rounded-lg border border-green-200 p-3 text-center">
-                                    <div class="text-lg font-bold text-green-600">{{ buyersSummary.totalAllocated }}</div>
-                                    <div class="text-[10px] text-green-600">已分配</div>
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center">
+                                    <div class="text-2xl font-bold text-green-600">{{ buyersSummary.totalAllocated }}</div>
+                                    <div class="text-xs text-green-600 mt-1">已分配</div>
                                 </div>
-                                <div class="bg-amber-50 rounded-lg border border-amber-200 p-3 text-center">
-                                    <div class="text-lg font-bold text-amber-600">{{ buyersSummary.totalPending }}</div>
-                                    <div class="text-[10px] text-amber-600">待分配</div>
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center">
+                                    <div class="text-2xl font-bold text-amber-600">{{ buyersSummary.totalPending }}</div>
+                                    <div class="text-xs text-amber-600 mt-1">待分配</div>
                                 </div>
-                                <div class="bg-blue-50 rounded-lg border border-blue-200 p-3 text-center">
-                                    <div class="text-lg font-bold text-blue-600">{{ buyersSummary.totalShipped }}</div>
-                                    <div class="text-[10px] text-blue-600">已出貨</div>
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 text-center">
+                                    <div class="text-2xl font-bold text-blue-600">{{ buyersSummary.totalShipped }}</div>
+                                    <div class="text-xs text-blue-600 mt-1">已出貨</div>
                                 </div>
                             </div>
 
                             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                    <h3 class="font-bold text-slate-800">訂單明細</h3>
-                                    <span class="text-xs text-slate-500">共 {{ buyers.length }} 筆訂單</span>
+                                <!-- 標題與搜尋 -->
+                                <div class="p-3 border-b border-slate-200 bg-slate-50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-bold text-slate-800">訂單明細</h3>
+                                        <span class="text-xs text-slate-500">共 {{ filteredBuyers.length }} 筆訂單</span>
+                                    </div>
+                                    <!-- 搜尋框 -->
+                                    <div class="relative">
+                                        <input type="text" v-model="buyersSearch" placeholder="搜尋客戶名稱..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                        <button v-if="buyersSearch" @click="buyersSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div v-if="buyersLoading" class="p-8 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
                                 <div v-else-if="buyers.length === 0" class="p-8 text-center text-slate-500">
                                     <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                                     <p>目前沒有訂單</p>
                                 </div>
+                                <div v-else-if="filteredBuyers.length === 0" class="p-8 text-center text-slate-500">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    <p>找不到符合「{{ buyersSearch }}」的訂單</p>
+                                </div>
                                 <!-- 桌面版表格 -->
                                 <table v-else class="hidden md:table min-w-full divide-y divide-slate-100">
                                     <thead class="bg-slate-50">
                                         <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">日期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">訂單編號</th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
                                             <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">數量</th>
                                             <th class="px-4 py-3 text-center text-xs font-semibold text-green-600 uppercase tracking-wider bg-green-50/50">已分配</th>
@@ -536,10 +551,9 @@ $products_component_template = <<<'HTML'
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
-                                        <tr v-for="order in buyers" :key="order.order_item_id" class="hover:bg-slate-50">
+                                        <tr v-for="order in paginatedBuyers" :key="order.order_item_id" class="hover:bg-slate-50">
                                             <td class="px-4 py-4">
-                                                <div class="text-sm font-medium text-slate-900">{{ formatDate(order.order_date) }}</div>
-                                                <div class="text-xs text-primary font-medium">{{ order.invoice_no }}</div>
+                                                <button @click="goToOrderDetail(order.order_id)" class="text-sm font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
                                             </td>
                                             <td class="px-4 py-4">
                                                 <div class="text-sm font-medium text-slate-900">{{ order.customer_name }}</div>
@@ -576,54 +590,71 @@ $products_component_template = <<<'HTML'
                                         </tr>
                                     </tbody>
                                 </table>
-                                <!-- 手機版卡片 -->
-                                <div v-if="!buyersLoading && buyers.length > 0" class="md:hidden divide-y divide-slate-100">
-                                    <div v-for="order in buyers" :key="order.order_item_id" class="p-4 hover:bg-slate-50">
-                                        <div class="flex justify-between items-start mb-3">
-                                            <div>
-                                                <div class="text-sm font-bold text-primary">{{ order.invoice_no }}</div>
-                                                <div class="font-medium text-slate-900 mt-1">{{ order.customer_name }}</div>
-                                                <div class="text-xs text-slate-400 mt-0.5">{{ formatDate(order.order_date) }}</div>
+                                <!-- 手機版卡片（採用分配頁風格） -->
+                                <div v-if="!buyersLoading && filteredBuyers.length > 0" class="md:hidden divide-y divide-slate-100">
+                                    <div v-for="order in paginatedBuyers" :key="order.order_item_id" class="px-3 py-2.5 hover:bg-slate-50 transition">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <!-- 左側：編號+客戶+統計 -->
+                                            <div class="flex-1 min-w-0" @click="goToOrderDetail(order.order_id)">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <button @click="goToOrderDetail(order.order_id)" class="font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
+                                                    <span class="text-sm text-slate-500 truncate">{{ order.customer_name }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-xs">
+                                                    <span><span class="text-slate-400">數量</span> <span class="font-bold text-slate-700">{{ order.quantity }}</span></span>
+                                                    <span><span class="text-slate-400">已配</span> <span class="font-bold text-green-600">{{ order.allocated_quantity }}</span></span>
+                                                    <span><span class="text-slate-400">待配</span> <span class="font-bold text-amber-600">{{ order.pending_quantity }}</span></span>
+                                                </div>
                                             </div>
-                                            <span :class="getStatusClass(order.status)" class="px-3 py-1 text-xs rounded-full font-medium">
-                                                {{ getStatusText(order.status) }}
-                                            </span>
+                                            <!-- 右側：狀態與操作 -->
+                                            <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                                <span :class="getStatusClass(order.status)" class="px-2 py-0.5 text-[10px] rounded-full font-medium">
+                                                    {{ getStatusText(order.status) }}
+                                                </span>
+                                                <button
+                                                    v-if="order.pending_quantity > 0 && !['shipped', 'completed'].includes(order.shipping_status)"
+                                                    @click.stop="allocateOrder(order)"
+                                                    :disabled="allocatingOrderItemId === order.order_item_id"
+                                                    class="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : '一鍵分配' }}
+                                                </button>
+                                                <span v-else-if="['shipped', 'completed'].includes(order.shipping_status)" class="text-xs text-blue-600 font-medium inline-flex items-center gap-0.5">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    已出貨
+                                                </span>
+                                                <span v-else class="text-xs text-green-600 font-medium inline-flex items-center gap-0.5">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    完成
+                                                </span>
+                                            </div>
                                         </div>
-                                        <!-- 數量明細 - 更大更清晰 -->
-                                        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
-                                            <div class="bg-slate-50 rounded-lg p-2">
-                                                <div class="text-lg font-bold text-slate-900">{{ order.quantity }}</div>
-                                                <div class="text-xs text-slate-500">數量</div>
-                                            </div>
-                                            <div class="bg-green-50 rounded-lg p-2">
-                                                <div class="text-lg font-bold text-green-600">{{ order.allocated_quantity }}</div>
-                                                <div class="text-xs text-green-600">已分配</div>
-                                            </div>
-                                            <div class="bg-amber-50 rounded-lg p-2">
-                                                <div class="text-lg font-bold text-amber-600">{{ order.pending_quantity }}</div>
-                                                <div class="text-xs text-amber-600">待分配</div>
-                                            </div>
-                                        </div>
-                                        <div v-if="order.shipped_quantity > 0" class="text-xs text-blue-600 mb-3 text-center">
-                                            已出貨: {{ order.shipped_quantity }}
-                                        </div>
-                                        <div>
-                                            <button
-                                                v-if="order.pending_quantity > 0 && !['shipped', 'completed'].includes(order.shipping_status)"
-                                                @click="allocateOrder(order)"
-                                                :disabled="allocatingOrderItemId === order.order_item_id"
-                                                class="w-full px-3 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                                                {{ allocatingOrderItemId === order.order_item_id ? '分配中...' : `一鍵分配 (${order.pending_quantity} 個)` }}
+                                    </div>
+                                </div>
+                                <!-- 分頁控制 -->
+                                <div v-if="filteredBuyers.length > 0" class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                    <div class="text-sm text-slate-700 text-center sm:text-left">
+                                        顯示 <span class="font-medium">{{ buyersStartIndex }}</span> 到 <span class="font-medium">{{ buyersEndIndex }}</span> 筆，共 <span class="font-medium">{{ filteredBuyers.length }}</span> 筆
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <!-- 每頁筆數選擇 -->
+                                        <select v-model.number="buyersPerPage" @change="buyersHandlePerPageChange" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                            <option v-for="option in buyersPerPageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                                        </select>
+                                        <!-- 頁碼導航 -->
+                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                            <button @click="buyersGoToPage(buyersCurrentPage - 1)" :disabled="buyersCurrentPage === 1"
+                                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                                             </button>
-                                            <div v-else-if="['shipped', 'completed'].includes(order.shipping_status)" class="text-center text-sm text-blue-600 font-medium py-2 flex items-center justify-center gap-1">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                已出貨
-                                            </div>
-                                            <div v-else class="text-center text-sm text-green-600 font-medium py-2 flex items-center justify-center gap-1">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                已處理完成
-                                            </div>
-                                        </div>
+                                            <button v-for="p in buyersVisiblePages" :key="p" @click="buyersGoToPage(p)"
+                                                :class="[p === buyersCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                                                {{ p }}
+                                            </button>
+                                            <button @click="buyersGoToPage(buyersCurrentPage + 1)" :disabled="buyersCurrentPage >= buyersTotalPages"
+                                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                            </button>
+                                        </nav>
                                     </div>
                                 </div>
                             </div>
@@ -686,25 +717,34 @@ $products_component_template = <<<'HTML'
                                             <div class="text-[10px] text-slate-600">已採購</div>
                                             <div class="font-bold text-slate-700">{{ selectedProduct?.purchased || 0 }}</div>
                                         </div>
+                                        <div class="bg-primary/10 rounded-lg py-2 px-1">
+                                            <div class="text-[10px] text-primary">可分配</div>
+                                            <div class="font-bold text-primary">{{ Math.max(0, (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0)) }}</div>
+                                        </div>
                                         <div class="bg-blue-50 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-blue-600">已分配</div>
                                             <div class="font-bold text-blue-700">{{ selectedProduct?.allocated || 0 }}</div>
-                                        </div>
-                                        <div class="bg-primary/10 rounded-lg py-2 px-1">
-                                            <div class="text-[10px] text-primary">可分配</div>
-                                            <div class="font-bold text-primary">{{ (selectedProduct?.ordered || 0) - (selectedProduct?.allocated || 0) }}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <!-- Orders List for Allocation -->
                             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
-                                <!-- 標題列 -->
+                                <!-- 標題列與上方確認分配按鈕 -->
                                 <div class="p-3 border-b border-slate-200 bg-slate-50">
                                     <div class="flex items-center justify-between mb-2">
                                         <h3 class="font-bold text-slate-800">待分配訂單 <span class="text-sm font-normal text-slate-500">({{ filteredProductOrders.length }}/{{ productOrders.length }} 筆)</span></h3>
+                                        <!-- 上方分配按鈕（精簡版） -->
+                                        <button v-if="totalAllocation > 0" @click="handleSubPageSave" class="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 transition flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                            分配 ({{ totalAllocation }})
+                                        </button>
+                                        <span v-else class="px-3 py-1.5 bg-slate-200 text-slate-500 text-sm font-medium rounded-lg flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                            分配 (0)
+                                        </span>
                                     </div>
-                                    <!-- 搜尋框（整條） -->
+                                    <!-- 搜尋框 -->
                                     <div class="relative">
                                         <input type="text" v-model="allocationSearch" placeholder="搜尋訂單編號或客戶名稱..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                                         <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -713,7 +753,7 @@ $products_component_template = <<<'HTML'
                                         </button>
                                     </div>
                                 </div>
-                                <div class="overflow-auto max-h-[50vh]">
+                                <div class="overflow-auto">
                                     <div v-if="allocationLoading" class="flex flex-col items-center justify-center py-12">
                                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                                         <p class="text-slate-500">載入訂單中...</p>
@@ -723,15 +763,14 @@ $products_component_template = <<<'HTML'
                                         <p v-if="allocationSearch">找不到符合「{{ allocationSearch }}」的訂單</p>
                                         <p v-else>目前沒有此商品的待處理訂單</p>
                                     </div>
-                                    <!-- 訂單列表 -->
+                                    <!-- 訂單列表（使用分頁後的資料） -->
                                     <div v-else class="divide-y divide-slate-100">
-                                        <div v-for="order in filteredProductOrders" :key="order.order_id" class="px-3 py-2.5 hover:bg-slate-50 transition">
-                                            <!-- 手機版：兩行佈局 -->
+                                        <div v-for="order in paginatedProductOrders" :key="order.order_id" class="px-3 py-2.5 hover:bg-slate-50 transition">
                                             <div class="flex items-center justify-between gap-2">
                                                 <!-- 左側：編號+客戶+統計 -->
                                                 <div class="flex-1 min-w-0">
                                                     <div class="flex items-center gap-2 mb-1">
-                                                        <span class="font-bold text-slate-900">#{{ order.order_id }}</span>
+                                                        <button @click="goToOrderDetail(order.order_id)" class="font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
                                                         <span class="text-sm text-slate-500 truncate">{{ order.customer || '訪客' }}</span>
                                                     </div>
                                                     <div class="flex items-center gap-3 text-xs">
@@ -746,20 +785,44 @@ $products_component_template = <<<'HTML'
                                         </div>
                                     </div>
                                 </div>
-                                <!-- 總計 -->
-                                <div v-if="productOrders.length > 0" class="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-sm">
-                                    <span class="text-slate-600">總計分配：</span>
-                                    <span class="text-lg font-bold text-primary">{{ totalAllocation }}</span>
-                                </div>
-                                <!-- 浮動儲存按鈕（有輸入時才顯示） -->
-                                <transition name="fade">
-                                    <div v-if="totalAllocation > 0" class="sticky bottom-0 p-3 bg-white border-t border-slate-200 shadow-lg">
-                                        <button @click="handleSubPageSave" class="w-full py-3 bg-primary text-white text-base font-bold rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                            確認分配 {{ totalAllocation }} 件
-                                        </button>
+                                <!-- 分頁控制 -->
+                                <div v-if="filteredProductOrders.length > 0" class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                    <div class="text-sm text-slate-700 text-center sm:text-left">
+                                        顯示 <span class="font-medium">{{ allocationStartIndex }}</span> 到 <span class="font-medium">{{ allocationEndIndex }}</span> 筆，共 <span class="font-medium">{{ filteredProductOrders.length }}</span> 筆
                                     </div>
-                                </transition>
+                                    <div class="flex items-center gap-3">
+                                        <!-- 每頁筆數選擇 -->
+                                        <select v-model.number="allocationPerPage" @change="allocationHandlePerPageChange" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                            <option v-for="option in allocationPerPageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                                        </select>
+                                        <!-- 頁碼導航 -->
+                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                            <button @click="allocationGoToPage(allocationCurrentPage - 1)" :disabled="allocationCurrentPage === 1"
+                                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                            </button>
+                                            <button v-for="p in allocationVisiblePages" :key="p" @click="allocationGoToPage(p)"
+                                                :class="[p === allocationCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                                                {{ p }}
+                                            </button>
+                                            <button @click="allocationGoToPage(allocationCurrentPage + 1)" :disabled="allocationCurrentPage >= allocationTotalPages"
+                                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                            </button>
+                                        </nav>
+                                    </div>
+                                </div>
+                                <!-- 總計與下方確認分配按鈕 -->
+                                <div v-if="productOrders.length > 0" class="px-3 py-3 bg-white border-t border-slate-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-slate-600">總計分配：</span>
+                                        <span class="text-lg font-bold text-primary">{{ totalAllocation }}</span>
+                                    </div>
+                                    <button @click="handleSubPageSave" :disabled="totalAllocation === 0" class="w-full py-3 bg-primary text-white text-base font-bold rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        確認分配 {{ totalAllocation }} 件
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -838,6 +901,88 @@ const ProductsPageComponent = {
         const buyersLoading = ref(false);
         const buyersProduct = ref(null);  // 商品資訊（名稱、圖片）
         const allocatingOrderItemId = ref(null);  // 改用 order_item_id
+        const buyersSearch = ref('');  // 搜尋客戶名稱
+        const buyersCurrentPage = ref(1);
+        const buyersPerPage = ref(3);
+        const buyersPerPageOptions = [
+            { value: 3, label: '3 / 頁' },
+            { value: 5, label: '5 / 頁' },
+            { value: 20, label: '20 / 頁' },
+            { value: 50, label: '50 / 頁' }
+        ];
+
+        // 過濾後的下單名單（根據搜尋關鍵字）
+        const filteredBuyers = computed(() => {
+            if (!buyersSearch.value.trim()) {
+                return buyers.value;
+            }
+            const keyword = buyersSearch.value.toLowerCase().trim();
+            return buyers.value.filter(order => {
+                const customerName = String(order.customer_name || '').toLowerCase();
+                const invoiceNo = String(order.invoice_no || '').toLowerCase();
+                return customerName.includes(keyword) || invoiceNo.includes(keyword);
+            });
+        });
+
+        // 分頁後的下單名單
+        const paginatedBuyers = computed(() => {
+            const start = (buyersCurrentPage.value - 1) * buyersPerPage.value;
+            const end = start + buyersPerPage.value;
+            return filteredBuyers.value.slice(start, end);
+        });
+
+        // 下單名單總頁數
+        const buyersTotalPages = computed(() => {
+            return Math.ceil(filteredBuyers.value.length / buyersPerPage.value) || 1;
+        });
+
+        // 下單名單分頁資訊
+        const buyersStartIndex = computed(() => {
+            if (filteredBuyers.value.length === 0) return 0;
+            return (buyersCurrentPage.value - 1) * buyersPerPage.value + 1;
+        });
+
+        const buyersEndIndex = computed(() => {
+            return Math.min(buyersCurrentPage.value * buyersPerPage.value, filteredBuyers.value.length);
+        });
+
+        // 下單名單可見頁碼
+        const buyersVisiblePages = computed(() => {
+            const pages = [];
+            const maxPages = Math.min(5, buyersTotalPages.value);
+            let startPage = Math.max(1, buyersCurrentPage.value - Math.floor(maxPages / 2));
+            let endPage = startPage + maxPages - 1;
+
+            if (endPage > buyersTotalPages.value) {
+                endPage = buyersTotalPages.value;
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+            return pages;
+        });
+
+        // 下單名單分頁方法
+        const buyersGoToPage = (page) => {
+            if (page < 1 || page > buyersTotalPages.value) return;
+            buyersCurrentPage.value = page;
+        };
+
+        const buyersHandlePerPageChange = () => {
+            buyersCurrentPage.value = 1;
+        };
+
+        // 監聽搜尋變化，重置分頁
+        watch(buyersSearch, () => {
+            buyersCurrentPage.value = 1;
+        });
+
+        // 跳轉到訂單詳情頁
+        const goToOrderDetail = (orderId) => {
+            window.location.href = `/buygo-portal/orders/?view=detail&id=${orderId}`;
+        };
 
         // 統計摘要
         const buyersSummary = computed(() => {
@@ -877,6 +1022,71 @@ const ProductsPageComponent = {
         // 總分配數量（用於顯示浮動按鈕）
         const totalAllocation = computed(() => {
             return productOrders.value.reduce((acc, o) => acc + (o.allocated || 0), 0);
+        });
+
+        // 分配頁面分頁
+        const allocationCurrentPage = ref(1);
+        const allocationPerPage = ref(3);
+        const allocationPerPageOptions = [
+            { value: 3, label: '3 / 頁' },
+            { value: 5, label: '5 / 頁' },
+            { value: 20, label: '20 / 頁' },
+            { value: 50, label: '50 / 頁' }
+        ];
+
+        // 分頁後的分配訂單列表
+        const paginatedProductOrders = computed(() => {
+            const start = (allocationCurrentPage.value - 1) * allocationPerPage.value;
+            const end = start + allocationPerPage.value;
+            return filteredProductOrders.value.slice(start, end);
+        });
+
+        // 分配頁面總頁數
+        const allocationTotalPages = computed(() => {
+            return Math.ceil(filteredProductOrders.value.length / allocationPerPage.value) || 1;
+        });
+
+        // 分配頁面分頁資訊
+        const allocationStartIndex = computed(() => {
+            if (filteredProductOrders.value.length === 0) return 0;
+            return (allocationCurrentPage.value - 1) * allocationPerPage.value + 1;
+        });
+
+        const allocationEndIndex = computed(() => {
+            return Math.min(allocationCurrentPage.value * allocationPerPage.value, filteredProductOrders.value.length);
+        });
+
+        // 分配頁面可見頁碼
+        const allocationVisiblePages = computed(() => {
+            const pages = [];
+            const maxPages = Math.min(5, allocationTotalPages.value);
+            let startPage = Math.max(1, allocationCurrentPage.value - Math.floor(maxPages / 2));
+            let endPage = startPage + maxPages - 1;
+
+            if (endPage > allocationTotalPages.value) {
+                endPage = allocationTotalPages.value;
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+            return pages;
+        });
+
+        // 分配頁面分頁方法
+        const allocationGoToPage = (page) => {
+            if (page < 1 || page > allocationTotalPages.value) return;
+            allocationCurrentPage.value = page;
+        };
+
+        const allocationHandlePerPageChange = () => {
+            allocationCurrentPage.value = 1;
+        };
+
+        // 監聽分配搜尋變化，重置分頁
+        watch(allocationSearch, () => {
+            allocationCurrentPage.value = 1;
         });
 
         // Image Modal
@@ -1208,12 +1418,13 @@ const ProductsPageComponent = {
             }
             
             // 準備分配資料
+            // 注意：傳給後端的 quantity 是「新的總分配量」= 已分配 + 本次新增
             const allocationData = productOrders.value
                 .filter(order => order.allocated && order.allocated > 0)
                 .map(order => ({
                     order_id: order.order_id,
                     order_item_id: order.order_item_id || order.id,
-                    quantity: order.allocated
+                    quantity: (order.already_allocated || 0) + order.allocated
                 }));
             
             if (allocationData.length === 0) {
@@ -1389,6 +1600,8 @@ const ProductsPageComponent = {
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery,
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
+            buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
+            allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
             showImageModal, currentImage, toastMessage,
             currentPage, perPage, totalProducts, menuItems: [
                 { id: 'products', label: '商品管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>' },

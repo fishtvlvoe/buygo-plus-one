@@ -724,13 +724,28 @@ class OrderService
         $total_items = 0;
         $items = [];
 
+        // 預先從資料庫讀取所有訂單項目的 line_meta（確保資料是最新的）
+        global $wpdb;
+        $table_items = $wpdb->prefix . 'fct_order_items';
+        $order_id = $order['id'] ?? 0;
+        $db_items = [];
+        if ($order_id > 0) {
+            $db_results = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, line_meta FROM {$table_items} WHERE order_id = %d",
+                $order_id
+            ), ARRAY_A);
+            foreach ($db_results as $row) {
+                $db_items[(int)$row['id']] = $row['line_meta'];
+            }
+        }
+
         if (isset($order['order_items']) && is_array($order['order_items'])) {
             foreach ($order['order_items'] as $item) {
                 // 確保 $item 是陣列格式
                 if (is_object($item)) {
                     $item = (array) $item;
                 }
-                
+
                 $quantity = $item['quantity'] ?? 0;
                 $total_items += $quantity;
 
@@ -749,11 +764,12 @@ class OrderService
                 if (empty($product_name)) {
                     $product_name = '未知商品';
                 }
-                
-                // 讀取 line_meta 或 meta_data 中的 allocated_quantity 和 shipped_quantity
-                // 注意：FluentCart Model 會自動將 line_meta 解碼成 Array，所以需要檢查類型
-                $line_meta_value = $item['line_meta'] ?? $item['meta_data'] ?? '{}';
-                
+
+                // 讀取 line_meta：優先使用從 DB 直接讀取的資料（確保最新）
+                // 因為 FluentCart Model 可能不會正確傳遞 line_meta
+                $item_id = (int)($item['id'] ?? 0);
+                $line_meta_value = $db_items[$item_id] ?? $item['line_meta'] ?? $item['meta_data'] ?? '{}';
+
                 // 如果已經是 array，直接使用；如果是 string，才需要 json_decode
                 if (is_array($line_meta_value)) {
                     $meta_data = $line_meta_value;
@@ -762,7 +778,7 @@ class OrderService
                 } else {
                     $meta_data = [];
                 }
-                
+
                 $allocated_quantity = (int)($meta_data['_allocated_qty'] ?? 0);
                 $shipped_quantity = (int)($meta_data['_shipped_qty'] ?? 0);
                 
