@@ -65,7 +65,12 @@ $settings_component_template = <<<'HTML'
     <div class="p-6">
         <!-- 模板設定 -->
         <div class="buygo-card p-6 mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 mb-4">📝 LINE 通知模板管理</h2>
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                LINE 通知模板管理
+            </h2>
             <p class="text-sm text-slate-600 mb-6">選擇分類和類型，然後編輯對應的訊息模板</p>
             
             <!-- 標籤分類 -->
@@ -605,88 +610,211 @@ $settings_component_template = <<<'HTML'
             </div>
         </div>
 
-        <!-- 會員權限管理（僅管理員可見） -->
+        <!-- 會員管理（僅管理員可見） -->
         <div v-if="isAdmin" class="buygo-card">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-slate-900 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
-                    會員權限管理
+                    會員管理
                 </h2>
+                <!-- 桌面版：完整按鈕 -->
                 <button
-                    @click="showAddHelperModal = true"
-                    class="buygo-btn buygo-btn-primary flex items-center">
+                    @click="memberView = 'add'"
+                    v-show="memberView === 'list'"
+                    class="hidden md:flex buygo-btn buygo-btn-primary items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
                     新增小幫手
                 </button>
+                <!-- 手機版：僅 + 圖示 -->
+                <button
+                    @click="memberView = 'add'"
+                    v-show="memberView === 'list'"
+                    class="md:hidden buygo-btn buygo-btn-primary p-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </button>
+                <!-- 返回列表按鈕 -->
+                <button
+                    @click="memberView = 'list'; userSearchQuery = ''; userSearchResults = []"
+                    v-show="memberView === 'add'"
+                    class="buygo-btn buygo-btn-secondary flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    <span class="hidden md:inline">返回列表</span>
+                    <span class="md:hidden">返回</span>
+                </button>
             </div>
 
-            <!-- 載入狀態 -->
-            <div v-if="loadingHelpers" class="buygo-loading">
-                <div class="buygo-loading-spinner"></div>
-                <p>載入中...</p>
-            </div>
-            
-            <!-- 小幫手列表 -->
-            <div v-else>
-                <!-- 桌面版表格 -->
-                <div class="hidden md:block overflow-hidden">
-                    <table class="w-full">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">使用者</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-200">
-                            <tr v-for="helper in helpers" :key="helper.id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ helper.name }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-600">{{ helper.email }}</td>
-                                <td class="px-4 py-3">
-                                    <button
-                                        @click="removeHelper(helper.id)"
-                                        class="text-red-600 hover:text-red-700 text-sm font-medium flex items-center">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        移除
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr v-if="helpers.length === 0">
-                                <td colspan="3" class="px-4 py-8 text-center text-slate-500">
-                                    尚無小幫手
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- 子分頁：列表視圖 -->
+            <div v-if="memberView === 'list'">
+                <!-- 載入狀態 -->
+                <div v-if="loadingHelpers" class="buygo-loading">
+                    <div class="buygo-loading-spinner"></div>
+                    <p>載入中...</p>
                 </div>
-                
-                <!-- 手機版卡片 -->
-                <div class="md:hidden space-y-4">
-                    <div v-for="helper in helpers" :key="helper.id" class="border border-slate-200 rounded-xl p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-base font-bold text-slate-900 mb-1">{{ helper.name }}</div>
-                                <div class="text-sm text-slate-600">{{ helper.email }}</div>
+
+                <!-- 小幫手列表 -->
+                <div v-else>
+                    <!-- 桌面版表格 -->
+                    <div class="hidden md:block overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">使用者</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <tr v-for="helper in helpers" :key="helper.id" class="hover:bg-slate-50 transition">
+                                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ helper.name }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">{{ helper.email }}</td>
+                                    <td class="px-4 py-3">
+                                        <button
+                                            @click="removeHelper(helper.id)"
+                                            class="text-red-600 hover:text-red-700 text-sm font-medium flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                            移除
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="helpers.length === 0">
+                                    <td colspan="3" class="px-4 py-8 text-center text-slate-500">
+                                        尚無小幫手
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 手機版卡片 -->
+                    <div class="md:hidden space-y-4">
+                        <div v-for="helper in helpers" :key="helper.id" class="border border-slate-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-base font-bold text-slate-900 mb-1">{{ helper.name }}</div>
+                                    <div class="text-sm text-slate-600">{{ helper.email }}</div>
+                                </div>
+                                <button
+                                    @click="removeHelper(helper.id)"
+                                    class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center">
+                                    <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    <span class="hidden md:inline">移除</span>
+                                </button>
                             </div>
-                            <button
-                                @click="removeHelper(helper.id)"
-                                class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                                移除
-                            </button>
+                        </div>
+                        <div v-if="helpers.length === 0" class="text-center py-8 text-slate-500">
+                            尚無小幫手
                         </div>
                     </div>
-                    <div v-if="helpers.length === 0" class="text-center py-8 text-slate-500">
-                        尚無小幫手
+                </div>
+            </div>
+
+            <!-- 子分頁：新增小幫手 -->
+            <div v-if="memberView === 'add'">
+                <p class="text-sm text-slate-600 mb-4">搜尋 WordPress 使用者，點擊即可新增為小幫手</p>
+
+                <!-- 搜尋框 -->
+                <div class="relative mb-4">
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <input
+                                ref="userSearchInput"
+                                v-model="userSearchQuery"
+                                @input="searchUsers"
+                                @focus="onUserSearchFocus"
+                                @blur="onUserSearchBlur"
+                                type="text"
+                                class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                                placeholder="搜尋使用者名稱或 Email...">
+                            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <button
+                            @click="searchUsers"
+                            :disabled="!userSearchQuery"
+                            class="buygo-btn buygo-btn-primary px-4">
+                            搜尋
+                        </button>
                     </div>
+
+                    <!-- 搜尋提示下拉選單（點擊搜尋框時顯示最新會員） -->
+                    <div
+                        v-if="showRecentUsers && recentUsers.length > 0 && !userSearchQuery"
+                        class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
+                        <div class="px-3 py-2 text-xs text-slate-500 border-b border-slate-100">最近加入的會員</div>
+                        <button
+                            v-for="user in recentUsers"
+                            :key="user.id"
+                            @mousedown.prevent="selectUser(user)"
+                            class="w-full px-4 py-3 text-left hover:bg-slate-50 transition flex items-center gap-3 border-b border-slate-100 last:border-b-0">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span class="text-primary font-medium text-sm">{{ user.name.charAt(0) }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-slate-900 truncate">{{ user.name }}</div>
+                                <div class="text-sm text-slate-500 truncate">{{ user.email }}</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 搜尋中狀態 -->
+                <div v-if="searchingUsers" class="py-8 text-center">
+                    <div class="buygo-loading-spinner mx-auto mb-2"></div>
+                    <p class="text-slate-500 text-sm">搜尋中...</p>
+                </div>
+
+                <!-- 搜尋結果 -->
+                <div v-else-if="userSearchResults.length > 0" class="space-y-2">
+                    <p class="text-sm text-slate-500 mb-2">找到 {{ userSearchResults.length }} 位使用者</p>
+                    <div class="border border-slate-200 rounded-lg divide-y divide-slate-200">
+                        <button
+                            v-for="user in userSearchResults"
+                            :key="user.id"
+                            @click="selectUser(user)"
+                            class="w-full px-4 py-3 text-left hover:bg-slate-50 transition flex items-center gap-3">
+                            <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                                <span class="text-primary font-semibold">{{ user.name.charAt(0) }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-slate-900 truncate">{{ user.name }}</div>
+                                <div class="text-sm text-slate-500 truncate">{{ user.email }}</div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 無結果 -->
+                <div v-else-if="userSearchQuery && !searchingUsers" class="py-8 text-center">
+                    <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-slate-500">找不到符合「{{ userSearchQuery }}」的使用者</p>
+                    <p class="text-sm text-slate-400 mt-1">請嘗試其他關鍵字</p>
+                </div>
+
+                <!-- 初始狀態提示 -->
+                <div v-else-if="!showRecentUsers" class="py-8 text-center">
+                    <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <p class="text-slate-500">輸入使用者名稱或 Email 來搜尋</p>
+                    <p class="text-sm text-slate-400 mt-1">或點擊搜尋框查看最近加入的會員</p>
                 </div>
             </div>
         </div>
@@ -767,67 +895,6 @@ $settings_component_template = <<<'HTML'
                     class="buygo-btn buygo-btn-primary">
                     新增
                 </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 新增小幫手 Modal -->
-    <div v-if="showAddHelperModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeAddHelperModal">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <!-- 標題列 -->
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-slate-900 font-title">新增小幫手</h2>
-                    <button @click="closeAddHelperModal" class="text-slate-400 hover:text-slate-600 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- 內容區域 -->
-            <div class="p-6">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">搜尋使用者</label>
-                    <input 
-                        v-model="userSearchQuery"
-                        @input="searchUsers"
-                        type="text"
-                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                        placeholder="輸入姓名或 Email...">
-                </div>
-                
-                <!-- 搜尋結果 -->
-                <div v-if="userSearchResults.length > 0" class="space-y-2 max-h-64 overflow-y-auto">
-                    <button
-                        v-for="user in userSearchResults"
-                        :key="user.id"
-                        @click="selectUser(user)"
-                        class="w-full px-4 py-3 text-left border border-slate-200 rounded-lg hover:bg-slate-50 transition flex items-center gap-3">
-                        <div class="flex-1">
-                            <div class="font-medium text-slate-900">{{ user.name }}</div>
-                            <div class="text-sm text-slate-600">{{ user.email }}</div>
-                        </div>
-                    </button>
-                </div>
-                
-                <div v-else-if="userSearchQuery && !searchingUsers" class="text-center py-8 text-slate-500">
-                    找不到符合的使用者
-                </div>
-                
-                <div v-else-if="!userSearchQuery" class="text-center py-8 text-slate-500">
-                    請輸入搜尋關鍵字
-                </div>
-                
-                <!-- 按鈕列 -->
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200 mt-4">
-                    <button
-                        @click="closeAddHelperModal"
-                        class="buygo-btn buygo-btn-secondary">
-                        取消
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -922,12 +989,15 @@ const SettingsPageComponent = {
         const helpers = ref([]);
         const loadingHelpers = ref(false);
         const isAdmin = ref(false);
-        
-        // 新增小幫手 Modal 狀態
-        const showAddHelperModal = ref(false);
+
+        // 會員管理子分頁狀態
+        const memberView = ref('list'); // 'list' | 'add'
         const userSearchQuery = ref('');
         const userSearchResults = ref([]);
         const searchingUsers = ref(false);
+        const showRecentUsers = ref(false);
+        const recentUsers = ref([]);
+        const userSearchInput = ref(null);
         
         // Toast 通知狀態
         const toastMessage = ref({
@@ -1633,21 +1703,23 @@ const SettingsPageComponent = {
         
         // 搜尋使用者
         const searchUsers = async () => {
+            showRecentUsers.value = false;
+
             if (!userSearchQuery.value || userSearchQuery.value.length < 2) {
                 userSearchResults.value = [];
                 return;
             }
-            
+
             searchingUsers.value = true;
-            
+
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/settings/users/search?query=${encodeURIComponent(userSearchQuery.value)}`, {
                     headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     userSearchResults.value = result.data;
                 } else {
@@ -1660,9 +1732,47 @@ const SettingsPageComponent = {
                 searchingUsers.value = false;
             }
         };
-        
+
+        // 載入最新會員（用於搜尋框提示）
+        const loadRecentUsers = async () => {
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/users/recent', {
+                    headers: { 'X-WP-Nonce': wpNonce },
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    recentUsers.value = result.data;
+                }
+            } catch (err) {
+                console.error('載入最新會員錯誤:', err);
+            }
+        };
+
+        // 搜尋框取得焦點
+        const onUserSearchFocus = () => {
+            if (!userSearchQuery.value) {
+                showRecentUsers.value = true;
+                if (recentUsers.value.length === 0) {
+                    loadRecentUsers();
+                }
+            }
+        };
+
+        // 搜尋框失去焦點
+        const onUserSearchBlur = () => {
+            // 延遲關閉，讓點擊事件可以先觸發
+            setTimeout(() => {
+                showRecentUsers.value = false;
+            }, 200);
+        };
+
         // 選擇使用者
         const selectUser = async (user) => {
+            showRecentUsers.value = false;
+
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/helpers', {
                     method: 'POST',
@@ -1673,12 +1783,15 @@ const SettingsPageComponent = {
                     credentials: 'include',
                     body: JSON.stringify({ user_id: user.id })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showToast('小幫手已新增', 'success');
-                    closeAddHelperModal();
+                    // 清空搜尋並返回列表
+                    userSearchQuery.value = '';
+                    userSearchResults.value = [];
+                    memberView.value = 'list';
                     await loadHelpers();
                 } else {
                     showToast('新增失敗：' + result.message, 'error');
@@ -1687,13 +1800,6 @@ const SettingsPageComponent = {
                 console.error('新增小幫手錯誤:', err);
                 showToast('新增失敗', 'error');
             }
-        };
-        
-        // 關閉新增小幫手 Modal
-        const closeAddHelperModal = () => {
-            showAddHelperModal.value = false;
-            userSearchQuery.value = '';
-            userSearchResults.value = [];
         };
         
         // 檢查是否為管理員
@@ -2005,13 +2111,18 @@ const SettingsPageComponent = {
             loadingHelpers,
             isAdmin,
             removeHelper,
-            showAddHelperModal,
+            // 會員管理子分頁
+            memberView,
             userSearchQuery,
             userSearchResults,
             searchingUsers,
             searchUsers,
             selectUser,
-            closeAddHelperModal,
+            showRecentUsers,
+            recentUsers,
+            onUserSearchFocus,
+            onUserSearchBlur,
+            userSearchInput,
             toastMessage,
             sortedTemplates,
             sortedSystemTemplates,

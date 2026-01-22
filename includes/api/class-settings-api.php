@@ -74,7 +74,14 @@ class Settings_API {
                 ]
             ]
         ]);
-        
+
+        // GET /settings/users/recent - 取得最近加入的會員（用於搜尋提示）
+        register_rest_route($this->namespace, '/settings/users/recent', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_recent_users'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
+
         // GET /settings/user/permissions - 取得當前使用者權限
         register_rest_route($this->namespace, '/settings/user/permissions', [
             'methods' => 'GET',
@@ -344,7 +351,50 @@ class Settings_API {
             ], 500);
         }
     }
-    
+
+    /**
+     * 取得最近加入的會員（用於搜尋提示）
+     * 注意：此 API 已使用 check_permission_for_admin 保護，僅管理員可存取
+     */
+    public function get_recent_users($request) {
+        try {
+            $users = get_users([
+                'orderby' => 'registered',
+                'order' => 'DESC',
+                'number' => 3, // 只返回最新 3 筆
+            ]);
+
+            $results = [];
+            foreach ($users as $user) {
+                // 遮罩電子郵件（只顯示前3字元和域名）
+                $email = $user->user_email;
+                $email_parts = explode('@', $email);
+                if (count($email_parts) === 2) {
+                    $local = $email_parts[0];
+                    $domain = $email_parts[1];
+                    $masked_local = substr($local, 0, 3) . '***';
+                    $email = $masked_local . '@' . $domain;
+                }
+
+                $results[] = [
+                    'id' => $user->ID,
+                    'name' => $user->display_name,
+                    'email' => $email,
+                ];
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $results
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '取得最新會員失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * 權限檢查（一般使用者）
      */
