@@ -53,6 +53,12 @@
 1. 父訂單有子訂單時，「轉備貨」按鈕不顯示在父訂單上
 2. 批次轉備貨會自動處理子訂單而非父訂單
 3. 子訂單狀態變更會自動同步更新父訂單的 shipping_status
+4. 批次轉備貨需檢查 `hasAllocatedItems()`，無分配庫存的訂單不可轉備貨
+
+### 出貨頁面子分頁架構
+- 使用 `currentView` ref 控制顯示（'list' | 'detail'）
+- 使用 `BuyGoRouter` 處理 URL 參數（?view=detail&id=123）
+- 支援瀏覽器返回按鈕（popstate 監聽）
 
 ### 關鍵服務類別
 - `AllocationService` - 庫存分配邏輯
