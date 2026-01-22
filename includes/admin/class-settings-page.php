@@ -90,6 +90,21 @@ class SettingsPage
             'restUrl' => rest_url('buygo-plus-one/v1'),
             'nonce' => wp_create_nonce('wp_rest') // REST API 使用 wp_rest nonce
         ]);
+
+        // 阻擋 Cloudflare Beacon 以修復效能問題
+        add_action('admin_print_footer_scripts', function() {
+            ?>
+            <script>
+            // 阻擋 Cloudflare Web Analytics Beacon
+            (function() {
+                if (typeof window !== 'undefined') {
+                    window.__cfBeacon = null;
+                    window.cfjsloader = null;
+                }
+            })();
+            </script>
+            <?php
+        }, 1);
     }
 
     /**

@@ -160,5 +160,20 @@ class Plugin {
         if (class_exists('FluentCommunity\\App\\App')) {
             new FluentCommunity();
         }
+
+        // 阻擋 Cloudflare Beacon 以修復效能問題
+        add_action('wp_footer', function() {
+            ?>
+            <script>
+            // 阻擋 Cloudflare Web Analytics Beacon
+            (function() {
+                if (typeof window !== 'undefined') {
+                    window.__cfBeacon = null;
+                    window.cfjsloader = null;
+                }
+            })();
+            </script>
+            <?php
+        }, 1);
     }
 }
