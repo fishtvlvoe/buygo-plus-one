@@ -53,6 +53,7 @@ LINE 上傳圖片和文字時，官方帳號沒有反應，無法正常上架商
 **Commits:**
 - `fce684e` - 修復 LINE 上架權限檢查 Bug
 - `cff61df` - 增強 LINE Webhook 簽名驗證日誌記錄
+- `87b399f` - 修復 LINE Webhook Timeout 問題
 
 ---
 
