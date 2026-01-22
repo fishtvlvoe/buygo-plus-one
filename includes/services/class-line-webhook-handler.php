@@ -273,6 +273,15 @@ class LineWebhookHandler {
 		// Download and upload image
 		// 取得 Channel Access Token（自動從 buygo_core_settings 或獨立 option 讀取並解密）
 		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
+
+		// Debug: 記錄 token 狀態
+		$this->logger->log( 'token_retrieved', array(
+			'has_token' => ! empty( $token ),
+			'token_length' => ! empty( $token ) ? strlen( $token ) : 0,
+			'token_preview' => ! empty( $token ) ? substr( $token, 0, 20 ) . '...' : '[empty]',
+			'step' => 'get_token',
+		), $user->ID, $line_uid );
+
 		if ( empty( $token ) ) {
 			$this->logger->log( 'error', array(
 				'message' => 'Channel Access Token is empty',

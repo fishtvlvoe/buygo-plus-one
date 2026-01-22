@@ -59,9 +59,22 @@ class SettingsService
     private static function decrypt(string $data): string
     {
         if (empty($data)) {
+            error_log("[SettingsService] Decrypt: empty data");
             return $data;
         }
+
+        error_log("[SettingsService] Decrypt - Input length: " . strlen($data));
+        error_log("[SettingsService] Decrypt - Cipher: " . self::cipher());
+        error_log("[SettingsService] Decrypt - Key exists: " . (self::get_encryption_key() ? "YES" : "NO"));
+
         $decrypted = openssl_decrypt($data, self::cipher(), self::get_encryption_key());
+
+        error_log("[SettingsService] Decrypt - Result: " . ($decrypted !== false ? "SUCCESS (length: " . strlen($decrypted) . ")" : "FAILED"));
+
+        if ($decrypted === false) {
+            error_log("[SettingsService] Decrypt - OpenSSL error: " . openssl_error_string());
+        }
+
         return $decrypted !== false ? $decrypted : $data;
     }
     /**
@@ -683,45 +696,58 @@ class SettingsService
      */
     public static function get(string $key, $default = null)
     {
-        // 方式 1：從 buygo_core_settings 讀取（舊外掛格式）
-        $core_settings = get_option('buygo_core_settings', []);
-        if (is_array($core_settings) && isset($core_settings[$key])) {
-            $value = $core_settings[$key];
-            
-            // 如果是加密欄位，嘗試解密
-            if (self::is_encrypted_field($key) && !empty($value)) {
-                $decrypted = self::decrypt($value);
-                // 如果解密成功且結果不同，使用解密後的值
-                if ($decrypted !== $value && !empty($decrypted)) {
-                    return $decrypted;
-                }
-            }
-            
-            return $value;
-        }
-        
-        // 方式 2：從獨立 option 讀取（新外掛格式）
+        // 方式 1：優先從獨立 option 讀取（新外掛格式）
+        // 這些是後台設定頁面保存的值，優先使用
         $option_key_map = [
             'line_channel_access_token' => 'buygo_line_channel_access_token',
             'line_channel_secret' => 'buygo_line_channel_secret',
             'line_liff_id' => 'buygo_line_liff_id',
         ];
-        
+
         if (isset($option_key_map[$key])) {
-            $value = get_option($option_key_map[$key], $default);
-            
+            $value = get_option($option_key_map[$key], '');
+
+            if (!empty($value)) {
+                error_log("[SettingsService] Get from new option - Key: $key");
+                error_log("[SettingsService] Raw value preview: " . substr($value, 0, 30) . "...");
+
+                // 新外掛的資料也可能是加密的，嘗試解密
+                if (self::is_encrypted_field($key)) {
+                    $decrypted = self::decrypt($value);
+                    // 如果解密成功且結果與原值不同，使用解密後的值
+                    if ($decrypted !== false && $decrypted !== $value && !empty($decrypted)) {
+                        error_log("[SettingsService] Decrypted successfully: " . substr($decrypted, 0, 30) . "...");
+                        return $decrypted;
+                    }
+                }
+
+                // 如果不需要解密或解密失敗，返回原值（可能是明文）
+                return $value;
+            }
+        }
+
+        // 方式 2：如果新外掛沒有值，從 buygo_core_settings 讀取（舊外掛格式）
+        $core_settings = get_option('buygo_core_settings', []);
+        if (is_array($core_settings) && isset($core_settings[$key])) {
+            $value = $core_settings[$key];
+
+            error_log("[SettingsService] Get from buygo_core_settings (fallback) - Key: $key");
+            error_log("[SettingsService] Raw value: " . substr($value, 0, 50) . "...");
+
             // 如果是加密欄位，嘗試解密
             if (self::is_encrypted_field($key) && !empty($value)) {
                 $decrypted = self::decrypt($value);
-                // 如果解密成功且結果不同，使用解密後的值
-                if ($decrypted !== $value && !empty($decrypted)) {
+
+                // 如果解密成功（返回非 false 且不為空），使用解密後的值
+                if ($decrypted !== false && !empty($decrypted)) {
+                    error_log("[SettingsService] Using decrypted value from core_settings");
                     return $decrypted;
                 }
             }
-            
+
             return $value;
         }
-        
+
         return $default;
     }
     

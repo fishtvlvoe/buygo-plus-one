@@ -100,7 +100,13 @@ class ImageUploader {
 
 		$url = "https://api-data.line.me/v2/bot/message/{$message_id}/content";
 
-		$this->logger->log( 'image_download_line', array( 'url' => $url ), null, null );
+		// Debug: 記錄使用的 token 資訊
+		$this->logger->log( 'image_download_line', array(
+			'url' => $url,
+			'token_length' => strlen( $this->channel_access_token ),
+			'token_preview' => substr( $this->channel_access_token, 0, 30 ) . '...',
+			'token_ends_with' => '...' . substr( $this->channel_access_token, -10 ),
+		), null, null );
 
 		$response = wp_remote_get(
 			$url,

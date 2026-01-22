@@ -203,20 +203,77 @@ class SettingsPage
      */
     private function render_line_tab($settings): void
     {
+        // Debug: 顯示解密狀態
+        $debug_info = [];
+        $raw_token = get_option('buygo_core_settings', [])['line_channel_access_token'] ?? null;
+        if (!$raw_token) {
+            $raw_token = get_option('buygo_line_channel_access_token', null);
+        }
+
+        if ($raw_token) {
+            $debug_info['token_exists'] = true;
+            $debug_info['token_length'] = strlen($raw_token);
+            $debug_info['token_preview'] = substr($raw_token, 0, 20) . '...';
+            $debug_info['decrypted_length'] = strlen($settings['channel_access_token']);
+            $debug_info['encryption_key_defined'] = defined('BUYGO_ENCRYPTION_KEY');
+        } else {
+            $debug_info['token_exists'] = false;
+        }
+
         ?>
+
+        <!-- Debug Information -->
+        <div class="notice notice-info" style="margin: 20px 0;">
+            <h3>🔍 LINE 設定 Debug 資訊</h3>
+            <table class="widefat" style="margin-top: 10px;">
+                <tr>
+                    <th style="width: 200px;">Token 是否存在</th>
+                    <td><?php echo $debug_info['token_exists'] ? '✅ 是' : '❌ 否'; ?></td>
+                </tr>
+                <?php if ($debug_info['token_exists']): ?>
+                <tr>
+                    <th>加密資料長度</th>
+                    <td><?php echo $debug_info['token_length']; ?> 字元</td>
+                </tr>
+                <tr>
+                    <th>加密資料預覽</th>
+                    <td><code><?php echo esc_html($debug_info['token_preview']); ?></code></td>
+                </tr>
+                <tr>
+                    <th>解密後長度</th>
+                    <td><?php echo $debug_info['decrypted_length']; ?> 字元</td>
+                </tr>
+                <tr>
+                    <th>解密結果</th>
+                    <td>
+                        <?php if ($debug_info['decrypted_length'] > 0): ?>
+                            <span style="color: green;">✅ 解密成功</span>
+                        <?php else: ?>
+                            <span style="color: red;">❌ 解密失敗或資料為空</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>加密金鑰已定義</th>
+                    <td><?php echo $debug_info['encryption_key_defined'] ? '✅ 是' : '⚠️ 否（使用預設金鑰）'; ?></td>
+                </tr>
+                <?php endif; ?>
+            </table>
+        </div>
+
         <form method="post" action="">
             <?php wp_nonce_field('buygo_settings'); ?>
-            
+
             <table class="form-table">
                 <tr>
                     <th scope="row">
                         <label for="line_channel_access_token">Channel Access Token</label>
                     </th>
                     <td>
-                        <input type="text" 
+                        <input type="text"
                                id="line_channel_access_token"
-                               name="line_channel_access_token" 
-                               class="regular-text" 
+                               name="line_channel_access_token"
+                               class="regular-text"
                                value="<?php echo esc_attr($settings['channel_access_token']); ?>" />
                         <p class="description">LINE Bot 的 Channel Access Token</p>
                     </td>
