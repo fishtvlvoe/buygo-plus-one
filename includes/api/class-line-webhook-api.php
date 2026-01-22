@@ -122,14 +122,9 @@ class Line_Webhook_API {
 			'content_type' => $request->get_header( 'Content-Type' ),
 		) );
 
-		// 取得 channel secret（從舊外掛的設定系統讀取）
-		// 優先使用 BuyGo Core 的 SettingsService（支援加密和自動遷移）
-		if ( class_exists( 'BuyGo_Core' ) && method_exists( 'BuyGo_Core', 'settings' ) ) {
-			$channel_secret = \BuyGo_Core::settings()->get( 'line_channel_secret', '' );
-		} else {
-			// 降級方案：直接從 wp_options 讀取舊的設定
-			$channel_secret = get_option( 'mygo_line_channel_secret', '' );
-		}
+		// 取得 channel secret（使用新外掛的 SettingsService）
+		// SettingsService 會自動從 buygo_core_settings 或獨立 option 讀取並解密
+		$channel_secret = \BuyGoPlus\Services\SettingsService::get( 'line_channel_secret', '' );
 
 		// 如果沒有設定 channel secret，跳過驗證（開發模式）
 		if ( empty( $channel_secret ) ) {

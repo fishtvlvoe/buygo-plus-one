@@ -271,8 +271,8 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		// Download and upload image
-		// 使用新外掛的 BuyGoPlus_Core（不再依賴舊外掛）
-		$token = \BuyGoPlus\Core\BuyGoPlus_Core::settings()->get( 'line_channel_access_token', '' );
+		// 取得 Channel Access Token（自動從 buygo_core_settings 或獨立 option 讀取並解密）
+		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
 		if ( empty( $token ) ) {
 			$this->logger->log( 'error', array(
 				'message' => 'Channel Access Token is empty',
@@ -420,8 +420,8 @@ class LineWebhookHandler {
 		$product_data['line_uid'] = $line_uid;
 
 		// Get temporary images
-		// 使用新外掛的 BuyGoPlus_Core（不再依賴舊外掛）
-		$token = \BuyGoPlus\Core\BuyGoPlus_Core::settings()->get( 'line_channel_access_token', '' );
+		// 取得 Channel Access Token（自動從 buygo_core_settings 或獨立 option 讀取並解密）
+		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
 		$image_ids = array();
 		if ( ! empty( $token ) ) {
 			$image_uploader = new ImageUploader( $token );
@@ -766,8 +766,8 @@ class LineWebhookHandler {
 	 * @return bool
 	 */
 	private function send_reply( $reply_token, $message, $line_uid = null ) {
-		// 使用新外掛的 BuyGoPlus_Core（不再依賴舊外掛）
-		$token = \BuyGoPlus\Core\BuyGoPlus_Core::settings()->get( 'line_channel_access_token', '' );
+		// 使用新外掛的 SettingsService（自動從 buygo_core_settings 或獨立 option 讀取並解密）
+		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
 
 		if ( empty( $token ) ) {
 			$this->logger->log( 'error', array(
