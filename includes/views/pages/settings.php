@@ -623,9 +623,10 @@ $settings_component_template = <<<'HTML'
                     @click="memberView = 'add'"
                     v-if="memberView === 'list'"
                     class="buygo-btn buygo-btn-primary flex items-center">
-                    <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
+                    <span class="md:hidden">新增</span>
                     <span class="hidden md:inline">新增小幫手</span>
                 </button>
                 <!-- 返回列表按鈕（新增視圖時顯示） -->
@@ -691,23 +692,28 @@ $settings_component_template = <<<'HTML'
 
                     <!-- 手機版卡片 -->
                     <div class="md:hidden space-y-4">
-                        <div v-for="helper in helpers" :key="helper.id" class="border border-slate-200 rounded-xl p-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
-                                    <div>
-                                        <div class="text-sm font-medium text-slate-900">{{ helper.name }}</div>
-                                        <div class="text-xs text-slate-600">{{ helper.email }}</div>
-                                    </div>
-                                </div>
-                                <button
-                                    @click="removeHelper(helper.id)"
-                                    class="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
+                        <div v-for="(helper, index) in helpers" :key="helper.id" class="bg-slate-50 rounded-xl p-4">
+                            <!-- 標題 -->
+                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                小幫手 {{ index + 1 }}
                             </div>
+                            <!-- 用戶資訊 -->
+                            <div class="flex items-center gap-3 mb-4">
+                                <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-12 h-12 rounded-full bg-white shrink-0 border border-slate-200 object-cover">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-base font-semibold text-slate-900 truncate">{{ helper.name }}</div>
+                                    <div class="text-sm text-slate-600 truncate">{{ helper.email }}</div>
+                                </div>
+                            </div>
+                            <!-- 刪除按鈕 -->
+                            <button
+                                @click="removeHelper(helper.id)"
+                                class="w-full py-2.5 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 flex items-center justify-center gap-2 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                刪除
+                            </button>
                         </div>
                         <div v-if="helpers.length === 0" class="text-center py-8 text-slate-500">
                             尚無小幫手
