@@ -745,6 +745,9 @@ const OrdersPageComponent = {
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice: formatCurrency,
@@ -872,6 +875,7 @@ const OrdersPageComponent = {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
+                                        'X-WP-Nonce': wpNonce
                                     },
                                     credentials: 'include'
                                 });
@@ -918,7 +922,8 @@ const OrdersPageComponent = {
             try {
                 const res = await fetch('/wp-json/buygo-plus-one/v1/orders/batch-delete', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                    credentials: 'include',
                     body: JSON.stringify({ ids: selectedItems.value })
                 });
                 const data = await res.json();
@@ -1087,7 +1092,8 @@ const OrdersPageComponent = {
                     cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     }
                 });
 
@@ -1129,7 +1135,7 @@ const OrdersPageComponent = {
                 // 記錄到除錯中心（透過 API）
                 fetch('/wp-json/buygo-plus-one/v1/debug/log', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
                     credentials: 'include',
                     body: JSON.stringify({
                         module: 'Orders',
@@ -1182,7 +1188,8 @@ const OrdersPageComponent = {
                 if (order && (!order.items || !Array.isArray(order.items) || order.items.length === 0)) {
                     try {
                         const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${orderId}`, {
-                            credentials: 'include'
+                            credentials: 'include',
+                            headers: { 'X-WP-Nonce': wpNonce }
                         });
                         
                         const result = await response.json();
@@ -1264,7 +1271,7 @@ const OrdersPageComponent = {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({ status: newStatus })
@@ -1414,6 +1421,7 @@ const OrdersPageComponent = {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
                             },
                             credentials: 'include'
                         });
@@ -1434,7 +1442,7 @@ const OrdersPageComponent = {
                         // 記錄到除錯中心
                         fetch('/wp-json/buygo-plus-one/v1/debug/log', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
                             credentials: 'include',
                             body: JSON.stringify({
                                 module: 'Orders',
@@ -1463,6 +1471,7 @@ const OrdersPageComponent = {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
                             },
                             credentials: 'include',
                             body: JSON.stringify({
@@ -1490,7 +1499,7 @@ const OrdersPageComponent = {
                         // 記錄到除錯中心
                         fetch('/wp-json/buygo-plus-one/v1/debug/log', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
                             credentials: 'include',
                             body: JSON.stringify({
                                 module: 'Orders',
@@ -1521,6 +1530,7 @@ const OrdersPageComponent = {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
                             },
                             credentials: 'include'
                         });
@@ -1541,7 +1551,7 @@ const OrdersPageComponent = {
                         // 記錄到除錯中心
                         fetch('/wp-json/buygo-plus-one/v1/debug/log', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
                             credentials: 'include',
                             body: JSON.stringify({
                                 module: 'Orders',
@@ -1561,11 +1571,12 @@ const OrdersPageComponent = {
         const loadOrderDetail = async (orderId) => {
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${orderId}`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data && result.data.length > 0) {
                     currentOrder.value = result.data[0];
                 }

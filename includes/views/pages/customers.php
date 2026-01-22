@@ -451,6 +451,9 @@ const CustomersPageComponent = {
     setup() {
         const { ref, computed, onMounted } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice: formatCurrency,
@@ -536,6 +539,7 @@ const CustomersPageComponent = {
                 
                 const response = await fetch(url, {
                     credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
                 });
                 
                 if (!response.ok) {
@@ -608,7 +612,8 @@ const CustomersPageComponent = {
             detailLoading.value = true;
             try {
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/customers/${customerId}`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
                 });
 
                 const result = await response.json();
@@ -703,6 +708,7 @@ const CustomersPageComponent = {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({ note: customerNote.value })
@@ -789,7 +795,10 @@ const CustomersPageComponent = {
         const loadOrderItems = async (orderId) => {
             loadingOrderItems.value = true;
             try {
-                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}`, { credentials: 'include' });
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}`, {
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
+                });
                 if (!response.ok) throw new Error('Failed to load order items');
                 const result = await response.json();
                 if (result.success && result.data) {

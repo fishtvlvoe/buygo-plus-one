@@ -866,6 +866,9 @@ const ProductsPageComponent = {
     setup() {
         const { ref, computed, watch, onMounted } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // 使用 useCurrency Composable 處理幣別邏輯
         const {
             formatPrice,
@@ -1123,7 +1126,10 @@ const ProductsPageComponent = {
                 // 如果列表中沒有，透過 API 取得單一商品
                 if (!product) {
                     try {
-                        const res = await fetch(`/wp-json/buygo-plus-one/v1/products?id=${id}`);
+                        const res = await fetch(`/wp-json/buygo-plus-one/v1/products?id=${id}`, {
+                            credentials: 'include',
+                            headers: { 'X-WP-Nonce': wpNonce }
+                        });
                         const data = await res.json();
                         if (data.success && data.data && data.data.length > 0) {
                             product = data.data[0];
@@ -1219,9 +1225,11 @@ const ProductsPageComponent = {
                 }
                 const res = await fetch(url, {
                     cache: 'no-store',
+                    credentials: 'include',
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     }
                 });
                 const data = await res.json();
@@ -1247,7 +1255,8 @@ const ProductsPageComponent = {
             try {
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers?_t=${Date.now()}`, {
                     cache: 'no-store',
-                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                    credentials: 'include',
+                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'X-WP-Nonce': wpNonce }
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -1272,7 +1281,8 @@ const ProductsPageComponent = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Cache-Control': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({
@@ -1320,7 +1330,8 @@ const ProductsPageComponent = {
              try {
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/orders`, {
                     cache: 'no-store',
-                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                    credentials: 'include',
+                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'X-WP-Nonce': wpNonce }
                 });
                 const data = await res.json();
                 // Adapter for old API response structure if needed
@@ -1333,7 +1344,8 @@ const ProductsPageComponent = {
             try {
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${editingProduct.value.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                    credentials: 'include',
                     body: JSON.stringify(editingProduct.value)
                 });
                 const data = await res.json();
@@ -1354,7 +1366,8 @@ const ProductsPageComponent = {
              try {
                 await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
                     method: 'PUT',
-                     headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                    credentials: 'include',
                     body: JSON.stringify({ purchased: product.purchased })
                 });
                 showToast('已更新採購數量');
@@ -1366,7 +1379,8 @@ const ProductsPageComponent = {
              try {
                 await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
                     method: 'PUT',
-                     headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                    credentials: 'include',
                     body: JSON.stringify({ status: newStatus })
                 });
                 product.status = newStatus;
@@ -1378,7 +1392,8 @@ const ProductsPageComponent = {
             try {
                 const res = await fetch('/wp-json/buygo-plus-one/v1/products/batch-delete', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                    credentials: 'include',
                     body: JSON.stringify({ ids: [id] })
                 });
                 const data = await res.json();
@@ -1435,10 +1450,11 @@ const ProductsPageComponent = {
             try {
                 const res = await fetch('/wp-json/buygo-plus-one/v1/products/allocate', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>'
+                        'X-WP-Nonce': wpNonce
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         product_id: selectedProduct.value.id,
                         allocations: allocationData
@@ -1500,7 +1516,8 @@ const ProductsPageComponent = {
                  try {
                      const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${currentProduct.value.id}/image`, {
                          method: 'POST',
-                         headers: { 'X-WP-Nonce': '<?php echo wp_create_nonce("wp_rest"); ?>' },
+                         headers: { 'X-WP-Nonce': wpNonce },
+                         credentials: 'include',
                          body: formData
                      });
                      const data = await res.json();

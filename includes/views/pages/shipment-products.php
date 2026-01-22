@@ -478,6 +478,9 @@ const ShipmentProductsPageComponent = {
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // 使用 useCurrency Composable 處理幣別邏輯
         const { formatPrice } = useCurrency();
         
@@ -566,7 +569,8 @@ const ShipmentProductsPageComponent = {
                     cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     }
                 });
 
@@ -716,6 +720,7 @@ const ShipmentProductsPageComponent = {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-WP-Nonce': wpNonce
                         },
                         credentials: 'include',
                         body: JSON.stringify({
@@ -753,6 +758,7 @@ const ShipmentProductsPageComponent = {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
                             },
                             credentials: 'include',
                             body: JSON.stringify({
@@ -817,7 +823,10 @@ const ShipmentProductsPageComponent = {
                         // 呼叫 transfer API 將狀態改為 ready_to_ship
                         const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/transfer`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
+                            },
                             credentials: 'include'
                         });
 
@@ -850,7 +859,10 @@ const ShipmentProductsPageComponent = {
                     try {
                         const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/merge', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
+                            },
                             credentials: 'include',
                             body: JSON.stringify({
                                 shipment_ids: selectedShipments.value

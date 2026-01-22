@@ -1,6 +1,6 @@
 # BuyGo+1 待完成任務清單
 
-> 更新日期：2026-01-22（Code Review 後更新）
+> 更新日期：2026-01-22
 
 ---
 
@@ -15,34 +15,105 @@
 
 ---
 
-## 待測試項目
+## 緊急 Bug 修復
 
-### Settings 頁面 401 Bug 修復驗證 ✅ 已完成
-**優先級：高**
-**測試日期：2026-01-22**
+### BUG-001：API 401 權限錯誤（非設定頁）
+**優先級：緊急**
+**發現日期：2026-01-22**
 
-**已完成的修復：**
-- [x] 前端 API 呼叫添加 `X-WP-Nonce` header（11 個 API 呼叫）
-- [x] 添加 `wpNonce` 變數（`wp_create_nonce("wp_rest")`）
+**問題描述：**
+WordPress 管理員身分登入後，除「設定頁」外，其他頁面 API 皆返回 401 Unauthorized。
 
-**測試結果：**
-- [x] 開啟 Settings 頁面，確認無 401 錯誤 ✅
-- [x] 測試模板載入功能 - API 返回 200 ✅
-- [x] 測試會員權限管理功能 - API 返回 200 ✅
-- [x] 測試關鍵字管理功能 - API 返回 200 ✅
+**影響範圍：**
+| 頁面 | 狀態 |
+|------|------|
+| 設定頁 `/settings` | ✅ 正常 |
+| 客戶頁 `/customers` | ❌ 401 |
+| 備貨頁 `/shipment-products` | ❌ 401 |
+| 訂單頁 `/orders` | ❌ 401 |
+| 商品頁 `/products` | ❌ 401 |
 
-**驗證的 API 端點（全部返回 200）：**
-- `GET /settings/user/permissions`
-- `GET /settings/templates`
-- `GET /settings/helpers`
-- `GET /settings/line-keywords`
-- `GET /settings/templates/order`
+**待修復：**
+- [ ] 檢查各頁面 API 呼叫是否有加入 `X-WP-Nonce` header
+- [ ] 確認 `wpNonce` 變數在各頁面是否正確傳遞
+- [ ] 驗證 API 權限檢查邏輯是否正確
 
 ---
 
 ## 待完成任務
 
-### 1. Phase C：多樣式產品 UI + 狀態追蹤邏輯
+### 2. 設定頁面 - 會員權限管理改版
+**優先級：高**
+
+**問題描述：**
+目前「新增小幫手」使用彈跳視窗（Modal），需改為頁面內嵌的分頁列表設計。
+
+**目前設計（錯誤）：**
+```
+點擊「+ 新增小幫手」
+       ↓
+┌─────────────────────┐
+│  彈跳視窗 Modal     │  ← 移除
+│  搜尋使用者         │
+│  （搜不到會員）     │  ← 搜尋壞掉
+└─────────────────────┘
+```
+
+**期望設計：**
+```
+┌──────────────────────────────────────┐
+│  會員權限管理                        │
+├──────────────────────────────────────┤
+│  ┌────────────────────────┐ [搜尋]  │
+│  │ 搜尋使用者名稱或 Email │          │
+│  └────────────────────────┘          │
+│  ← 點擊輸入框時顯示最新 3 筆會員 →   │
+│                                      │
+│  使用者      │ EMAIL        │ 操作  │
+│  ────────────┼──────────────┼────── │
+│  王小明      │ a@test.com   │ [設定]│
+│  李小華      │ b@test.com   │ [設定]│
+│                                      │
+│  ◀ 1  2  3  ... ▶  （分頁）         │
+└──────────────────────────────────────┘
+```
+
+**待修復：**
+- [ ] 移除彈跳視窗（Modal）設計
+- [ ] 改為頁面內嵌的分頁列表
+- [ ] 修復搜尋功能，確保能搜尋到 WordPress 現有會員
+- [ ] 點擊搜尋框時，顯示最新 3 筆會員紀錄
+
+---
+
+### 3. 設定頁面 - 手機版介面優化
+**優先級：高**
+
+**問題描述：**
+手機版設定頁面的 UI 需要調整。
+
+**待修復：**
+| 項目 | 目前 | 期望 |
+|------|------|------|
+| 新增小幫手按鈕 | 大型按鈕 `+ 新增小幫手` | 小型按鈕 `+` |
+| LINE 通知標題 | 📢 Emoji | 改用 Icon |
+| 大標題字體 | 過大 | 縮小，與其他頁面一致 |
+
+**手機版對照：**
+```
+【目前】                    【期望】
+📢LINE 通知模板管理         🔔 LINE 通知模板管理
+                            （改用 Icon）
+
+會員權限管理（字體大）      會員權限管理（字體小）
+╔═══════════════════╗
+║ + 新增小幫手      ║       [+] ← 小按鈕
+╚═══════════════════╝
+```
+
+---
+
+### 4. Phase C：多樣式產品 UI + 狀態追蹤邏輯
 **優先級：中**
 
 **功能描述：**
@@ -61,9 +132,25 @@
 
 ---
 
-## 已完成任務
+## 已完成任務歸檔
 
-### Code Review 安全性修復（2026-01-22 完成）
+<details>
+<summary>Settings 頁面 401 Bug 修復（2026-01-22）</summary>
+
+**已完成的修復：**
+- [x] 前端 API 呼叫添加 `X-WP-Nonce` header（11 個 API 呼叫）
+- [x] 添加 `wpNonce` 變數（`wp_create_nonce("wp_rest")`）
+
+**測試結果：**
+- [x] 開啟 Settings 頁面，確認無 401 錯誤
+- [x] 測試模板載入功能 - API 返回 200
+- [x] 測試會員權限管理功能 - API 返回 200
+- [x] 測試關鍵字管理功能 - API 返回 200
+
+</details>
+
+<details>
+<summary>Code Review 安全性修復（2026-01-22）</summary>
 
 **高風險問題修復：**
 - [x] **HR-1**: Settings API `check_permission_for_admin()` 從 `return true` 改為正確的權限檢查
@@ -72,15 +159,19 @@
 
 **中等風險問題修復：**
 - [x] **MR-2**: DEBUG API 權限從 `is_user_logged_in()` 改為 `manage_options` 或 `buygo_admin`
-- [x] **MR-5**: Settings 頁面所有 API 呼叫添加 `X-WP-Nonce` header（修復 401 Bug）
+- [x] **MR-5**: Settings 頁面所有 API 呼叫添加 `X-WP-Nonce` header
 
 **修改的檔案：**
-- `/includes/api/class-settings-api.php` - 權限檢查、用戶搜尋安全性
-- `/includes/api/class-line-webhook-api.php` - LINE 簽名驗證
-- `/includes/api/class-debug-api.php` - DEBUG API 權限
-- `/includes/views/pages/settings.php` - 前端 nonce 認證
+- `/includes/api/class-settings-api.php`
+- `/includes/api/class-line-webhook-api.php`
+- `/includes/api/class-debug-api.php`
+- `/includes/views/pages/settings.php`
 
-### 會員權限管理功能（2026-01-23 完成）
+</details>
+
+<details>
+<summary>會員權限管理功能（2026-01-23）</summary>
+
 - [x] 建立 `wp_buygo_helpers` 資料表（含 seller_id 欄位）
 - [x] 修改 `SettingsService::get_helpers()` 依 seller_id 過濾
 - [x] 修改 `SettingsService::add_helper()` 記錄 seller_id
@@ -91,7 +182,11 @@
 - [x] FluentCommunity 側邊欄連結 Hook（只有 BuyGo 成員可見）
 - [x] 修復資料庫統計查詢導致的 502 錯誤
 
-### 其他已完成項目
+</details>
+
+<details>
+<summary>訂單與出貨功能（歷史完成項目）</summary>
+
 - [x] 修復一鍵分配 Bug - allocated_quantity 應存在 line_meta 中
 - [x] 重新設計下單名單 UI - 顯示每筆獨立訂單而非整合
 - [x] Phase B：Grid View 模式（商品列表大圖展示）
@@ -113,6 +208,8 @@
 - [x] 調整：分頁預設筆數改為 3，選項改為 3、5、20、50
 - [x] 調整：分配頁面統計欄位順序改為「已下單、已採購、可分配、已分配」
 - [x] 優化：上方分配按鈕精簡為「分配 (X)」+ 分配 icon
+
+</details>
 
 ---
 
