@@ -71,7 +71,6 @@ $settings_component_template = <<<'HTML'
                 </svg>
                 LINE 通知模板管理
             </h2>
-            <p class="text-sm text-slate-600 mb-6">選擇分類和類型，然後編輯對應的訊息模板</p>
             
             <!-- 標籤分類 -->
             <div class="flex space-x-2 mb-6 border-b border-slate-200 overflow-x-auto">
@@ -610,14 +609,14 @@ $settings_component_template = <<<'HTML'
             </div>
         </div>
 
-        <!-- 會員管理（僅管理員可見） -->
+        <!-- 小幫手管理（僅管理員可見） -->
         <div v-if="isAdmin" class="buygo-card">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-slate-900 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
-                    會員管理
+                    小幫手管理
                 </h2>
                 <!-- 新增小幫手按鈕（列表視圖時顯示） -->
                 <button
@@ -697,14 +696,14 @@ $settings_component_template = <<<'HTML'
                                 <div class="flex items-center gap-3">
                                     <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
                                     <div>
-                                        <div class="text-base font-bold text-slate-900">{{ helper.name }}</div>
-                                        <div class="text-sm text-slate-600">{{ helper.email }}</div>
+                                        <div class="text-sm font-medium text-slate-900">{{ helper.name }}</div>
+                                        <div class="text-xs text-slate-600">{{ helper.email }}</div>
                                     </div>
                                 </div>
                                 <button
                                     @click="removeHelper(helper.id)"
-                                    class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
                                 </button>
@@ -983,7 +982,7 @@ const SettingsPageComponent = {
         const loadingHelpers = ref(false);
         const isAdmin = ref(false);
 
-        // 會員管理子分頁狀態
+        // 小幫手管理子分頁狀態
         const memberView = ref('list'); // 'list' | 'add'
         const userSearchQuery = ref('');
         const userSearchResults = ref([]);
@@ -2104,7 +2103,7 @@ const SettingsPageComponent = {
             loadingHelpers,
             isAdmin,
             removeHelper,
-            // 會員管理子分頁
+            // 小幫手管理子分頁
             memberView,
             userSearchQuery,
             userSearchResults,
