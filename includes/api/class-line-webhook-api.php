@@ -90,10 +90,22 @@ class Line_Webhook_API {
 	 * @return bool
 	 */
 	public function verify_signature( $request ) {
+		$logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
 		$signature = $request->get_header( 'X-Line-Signature' );
+
+		// 記錄所有 webhook 請求（包括失敗的）
+		$logger->log( 'webhook_request_received', array(
+			'has_signature' => ! empty( $signature ),
+			'signature_preview' => $signature ? substr( $signature, 0, 20 ) . '...' : null,
+			'request_method' => $request->get_method(),
+			'content_type' => $request->get_header( 'Content-Type' ),
+		) );
 
 		// 如果沒有簽名，拒絕請求
 		if ( empty( $signature ) ) {
+			$logger->log( 'signature_verification_failed', array(
+				'reason' => 'Missing X-Line-Signature header',
+			) );
 			return false;
 		}
 
@@ -103,6 +115,9 @@ class Line_Webhook_API {
 		// 如果沒有設定 channel secret，記錄警告並拒絕
 		if ( empty( $channel_secret ) ) {
 			error_log( 'BuyGo+1: LINE channel secret not configured' );
+			$logger->log( 'signature_verification_failed', array(
+				'reason' => 'Channel secret not configured',
+			) );
 			return false;
 		}
 
@@ -112,6 +127,20 @@ class Line_Webhook_API {
 		$computed_sig = base64_encode( $hash );
 
 		// 使用安全的字串比較防止時序攻擊
-		return hash_equals( $signature, $computed_sig );
+		$is_valid = hash_equals( $signature, $computed_sig );
+
+		if ( ! $is_valid ) {
+			$logger->log( 'signature_verification_failed', array(
+				'reason' => 'Signature mismatch',
+				'received_signature' => substr( $signature, 0, 20 ) . '...',
+				'computed_signature' => substr( $computed_sig, 0, 20 ) . '...',
+			) );
+		} else {
+			$logger->log( 'signature_verification_success', array(
+				'message' => 'Signature verified successfully',
+			) );
+		}
+
+		return $is_valid;
 	}
 }
