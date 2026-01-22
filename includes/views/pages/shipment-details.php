@@ -1074,6 +1074,12 @@ const ShipmentDetailsPageComponent = {
             loadShipments();
             loadStats();
 
+            // 檢查 URL 參數（支援直接訪問詳情頁）
+            checkUrlParams();
+
+            // 監聽瀏覽器上一頁/下一頁
+            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+
             // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
             window.addEventListener('pageshow', (e) => {
                 if (e.persisted) {
