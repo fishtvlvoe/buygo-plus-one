@@ -619,35 +619,25 @@ $settings_component_template = <<<'HTML'
                     </svg>
                     會員管理
                 </h2>
-                <!-- 桌面版：完整按鈕 -->
+                <!-- 新增小幫手按鈕（列表視圖時顯示） -->
                 <button
                     @click="memberView = 'add'"
-                    v-show="memberView === 'list'"
-                    class="hidden md:flex buygo-btn buygo-btn-primary items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    v-if="memberView === 'list'"
+                    class="buygo-btn buygo-btn-primary flex items-center">
+                    <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
-                    新增小幫手
+                    <span class="hidden md:inline">新增小幫手</span>
                 </button>
-                <!-- 手機版：僅 + 圖示 -->
+                <!-- 返回列表按鈕（新增視圖時顯示） -->
                 <button
-                    @click="memberView = 'add'"
-                    v-show="memberView === 'list'"
-                    class="md:hidden buygo-btn buygo-btn-primary p-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                </button>
-                <!-- 返回列表按鈕 -->
-                <button
-                    @click="memberView = 'list'; userSearchQuery = ''; userSearchResults = []"
-                    v-show="memberView === 'add'"
+                    @click="memberView = 'list'; userSearchQuery = ''; userSearchResults = []; showRecentUsers = false"
+                    v-if="memberView === 'add'"
                     class="buygo-btn buygo-btn-secondary flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
                     <span class="hidden md:inline">返回列表</span>
-                    <span class="md:hidden">返回</span>
                 </button>
             </div>
 
