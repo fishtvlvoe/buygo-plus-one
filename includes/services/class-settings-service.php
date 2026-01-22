@@ -268,6 +268,11 @@ class SettingsService
             }
         }
 
+        // 如果資料表查詢為空，嘗試從 Option API 取得（向後相容）
+        if (empty($helpers)) {
+            $helpers = self::get_helpers_from_option();
+        }
+
         return $helpers;
     }
 
