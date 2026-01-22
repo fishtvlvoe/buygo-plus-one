@@ -1,6 +1,6 @@
 # BuyGo+1 待完成任務清單
 
-> 更新日期：2026-01-22
+> 更新日期：2026-01-23
 
 ---
 
@@ -19,41 +19,70 @@
 
 ### 1. LINE 上架功能修復
 **優先級：緊急**
-**狀態：已修復，待測試**
-**修復日期：2026-01-22**
+**狀態：✅ 已完成並測試通過**
+**修復日期：2026-01-23**
 
 **問題描述：**
 LINE 上傳圖片和文字時，官方帳號沒有反應，無法正常上架商品。
 
 **根本原因：**
 1. 權限檢查系統不同步：`can_upload_product()` 使用舊的 `buygo_helpers` option，但系統已改用 `wp_buygo_helpers` 資料表
-2. 簽名驗證失敗時沒有日誌記錄，無法診斷問題
+2. 簽名驗證失敗：Channel Secret 存儲位置錯誤
+   - ❌ 錯誤：從 `get_option('buygo_line_channel_secret')` 讀取（不存在）
+   - ✅ 正確：從 `BuyGo_Core::settings()->get('line_channel_secret')` 讀取（加密存儲）
+3. HTTP Header 大小寫錯誤：使用 `X-Line-Signature` 而非 `x-line-signature`
+4. REST API 權限設定錯誤：將 `verify_signature()` 作為 `permission_callback` 導致 401
 
 **已完成修復：**
 - [x] 更新 `can_upload_product()` 方法檢查 `wp_buygo_helpers` 資料表
 - [x] 權限被拒絕時發送明確訊息給用戶（不再 silent）
 - [x] 增強簽名驗證日誌記錄（記錄所有請求和失敗原因）
 - [x] 添加詳細的 permission_denied 日誌
+- [x] **修復 Channel Secret 讀取邏輯**（從舊外掛的加密系統讀取）
+- [x] **修正 HTTP Header 大小寫**（`X-Line-Signature` → `x-line-signature`）
+- [x] **修正 REST API 權限設定**（`permission_callback` 改為 `__return_true`）
+- [x] **新增 ARCHITECTURE.md 技術文件**（防止未來重複踩坑）
 
-**測試步驟：**
-1. 在 LINE 上傳一張圖片
-2. 檢查後台 Debug 工具 (`/wp-admin/admin.php?page=buygo-settings&tab=workflow`)
-3. 應該會看到以下其中一種情況：
-   - `webhook_request_received` + `signature_verification_success` → 請求成功到達
-   - `webhook_request_received` + `signature_verification_failed` → 簽名驗證失敗
-   - `permission_denied` → 用戶權限不足
-   - 沒有任何記錄 → Webhook URL 設定錯誤或請求未到達
+**測試結果：**
+✅ Webhook 驗證成功（LINE Developers Console 顯示 200 OK）
 
 **相關檔案：**
-- `/includes/api/class-line-webhook-api.php` (簽名驗證日誌)
+- `/includes/api/class-line-webhook-api.php` (簽名驗證修復)
 - `/includes/services/class-line-webhook-handler.php` (權限檢查修復)
-- `/includes/services/class-fluentcart-service.php`
-- `/includes/services/class-product-data-parser.php`
+- `/ARCHITECTURE.md` (技術文件)
 
 **Commits:**
 - `fce684e` - 修復 LINE 上架權限檢查 Bug
 - `cff61df` - 增強 LINE Webhook 簽名驗證日誌記錄
 - `87b399f` - 修復 LINE Webhook Timeout 問題
+- `7a6577d` - 修正 REST API 權限設定（401 問題）
+- `3ef405e` - 修復 Channel Secret 讀取邏輯與 Header 大小寫
+- `135e3bc` - 新增 ARCHITECTURE.md 技術文件
+
+**重要提醒：**
+⚠️ 未來修改 LINE 相關功能前，請先閱讀 [ARCHITECTURE.md](ARCHITECTURE.md) 文件！
+
+---
+
+## 📖 重要文件
+
+### ARCHITECTURE.md - 技術架構文件
+**路徑**：`/ARCHITECTURE.md`
+**用途**：記錄系統架構、資料庫存取規範、常見錯誤解決方案
+
+**何時閱讀：**
+- 修改 LINE API 相關功能前
+- 進行資料庫查詢前
+- 遇到 Signature Mismatch、401 錯誤時
+- 新增任何與舊外掛資料互動的功能
+
+**主要內容：**
+1. 雙外掛系統架構
+2. 資料庫存取規範（Channel Secret、Helpers 權限）
+3. LINE API 整合規範（HTTP Header 大小寫、簽名驗證）
+4. 命名規範與大小寫對照表
+5. 常見錯誤與解決方案
+6. Debug 工具使用說明
 
 ---
 
