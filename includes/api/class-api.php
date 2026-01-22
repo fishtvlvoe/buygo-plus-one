@@ -40,28 +40,46 @@ class API {
     }
     
     /**
-     * 統一權限檢查方法
-     * 
+     * 統一權限檢查方法（所有 BuyGo 使用者）
+     *
+     * 允許以下角色存取 BuyGo+1 功能：
+     * - WordPress 管理員
+     * - BuyGo 管理員
+     * - 小幫手
+     *
      * @return bool
      */
-    public static function check_permission() {
-        // TODO: 測試完成後，統一設定權限檢查
-        // 目前暫時移除權限檢查，方便測試
-        
-        // 暫時允許所有請求（測試階段）
-        // 測試完成後，改為：
-        // if (!is_user_logged_in()) {
-        //     return false;
-        // }
-        // return current_user_can('manage_options') || current_user_can('buygo_admin');
-        
-        return true;
+    public static function check_permission(): bool
+    {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+
+        return current_user_can('manage_options')      // WordPress 管理員
+            || current_user_can('buygo_admin')         // BuyGo 管理員
+            || current_user_can('buygo_helper');       // 小幫手
     }
-    
+
+    /**
+     * 權限檢查（僅管理員可新增/刪除小幫手）
+     *
+     * @return bool
+     */
+    public static function check_admin_permission(): bool
+    {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+
+        return current_user_can('manage_options')      // WordPress 管理員
+            || current_user_can('buygo_add_helper');   // 有新增小幫手權限的人
+    }
+
     /**
      * 權限檢查（給 Products_API 使用）
      */
-    public static function check_permission_for_api() {
+    public static function check_permission_for_api(): bool
+    {
         return self::check_permission();
     }
 }

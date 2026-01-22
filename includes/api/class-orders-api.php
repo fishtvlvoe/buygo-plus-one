@@ -27,7 +27,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders', [
             'methods' => 'GET',
             'callback' => [$this, 'get_orders'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'page' => [
                     'default' => 1,
@@ -59,7 +59,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -74,7 +74,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/status', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_order_status'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -89,7 +89,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/shipping-status', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_shipping_status'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -104,7 +104,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/ship', [
             'methods' => 'POST',
             'callback' => [$this, 'ship_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -119,7 +119,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/split', [
             'methods' => 'POST',
             'callback' => [$this, 'split_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -134,7 +134,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/prepare', [
             'methods' => 'POST',
             'callback' => [$this, 'prepare_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,

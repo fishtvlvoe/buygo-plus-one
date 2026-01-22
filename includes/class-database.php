@@ -34,6 +34,9 @@ class Database
         
         // 建立 LINE 綁定表（遷移自舊外掛，讓新外掛可以獨立執行）
         self::create_line_bindings_table($wpdb, $charset_collate);
+
+        // 建立小幫手資料表
+        self::create_helpers_table($wpdb, $charset_collate);
     }
     
     /**
@@ -157,5 +160,92 @@ class Database
         ) {$charset_collate};";
         
         dbDelta($sql);
+    }
+
+    /**
+     * 建立小幫手資料表
+     *
+     * 用於記錄 BuyGo 管理員與小幫手的關聯關係
+     * seller_id: 管理員的 WordPress user ID
+     * user_id: 小幫手的 WordPress user ID
+     */
+    private static function create_helpers_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 檢查表格是否已存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            seller_id bigint(20) UNSIGNED NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_helper (user_id, seller_id),
+            KEY idx_seller (seller_id),
+            KEY idx_user (user_id)
+        ) {$charset_collate};";
+
+        dbDelta($sql);
+    }
+
+    /**
+     * 遷移舊的小幫手資料
+     *
+     * 將舊的 Option API 資料遷移到新的資料表
+     */
+    public static function migrate_helpers_data(): void
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 檢查是否已遷移
+        if (get_option('buygo_helpers_migrated', false)) {
+            return;
+        }
+
+        // 取得舊資料
+        $old_helpers = get_option('buygo_helpers', []);
+        if (empty($old_helpers) || !is_array($old_helpers)) {
+            update_option('buygo_helpers_migrated', true);
+            return;
+        }
+
+        // 找出所有 buygo_admin 角色的使用者作為預設 seller
+        $admins = get_users(['role' => 'buygo_admin']);
+        $default_seller_id = !empty($admins) ? $admins[0]->ID : get_current_user_id();
+
+        // 如果沒有管理員，使用 WordPress 管理員
+        if (!$default_seller_id) {
+            $wp_admins = get_users(['role' => 'administrator']);
+            $default_seller_id = !empty($wp_admins) ? $wp_admins[0]->ID : 1;
+        }
+
+        foreach ($old_helpers as $user_id) {
+            // 檢查是否已存在
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND seller_id = %d",
+                $user_id,
+                $default_seller_id
+            ));
+
+            if (!$exists) {
+                $wpdb->insert(
+                    $table_name,
+                    [
+                        'user_id' => $user_id,
+                        'seller_id' => $default_seller_id,
+                    ],
+                    ['%d', '%d']
+                );
+            }
+        }
+
+        // 標記遷移完成
+        update_option('buygo_helpers_migrated', true);
     }
 }

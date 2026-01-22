@@ -21,7 +21,7 @@ class Customers_API {
         register_rest_route($this->namespace, '/customers', [
             'methods' => 'GET',
             'callback' => [$this, 'get_customers'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'page' => [
                     'default' => 1,
@@ -45,7 +45,7 @@ class Customers_API {
         register_rest_route($this->namespace, '/customers/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_customer'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -60,7 +60,7 @@ class Customers_API {
         register_rest_route($this->namespace, '/customers/(?P<id>\d+)/note', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_note'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,

@@ -114,6 +114,9 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
+
+        // 載入 FluentCommunity 整合
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
     }
     
     /**
@@ -156,5 +159,10 @@ class Plugin {
         // 初始化 Webhook API
         $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
         add_action('rest_api_init', array($webhook_api, 'register_routes'));
+
+        // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
+        if (class_exists('FluentCommunity\\App\\App')) {
+            new FluentCommunity();
+        }
     }
 }

@@ -228,18 +228,62 @@ class SettingsService
     }
     
     /**
-     * 取得小幫手列表
-     * 
+     * 取得小幫手列表（依 seller_id 過濾）
+     *
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return array
      */
-    public static function get_helpers(): array
+    public static function get_helpers(?int $seller_id = null): array
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
+        }
+
+        // 檢查資料表是否存在（向後相容）
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            // 使用舊的 Option API（向後相容）
+            return self::get_helpers_from_option();
+        }
+
+        // 從資料表查詢
+        $helper_records = $wpdb->get_results($wpdb->prepare(
+            "SELECT user_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
+            $seller_id
+        ));
+
+        $helpers = [];
+        foreach ($helper_records as $record) {
+            $user = get_userdata($record->user_id);
+            if ($user) {
+                $helpers[] = [
+                    'id' => $user->ID,
+                    'name' => $user->display_name,
+                    'email' => $user->user_email,
+                    'created_at' => $record->created_at,
+                ];
+            }
+        }
+
+        return $helpers;
+    }
+
+    /**
+     * 舊版取得小幫手（從 Option，向後相容用）
+     *
+     * @return array
+     */
+    private static function get_helpers_from_option(): array
     {
         $helper_ids = get_option('buygo_helpers', []);
-        
+
         if (empty($helper_ids) || !is_array($helper_ids)) {
             return [];
         }
-        
+
         $helpers = [];
         foreach ($helper_ids as $user_id) {
             $user = get_userdata($user_id);
@@ -251,74 +295,134 @@ class SettingsService
                 ];
             }
         }
-        
+
         return $helpers;
     }
     
     /**
-     * 新增小幫手或管理員
-     * 
-     * @param int $user_id
+     * 新增小幫手或管理員（記錄 seller_id）
+     *
+     * @param int $user_id 使用者 ID
      * @param string $role 角色：'buygo_helper' 或 'buygo_admin'
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return bool
      */
-    public static function add_helper(int $user_id, string $role = 'buygo_helper'): bool
+    public static function add_helper(int $user_id, string $role = 'buygo_helper', ?int $seller_id = null): bool
     {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
         $user = get_userdata($user_id);
         if (!$user) {
             return false;
         }
-        
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
+        }
+
         if ($role === 'buygo_helper') {
-            // 新增小幫手
+            // 檢查資料表是否存在
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+                // 檢查是否已存在
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND seller_id = %d",
+                    $user_id,
+                    $seller_id
+                ));
+
+                if (!$exists) {
+                    // 插入到新資料表
+                    $wpdb->insert(
+                        $table_name,
+                        [
+                            'user_id' => $user_id,
+                            'seller_id' => $seller_id,
+                        ],
+                        ['%d', '%d']
+                    );
+                }
+            }
+
+            // 向後相容：也同時更新 Option API
             $helper_ids = get_option('buygo_helpers', []);
-            
             if (!is_array($helper_ids)) {
                 $helper_ids = [];
             }
-            
             if (!in_array($user_id, $helper_ids)) {
                 $helper_ids[] = $user_id;
                 update_option('buygo_helpers', $helper_ids);
             }
-            
+
             // 賦予小幫手角色
             $user->add_role('buygo_helper');
         } elseif ($role === 'buygo_admin') {
             // 新增管理員
             $user->add_role('buygo_admin');
         }
-        
+
         return true;
     }
     
     /**
      * 移除小幫手
-     * 
-     * @param int $user_id
+     *
+     * @param int $user_id 使用者 ID
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return bool
      */
-    public static function remove_helper(int $user_id): bool
+    public static function remove_helper(int $user_id, ?int $seller_id = null): bool
     {
-        $helper_ids = get_option('buygo_helpers', []);
-        
-        if (!is_array($helper_ids)) {
-            return false;
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
         }
-        
-        $key = array_search($user_id, $helper_ids);
-        if ($key !== false) {
-            unset($helper_ids[$key]);
-            $helper_ids = array_values($helper_ids); // 重新索引
-            update_option('buygo_helpers', $helper_ids);
-            
-            // 移除小幫手角色
+
+        // 檢查資料表是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            // 從新資料表刪除
+            $wpdb->delete(
+                $table_name,
+                [
+                    'user_id' => $user_id,
+                    'seller_id' => $seller_id,
+                ],
+                ['%d', '%d']
+            );
+        }
+
+        // 向後相容：也從 Option 中移除
+        $helper_ids = get_option('buygo_helpers', []);
+        if (is_array($helper_ids)) {
+            $key = array_search($user_id, $helper_ids);
+            if ($key !== false) {
+                unset($helper_ids[$key]);
+                $helper_ids = array_values($helper_ids);
+                update_option('buygo_helpers', $helper_ids);
+            }
+        }
+
+        // 檢查使用者是否還是其他賣家的小幫手
+        $remaining = 0;
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            $remaining = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
+                $user_id
+            ));
+        }
+
+        // 如果沒有其他關聯，移除角色
+        if (!$remaining) {
             $user = get_userdata($user_id);
             if ($user) {
                 $user->remove_role('buygo_helper');
             }
         }
-        
+
         return true;
     }
     
