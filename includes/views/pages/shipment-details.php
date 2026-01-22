@@ -572,6 +572,12 @@ const ShipmentDetailsPageComponent = {
         const shipments = ref([]);
         const loading = ref(false);
         const stats = ref({ ready_to_ship: 0, shipped: 0, archived: 0 });
+
+        // ============================================
+        // 路由狀態（子分頁切換）
+        // ============================================
+        const currentView = ref('list');  // 'list' | 'detail'
+        const currentShipmentId = ref(null);
         
         // 勾選狀態
         const selectedShipments = ref([]);
