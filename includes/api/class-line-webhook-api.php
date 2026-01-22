@@ -112,7 +112,7 @@ class Line_Webhook_API {
 	 */
 	private function verify_signature( $request ) {
 		$logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
-		$signature = $request->get_header( 'X-Line-Signature' );
+		$signature = $request->get_header( 'x-line-signature' );
 
 		// 記錄所有 webhook 請求（包括失敗的）
 		$logger->log( 'webhook_request_received', array(
@@ -122,8 +122,14 @@ class Line_Webhook_API {
 			'content_type' => $request->get_header( 'Content-Type' ),
 		) );
 
-		// 取得 channel secret
-		$channel_secret = get_option( 'buygo_line_channel_secret', '' );
+		// 取得 channel secret（從舊外掛的設定系統讀取）
+		// 優先使用 BuyGo Core 的 SettingsService（支援加密和自動遷移）
+		if ( class_exists( 'BuyGo_Core' ) && method_exists( 'BuyGo_Core', 'settings' ) ) {
+			$channel_secret = \BuyGo_Core::settings()->get( 'line_channel_secret', '' );
+		} else {
+			// 降級方案：直接從 wp_options 讀取舊的設定
+			$channel_secret = get_option( 'mygo_line_channel_secret', '' );
+		}
 
 		// 如果沒有設定 channel secret，跳過驗證（開發模式）
 		if ( empty( $channel_secret ) ) {
@@ -136,7 +142,7 @@ class Line_Webhook_API {
 		// 如果沒有簽名，拒絕請求
 		if ( empty( $signature ) ) {
 			$logger->log( 'signature_verification_failed', array(
-				'reason' => 'Missing X-Line-Signature header',
+				'reason' => 'Missing x-line-signature header',
 			) );
 			return false;
 		}
