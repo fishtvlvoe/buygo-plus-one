@@ -917,39 +917,14 @@ const ShipmentDetailsPageComponent = {
             }
         };
 
-        // 查看詳情
-        const viewDetail = async (shipmentId) => {
-            try {
-                const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
-                const response = await fetch(url, {
-                    credentials: 'include',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    detailModal.value = {
-                        show: true,
-                        shipment: result.data.shipment,
-                        items: result.data.items,
-                        total: result.data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
-                    };
-                } else {
-                    showToast('載入詳情失敗：' + result.message, 'error');
-                }
-            } catch (err) {
-                console.error('載入詳情失敗:', err);
-                showToast('載入詳情失敗', 'error');
-            }
+        // 查看詳情（改為使用子分頁）
+        const viewDetail = (shipmentId) => {
+            openShipmentDetail(shipmentId);
         };
 
-        // 關閉詳情 Modal
+        // 關閉詳情（改為使用子分頁）
         const closeDetailModal = () => {
-            detailModal.value = { show: false, shipment: null, items: [], total: 0 };
+            closeShipmentDetail();
         };
 
         // ============================================
