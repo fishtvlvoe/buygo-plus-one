@@ -19,21 +19,40 @@
 
 ### 1. LINE 上架功能修復
 **優先級：緊急**
-**狀態：待處理**
+**狀態：已修復，待測試**
+**修復日期：2026-01-22**
 
 **問題描述：**
 LINE 上傳圖片和文字時，官方帳號沒有反應，無法正常上架商品。
 
-**需要調查：**
-- [ ] 檢查 LINE Webhook 是否正常接收訊息
-- [ ] 檢查 LINE Bot 的回應邏輯
-- [ ] 確認商品上架流程是否正常執行
+**根本原因：**
+1. 權限檢查系統不同步：`can_upload_product()` 使用舊的 `buygo_helpers` option，但系統已改用 `wp_buygo_helpers` 資料表
+2. 簽名驗證失敗時沒有日誌記錄，無法診斷問題
+
+**已完成修復：**
+- [x] 更新 `can_upload_product()` 方法檢查 `wp_buygo_helpers` 資料表
+- [x] 權限被拒絕時發送明確訊息給用戶（不再 silent）
+- [x] 增強簽名驗證日誌記錄（記錄所有請求和失敗原因）
+- [x] 添加詳細的 permission_denied 日誌
+
+**測試步驟：**
+1. 在 LINE 上傳一張圖片
+2. 檢查後台 Debug 工具 (`/wp-admin/admin.php?page=buygo-settings&tab=workflow`)
+3. 應該會看到以下其中一種情況：
+   - `webhook_request_received` + `signature_verification_success` → 請求成功到達
+   - `webhook_request_received` + `signature_verification_failed` → 簽名驗證失敗
+   - `permission_denied` → 用戶權限不足
+   - 沒有任何記錄 → Webhook URL 設定錯誤或請求未到達
 
 **相關檔案：**
-- `/includes/api/class-line-webhook-api.php`
-- `/includes/services/class-line-webhook-handler.php`
+- `/includes/api/class-line-webhook-api.php` (簽名驗證日誌)
+- `/includes/services/class-line-webhook-handler.php` (權限檢查修復)
 - `/includes/services/class-fluentcart-service.php`
 - `/includes/services/class-product-data-parser.php`
+
+**Commits:**
+- `fce684e` - 修復 LINE 上架權限檢查 Bug
+- `cff61df` - 增強 LINE Webhook 簽名驗證日誌記錄
 
 ---
 
