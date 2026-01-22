@@ -40,7 +40,7 @@ class Line_Webhook_API {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_webhook' ),
-				'permission_callback' => array( $this, 'verify_signature' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 	}
@@ -49,14 +49,36 @@ class Line_Webhook_API {
 	 * Handle webhook
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function handle_webhook( $request ) {
+		$logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
+
+		// 驗證簽章（必須在處理事件之前）
+		if ( ! $this->verify_signature( $request ) ) {
+			$logger->log( 'signature_verification_failed', array(
+				'reason' => 'Signature verification failed in handle_webhook',
+			) );
+			return new \WP_Error( 'invalid_signature', 'Invalid signature', array( 'status' => 401 ) );
+		}
+
 		$body = $request->get_body();
 		$data = json_decode( $body, true );
 
 		if ( ! isset( $data['events'] ) ) {
 			return rest_ensure_response( array( 'success' => false ) );
+		}
+
+		// 檢查是否為 LINE Verify Event（當 LINE Developers Console 點擊「驗證」按鈕時）
+		// Verify event 的 replyToken 是固定的 32 個 0
+		foreach ( $data['events'] as $event ) {
+			$reply_token = isset( $event['replyToken'] ) ? $event['replyToken'] : '';
+			if ( '00000000000000000000000000000000' === $reply_token ) {
+				$logger->log( 'line_verify_event_detected', array(
+					'message' => 'LINE Verify Event detected (replyToken: 000...000), returning success immediately',
+				) );
+				return rest_ensure_response( array( 'success' => true ) );
+			}
 		}
 
 		// 立即處理事件，但使用輕量級處理避免 timeout
@@ -88,7 +110,7 @@ class Line_Webhook_API {
 	 * @param \WP_REST_Request $request Request object.
 	 * @return bool
 	 */
-	public function verify_signature( $request ) {
+	private function verify_signature( $request ) {
 		$logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
 		$signature = $request->get_header( 'X-Line-Signature' );
 
@@ -100,22 +122,21 @@ class Line_Webhook_API {
 			'content_type' => $request->get_header( 'Content-Type' ),
 		) );
 
+		// 取得 channel secret
+		$channel_secret = get_option( 'buygo_line_channel_secret', '' );
+
+		// 如果沒有設定 channel secret，跳過驗證（開發模式）
+		if ( empty( $channel_secret ) ) {
+			$logger->log( 'signature_verification_skipped', array(
+				'reason' => 'Channel secret not configured, skipping verification (development mode)',
+			) );
+			return true;
+		}
+
 		// 如果沒有簽名，拒絕請求
 		if ( empty( $signature ) ) {
 			$logger->log( 'signature_verification_failed', array(
 				'reason' => 'Missing X-Line-Signature header',
-			) );
-			return false;
-		}
-
-		// 取得 channel secret
-		$channel_secret = get_option( 'buygo_line_channel_secret', '' );
-
-		// 如果沒有設定 channel secret，記錄警告並拒絕
-		if ( empty( $channel_secret ) ) {
-			error_log( 'BuyGo+1: LINE channel secret not configured' );
-			$logger->log( 'signature_verification_failed', array(
-				'reason' => 'Channel secret not configured',
 			) );
 			return false;
 		}
