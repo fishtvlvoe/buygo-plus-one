@@ -1,6 +1,6 @@
 # BuyGo+1 待完成任務清單
 
-> 更新日期：2026-01-23
+> 更新日期：2026-01-22
 
 ---
 
@@ -17,22 +17,68 @@
 
 ## 待完成任務
 
-### 1. Phase C：多樣式產品 UI + 狀態追蹤邏輯
+### 1. LINE 上架功能修復
+**優先級：緊急**
+**狀態：待處理**
+
+**問題描述：**
+LINE 上傳圖片和文字時，官方帳號沒有反應，無法正常上架商品。
+
+**需要調查：**
+- [ ] 檢查 LINE Webhook 是否正常接收訊息
+- [ ] 檢查 LINE Bot 的回應邏輯
+- [ ] 確認商品上架流程是否正常執行
+
+**相關檔案：**
+- `/includes/api/class-line-webhook-api.php`
+- `/includes/services/class-line-webhook-handler.php`
+- `/includes/services/class-fluentcart-service.php`
+- `/includes/services/class-product-data-parser.php`
+
+---
+
+### 2. Phase C：多樣式產品
 **優先級：高**
+**狀態：規劃完成，待執行**
+**詳細計畫：** 請參閱 `/多樣式商品工作計畫.md`
 
 **功能描述：**
-支援多樣式（多規格）產品的 UI 顯示與狀態追蹤。例如：同一商品有不同顏色、尺寸等變體。
+支援多樣式（多規格）產品的上架與管理。例如：同一商品有不同顏色、尺寸等變體。
 
-**需要實作：**
-1. 商品列表顯示多樣式產品的方式
-2. 每個樣式的獨立庫存追蹤
-3. 分配時可以選擇特定樣式
-4. 訂單中顯示購買的具體樣式
+**實作範圍：**
+
+#### A. 上架流程（LINE → FluentCart）
+- [ ] A-1: ProductDataParser - 新增 `isMultiVariation()` 判斷方法
+- [ ] A-2: ProductDataParser - 新增 `parseMultiVariation()` 解析方法
+- [ ] A-3: FluentCartService - 新增 `createMultipleVariations()` 方法
+- [ ] A-4: FluentCartService - 修改 `createProduct()` 支援多樣式
+- [ ] A-5: FluentCommunity 貼文 - 確認多樣式模版正常運作
+- [ ] A-6: LINE 通知 - 支援多樣式商品通知格式
+
+#### B. 管理介面（BuyGo+1 前台）
+- [ ] B-1: products.php - 新增「樣式」欄位（單一/多樣下拉選單）
+- [ ] B-2: products.php - 下拉選單切換時整行數據更新
+- [ ] B-3: products.php - 多樣式商品操作欄新增「📊 統計」按鈕
+- [ ] B-4: products.php - 統計彈窗：顯示所有樣式明細 + 合計
+- [ ] B-5: ProductService - 取得 variations 資料
+- [ ] B-6: ProductsAPI - API 支援 variation 資料回傳
+- [ ] B-7: products.php - 樣式層級：已採購數量、採購狀態編輯
+- [ ] B-8: products.php - 分配子分頁：多樣式商品用 Tab 切換樣式
+- [ ] B-9: AllocationService - 分配時記錄 `variation_id`
+- [ ] B-10: orders.php - 訂單明細顯示具體樣式名稱
+- [ ] B-11: shipment-products.php - 備貨清單按樣式分組顯示
+
+#### C. 延伸功能（待研究）
+- [ ] C-1: 圖片輪播 - 商品卡片支援多張圖片左右切換
+- [ ] C-2: 樣式對應圖片 - 每個 variation 可設定獨立圖片
+- [ ] C-3: 上傳多圖自動對應 - 上傳 3 張圖 → 自動對應 3 個樣式
 
 **相關檔案：**
 - `/includes/views/pages/products.php`
 - `/includes/services/class-product-service.php`
 - `/includes/services/class-allocation-service.php`
+- `/includes/services/class-fluentcart-service.php`
+- `/includes/services/class-product-data-parser.php`
 
 ---
 

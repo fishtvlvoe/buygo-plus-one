@@ -29,25 +29,35 @@ class SettingsPage
      */
     public function add_admin_menu(): void
     {
+        // 主選單：BuyGo+1
         add_menu_page(
-            '設定',
-            '設定',
+            'BuyGo+1',
+            'BuyGo+1',
             'manage_options',
-            'buygo-settings',
-            [$this, 'render_settings_page'],
-            'dashicons-admin-generic',
+            'buygo-plus-one',
+            [$this, 'render_templates_page'],  // 預設顯示 LINE 模板頁面
+            'dashicons-cart',
             30
         );
 
-        // Line 模板頁面（放在第一個位置）
+        // 子選單 1：LINE 模板（第一個位置）
         add_submenu_page(
-            'buygo-settings',
-            'Line 模板',
-            'Line 模板',
+            'buygo-plus-one',
+            'LINE 模板',
+            'LINE 模板',
             'manage_options',
-            'buygo-templates',
-            [$this, 'render_templates_page'],
-            0
+            'buygo-plus-one',  // 與主選單相同 slug，覆蓋預設子選單
+            [$this, 'render_templates_page']
+        );
+
+        // 子選單 2：設定（第二個位置）
+        add_submenu_page(
+            'buygo-plus-one',
+            '設定',
+            '設定',
+            'manage_options',
+            'buygo-settings',
+            [$this, 'render_settings_page']
         );
     }
 
@@ -66,7 +76,8 @@ class SettingsPage
      */
     public function enqueue_scripts($hook): void
     {
-        if ($hook !== 'toplevel_page_buygo-settings' && $hook !== 'buygo-settings_page_buygo-templates') {
+        // 檢查是否在 BuyGo+1 的後台頁面
+        if ($hook !== 'toplevel_page_buygo-plus-one' && $hook !== 'buygo1_page_buygo-settings') {
             return;
         }
 
