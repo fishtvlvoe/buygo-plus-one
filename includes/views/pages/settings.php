@@ -663,7 +663,12 @@ $settings_component_template = <<<'HTML'
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 <tr v-for="helper in helpers" :key="helper.id" class="hover:bg-slate-50 transition">
-                                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ helper.name }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-3">
+                                            <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
+                                            <span class="text-sm font-medium text-slate-900">{{ helper.name }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-slate-600">{{ helper.email }}</td>
                                     <td class="px-4 py-3">
                                         <button
@@ -689,17 +694,19 @@ $settings_component_template = <<<'HTML'
                     <div class="md:hidden space-y-4">
                         <div v-for="helper in helpers" :key="helper.id" class="border border-slate-200 rounded-xl p-4">
                             <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="text-base font-bold text-slate-900 mb-1">{{ helper.name }}</div>
-                                    <div class="text-sm text-slate-600">{{ helper.email }}</div>
+                                <div class="flex items-center gap-3">
+                                    <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
+                                    <div>
+                                        <div class="text-base font-bold text-slate-900">{{ helper.name }}</div>
+                                        <div class="text-sm text-slate-600">{{ helper.email }}</div>
+                                    </div>
                                 </div>
                                 <button
                                     @click="removeHelper(helper.id)"
-                                    class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center">
-                                    <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
-                                    <span class="hidden md:inline">移除</span>
                                 </button>
                             </div>
                         </div>
@@ -749,9 +756,7 @@ $settings_component_template = <<<'HTML'
                             :key="user.id"
                             @mousedown.prevent="selectUser(user)"
                             class="w-full px-4 py-3 text-left hover:bg-slate-50 transition flex items-center gap-3 border-b border-slate-100 last:border-b-0">
-                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span class="text-primary font-medium text-sm">{{ user.name.charAt(0) }}</span>
-                            </div>
+                            <img :src="user.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="user.name" class="w-8 h-8 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
                             <div class="flex-1 min-w-0">
                                 <div class="font-medium text-slate-900 truncate">{{ user.name }}</div>
                                 <div class="text-sm text-slate-500 truncate">{{ user.email }}</div>
@@ -775,9 +780,7 @@ $settings_component_template = <<<'HTML'
                             :key="user.id"
                             @click="selectUser(user)"
                             class="w-full px-4 py-3 text-left hover:bg-slate-50 transition flex items-center gap-3">
-                            <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                                <span class="text-primary font-semibold">{{ user.name.charAt(0) }}</span>
-                            </div>
+                            <img :src="user.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="user.name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
                             <div class="flex-1 min-w-0">
                                 <div class="font-medium text-slate-900 truncate">{{ user.name }}</div>
                                 <div class="text-sm text-slate-500 truncate">{{ user.email }}</div>

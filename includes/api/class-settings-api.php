@@ -333,10 +333,17 @@ class Settings_API {
                     $email = $masked_local . '@' . $domain;
                 }
 
+                // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
                 $results[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $email,
+                    'avatar' => $avatar_url,
                 ];
             }
 
@@ -376,10 +383,17 @@ class Settings_API {
                     $email = $masked_local . '@' . $domain;
                 }
 
+                // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
                 $results[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $email,
+                    'avatar' => $avatar_url,
                 ];
             }
 

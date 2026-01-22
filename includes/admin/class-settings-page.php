@@ -97,6 +97,10 @@ class SettingsPage
      */
     public function render_settings_page(): void
     {
+        // 效能監控
+        $start_time = microtime(true);
+        error_log('[BuyGo Performance] Settings page load started');
+
         // 處理表單提交
         if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
             $this->handle_form_submit();
@@ -114,7 +118,10 @@ class SettingsPage
         ];
 
         // 取得 LINE 設定
+        $settings_start = microtime(true);
         $line_settings = SettingsService::get_line_settings();
+        $settings_time = microtime(true) - $settings_start;
+        error_log(sprintf('[BuyGo Performance] get_line_settings took %.4f seconds', $settings_time));
 
         ?>
         <div class="wrap">
@@ -157,6 +164,12 @@ class SettingsPage
             </div>
         </div>
         <?php
+        // 記錄總載入時間
+        $total_time = microtime(true) - $start_time;
+        error_log(sprintf('[BuyGo Performance] Settings page total load time: %.4f seconds', $total_time));
+
+        // 停用 Heartbeat API 以提升效能
+        wp_deregister_script('heartbeat');
     }
 
     /**
