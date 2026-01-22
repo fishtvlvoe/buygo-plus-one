@@ -10,14 +10,16 @@ if (!defined('ABSPATH')) {
 
 // HTML Template
 $shipment_details_template = <<<'HTML'
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen bg-slate-50 relative">
+    <!-- 列表視圖 -->
+    <div v-show="currentView === 'list'">
     <!-- 頁面標題 -->
     <div class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm sticky top-0 z-30 md:static">
         <div class="pl-12 md:pl-0">
             <h1 class="text-xl font-bold text-slate-900">出貨</h1>
         </div>
     </div>
-    
+
     <!-- 分頁 Tabs -->
     <div class="bg-white border-b border-slate-200">
         <div class="flex gap-8 px-6">
@@ -369,6 +371,7 @@ $shipment_details_template = <<<'HTML'
             </div>
         </div>
     </div>
+    </div><!-- 列表視圖結束 -->
 
     <!-- 確認 Modal -->
     <div 
