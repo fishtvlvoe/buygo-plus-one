@@ -373,6 +373,131 @@ $shipment_details_template = <<<'HTML'
     </div>
     </div><!-- 列表視圖結束 -->
 
+    <!-- 子分頁視圖（詳情） -->
+    <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
+                <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
+                    <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    <span class="text-sm font-medium">返回</span>
+                </button>
+                <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
+                <div class="truncate">
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 truncate">
+                        出貨明細 - {{ detailModal.shipment?.shipment_number }}
+                    </h2>
+                </div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <button
+                    @click="exportShipment(detailModal.shipment?.id)"
+                    class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition text-xs md:text-sm font-medium"
+                >
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Excel
+                </button>
+                <button
+                    @click="printDetail"
+                    class="px-3 py-1.5 md:px-4 md:py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-xs md:text-sm font-medium"
+                >
+                    列印
+                </button>
+                <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition text-xs md:text-sm font-medium">
+                    關閉
+                </button>
+            </div>
+        </div>
+
+        <!-- 詳情內容 -->
+        <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
+            <!-- 客戶資訊 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-orange-500 pl-3">客戶資訊</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">姓名</span>
+                        <span class="text-sm text-slate-900 font-medium">{{ detailModal.shipment?.customer_name || '-' }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">電話</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_phone || '-' }}</span>
+                    </div>
+                    <div class="flex md:col-span-2">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">地址</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_address || '-' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品明細 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 md:p-6 border-b border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
+                </div>
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500">商品名稱</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">數量</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">單價</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">小計</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        <tr v-if="!detailModal.items || detailModal.items.length === 0">
+                            <td colspan="4" class="px-4 py-8 text-sm text-slate-500 text-center">
+                                <div class="flex flex-col items-center gap-2">
+                                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                    <span>尚無商品資料</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-for="item in detailModal.items" :key="item.id" class="hover:bg-slate-50">
+                            <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="bg-slate-50">
+                        <tr>
+                            <td colspan="3" class="px-4 py-4 text-sm font-bold text-slate-900 text-right">總計</td>
+                            <td class="px-4 py-4 text-sm font-bold text-orange-600 text-right">
+                                {{ formatPrice(detailModal.total) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- 出貨資訊（只在已出貨/存檔狀態顯示） -->
+            <div v-if="activeTab === 'shipped' || activeTab === 'archived'" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-green-500 pl-3">出貨資訊</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">出貨日期</span>
+                        <span class="text-sm text-slate-900">{{ formatDate(detailModal.shipment?.shipped_at) }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">物流方式</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.shipping_method || '-' }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">追蹤號碼</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.tracking_number || '-' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- 子分頁視圖結束 -->
+
     <!-- 確認 Modal -->
     <div 
         v-if="confirmModal.show"
