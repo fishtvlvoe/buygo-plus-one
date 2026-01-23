@@ -96,16 +96,31 @@ class AllocationService
             }
             
             // 6. 執行分配（更新 order_item meta）
+            // 注意：為了防止舊外掛的 hook 造成重複計算，我們改為「根據子訂單數量計算」而不是「直接遞增」
             $allocated_count = 0;
             foreach ($items as $item) {
                 $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                $already_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
-                $still_needed = max(0, (int)$item['quantity'] - $already_allocated);
-                
+
+                // 新方法：從 order_id 和 object_id 計算實際已分配數量（透過查詢子訂單）
+                $actual_allocated = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_order_items oi
+                     INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                     WHERE o.parent_id = %d
+                     AND oi.object_id = %d
+                     AND o.type = 'split'",
+                    $item['order_id'],
+                    (int)$item['object_id']
+                ));
+
+                $still_needed = max(0, (int)$item['quantity'] - (int)$actual_allocated);
+
                 if ($still_needed > 0 && $available > 0) {
                     $to_allocate = min($still_needed, $available);
-                    $meta_data['_allocated_qty'] = $already_allocated + $to_allocate;
-                    
+                    // 新方法：計算應該設定的總值（不是遞增）
+                    $new_allocated_total = (int)$actual_allocated + $to_allocate;
+                    $meta_data['_allocated_qty'] = $new_allocated_total;
+
                     $result = $wpdb->update(
                         $wpdb->prefix . 'fct_order_items',
                         ['line_meta' => json_encode($meta_data)],
@@ -113,19 +128,32 @@ class AllocationService
                         ['%s'],
                         ['%d']
                     );
-                    
+
                     if ($result === false) {
                         $wpdb->query('ROLLBACK');
                         return new WP_Error('DB_ERROR', '更新訂單項目失敗：' . $wpdb->last_error);
                     }
-                    
+
                     $available -= $to_allocate;
                     $allocated_count += $to_allocate;
                 }
             }
             
             // 7. 更新商品的「已分配」總數
-            $new_allocated = $allocated + $allocated_count;
+            // 新方法：重新計算而非遞增（確保與實際子訂單數量同步）
+            $recalc_allocated = $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_order_items oi
+                 INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                 WHERE oi.post_id = %d
+                 AND oi.object_id = %d
+                 AND o.parent_id IS NOT NULL
+                 AND o.type = 'split'",
+                $post_id,
+                $product_id
+            ));
+
+            $new_allocated = max((int)$recalc_allocated, 0);
             $result = update_post_meta($post_id, '_buygo_allocated', $new_allocated);
 
             // 注意：update_post_meta 在新值與舊值相同時會回傳 false，這不是錯誤
