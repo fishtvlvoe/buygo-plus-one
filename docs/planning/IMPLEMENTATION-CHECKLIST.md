@@ -11,7 +11,7 @@
 | 階段 | 狀態 | 預計日期 |
 |------|------|----------|
 | 第 1 階段：立即修復 | ✅ 完成 | 2026-01-24 |
-| 第 2 階段：參考系統 | ⏳ 未開始 | 2月8日 - 14日 |
+| 第 2 階段：參考系統 | ✅ 完成 | 2026-01-24 |
 | 第 3 階段：組件分離 | ⏳ 未開始 | 2月15日 - 28日 |
 | 第 4 階段：自動化工具 | ⏳ 未開始 | 3月1日 - 7日 |
 | 第 5 階段：Vite 遷移（選擇性） | ⏳ 未開始 | 3月7日後 |
@@ -39,28 +39,23 @@
 
 ---
 
-## 第 2 階段：參考系統（2月8日 - 14日）
+## 第 2 階段：參考系統（2026-01-24 完成）
 
 ### 範本庫
-- [ ] 建立 `templates/` 目錄
-- [ ] 建立 `templates/admin-page-template.php`
-- [ ] 建立 `templates/service-template.php`
-- [ ] 建立 `templates/api-template.php`
+- [x] 建立 `templates/` 目錄
+- [x] 建立 `templates/admin-page-template.php`
+- [x] 建立 `templates/service-template.php`
+- [x] 建立 `templates/api-template.php`
 
 ### 文檔
-- [ ] 建立 REFACTORING-GUIDE.md
-
-### 開發資源
-- [ ] 建立 `/Users/fishtv/Development/buygo-dev-resources/` 目錄結構
-- [ ] 複製範本到 buygo-dev-resources
+- [x] 建立 REFACTORING-GUIDE.md
 
 ### 自動化指令碼
-- [ ] 建立 `scripts/create-page.sh`
-- [ ] 建立 `scripts/create-service.sh`
-- [ ] 建立 `scripts/validate-structure.sh`
+- [x] 建立 `scripts/create-feature.sh`（合併建立頁面/服務功能）
+- [x] 建立 `scripts/validate-structure.sh`
 
 ### 提交
-- [ ] Git 提交：`feat: 新增範本庫和參考系統`
+- [x] Git 提交：`feat: 新增範本庫和參考系統`
 
 ---
 
@@ -151,4 +146,4 @@
 ---
 
 **最後更新**：2026-01-24
-**目前階段**：第 2 階段 - 參考系統（待開始）
+**目前階段**：第 3 階段 - 組件分離（待開始）
