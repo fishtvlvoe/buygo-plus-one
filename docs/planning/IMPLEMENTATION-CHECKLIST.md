@@ -71,14 +71,14 @@
 - [x] 更新各 PHP 檔案連結到 CSS
 - [x] Git 提交：`refactor: 提取 CSS 到獨立檔案`
 
-### Week 3：Vue 組件提取
-- [ ] 建立 `admin/js/components/` 目錄
-- [ ] 提取 `admin/js/components/ProductsPage.js`
-- [ ] 提取 `admin/js/components/OrdersPage.js`
-- [ ] 提取 `admin/js/components/CustomersPage.js`
-- [ ] 提取 `admin/js/components/ShipmentDetailsPage.js`
-- [ ] 提取 `admin/js/components/ShipmentProductsPage.js`
-- [ ] Git 提交：`refactor: 提取 Vue 組件到獨立檔案`
+### Week 3：Vue 組件提取（✅ 完成 - 2026-01-24）
+- [x] 建立 `admin/js/components/` 目錄
+- [x] 提取 `admin/js/components/ProductsPage.js`
+- [x] 提取 `admin/js/components/OrdersPage.js`
+- [x] 提取 `admin/js/components/CustomersPage.js`
+- [x] 提取 `admin/js/components/ShipmentDetailsPage.js`
+- [x] 提取 `admin/js/components/ShipmentProductsPage.js`
+- [x] Git 提交：`refactor: 提取 Vue 組件到獨立檔案`
 
 ### Week 3：Composables 擴展
 - [ ] 建立 `admin/js/composables/useApi.js`
@@ -146,4 +146,4 @@
 ---
 
 **最後更新**：2026-01-24
-**目前階段**：第 3 階段 - 組件分離（CSS 隔離完成，準備進行 Vue 組件提取）
+**目前階段**：第 3 階段 - 組件分離（CSS 隔離與 Vue 組件提取已完成）
