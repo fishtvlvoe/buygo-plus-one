@@ -560,6 +560,9 @@ const ShipmentDetailsPageComponent = {
     setup() {
         const { computed, watch } = Vue;
 
+        // WordPress Nonce for API authentication
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
         // 使用 useCurrency Composable 處理幣別邏輯
         const { formatPrice, getCurrencySymbol, systemCurrency } = useCurrency();
         const activeTab = ref('ready_to_ship');
@@ -637,7 +640,10 @@ const ShipmentDetailsPageComponent = {
                 const statuses = ['ready_to_ship', 'shipped', 'archived'];
                 for (const status of statuses) {
                     const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments?status=${status}&per_page=1`, {
-                        credentials: 'include'
+                        credentials: 'include',
+                        headers: {
+                            'X-WP-Nonce': wpNonce
+                        }
                     });
                     const result = await response.json();
                     if (result.success && result.total !== undefined) {
@@ -668,7 +674,10 @@ const ShipmentDetailsPageComponent = {
                     try {
                         const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
+                            },
                             credentials: 'include',
                             body: JSON.stringify({ shipment_ids: [shipment.id] })
                         });
@@ -707,7 +716,10 @@ const ShipmentDetailsPageComponent = {
                     try {
                         const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/archive`, {
                             method: 'POST',
-                            credentials: 'include'
+                            credentials: 'include',
+                            headers: {
+                                'X-WP-Nonce': wpNonce
+                            }
                         });
                         const result = await response.json();
                         
@@ -810,7 +822,10 @@ const ShipmentDetailsPageComponent = {
                     try {
                         const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
+                            },
                             credentials: 'include',
                             body: JSON.stringify({ shipment_ids: selectedShipments.value })
                         });
@@ -846,7 +861,10 @@ const ShipmentDetailsPageComponent = {
                     try {
                         const response = await fetch('/wp-json/buygo-plus-one/v1/shipments/batch-archive', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-WP-Nonce': wpNonce
+                            },
                             credentials: 'include',
                             body: JSON.stringify({ shipment_ids: selectedShipments.value })
                         });
