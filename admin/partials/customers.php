@@ -4,16 +4,8 @@
 // 載入智慧搜尋框元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
 ?>
-<style>
-/* Transitions */
-.search-slide-enter-active, .search-slide-leave-active {
-    transition: all 0.2s ease;
-}
-.search-slide-enter-from, .search-slide-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-</style>
+<!-- Customers Page Styles -->
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/customers.css', __FILE__)); ?>" />
 <?php
 $customers_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">

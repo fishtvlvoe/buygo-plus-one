@@ -24,35 +24,8 @@
         }
     }
 </script>
-<style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    
-    /* Inline Edit Input */
-    .inline-edit-input {
-        width: 80px; text-align: center; border: 1px solid #e2e8f0; border-radius: 0.375rem;
-        padding: 0.25rem 0.5rem; font-family: 'Fira Code', monospace; outline: none; transition: all 0.2s;
-    }
-    .inline-edit-input:focus { border-color: #2563EB; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-    
-    /* Transitions */
-    .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease-in-out; }
-    .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
-    .search-slide-enter-active, .search-slide-leave-active { transition: all 0.2s ease; }
-    .search-slide-enter-from, .search-slide-leave-to { opacity: 0; transform: translateY(-10px); }
-    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-    .fade-enter-from, .fade-leave-to { opacity: 0; }
-
-    /* Products Image Upload - 使用 products- 前綴避免衝突 */
-    .products-upload-area { transition: all 0.2s ease; }
-    .products-upload-spinner { animation: products-spin 1s linear infinite; }
-    @keyframes products-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-    [v-cloak] { display: none; }
-</style>
+<!-- Products Page Styles -->
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/products.css', __FILE__)); ?>" />
 
 <?php
 $products_component_template = <<<'HTML'
