@@ -190,7 +190,7 @@ $shipment_details_template = <<<'HTML'
             <!-- 桌面版表格 -->
             <div class="hidden md:block buygo-card overflow-hidden">
                 <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
+                    <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th class="px-6 py-3 text-left">
                                 <input
@@ -440,7 +440,7 @@ $shipment_details_template = <<<'HTML'
                     <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
                 </div>
                 <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
+                    <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-slate-500">商品名稱</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">數量</th>
