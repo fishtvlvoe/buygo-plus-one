@@ -14,11 +14,8 @@ $shipment_details_template = <<<'HTML'
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
-    <!-- 列表視圖 -->
-    <div v-show="currentView === 'list'">
-
-    <!-- Header（與訂單頁面一致） -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
+    <!-- Header（與商品頁面一致，放在外層） -->
+    <header v-show="currentView === 'list'" class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
                 <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">出貨</h1>
@@ -46,7 +43,8 @@ $shipment_details_template = <<<'HTML'
 
     <!-- Content Area -->
     <div class="flex-1 overflow-auto bg-slate-50/50 relative">
-        <div class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+        <!-- 列表視圖 -->
+        <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
             <!-- Smart Search Box（頁面搜尋框） -->
             <smart-search-box
@@ -368,6 +366,7 @@ $shipment_details_template = <<<'HTML'
             </div>
         </template>
     </div>
+            </div><!-- Tabs 卡片結束 -->
 
     <!-- 分頁控制 -->
     <div v-if="totalShipments > 0" class="px-4 md:px-6 pb-6">
@@ -922,8 +921,8 @@ const ShipmentDetailsPageComponent = {
             }
 
             try {
-                // 建立 URL（使用 GET 參數）
-                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${shipmentId}`;
+                // 建立 URL（使用 GET 參數 + nonce 驗證）
+                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${shipmentId}&_wpnonce=${wpNonce}`;
 
                 // 直接開啟 URL（瀏覽器會自動下載檔案）
                 window.location.href = url;
@@ -943,9 +942,9 @@ const ShipmentDetailsPageComponent = {
             }
 
             try {
-                // 建立 URL（使用 GET 參數傳遞 shipment_ids）
+                // 建立 URL（使用 GET 參數傳遞 shipment_ids + nonce 驗證）
                 const ids = selectedShipments.value.join(',');
-                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${ids}`;
+                const url = `/wp-json/buygo-plus-one/v1/shipments/export?shipment_ids=${ids}&_wpnonce=${wpNonce}`;
 
                 // 直接開啟 URL（瀏覽器會自動下載檔案）
                 window.location.href = url;
