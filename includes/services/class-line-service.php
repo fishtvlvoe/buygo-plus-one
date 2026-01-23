@@ -27,12 +27,20 @@ class LineService {
 	private $table_name;
 
 	/**
+	 * Debug Service
+	 *
+	 * @var DebugService
+	 */
+	private $debugService;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'buygo_line_bindings';
-		
+		$this->debugService = DebugService::get_instance();
+
 		// Register cleanup hook
 		add_action( 'buygo_daily_cleanup', [ $this, 'cleanup_expired_bindings' ] );
 	}
@@ -51,62 +59,96 @@ class LineService {
 	public function get_user_by_line_uid( $line_uid ) {
 		global $wpdb;
 
+		// 輸入驗證
 		if ( empty( $line_uid ) ) {
+			$this->debugService->log( 'LineService', '查詢使用者失敗：LINE UID 為空', [], 'warning' );
 			return null;
 		}
 
-		// 1. Check buygo_line_bindings table first (優先)
-		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
-		
-		if ( $table_exists ) {
-			$user_id = $wpdb->get_var( $wpdb->prepare(
-				"SELECT user_id FROM {$this->table_name} WHERE line_uid = %s AND status = 'completed' ORDER BY id DESC LIMIT 1",
-				$line_uid
-			) );
+		$this->debugService->log( 'LineService', '開始查詢使用者', array(
+			'line_uid' => $line_uid,
+		) );
 
-			if ( $user_id ) {
-				$user = get_userdata( $user_id );
-				if ( $user ) {
-					return $user;
+		try {
+			// 1. Check buygo_line_bindings table first (優先)
+			$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+
+			if ( $table_exists ) {
+				$user_id = $wpdb->get_var( $wpdb->prepare(
+					"SELECT user_id FROM {$this->table_name} WHERE line_uid = %s AND status = 'completed' ORDER BY id DESC LIMIT 1",
+					$line_uid
+				) );
+
+				if ( $user_id ) {
+					$user = get_userdata( $user_id );
+					if ( $user ) {
+						$this->debugService->log( 'LineService', '從 buygo_line_bindings 找到使用者', array(
+							'line_uid' => $line_uid,
+							'user_id' => $user_id,
+						) );
+						return $user;
+					}
 				}
 			}
-		}
 
-		// 2. Check wp_usermeta (向後相容，支援舊系統的 _mygo_line_uid)
-		$meta_keys = [ '_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id' ];
-		
-		foreach ( $meta_keys as $meta_key ) {
-			$user_id = $wpdb->get_var( $wpdb->prepare(
-				"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s LIMIT 1",
-				$meta_key,
-				$line_uid
-			) );
+			// 2. Check wp_usermeta (向後相容，支援舊系統的 _mygo_line_uid)
+			$meta_keys = [ '_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id' ];
 
-			if ( $user_id ) {
-				$user = get_userdata( $user_id );
-				if ( $user ) {
-					return $user;
+			foreach ( $meta_keys as $meta_key ) {
+				$user_id = $wpdb->get_var( $wpdb->prepare(
+					"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s LIMIT 1",
+					$meta_key,
+					$line_uid
+				) );
+
+				if ( $user_id ) {
+					$user = get_userdata( $user_id );
+					if ( $user ) {
+						$this->debugService->log( 'LineService', '從 usermeta 找到使用者', array(
+							'line_uid' => $line_uid,
+							'user_id' => $user_id,
+							'meta_key' => $meta_key,
+						) );
+						return $user;
+					}
 				}
 			}
-		}
 
-		// 3. Check NSL table (Nextend Social Login)
-		$nsl_table = $wpdb->prefix . 'social_users';
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '$nsl_table'" ) === $nsl_table ) {
-			$user_id = $wpdb->get_var( $wpdb->prepare(
-				"SELECT ID FROM {$nsl_table} WHERE identifier = %s AND type = 'line' LIMIT 1",
-				$line_uid
-			) );
-			
-			if ( $user_id ) {
-				$user = get_userdata( $user_id );
-				if ( $user ) {
-					return $user;
+			// 3. Check NSL table (Nextend Social Login)
+			$nsl_table = $wpdb->prefix . 'social_users';
+			if ( $wpdb->get_var( "SHOW TABLES LIKE '$nsl_table'" ) === $nsl_table ) {
+				$user_id = $wpdb->get_var( $wpdb->prepare(
+					"SELECT ID FROM {$nsl_table} WHERE identifier = %s AND type = 'line' LIMIT 1",
+					$line_uid
+				) );
+
+				if ( $user_id ) {
+					$user = get_userdata( $user_id );
+					if ( $user ) {
+						$this->debugService->log( 'LineService', '從 NSL 找到使用者', array(
+							'line_uid' => $line_uid,
+							'user_id' => $user_id,
+						) );
+						return $user;
+					}
 				}
 			}
-		}
 
-		return null;
+			$this->debugService->log( 'LineService', '未找到使用者', array(
+				'line_uid' => $line_uid,
+			), 'warning' );
+
+			return null;
+
+		} catch ( \Exception $e ) {
+			$this->debugService->log( 'LineService', '查詢使用者時發生錯誤', array(
+				'line_uid' => $line_uid,
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine(),
+			), 'error' );
+			return null;
+		}
 	}
 
 	/**
@@ -167,34 +209,61 @@ class LineService {
 	public function generate_binding_code( $user_id ) {
 		global $wpdb;
 
-		$user = get_userdata( $user_id );
-		if ( ! $user ) {
-			return new \WP_Error( 'invalid_user', 'User not found' );
-		}
+		$this->debugService->log( 'LineService', '開始產生綁定碼', array(
+			'user_id' => $user_id,
+		) );
 
-		// Ensure table exists
-		$this->maybe_create_table();
+		try {
+			// 輸入驗證
+			if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+				throw new \Exception( 'Invalid user ID' );
+			}
 
-		$code = $this->generate_unique_code();
-		$expires_at = date( 'Y-m-d H:i:s', strtotime( '+10 minutes' ) );
+			$user = get_userdata( $user_id );
+			if ( ! $user ) {
+				throw new \Exception( 'User not found' );
+			}
 
-		$inserted = $wpdb->insert(
-			$this->table_name,
-			[
+			// Ensure table exists
+			$this->maybe_create_table();
+
+			$code = $this->generate_unique_code();
+			$expires_at = date( 'Y-m-d H:i:s', strtotime( '+10 minutes' ) );
+
+			$inserted = $wpdb->insert(
+				$this->table_name,
+				[
+					'user_id' => $user_id,
+					'binding_code' => $code,
+					'status' => 'pending',
+					'created_at' => current_time( 'mysql' ),
+					'expires_at' => $expires_at,
+				],
+				[ '%d', '%s', '%s', '%s', '%s' ]
+			);
+
+			if ( $inserted === false ) {
+				throw new \Exception( 'Database insert failed: ' . $wpdb->last_error );
+			}
+
+			$this->debugService->log( 'LineService', '綁定碼產生成功', array(
 				'user_id' => $user_id,
-				'binding_code' => $code,
-				'status' => 'pending',
-				'created_at' => current_time( 'mysql' ),
+				'code' => $code,
 				'expires_at' => $expires_at,
-			],
-			[ '%d', '%s', '%s', '%s', '%s' ]
-		);
+			) );
 
-		if ( $inserted === false ) {
-			return new \WP_Error( 'db_error', 'Database error' );
+			return $code;
+
+		} catch ( \Exception $e ) {
+			$this->debugService->log( 'LineService', '產生綁定碼失敗', array(
+				'user_id' => $user_id,
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine(),
+			), 'error' );
+
+			return new \WP_Error( 'code_generation_failed', $e->getMessage() );
 		}
-
-		return $code;
 	}
 
 	/**
@@ -207,44 +276,99 @@ class LineService {
 	public function verify_binding_code( $code, $line_uid ) {
 		global $wpdb;
 
-		$this->maybe_create_table();
-
-		$binding = $wpdb->get_row( $wpdb->prepare(
-			"SELECT * FROM {$this->table_name} WHERE binding_code = %s ORDER BY id DESC LIMIT 1",
-			$code
+		$this->debugService->log( 'LineService', '開始驗證綁定碼', array(
+			'code' => $code,
+			'line_uid' => $line_uid,
 		) );
 
-		if ( ! $binding ) {
-			return new \WP_Error( 'invalid_code', 'Invalid binding code' );
-		}
+		try {
+			// 輸入驗證
+			if ( empty( $code ) ) {
+				throw new \Exception( 'Binding code is empty' );
+			}
 
-		if ( $binding->status !== 'pending' ) {
-			return new \WP_Error( 'invalid_status', 'Code already used or expired' );
-		}
+			if ( empty( $line_uid ) ) {
+				throw new \Exception( 'LINE UID is empty' );
+			}
 
-		if ( strtotime( $binding->expires_at ) < time() ) {
-			$wpdb->update( $this->table_name, [ 'status' => 'expired' ], [ 'id' => $binding->id ] );
-			return new \WP_Error( 'expired_code', 'Code expired' );
-		}
+			$this->maybe_create_table();
 
-		// Complete Binding
-		$wpdb->update(
-			$this->table_name,
-			[
+			$binding = $wpdb->get_row( $wpdb->prepare(
+				"SELECT * FROM {$this->table_name} WHERE binding_code = %s ORDER BY id DESC LIMIT 1",
+				$code
+			) );
+
+			if ( ! $binding ) {
+				$this->debugService->log( 'LineService', '綁定碼不存在', array(
+					'code' => $code,
+				), 'warning' );
+				throw new \Exception( 'Invalid binding code' );
+			}
+
+			if ( $binding->status !== 'pending' ) {
+				$this->debugService->log( 'LineService', '綁定碼狀態無效', array(
+					'code' => $code,
+					'status' => $binding->status,
+				), 'warning' );
+				throw new \Exception( 'Code already used or expired' );
+			}
+
+			if ( strtotime( $binding->expires_at ) < time() ) {
+				$wpdb->update( $this->table_name, [ 'status' => 'expired' ], [ 'id' => $binding->id ] );
+				$this->debugService->log( 'LineService', '綁定碼已過期', array(
+					'code' => $code,
+					'expires_at' => $binding->expires_at,
+				), 'warning' );
+				throw new \Exception( 'Code expired' );
+			}
+
+			// Complete Binding
+			$updated = $wpdb->update(
+				$this->table_name,
+				[
+					'line_uid' => $line_uid,
+					'status' => 'completed',
+					'completed_at' => current_time( 'mysql' ),
+				],
+				[ 'id' => $binding->id ]
+			);
+
+			if ( $updated === false ) {
+				throw new \Exception( 'Database update failed: ' . $wpdb->last_error );
+			}
+
+			$this->debugService->log( 'LineService', '綁定完成', array(
+				'user_id' => $binding->user_id,
 				'line_uid' => $line_uid,
-				'status' => 'completed',
-				'completed_at' => current_time( 'mysql' ),
-			],
-			[ 'id' => $binding->id ]
-		);
+				'code' => $code,
+			) );
 
-		// Fire Event for other services
-		do_action( 'buygo_line_binding_completed', $binding->user_id, $line_uid );
+			// Fire Event for other services
+			do_action( 'buygo_line_binding_completed', $binding->user_id, $line_uid );
 
-		return [
-			'user_id' => $binding->user_id,
-			'line_uid' => $line_uid,
-		];
+			return [
+				'user_id' => $binding->user_id,
+				'line_uid' => $line_uid,
+			];
+
+		} catch ( \Exception $e ) {
+			$this->debugService->log( 'LineService', '驗證綁定碼失敗', array(
+				'code' => $code,
+				'line_uid' => $line_uid,
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine(),
+			), 'error' );
+
+			$error_codes = [
+				'Invalid binding code' => 'invalid_code',
+				'Code already used or expired' => 'invalid_status',
+				'Code expired' => 'expired_code',
+			];
+
+			$error_code = $error_codes[ $e->getMessage() ] ?? 'verification_failed';
+			return new \WP_Error( $error_code, $e->getMessage() );
+		}
 	}
 
 	/**
@@ -257,37 +381,73 @@ class LineService {
 	public function manual_bind( $user_id, $line_uid ) {
 		global $wpdb;
 
-		$this->maybe_create_table();
+		$this->debugService->log( 'LineService', '開始手動綁定', array(
+			'user_id' => $user_id,
+			'line_uid' => $line_uid,
+		) );
 
-		// Check if already bound
-		$existing = $this->get_line_uid( $user_id );
-		if ( $existing ) {
-			if ( $existing === $line_uid ) {
-				return true;
+		try {
+			// 輸入驗證
+			if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+				throw new \Exception( 'Invalid user ID' );
 			}
-		}
 
-		$inserted = $wpdb->insert(
-			$this->table_name,
-			[
+			if ( empty( $line_uid ) ) {
+				throw new \Exception( 'LINE UID is empty' );
+			}
+
+			$this->maybe_create_table();
+
+			// Check if already bound
+			$existing = $this->get_line_uid( $user_id );
+			if ( $existing ) {
+				if ( $existing === $line_uid ) {
+					$this->debugService->log( 'LineService', '使用者已綁定相同的 LINE UID', array(
+						'user_id' => $user_id,
+						'line_uid' => $line_uid,
+					), 'warning' );
+					return true;
+				}
+			}
+
+			$inserted = $wpdb->insert(
+				$this->table_name,
+				[
+					'user_id' => $user_id,
+					'binding_code' => 'manual-' . time(),
+					'line_uid' => $line_uid,
+					'status' => 'completed',
+					'created_at' => current_time( 'mysql' ),
+					'expires_at' => current_time( 'mysql' ),
+					'completed_at' => current_time( 'mysql' ),
+				],
+				[ '%d', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			);
+
+			if ( $inserted === false ) {
+				throw new \Exception( 'Database insert failed: ' . $wpdb->last_error );
+			}
+
+			$this->debugService->log( 'LineService', '手動綁定成功', array(
 				'user_id' => $user_id,
-				'binding_code' => 'manual-' . time(),
 				'line_uid' => $line_uid,
-				'status' => 'completed',
-				'created_at' => current_time( 'mysql' ),
-				'expires_at' => current_time( 'mysql' ),
-				'completed_at' => current_time( 'mysql' ),
-			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s' ]
-		);
+			) );
 
-		if ( $inserted === false ) {
-			return new \WP_Error( 'db_error', 'Database error during manual bind' );
+			do_action( 'buygo_line_binding_completed', $user_id, $line_uid );
+
+			return true;
+
+		} catch ( \Exception $e ) {
+			$this->debugService->log( 'LineService', '手動綁定失敗', array(
+				'user_id' => $user_id,
+				'line_uid' => $line_uid,
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine(),
+			), 'error' );
+
+			return new \WP_Error( 'manual_bind_failed', $e->getMessage() );
 		}
-
-		do_action( 'buygo_line_binding_completed', $user_id, $line_uid );
-
-		return true;
 	}
 
 	/**
@@ -317,10 +477,24 @@ class LineService {
 	public function cleanup_expired_bindings() {
 		global $wpdb;
 
-		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
-		
-		if ( $table_exists ) {
-			$wpdb->query( "UPDATE {$this->table_name} SET status = 'expired' WHERE status = 'pending' AND expires_at < NOW()" );
+		$this->debugService->log( 'LineService', '開始清理過期綁定碼', [] );
+
+		try {
+			$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+
+			if ( $table_exists ) {
+				$result = $wpdb->query( "UPDATE {$this->table_name} SET status = 'expired' WHERE status = 'pending' AND expires_at < NOW()" );
+
+				$this->debugService->log( 'LineService', '清理過期綁定碼完成', array(
+					'expired_count' => $result !== false ? $result : 0,
+				) );
+			} else {
+				$this->debugService->log( 'LineService', '綁定表不存在，跳過清理', [], 'warning' );
+			}
+		} catch ( \Exception $e ) {
+			$this->debugService->log( 'LineService', '清理過期綁定碼失敗', array(
+				'error' => $e->getMessage(),
+			), 'error' );
 		}
 	}
 
