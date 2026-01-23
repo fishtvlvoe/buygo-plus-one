@@ -20,7 +20,7 @@ class ProductService
 
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
     }
 
     /**

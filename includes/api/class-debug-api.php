@@ -13,7 +13,7 @@ class Debug_API
     
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
         add_action('rest_api_init', [$this, 'register_routes']);
     }
     
