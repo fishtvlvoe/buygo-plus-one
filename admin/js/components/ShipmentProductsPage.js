@@ -19,7 +19,7 @@ const ShipmentProductsPageComponent = {
     components: {
         'smart-search-box': BuyGoSmartSearchBox
     },
-    template: `<?php echo $shipment_products_component_template; ?>`,
+    template: '#shipment-products-page-template',
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
 

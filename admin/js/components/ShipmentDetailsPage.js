@@ -19,9 +19,9 @@ const ShipmentDetailsPageComponent = {
     components: {
         'smart-search-box': BuyGoSmartSearchBox
     },
-    template: `<?php echo $shipment_details_template; ?>`,
+    template: '#shipment-details-page-template',
     setup() {
-        const { computed, watch } = Vue;
+        const { ref, computed, watch, onMounted } = Vue;
 
         // WordPress Nonce for API authentication
         const wpNonce = window.buygoWpNonce || '';
