@@ -1,45 +1,76 @@
 # BuyGo+1
 
-BuyGo 獨立賣場後台系統
+完整的 WordPress 商品和訂單管理系統。
 
-## 說明
+## 功能特性
 
-BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功能。
+- 📱 LINE 商品上架（支援圖片和文字）
+- 📦 訂單管理與追蹤
+- 🚚 出貨管理系統
+- 🔍 強大的商品搜尋
+- 📊 庫存分配管理
+- ⚙️ 彈性設定系統
 
-## 功能
+## 快速開始
 
-- 儀表板
-- 商品管理
-- 訂單管理
-- 出貨商品
-- 出貨明細
-- 客戶管理
-- 系統設定
+### 安裝
+
+1. 上傳到 `/wp-content/plugins/buygo-plus-one/`
+2. 在 WordPress 後台啟用外掛
+3. 訪問 `yoursite.com/buygo-portal/dashboard`
+
+### 開發部署流程
+
+```bash
+# 1. 修改代碼
+git add .
+git commit -m "feat: 新增功能描述"
+
+# 2. 推送到 GitHub
+git push origin main
+
+# 3. InstaWP 自動部署到臨時網站
+# 訪問 InstaWP 臨時網站進行測試
+```
 
 ## 技術棧
 
-- **前端**：Vue 3 + Tailwind CSS
-- **後端**：PHP + WordPress REST API
+- **前端**：Vue 3 + Tailwind CSS + React
+- **後端**：PHP 7.4+ + WordPress REST API
 - **架構**：標準 WordPress 外掛架構
 
-## 安裝
-
-1. 上傳 `buygo-plus-one` 資料夾到 `/wp-content/plugins/` 目錄
-2. 在 WordPress 後台的「外掛」選單中啟用 BuyGo+1
-3. 訪問 `yoursite.com/buygo-portal/dashboard` 開始使用
-
-## 開發
-
-### 檔案結構
+## 專案結構
 
 ```
 buygo-plus-one/
-├── buygo-plus-one.php    # 主要外掛檔案
-├── includes/              # PHP 類別和函數
-├── components/            # Vue 元件
-└── assets/                # 前端資源
+├── buygo-plus-one.php    # 主入口
+├── includes/             # PHP 核心模組
+├── admin/                # 後台管理
+├── components/           # 前端組件
+├── public/               # 公開資源
+├── assets/               # CSS/JS
+└── tests/                # 測試檔案
+```
+
+## 開發階段
+
+- **第 1 階段**：穩定期（1 月 24-28 日）
+- **第 2 階段**：發布期（1 月 29-31 日）
+- **第 3 階段**：重構期（2 月 8 日 - 3 月 7 日）
+- **第 4 階段**：新功能開發（3 月 8 日起）
+
+## 提交規範
+
+```
+feat:   新增功能
+fix:    修復 Bug
+docs:   文件更新
+style:  代碼風格
+refactor: 代碼重構
+test:   測試相關
+chore:  構建/工具
 ```
 
 ## 授權
 
-GPL v2 or later
+GPL v2 或更新版本
