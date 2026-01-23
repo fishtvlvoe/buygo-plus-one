@@ -558,16 +558,16 @@ $shipment_details_template = <<<'HTML'
             </div>
         </div>
     </div>
-    
+
     <!-- Toast 通知 -->
-    <div 
-        v-if="toastMessage.show" 
+    <div
+        v-if="toastMessage.show"
         class="fixed top-4 right-4 z-50 animate-slide-in"
     >
         <div :class="[
             'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
-            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 
-            toastMessage.type === 'error' ? 'bg-red-500 text-white' : 
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' :
+            toastMessage.type === 'error' ? 'bg-red-500 text-white' :
             'bg-blue-500 text-white'
         ]">
             <svg v-if="toastMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,6 +576,8 @@ $shipment_details_template = <<<'HTML'
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
     </div>
+
+    </main>
 </div>
 HTML;
 
