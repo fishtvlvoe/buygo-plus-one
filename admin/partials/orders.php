@@ -1164,16 +1164,21 @@ const OrdersPageComponent = {
             if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 return `${order.total_items || 0} 件`;
             }
-            
+
+            // 【修復】使用 pending_quantity（待分配數量）而非 quantity
+            // 因為當訂單被分割成子訂單時，quantity 會被更新，但 pending_quantity 保持正確
             const itemsText = order.items
-                .map(item => `${item.product_name || '未知商品'} x${item.quantity || 0}`)
+                .map(item => {
+                    const displayQty = item.pending_quantity !== undefined ? item.pending_quantity : (item.quantity || 0);
+                    return `${item.product_name || '未知商品'} x${displayQty}`;
+                })
                 .join(', ');
-            
+
             // 如果文字太長，截斷並加上省略號
             if (itemsText.length > maxLength) {
                 return itemsText.substring(0, maxLength) + '...';
             }
-            
+
             return itemsText;
         };
         
