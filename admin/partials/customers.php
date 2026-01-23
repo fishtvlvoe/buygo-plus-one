@@ -443,13 +443,14 @@ HTML;
 ?>
 
 
-<!-- Customers Page Component -->
-<script>
-window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+<!-- Customers Page Template -->
 <script type="text/x-template" id="customers-page-template">
     <?php echo $customers_component_template; ?>
 </script>
 
+<!-- Customers Page Component -->
+<script>
+window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
 <script src="<?php echo esc_url(plugins_url('js/components/CustomersPage.js', dirname(__FILE__))); ?>"></script>
 

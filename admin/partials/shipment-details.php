@@ -582,13 +582,14 @@ HTML;
 // Vue Component
 ?>
 
-<!-- Shipment Details Page Component -->
-<script>
-window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+<!-- Shipment Details Page Template -->
 <script type="text/x-template" id="shipment-details-page-template">
     <?php echo $shipment_details_template; ?>
 </script>
 
+<!-- Shipment Details Page Component -->
+<script>
+window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
 <script src="<?php echo esc_url(plugins_url('js/components/ShipmentDetailsPage.js', dirname(__FILE__))); ?>"></script>
 
