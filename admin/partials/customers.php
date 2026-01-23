@@ -17,7 +17,10 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 <?php
 $customers_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    <!-- Header（與 products.php 一致） -->
+
+    <!-- ============================================ -->
+    <!-- 頁首部分 -->
+    <!-- ============================================ -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
@@ -70,8 +73,13 @@ $customers_component_template = <<<'HTML'
             </div>
         </transition>
     </header>
+    <!-- 結束：頁首部分 -->
 
-    <!-- 客戶列表容器 -->
+    <!-- ============================================ -->
+    <!-- 內容區域 -->
+    <!-- ============================================ -->
+
+    <!-- 列表檢視 -->
     <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
         <!-- Smart Search Box -->
@@ -192,9 +200,10 @@ $customers_component_template = <<<'HTML'
                 </div>
             </div> <!-- End pagination -->
         </div> <!-- End customer list content -->
-    </div> <!-- End list view -->
+    </div>
+    <!-- 結束：列表檢視 -->
 
-    <!-- 客戶詳情子頁面（URL 驅動） -->
+    <!-- 詳情檢視 -->
     <div v-show="currentView === 'detail'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
         <!-- 子頁面 Header -->
         <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">

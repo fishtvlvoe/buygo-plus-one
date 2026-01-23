@@ -28,7 +28,9 @@ $orders_component_template = <<<'HTML'
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
-        <!-- Header -->
+        <!-- ============================================ -->
+        <!-- 頁首部分 -->
+        <!-- ============================================ -->
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
             <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
                 <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
@@ -99,9 +101,14 @@ $orders_component_template = <<<'HTML'
                 </div>
             </transition>
         </header>
+        <!-- 結束：頁首部分 -->
 
+        <!-- ============================================ -->
+        <!-- 內容區域 -->
+        <!-- ============================================ -->
         <div class="flex-1 overflow-auto bg-slate-50/50 relative">
-            <!-- 列表視圖（當 currentView === 'list' 時顯示） -->
+
+            <!-- 列表檢視 -->
             <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
                 <!-- Smart Search Box -->
@@ -544,9 +551,10 @@ $orders_component_template = <<<'HTML'
                 </div>
             </div> <!-- End v-if="totalOrders > 0" (pagination) -->
             </div> <!-- End v-else (order content) -->
-            </div> <!-- End list view (v-show="currentView === 'list'") -->
+            </div>
+            <!-- 結束：列表檢視 -->
 
-            <!-- Subpages -->
+            <!-- 子頁面（詳情等） -->
             <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
                 <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
                     <div class="flex items-center gap-2 md:gap-4 overflow-hidden">

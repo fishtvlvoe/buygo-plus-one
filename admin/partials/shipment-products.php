@@ -24,7 +24,10 @@
 
 $shipment_products_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    <!-- Header（固定高度 64px）-->
+
+    <!-- ============================================ -->
+    <!-- 頁首部分 -->
+    <!-- ============================================ -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
         <!-- 左側：標題 -->
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
@@ -83,8 +86,11 @@ $shipment_products_component_template = <<<'HTML'
             </div>
         </transition>
     </header>
+    <!-- 結束：頁首部分 -->
 
-    <!-- Smart Search Box（獨立區域）-->
+    <!-- ============================================ -->
+    <!-- 內容區域（此頁面無子頁面切換） -->
+    <!-- ============================================ -->
     <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
         <smart-search-box
             api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
