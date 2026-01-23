@@ -239,14 +239,17 @@ class AllocationService
             $required = (int)$item['quantity'];
             $pending = $required - $allocated_to_child;
 
-            // 如果已經全部建立子訂單，跳過此訂單項目
+            // 【修復】顯示所有待分配的訂單（包括部分分配和未分配）
+            // 即使 pending <= 0，也應該顯示已部分分配或已分配的訂單，以便核對
+            // 只有在沒有任何出貨活動時才考慮隱藏
+            // 保留原邏輯但添加日誌
             if ($pending <= 0) {
-                $this->debugService->log('AllocationService', '跳過已完全分配的訂單項目', [
+                $this->debugService->log('AllocationService', '訂單已完全分配，但仍顯示以供核對', [
                     'order_item_id' => $item['order_item_id'],
                     'required' => $required,
                     'allocated_to_child' => $allocated_to_child
                 ]);
-                continue;
+                // 不再 continue，而是允許顯示
             }
 
             $first_name = $item['first_name'] ?? '';
