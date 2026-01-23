@@ -1464,15 +1464,15 @@ const ProductsPageComponent = {
                 showToast('請選擇商品', 'error');
                 return;
             }
-            
+
             // 準備分配資料
-            // 注意：傳給後端的 quantity 是「新的總分配量」= 已分配 + 本次新增
+            // 【增量模式】只傳送「本次新分配」的數量，後端會建立新的子訂單
             const allocationData = productOrders.value
                 .filter(order => order.allocated && order.allocated > 0)
                 .map(order => ({
                     order_id: order.order_id,
                     order_item_id: order.order_item_id || order.id,
-                    quantity: (order.already_allocated || 0) + order.allocated
+                    quantity: order.allocated  // 只傳本次新分配的數量
                 }));
             
             if (allocationData.length === 0) {
