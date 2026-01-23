@@ -3,6 +3,10 @@
 > **用途**：每次 Claude 對話開始時讀取此檔案，了解目前進度。
 >
 > **完整計畫**：參見 `~/.claude/plans/golden-hopping-mockingbird.md`
+>
+> **最後更新**：2026-01-24
+>
+> **目前階段**：第 3 階段完成！所有服務層優化已完成，準備進入第 4 階段。
 
 ---
 
@@ -12,7 +16,7 @@
 |------|------|----------|
 | 第 1 階段：立即修復 | ✅ 完成 | 2026-01-24 |
 | 第 2 階段：參考系統 | ✅ 完成 | 2026-01-24 |
-| 第 3 階段：組件分離 | 🔄 進行中 | 2月15日 - 28日 |
+| 第 3 階段：組件分離 | ✅ 完成 | 2026-01-24 |
 | 第 4 階段：自動化工具 | ⏳ 未開始 | 3月1日 - 7日 |
 | 第 5 階段：Vite 遷移（選擇性） | ⏳ 未開始 | 3月7日後 |
 
@@ -86,14 +90,16 @@
 - [x] 建立 `includes/views/composables/README.md`
 - [x] Git 提交：`feat: 新增 Vue composables`
 
-### 服務層優化（🔄 進行中 - 2026-01-24）
+### 服務層優化（✅ 完成 - 2026-01-24）
 - [x] 審查所有 15 個 services
 - [x] 產出服務層錯誤處理與日誌集成審查報告
 - [x] 建立 `docs/development/SERVICES-REVIEW-REPORT.md`
 - [x] ✅ 執行高優先級修復（ProductDataParser 1.5→4.0, ExportService 2.0→4.0, NotificationTemplates 2.0→3.5）
-- [ ] 執行中優先級修復（LineService, SettingsService）
-- [ ] 升級舊的 WebhookLogger 到 DebugService（FluentCartService, ImageUploader, LineWebhookHandler）
+- [x] ✅ 執行中優先級修復（LineService 2.5→4.5, SettingsService 2.5→4.5）
+- [x] ✅ 升級舊的 WebhookLogger 到 DebugService（FluentCartService, ImageUploader, LineWebhookHandler）
 - [x] Git 提交：`refactor: 修復高優先級服務的錯誤處理和日誌集成`
+- [x] Git 提交：`refactor: 升級 WebhookLogger 到 DebugService`
+- [x] Git 提交：`refactor: 改進中優先級服務的錯誤處理和日誌記錄`
 
 ---
 
