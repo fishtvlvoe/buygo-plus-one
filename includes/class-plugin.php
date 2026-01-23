@@ -124,6 +124,9 @@ class Plugin {
      * @return void
      */
     private function register_hooks() {
+        // 檢查並建立缺失的資料表（用於升級安裝）
+        $this->maybe_upgrade_database();
+
         // 初始化角色權限
         \BuyGoPlus\Services\SettingsService::init_roles();
 
@@ -174,5 +177,35 @@ class Plugin {
             </script>
             <?php
         }, 1);
+    }
+
+    /**
+     * 檢查並升級資料庫
+     *
+     * 用於處理外掛升級時新增的資料表
+     * 檢查目前版本，若有更新則執行資料表建立
+     */
+    private function maybe_upgrade_database(): void
+    {
+        $current_db_version = get_option('buygo_plus_one_db_version', '0');
+        $required_db_version = '1.1.0'; // 新增出貨單資料表的版本
+
+        if (version_compare($current_db_version, $required_db_version, '<')) {
+            // 重新執行資料表建立（會自動跳過已存在的資料表）
+            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
+            Database::create_tables();
+
+            // 更新資料庫版本
+            update_option('buygo_plus_one_db_version', $required_db_version);
+
+            // 記錄升級
+            $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
+            file_put_contents($log_file, sprintf(
+                "[%s] [UPGRADE] Database upgraded from %s to %s\n",
+                date('Y-m-d H:i:s'),
+                $current_db_version,
+                $required_db_version
+            ), FILE_APPEND);
+        }
     }
 }

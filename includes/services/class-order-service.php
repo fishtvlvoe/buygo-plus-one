@@ -749,11 +749,26 @@ class OrderService
                 $quantity = $item['quantity'] ?? 0;
                 $total_items += $quantity;
 
-                // 取得商品名稱（優先使用 title，其次從 WordPress 讀取）
+                // 取得商品名稱（優先使用 title，其次從 variation_title，最後從 WordPress 讀取）
                 $product_name = $item['title'] ?? '';
 
-                // 如果沒有 title，從 WordPress posts 表讀取商品名稱
-                if (empty($product_name)) {
+                // 【修復】如果 title 是"預設"或為空，嘗試從 FluentCart variation 表讀取 variation_title
+                if (empty($product_name) || $product_name === '預設' || $product_name === '预设') {
+                    $variation_id = (int)($item['object_id'] ?? 0);
+                    if ($variation_id > 0) {
+                        $table_variations = $wpdb->prefix . 'fct_product_variations';
+                        $variation_title = $wpdb->get_var($wpdb->prepare(
+                            "SELECT variation_title FROM {$table_variations} WHERE id = %d",
+                            $variation_id
+                        ));
+                        if (!empty($variation_title)) {
+                            $product_name = $variation_title;
+                        }
+                    }
+                }
+
+                // 如果仍然沒有，從 WordPress posts 表讀取商品名稱
+                if (empty($product_name) || $product_name === '預設' || $product_name === '预设') {
                     $post_id = (int)($item['post_id'] ?? 0);
                     if ($post_id > 0) {
                         $product_name = get_the_title($post_id);

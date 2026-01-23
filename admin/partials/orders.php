@@ -567,6 +567,7 @@ $orders_component_template = <<<'HTML'
                         v-if="currentOrderId"
                         :order-id="currentOrderId"
                         :is-subpage="true"
+                        :wp-nonce="wpNonce"
                         @close="navigateTo('list')"
                     />
                 </div>
@@ -1798,7 +1799,9 @@ const OrdersPageComponent = {
             toggleStatusDropdown,
             isStatusDropdownOpen,
             updateShippingStatus,
-            openStatusDropdown
+            openStatusDropdown,
+            // API 認證
+            wpNonce
         };
     }
 };
