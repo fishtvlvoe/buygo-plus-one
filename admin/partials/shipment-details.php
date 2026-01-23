@@ -558,6 +558,8 @@ $shipment_details_template = <<<'HTML'
             </div>
         </div>
     </div>
+    </div>
+    <!-- 結束：內容區域 -->
 
     <!-- Toast 通知 -->
     <div
