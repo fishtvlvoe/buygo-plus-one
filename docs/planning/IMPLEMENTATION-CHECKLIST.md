@@ -80,15 +80,19 @@
 - [x] 提取 `admin/js/components/ShipmentProductsPage.js`
 - [x] Git 提交：`refactor: 提取 Vue 組件到獨立檔案`
 
-### Week 3：Composables 擴展
-- [ ] 建立 `admin/js/composables/useApi.js`
-- [ ] 建立 `admin/js/composables/usePermissions.js`
-- [ ] Git 提交：`feat: 新增 Vue composables`
+### Week 3：Composables 擴展（✅ 完成 - 2026-01-24）
+- [x] 建立 `includes/views/composables/useApi.js`
+- [x] 建立 `includes/views/composables/usePermissions.js`
+- [x] 建立 `includes/views/composables/README.md`
+- [x] Git 提交：`feat: 新增 Vue composables`
 
-### 服務層優化
-- [ ] 審查所有 19 個 services
-- [ ] 確保錯誤處理一致性
-- [ ] 確保日誌集成
+### 服務層優化（✅ 審查完成 - 2026-01-24）
+- [x] 審查所有 15 個 services
+- [x] 產出服務層錯誤處理與日誌集成審查報告
+- [x] 建立 `docs/development/SERVICES-REVIEW-REPORT.md`
+- [ ] 執行高優先級修復（ProductDataParser, ExportService, NotificationTemplates）
+- [ ] 執行中優先級修復（LineService, SettingsService）
+- [ ] 升級舊的 WebhookLogger 到 DebugService
 - [ ] Git 提交：`refactor: 優化服務層錯誤處理`
 
 ---
@@ -142,8 +146,10 @@
 | [BUGFIX-CHECKLIST.md](../bugfix/BUGFIX-CHECKLIST.md) | 已修復問題清單 |
 | [/CLAUDE.md](/CLAUDE.md) | Claude 專案指南（根目錄） |
 | [ARCHITECTURE.md](../development/ARCHITECTURE.md) | 技術架構 |
+| [SERVICES-REVIEW-REPORT.md](../development/SERVICES-REVIEW-REPORT.md) | 服務層審查報告 |
+| [Composables README](../../includes/views/composables/README.md) | Vue Composables 使用文檔 |
 
 ---
 
 **最後更新**：2026-01-24
-**目前階段**：第 3 階段 - 組件分離（CSS 隔離與 Vue 組件提取已完成）
+**目前階段**：第 3 階段 - 組件分離（✅ CSS 隔離、Vue 組件提取、Composables 擴展已完成；⏳ 服務層優化審查完成，待執行修復）
