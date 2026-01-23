@@ -46,6 +46,11 @@
     .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
     .fade-enter-from, .fade-leave-to { opacity: 0; }
 
+    /* Products Image Upload - 使用 products- 前綴避免衝突 */
+    .products-upload-area { transition: all 0.2s ease; }
+    .products-upload-spinner { animation: products-spin 1s linear infinite; }
+    @keyframes products-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
     [v-cloak] { display: none; }
 </style>
 
@@ -832,11 +837,38 @@ $products_component_template = <<<'HTML'
     </main>
     
     <!-- Image Modal -->
-    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeImageModal">
-        <div class="bg-white rounded-2xl p-6 shadow-xl max-w-lg w-full">
-            <h2 class="text-xl font-bold mb-4">編輯圖片</h2>
-            <img v-if="currentImage" :src="currentImage" class="w-full h-48 object-cover rounded mb-4">
-            <div @click="triggerFileInput" class="border-2 border-dashed p-8 text-center cursor-pointer hover:border-primary">點擊上傳圖片</div>
+    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="!imageUploading && closeImageModal()">
+        <div class="bg-white rounded-2xl p-6 shadow-xl max-w-lg w-full mx-4">
+            <!-- Header with close button -->
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">編輯圖片</h2>
+                <button v-if="!imageUploading" @click="closeImageModal" class="p-2 hover:bg-slate-100 rounded-lg transition">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Current Image Preview -->
+            <img v-if="currentImage" :src="currentImage" class="w-full h-48 object-cover rounded-lg mb-4">
+
+            <!-- Upload Area -->
+            <div v-if="!imageUploading" @click="triggerFileInput" class="products-upload-area border-2 border-dashed border-slate-300 p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 rounded-lg transition">
+                <svg class="w-10 h-10 mx-auto mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <p class="text-slate-600 font-medium">點擊上傳圖片</p>
+                <p class="text-xs text-slate-400 mt-1">支援 JPG、PNG、GIF</p>
+            </div>
+
+            <!-- Uploading State -->
+            <div v-else class="products-upload-loading border-2 border-primary/30 bg-primary/5 p-8 text-center rounded-lg">
+                <div class="products-upload-spinner w-10 h-10 mx-auto mb-3 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p class="text-primary font-medium">圖片上傳中...</p>
+                <p class="text-xs text-slate-500 mt-1">請勿關閉此視窗</p>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="imageError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {{ imageError }}
+            </div>
+
             <input ref="fileInput" type="file" @change="handleFileSelect" class="hidden" accept="image/*">
         </div>
     </div>
@@ -1096,6 +1128,7 @@ const ProductsPageComponent = {
         const showImageModal = ref(false);
         const currentImage = ref(null);
         const imageError = ref(null);
+        const imageUploading = ref(false); // 圖片上傳中狀態
         const notification = ref(null);
         const fileInput = ref(null);
         const currentProduct = ref(null); // Ensure this is defined once
@@ -1511,6 +1544,8 @@ const ProductsPageComponent = {
         const handleFileSelect = async (e) => {
             const file = e.target.files[0];
             if(file) {
+                 imageUploading.value = true; // 開始上傳
+                 imageError.value = null; // 清除錯誤
                  const formData = new FormData();
                  formData.append('image', file);
                  try {
@@ -1528,11 +1563,16 @@ const ProductsPageComponent = {
                              editingProduct.value.image = data.data.image_url;
                          }
                          showToast('圖片上傳成功');
+                         // 上傳成功後自動關閉 Modal
+                         setTimeout(() => closeImageModal(), 500);
                      } else {
-                         imageError.value = data.message;
+                         imageError.value = data.message || '上傳失敗';
                      }
                  } catch(err) {
-                    imageError.value = '上傳錯誤';
+                    imageError.value = '上傳錯誤，請稍後再試';
+                 } finally {
+                    imageUploading.value = false; // 結束上傳
+                    e.target.value = ''; // 清除 file input，允許重新選擇同一檔案
                  }
             }
         };
@@ -1619,7 +1659,7 @@ const ProductsPageComponent = {
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
-            showImageModal, currentImage, toastMessage,
+            showImageModal, currentImage, imageUploading, imageError, toastMessage,
             currentPage, perPage, totalProducts, menuItems: [
                 { id: 'products', label: '商品管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>' },
                 { id: 'orders', label: '訂單管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>' },

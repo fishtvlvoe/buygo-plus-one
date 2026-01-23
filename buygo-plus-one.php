@@ -28,15 +28,23 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 
 /**
  * Activation Hook - 外掛啟用時執行
- * 
- * 建立外掛所需的資料表：
- * - buygo_debug_logs (除錯日誌)
- * - buygo_notification_logs (通知記錄)
- * - buygo_workflow_logs (流程監控)
+ *
+ * 執行順序：
+ * 1. 檢查舊外掛兼容性（若舊外掛啟用中則阻止啟用）
+ * 2. 建立外掛所需的資料表
+ * 3. 執行資料表升級
  */
 register_activation_hook(__FILE__, function () {
+    // 1. 兼容性檢查 - 確保舊外掛未啟用
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
+    \BuyGoPlus\PluginCompatibility::on_activation();
+
+    // 2. 建立資料表
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
     \BuyGoPlus\Database::create_tables();
+
+    // 3. 升級現有資料表結構
+    \BuyGoPlus\Database::upgrade_tables();
     
     // 建立 Webhook Logger 資料表
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
@@ -78,9 +86,13 @@ register_deactivation_hook(__FILE__, function () {
 
 /**
  * Initialize Plugin - 載入外掛
- * 
+ *
  * 優先級設為 20，確保在其他外掛（如 FluentCRM）載入後才初始化
  */
 add_action('plugins_loaded', function () {
+    // 運行時兼容性檢查 - 偵測舊外掛是否被啟用
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
+    \BuyGoPlus\PluginCompatibility::runtime_check();
+
     \BuyGoPlus\Plugin::instance()->init();
 }, 20);
