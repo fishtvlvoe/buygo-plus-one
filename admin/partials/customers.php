@@ -5,7 +5,7 @@
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
 ?>
 <!-- Customers Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/customers.css', __FILE__)); ?>" />
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/customers.css', __FILE__)); ?>" />
 <?php
 $customers_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">

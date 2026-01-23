@@ -3,7 +3,7 @@
 
 ?>
 <!-- Shipment Products Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/shipment-products.css', __FILE__)); ?>" />
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/shipment-products.css', __FILE__)); ?>" />
 <?php
 
 $shipment_products_component_template = <<<'HTML'
