@@ -20,17 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FluentCartService {
 
 	/**
-	 * Logger
+	 * Debug Service
 	 *
-	 * @var object
+	 * @var DebugService
 	 */
-	private $logger;
+	private $debugService;
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->logger = WebhookLogger::get_instance();
+		$this->debugService = DebugService::get_instance();
 	}
 
 	/**
@@ -42,7 +42,7 @@ class FluentCartService {
 	 */
 	public function create_product( $product_data, $image_ids = array() ) {
 		if ( ! class_exists( 'FluentCart\App\App' ) ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'FluentCart not installed',
 				'product_data' => $product_data,
 			), $product_data['user_id'] ?? null, null );
@@ -61,21 +61,21 @@ class FluentCartService {
 				'ping_status' => 'closed',
 			);
 
-			$this->logger->log( 'product_post_creating', array(
+			$this->debugService->log( 'product_post_creating', array(
 				'post_data' => $post_data,
 			), $product_data['user_id'] ?? null, null );
 
 			$product_id = wp_insert_post( $post_data, true );
 
 			if ( is_wp_error( $product_id ) ) {
-				$this->logger->log( 'error', array(
+				$this->debugService->log( 'error', array(
 					'message' => 'wp_insert_post failed',
 					'error' => $product_id->get_error_message(),
 				), $product_data['user_id'] ?? null, null );
 				return $product_id;
 			}
 
-			$this->logger->log( 'product_post_created', array(
+			$this->debugService->log( 'product_post_created', array(
 				'product_id' => $product_id,
 			), $product_data['user_id'] ?? null, null );
 
@@ -93,7 +93,7 @@ class FluentCartService {
 			$image_attachment_id = $product_data['image_attachment_id'] ?? ( ! empty( $image_ids ) ? $image_ids[0] : null );
 			if ( ! empty( $image_attachment_id ) ) {
 				set_post_thumbnail( $product_id, intval( $image_attachment_id ) );
-				$this->logger->log( 'product_image_set', array(
+				$this->debugService->log( 'product_image_set', array(
 					'product_id' => $product_id,
 					'attachment_id' => $image_attachment_id,
 				), $product_data['user_id'] ?? null, null );
@@ -122,14 +122,14 @@ class FluentCartService {
 			update_post_meta( $product_id, '_fct_subscription_enabled', 'no' );
 			
 			// 記錄日誌以便除錯
-			$this->logger->log( 'product_payment_term_set', array(
+			$this->debugService->log( 'product_payment_term_set', array(
 				'product_id' => $product_id,
 				'payment_term' => 'one_time',
 			), $product_data['user_id'] ?? null, null );
 
 			do_action( 'buygo/product/created', $product_id, $product_data, $line_uid );
 
-			$this->logger->log( 'product_created_success', array(
+			$this->debugService->log( 'product_created_success', array(
 				'product_id' => $product_id,
 				'product_name' => $product_data['name'] ?? '',
 			), $product_data['user_id'] ?? null, $line_uid );
@@ -137,7 +137,7 @@ class FluentCartService {
 			return $product_id;
 
 		} catch ( \Exception $e ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'Product creation exception',
 				'error' => $e->getMessage(),
 				'trace' => $e->getTraceAsString(),
@@ -181,7 +181,7 @@ class FluentCartService {
 
 		// 檢查表是否存在
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'fct_product_details table not found',
 			), null, null );
 			return;
@@ -189,7 +189,7 @@ class FluentCartService {
 
 		$wpdb->insert( $table_name, $detail_data );
 
-		$this->logger->log( 'product_details_created', array(
+		$this->debugService->log( 'product_details_created', array(
 			'product_id' => $product_id,
 			'insert_id' => $wpdb->insert_id,
 		), null, null );
@@ -243,7 +243,7 @@ class FluentCartService {
 		$table_name = $wpdb->prefix . 'fct_product_details';
 
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'fct_product_details table not found',
 			), null, null );
 			return;
@@ -251,7 +251,7 @@ class FluentCartService {
 
 		$wpdb->insert( $table_name, $detail_data );
 
-		$this->logger->log( 'variable_product_details_created', array(
+		$this->debugService->log( 'variable_product_details_created', array(
 			'product_id' => $product_id,
 			'variations_count' => count( $data['variations'] ),
 		), null, null );
@@ -289,7 +289,7 @@ class FluentCartService {
 		$table_name = $wpdb->prefix . 'fct_product_variations';
 
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'fct_product_variations table not found',
 			), null, null );
 			return null;
@@ -336,14 +336,14 @@ class FluentCartService {
 		$result = $wpdb->insert( $table_name, $variation_data );
 
 		if ( $result === false ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'Variation insert failed',
 				'error' => $wpdb->last_error,
 			), null, null );
 			return null;
 		}
 
-		$this->logger->log( 'variation_created', array(
+		$this->debugService->log( 'variation_created', array(
 			'product_id' => $product_id,
 			'variation_id' => $wpdb->insert_id,
 			'variation_title' => $variation_title,
@@ -385,7 +385,7 @@ class FluentCartService {
 		$table_name = $wpdb->prefix . 'fct_product_variations';
 
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'fct_product_variations table not found',
 			), null, null );
 			return;
@@ -411,12 +411,12 @@ class FluentCartService {
 		$result = $wpdb->insert( $table_name, $variation_data );
 
 		if ( $result === false ) {
-			$this->logger->log( 'error', array(
+			$this->debugService->log( 'error', array(
 				'message' => 'Product variation insert failed',
 				'error' => $wpdb->last_error,
 			), null, null );
 		} else {
-			$this->logger->log( 'product_variation_created', array(
+			$this->debugService->log( 'product_variation_created', array(
 				'product_id' => $product_id,
 				'insert_id' => $wpdb->insert_id,
 			), null, null );
