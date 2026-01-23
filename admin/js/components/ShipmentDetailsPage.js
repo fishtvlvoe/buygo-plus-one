@@ -600,7 +600,11 @@ const ShipmentDetailsPageComponent = {
             printDetail,
             getCurrencySymbol,
             systemCurrency,
+            // 搜尋相關
+            searchQuery,
+            globalSearchQuery: searchQuery,  // 別名給 template 使用
             handleSearchInput,
+            handleGlobalSearch: handleSearchInput,  // 別名給 template 使用
             handleSearchSelect,
             handleSearchClear,
             showToast,
