@@ -62,4 +62,35 @@ Failed to load resource: 404 (products.css:1)
 
 ---
 
+### 問題 5：Template 標籤嵌套錯誤
+**發現時間**：2026-01-24
+**影響頁面**：Customers, Shipment Details, Shipment Products
+**錯誤訊息**：
+```
+[Vue warn]: Template element not found or is empty: #customers-page-template
+```
+
+**原因**：template script 標籤被錯誤地放在 wpNonce script 標籤內部
+
+**修復前**：
+```html
+<script>
+  window.buygoWpNonce = '...';
+  <script type="text/x-template">...</script>  ❌
+</script>
+```
+
+**修復後**：
+```html
+<script type="text/x-template">...</script>  ✅
+<script>
+  window.buygoWpNonce = '...';
+</script>
+```
+
+**Commit**：`e63e699`
+
+---
+
 **最後更新**：2026-01-24
+**總計修復**：5 個關鍵問題
