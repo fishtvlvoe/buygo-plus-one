@@ -31,8 +31,8 @@ class Routes {
     public function handle_buygo_pages() {
         $page = get_query_var('buygo_page');
         if ($page) {
-            // 載入對應的頁面檔案
-            $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $page . '.php';
+            // 載入對應的頁面檔案（新路徑：admin/partials/）
+            $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $page . '.php';
             if (file_exists($page_file)) {
                 // 載入 template.php（包含側邊導航和基本結構）
                 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/template.php';

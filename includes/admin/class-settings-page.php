@@ -83,7 +83,7 @@ class SettingsPage
 
         wp_enqueue_script(
             'buygo-settings-admin',
-            plugin_dir_url(__FILE__) . '../../assets/js/admin-settings.js',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/admin-settings.js',
             ['jquery'],
             '1.0.0',
             true
@@ -91,7 +91,7 @@ class SettingsPage
 
         wp_enqueue_style(
             'buygo-settings-admin',
-            plugin_dir_url(__FILE__) . '../../assets/css/admin-settings.css',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-settings.css',
             [],
             '1.0.0'
         );

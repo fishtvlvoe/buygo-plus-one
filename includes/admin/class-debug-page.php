@@ -48,9 +48,12 @@ class DebugPage
             return;
         }
 
+        // TODO: debug-admin.js 和 debug-admin.css 尚未建立
+        // 未來如需要可在 admin/js/ 和 admin/css/ 目錄中創建
+        /*
         wp_enqueue_script(
             'buygo-plus-one-debug-admin',
-            plugin_dir_url(__FILE__) . '../../assets/js/debug-admin.js',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/debug-admin.js',
             ['jquery'],
             '1.0.0',
             true
@@ -58,10 +61,11 @@ class DebugPage
 
         wp_enqueue_style(
             'buygo-plus-one-debug-admin',
-            plugin_dir_url(__FILE__) . '../../assets/css/debug-admin.css',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/debug-admin.css',
             [],
             '1.0.0'
         );
+        */
 
         wp_localize_script('buygo-plus-one-debug-admin', 'buygoPlusOneDebug', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
