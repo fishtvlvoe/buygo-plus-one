@@ -563,4 +563,3 @@ const ShipmentProductsPageComponent = {
         };
     }
 };
-</script>

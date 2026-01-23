@@ -8,7 +8,7 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
 ?>
 <!-- Orders Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/orders.css', __FILE__)); ?>" />
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/orders.css', __FILE__)); ?>" />
 <?php
 $orders_component_template = <<<'HTML'
 <!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->

@@ -560,4 +560,3 @@ const CustomersPageComponent = {
         };
     }
 };
-</script>

@@ -628,4 +628,3 @@ const ShipmentDetailsPageComponent = {
         };
     }
 };
-</script>
