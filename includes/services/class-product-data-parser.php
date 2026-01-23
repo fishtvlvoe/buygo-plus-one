@@ -26,7 +26,7 @@ class ProductDataParser {
 	/**
 	 * Debug Service
 	 *
-	 * @var Debug_Service
+	 * @var DebugService
 	 */
 	private $debug_service;
 
@@ -34,7 +34,7 @@ class ProductDataParser {
 	 * 建構函數
 	 */
 	public function __construct() {
-		$this->debug_service = Debug_Service::get_instance();
+		$this->debug_service = DebugService::get_instance();
 	}
 
 	/**

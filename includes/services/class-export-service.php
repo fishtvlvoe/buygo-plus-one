@@ -14,7 +14,7 @@ class ExportService
     /**
      * Debug Service 實例
      *
-     * @var Debug_Service
+     * @var DebugService
      */
     private $debug_service;
 
@@ -23,7 +23,7 @@ class ExportService
      */
     public function __construct()
     {
-        $this->debug_service = Debug_Service::get_instance();
+        $this->debug_service = DebugService::get_instance();
     }
 
     /**

@@ -22,7 +22,7 @@ class DebugPage
 
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('wp_ajax_buygo_plus_one_debug_action', [$this, 'handle_ajax_action']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);

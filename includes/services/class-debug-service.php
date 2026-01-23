@@ -16,21 +16,36 @@ if (!defined('ABSPATH')) {
  */
 class DebugService
 {
+    private static $instance = null;
+
     private $logTable;
     private $logFile;
     private $maxLogAge = 30; // 保留 30 天的日誌
 
-    public function __construct()
+    private function __construct()
     {
         global $wpdb;
         $this->logTable = $wpdb->prefix . 'buygo_debug_logs';
         $this->logFile = WP_CONTENT_DIR . '/uploads/buygo-plus-one-debug.log';
-        
+
         // 確保日誌目錄存在
         $logDir = dirname($this->logFile);
         if (!file_exists($logDir)) {
             wp_mkdir_p($logDir);
         }
+    }
+
+    /**
+     * 取得 DebugService 單例實例
+     *
+     * @return DebugService
+     */
+    public static function get_instance()
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
     }
 
     /**
@@ -177,7 +192,7 @@ class DebugService
      * @param int $days 保留天數
      * @return int 清理的筆數
      */
-    public function cleanOldLogs(int $days = null): int
+    public function cleanOldLogs(?int $days = null): int
     {
         if ($days === null) {
             $days = $this->maxLogAge;

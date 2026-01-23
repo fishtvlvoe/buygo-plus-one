@@ -17,7 +17,7 @@ class NotificationTemplates {
     /**
      * Debug Service 實例
      *
-     * @var Debug_Service
+     * @var DebugService
      */
     private static $debug_service;
 
@@ -41,7 +41,7 @@ class NotificationTemplates {
      */
     private static function init_debug_service() {
         if (self::$debug_service === null) {
-            self::$debug_service = Debug_Service::get_instance();
+            self::$debug_service = DebugService::get_instance();
         }
     }
 

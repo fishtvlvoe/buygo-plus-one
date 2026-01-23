@@ -39,7 +39,7 @@ class {Entity}Service
      */
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
     }
 
     // ============================================
