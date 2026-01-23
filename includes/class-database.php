@@ -37,6 +37,70 @@ class Database
 
         // 建立小幫手資料表
         self::create_helpers_table($wpdb, $charset_collate);
+
+        // 建立出貨單資料表
+        self::create_shipments_table($wpdb, $charset_collate);
+
+        // 建立出貨單項目資料表
+        self::create_shipment_items_table($wpdb, $charset_collate);
+    }
+
+    /**
+     * 建立出貨單資料表
+     */
+    private static function create_shipments_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_shipments';
+
+        // 檢查表格是否已存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) UNSIGNED NOT NULL,
+            status varchar(50) DEFAULT 'pending',
+            tracking_number varchar(100),
+            shipping_method varchar(100),
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            shipped_at datetime,
+            PRIMARY KEY (id),
+            KEY idx_order_id (order_id),
+            KEY idx_status (status)
+        ) {$charset_collate};";
+
+        dbDelta($sql);
+    }
+
+    /**
+     * 建立出貨單項目資料表
+     */
+    private static function create_shipment_items_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_shipment_items';
+
+        // 檢查表格是否已存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            shipment_id bigint(20) UNSIGNED NOT NULL,
+            order_item_id bigint(20) UNSIGNED NOT NULL,
+            product_id bigint(20) UNSIGNED NOT NULL,
+            quantity int(11) NOT NULL DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_shipment_id (shipment_id),
+            KEY idx_order_item_id (order_item_id),
+            KEY idx_product_id (product_id)
+        ) {$charset_collate};";
+
+        dbDelta($sql);
     }
     
     /**

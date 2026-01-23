@@ -172,6 +172,10 @@ class AllocationService
     {
         global $wpdb;
 
+        // 直接寫入日誌檔案進行除錯
+        $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
+        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] getProductOrders called with product_id: %d\n", date('Y-m-d H:i:s'), $product_id), FILE_APPEND);
+
         $this->debugService->log('AllocationService', '取得商品訂單列表', [
             'product_id' => $product_id
         ]);
@@ -210,10 +214,18 @@ class AllocationService
              WHERE oi.object_id = %d
              AND o.parent_id IS NULL
              AND o.status NOT IN ('cancelled', 'refunded')
-             AND o.shipping_status NOT IN ('shipped', 'completed')
+             AND (o.shipping_status IS NULL OR o.shipping_status NOT IN ('shipped', 'completed'))
              ORDER BY o.created_at DESC",
             $product_id
         ), ARRAY_A);
+
+        // 記錄 SQL 查詢結果
+        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] SQL query returned %d items\n", date('Y-m-d H:i:s'), count($items)), FILE_APPEND);
+        if (empty($items)) {
+            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] No items found. Last SQL error: %s\n", date('Y-m-d H:i:s'), $wpdb->last_error), FILE_APPEND);
+        } else {
+            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] First item: %s\n", date('Y-m-d H:i:s'), json_encode($items[0])), FILE_APPEND);
+        }
 
         $orders = [];
         foreach ($items as $item) {

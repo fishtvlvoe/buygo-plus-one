@@ -226,6 +226,10 @@ const OrderDetailModal = {
         isSubpage: {
             type: Boolean,
             default: false
+        },
+        wpNonce: {
+            type: String,
+            required: true
         }
     },
     emits: ['close'],
@@ -289,13 +293,15 @@ const OrderDetailModal = {
             try {
                 // 嘗試兩種 API 格式
                 let response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${props.orderId}`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': props.wpNonce }
                 });
 
                 // 如果第一種格式失敗，嘗試第二種
                 if (!response.ok) {
                     response = await fetch(`/wp-json/buygo-plus-one/v1/orders?id=${props.orderId}`, {
-                        credentials: 'include'
+                        credentials: 'include',
+                        headers: { 'X-WP-Nonce': props.wpNonce }
                     });
                 }
 
@@ -406,6 +412,7 @@ const OrderDetailModal = {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-WP-Nonce': props.wpNonce
                         },
                         credentials: 'include',
                         body: JSON.stringify({
@@ -427,6 +434,7 @@ const OrderDetailModal = {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-WP-Nonce': props.wpNonce
                         },
                         credentials: 'include',
                         body: JSON.stringify({
@@ -470,6 +478,7 @@ const OrderDetailModal = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-WP-Nonce': props.wpNonce
                     },
                     credentials: 'include',
                     body: JSON.stringify({
