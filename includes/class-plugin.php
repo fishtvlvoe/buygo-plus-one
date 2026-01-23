@@ -58,64 +58,57 @@ class Plugin {
     
     /**
      * 載入依賴檔案
-     * 
+     *
+     * 使用 WordPress Plugin Boilerplate 結構
+     *
      * 載入順序：
-     * 1. Services（服務層）
-     * 2. Admin（後台頁面）
-     * 3. Database（資料庫）
-     * 4. API（REST API）
-     * 5. Routes（路由）
-     * 
+     * 1. 核心類別（Loader, Admin, Public）
+     * 2. Services（使用 glob 批次載入）
+     * 3. API（使用 glob 批次載入）
+     * 4. Admin Pages
+     * 5. Database
+     * 6. Routes
+     * 7. 其他整合
+     *
      * @return void
      */
     private function load_dependencies() {
-        // 載入 Services
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
-        
-        // 載入核心服務（遷移自舊外掛，讓新外掛可以獨立執行）
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+        // 載入核心類別（WordPress Plugin Boilerplate）
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-loader.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
+
+        // 使用 glob 批次載入 Services（15 個服務）
+        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-*.php') as $service) {
+            require_once $service;
+        }
+
+        // 載入核心服務
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
-        
-        // 載入 Webhook 相關 Services（階段 2：LINE 後端功能）
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-image-uploader.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-data-parser.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-webhook-handler.php';
 
         // 載入診斷工具（WP-CLI 命令）
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if (defined('WP_CLI') && WP_CLI) {
             require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/diagnostics/class-diagnostics-command.php';
         }
 
-        // 載入 Admin
+        // 載入 Admin Pages
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
-        
+
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
-        
-        // 載入 API
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-line-webhook-api.php';
-        
-        // 載入其他類別
+
+        // 使用 glob 批次載入 API（5 個 API）
+        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-*.php') as $api) {
+            require_once $api;
+        }
+
+        // 載入 Routes
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
 
-        // 載入 FluentCommunity 整合
+        // 載入 FluentCart/FluentCommunity 整合
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
     }
     
