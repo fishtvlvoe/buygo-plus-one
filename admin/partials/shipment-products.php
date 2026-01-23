@@ -459,13 +459,14 @@ HTML;
 ?>
 
 
-<!-- Shipment Products Page Component -->
-<script>
-window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+<!-- Shipment Products Page Template -->
 <script type="text/x-template" id="shipment-products-page-template">
     <?php echo $shipment_products_component_template; ?>
 </script>
 
+<!-- Shipment Products Page Component -->
+<script>
+window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
 <script src="<?php echo esc_url(plugins_url('js/components/ShipmentProductsPage.js', dirname(__FILE__))); ?>"></script>
 
