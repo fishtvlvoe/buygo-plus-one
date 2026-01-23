@@ -10,7 +10,7 @@
 
 | 階段 | 狀態 | 預計日期 |
 |------|------|----------|
-| 第 1 階段：立即修復 | 🔄 進行中 | 今天（2小時） |
+| 第 1 階段：立即修復 | ✅ 完成 | 2026-01-24 |
 | 第 2 階段：參考系統 | ⏳ 未開始 | 2月8日 - 14日 |
 | 第 3 階段：組件分離 | ⏳ 未開始 | 2月15日 - 28日 |
 | 第 4 階段：自動化工具 | ⏳ 未開始 | 3月1日 - 7日 |
@@ -35,7 +35,7 @@
 - [x] 更新 CLAUDE.md 添加 CODING-STANDARDS.md 參考
 
 ### 提交
-- [ ] Git 提交：`docs: 新增編碼規範和結構註解`
+- [x] Git 提交：`docs: 新增編碼規範和結構註解`
 
 ---
 
@@ -143,12 +143,12 @@
 | 檔案 | 用途 |
 |------|------|
 | `~/.claude/plans/golden-hopping-mockingbird.md` | 完整計畫（繁體中文） |
-| `CODING-STANDARDS.md` | 編碼規範（待建立） |
-| `BUGFIX-CHECKLIST.md` | 已修復問題清單 |
-| `CLAUDE.md` | Claude 專案指南 |
-| `ARCHITECTURE.md` | 技術架構 |
+| [CODING-STANDARDS.md](../development/CODING-STANDARDS.md) | 編碼規範 |
+| [BUGFIX-CHECKLIST.md](../bugfix/BUGFIX-CHECKLIST.md) | 已修復問題清單 |
+| [/CLAUDE.md](/CLAUDE.md) | Claude 專案指南（根目錄） |
+| [ARCHITECTURE.md](../development/ARCHITECTURE.md) | 技術架構 |
 
 ---
 
 **最後更新**：2026-01-24
-**目前階段**：第 1 階段 - 立即修復
+**目前階段**：第 2 階段 - 參考系統（待開始）

@@ -10,11 +10,12 @@
 
 | 文件 | 用途 | 何時閱讀 |
 |------|------|----------|
-| [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) | **實施檢查清單（進度追蹤）** | **每次對話開始時** |
-| [CODING-STANDARDS.md](CODING-STANDARDS.md) | **編碼規範和模式** | **修改任何代碼前** |
-| [TODO-BUYGO.md](TODO-BUYGO.md) | 待完成任務與已完成歸檔 | 開始新任務前 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 技術架構（資料庫、API、LINE 整合） | 修改 LINE API、資料庫查詢前 |
-| [BUGFIX-CHECKLIST.md](BUGFIX-CHECKLIST.md) | 已修復問題清單（防止再次踩坑） | 修改已修復功能前 |
+| [docs/INDEX.md](docs/INDEX.md) | **文件總覽（所有文件入口）** | 需要查找文件時 |
+| [docs/planning/IMPLEMENTATION-CHECKLIST.md](docs/planning/IMPLEMENTATION-CHECKLIST.md) | **實施檢查清單（進度追蹤）** | **每次對話開始時** |
+| [docs/development/CODING-STANDARDS.md](docs/development/CODING-STANDARDS.md) | **編碼規範和模式** | **修改任何代碼前** |
+| [docs/planning/TODO-BUYGO.md](docs/planning/TODO-BUYGO.md) | 待完成任務與已完成歸檔 | 開始新任務前 |
+| [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md) | 技術架構（資料庫、API、LINE 整合） | 修改 LINE API、資料庫查詢前 |
+| [docs/bugfix/BUGFIX-CHECKLIST.md](docs/bugfix/BUGFIX-CHECKLIST.md) | 已修復問題清單（防止再次踩坑） | 修改已修復功能前 |
 
 ---
 
@@ -105,6 +106,14 @@ tail -50 /Volumes/insta-mount/wp-content/buygo-plus-one.log | grep UPGRADE
     smart-search-box.php  # 搜尋組件（emit events）
   /order/
     order-detail-modal.php  # 訂單詳情（wpNonce prop）
+
+/docs/                    # 所有開發文件
+    INDEX.md              # 文件導航入口
+    /development/         # 開發規範
+    /planning/            # 計畫文件
+    /bugfix/              # 問題修復記錄
+    /testing/             # 測試相關
+    /reference/           # 參考資料
 ```
 
 ---
@@ -135,13 +144,18 @@ tail -50 /Volumes/insta-mount/wp-content/buygo-plus-one.log | grep UPGRADE
 
 ## 📚 延伸閱讀
 
-需要更多細節時，請閱讀以下檔案：
+需要更多細節時，請閱讀 [docs/INDEX.md](docs/INDEX.md) 查看所有文件。
 
-- **[BUGFIX-CHECKLIST.md](BUGFIX-CHECKLIST.md)** - 5 個已修復問題的詳細說明
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - 雙外掛架構、資料庫規範、常見錯誤
-- **[TODO-BUYGO.md](TODO-BUYGO.md)** - 完整的任務清單與歸檔記錄
+**常用文件：**
+- [docs/bugfix/BUGFIX-CHECKLIST.md](docs/bugfix/BUGFIX-CHECKLIST.md) - 已修復問題的詳細說明
+- [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md) - 雙外掛架構、資料庫規範
+- [docs/planning/TODO-BUYGO.md](docs/planning/TODO-BUYGO.md) - 完整的任務清單
+
+**外部參考：**
+- `~/.claude/plans/golden-hopping-mockingbird.md` - 完整實施計畫
+- `~/.claude/skills/debug-buygo/SKILL.md` - BuyGo+1 除錯技能
 
 ---
 
-**最後更新**：2026-01-23
+**最後更新**：2026-01-24
 **維護者**：Development Team
