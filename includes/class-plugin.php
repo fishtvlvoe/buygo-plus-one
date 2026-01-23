@@ -188,12 +188,19 @@ class Plugin {
     private function maybe_upgrade_database(): void
     {
         $current_db_version = get_option('buygo_plus_one_db_version', '0');
-        $required_db_version = '1.1.0'; // 新增出貨單資料表的版本
+        $required_db_version = '1.2.0'; // 修復出貨單資料表結構
 
+        // 載入必要的類別
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database-checker.php';
+
+        // 版本升級邏輯
         if (version_compare($current_db_version, $required_db_version, '<')) {
             // 重新執行資料表建立（會自動跳過已存在的資料表）
-            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
             Database::create_tables();
+
+            // 執行資料表結構升級（修復缺失的欄位）
+            Database::upgrade_tables();
 
             // 更新資料庫版本
             update_option('buygo_plus_one_db_version', $required_db_version);
@@ -201,11 +208,48 @@ class Plugin {
             // 記錄升級
             $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
             file_put_contents($log_file, sprintf(
-                "[%s] [UPGRADE] Database upgraded from %s to %s\n",
+                "[%s] [UPGRADE] Database upgraded from %s to %s (fixed shipment table structure)\n",
                 date('Y-m-d H:i:s'),
                 $current_db_version,
                 $required_db_version
             ), FILE_APPEND);
         }
+
+        // 每次啟動時檢查資料表完整性（防止資料表被意外刪除或損壞）
+        $this->ensure_database_integrity();
+    }
+
+    /**
+     * 確保資料庫完整性
+     *
+     * 每次外掛啟動時執行，自動修復缺失的資料表或欄位
+     * 這可以防止新舊外掛切換時資料表不完整的問題
+     */
+    private function ensure_database_integrity(): void
+    {
+        // 使用 transient 避免每次請求都執行（每小時檢查一次）
+        $last_check = get_transient('buygo_db_integrity_check');
+        if ($last_check) {
+            return;
+        }
+
+        // 執行檢查
+        $check_result = DatabaseChecker::check();
+
+        // 如果有問題，自動修復
+        if ($check_result['status'] !== 'ok') {
+            $repair_result = DatabaseChecker::check_and_repair();
+
+            // 記錄修復動作
+            $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
+            file_put_contents($log_file, sprintf(
+                "[%s] [DB_INTEGRITY] Auto-repair executed: %s\n",
+                date('Y-m-d H:i:s'),
+                json_encode($repair_result, JSON_UNESCAPED_UNICODE)
+            ), FILE_APPEND);
+        }
+
+        // 設定 transient（1 小時後過期）
+        set_transient('buygo_db_integrity_check', time(), HOUR_IN_SECONDS);
     }
 }

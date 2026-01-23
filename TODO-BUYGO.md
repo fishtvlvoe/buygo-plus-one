@@ -17,6 +17,73 @@
 
 ## 待完成任務
 
+### 0. 外掛部署與維護優化
+**優先級：P0（緊急）**
+**狀態：待執行**
+
+#### A. GitHub 自動更新機制
+**目標：**
+讓客戶可透過 WordPress 後台自動檢查並更新外掛，無需手動下載 ZIP 檔。
+
+**實作項目：**
+- [ ] 研究 WordPress Plugin Update Checker 機制
+- [ ] 整合 GitHub Releases API
+- [ ] 實作版本檢查邏輯（對比本地版本與 GitHub 最新 Release）
+- [ ] 實作自動下載與更新流程
+- [ ] 測試自動更新流程（開發環境 → 測試站點）
+- [ ] 撰寫客戶操作文件
+
+**相關檔案：**
+- `/buygo-plus-one.php` (主外掛檔案，定義版本號)
+- 新增檔案：`/includes/class-auto-updater.php`
+
+**參考資源：**
+- [Plugin Update Checker Library](https://github.com/YahnisElsts/plugin-update-checker)
+- [WordPress Plugin API - Updates](https://developer.wordpress.org/plugins/plugin-basics/updating-your-plugin/)
+
+---
+
+#### B. 永久連結自動刷新
+**目標：**
+外掛啟用時自動 flush rewrite rules，確保 BuyGo Portal 路由正常運作。
+
+**問題描述：**
+目前客戶安裝外掛後需手動進入「設定 → 永久連結」點擊儲存，否則前台路由 404。
+
+**實作項目：**
+- [ ] register_activation_hook 中自動執行 flush_rewrite_rules()
+- [ ] 測試：停用外掛 → 重新啟用 → 確認路由正常
+- [ ] 測試：全新安裝 → 確認路由正常
+
+**相關檔案：**
+- `/buygo-plus-one.php` (register_activation_hook)
+- `/includes/class-short-link-routes.php` (ShortLinkRoutes::flush_rewrite_rules)
+
+**Commit：**
+待執行
+
+---
+
+#### C. 後台新增前台連結入口
+**目標：**
+在 WordPress 後台設定頁面新增「前往 BuyGo Portal」按鈕，方便管理員快速進入前台。
+
+**實作項目：**
+- [ ] 在設定頁面頂部新增按鈕組（或右上角）
+- [ ] 按鈕文字：「🚀 前往 BuyGo Portal」
+- [ ] 連結目標：`/buygo-portal/`（或 `home_url('/buygo-portal/')`）
+- [ ] 樣式：與現有按鈕風格一致（Tailwind CSS）
+- [ ] 手機版優化：按鈕文字精簡為「前台」或使用圖示
+
+**相關檔案：**
+- `/includes/views/pages/settings.php` (設定頁面)
+- 或 `/includes/admin/class-settings-page.php` (後台選單)
+
+**Commit：**
+待執行
+
+---
+
 ### 1. LINE 上架功能修復
 **優先級：緊急**
 **狀態：✅ 已完成並測試通過**
@@ -132,6 +199,32 @@ LINE 上傳圖片和文字時，官方帳號沒有反應，無法正常上架商
 ---
 
 ## 已完成任務歸檔
+
+<details>
+<summary>⭐ 訂單與商品頁面 Bug 修復（2026-01-23）</summary>
+
+**完成項目：**
+- [x] **Bug A**: 訂單明細 403 錯誤 - wpNonce 未在 orders.php return statement 中導出
+- [x] **Bug B**: 商品分配頁面顯示 0 筆訂單 - 缺少 `wp_buygo_shipments` 和 `wp_buygo_shipment_items` 資料表
+- [x] **Bug C**: 商品名稱顯示「預設」- OrderService 未讀取 `fct_product_variations.variation_title`
+- [x] **Bug D**: SQL NULL 處理錯誤 - `NOT IN` 查詢未處理 NULL 值
+
+**修復的檔案：**
+- `/admin/partials/orders.php` (新增 wpNonce 導出)
+- `/components/order/order-detail-modal.php` (新增 wpNonce prop 與 X-WP-Nonce headers)
+- `/includes/class-database.php` (新增 create_shipments_table 與 create_shipment_items_table)
+- `/includes/class-plugin.php` (新增 maybe_upgrade_database 自動升級機制)
+- `/includes/services/class-order-service.php` (修正產品名稱讀取邏輯)
+- `/includes/services/class-allocation-service.php` (修正 SQL NULL 處理)
+
+**資料庫升級：**
+- 新增版本控制：`buygo_plus_one_db_version` option
+- 當前版本：1.1.0
+- 自動升級機制：外掛啟用時自動檢查並建立缺失的資料表
+
+**Commit：** `fc439d9`
+
+</details>
 
 <details>
 <summary>小幫手管理 UI 優化（2026-01-23）</summary>
