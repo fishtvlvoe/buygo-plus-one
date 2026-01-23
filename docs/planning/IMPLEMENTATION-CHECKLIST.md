@@ -86,14 +86,14 @@
 - [x] 建立 `includes/views/composables/README.md`
 - [x] Git 提交：`feat: 新增 Vue composables`
 
-### 服務層優化（✅ 審查完成 - 2026-01-24）
+### 服務層優化（🔄 進行中 - 2026-01-24）
 - [x] 審查所有 15 個 services
 - [x] 產出服務層錯誤處理與日誌集成審查報告
 - [x] 建立 `docs/development/SERVICES-REVIEW-REPORT.md`
-- [ ] 執行高優先級修復（ProductDataParser, ExportService, NotificationTemplates）
+- [x] ✅ 執行高優先級修復（ProductDataParser 1.5→4.0, ExportService 2.0→4.0, NotificationTemplates 2.0→3.5）
 - [ ] 執行中優先級修復（LineService, SettingsService）
-- [ ] 升級舊的 WebhookLogger 到 DebugService
-- [ ] Git 提交：`refactor: 優化服務層錯誤處理`
+- [ ] 升級舊的 WebhookLogger 到 DebugService（FluentCartService, ImageUploader, LineWebhookHandler）
+- [x] Git 提交：`refactor: 修復高優先級服務的錯誤處理和日誌集成`
 
 ---
 
