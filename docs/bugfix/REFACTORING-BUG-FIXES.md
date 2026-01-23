@@ -118,7 +118,7 @@ return {
 
 ---
 
-### 問題 7：ShipmentDetailsPage Template 缺少閉合標籤
+### 問題 7：ShipmentDetailsPage Template 缺少閉合標籤（第一次修復）
 **發現時間**：2026-01-24
 **影響頁面**：Shipment Details
 **錯誤訊息**：
@@ -137,6 +137,39 @@ return {
 **修復**：在 template 結尾處添加 `</main>` 標籤（在最後的 `</div>` 之前）
 
 **Commit**：`2364519`
+
+---
+
+### 問題 8：ShipmentDetailsPage 內容區域 div 未閉合
+**發現時間**：2026-01-24（第二輪檢查）
+**影響頁面**：Shipment Details
+**錯誤訊息**：
+```
+[Vue warn]: Template compilation error: Element is missing end tag.
+```
+
+**原因**：
+- 問題 7 的修復添加了 `</main>` 標籤，但實際問題更深層
+- 第 50 行的內容區域 div (`<div class="flex-1 overflow-auto bg-slate-50/50 relative">`) 沒有閉合標籤
+- 結構應為：根 div → main → 內容區域 div → (列表檢視 + 詳情檢視)
+
+**檢測方式**：
+```python
+<div>: 61 開, 60 閉 ❌  # 仍然缺少 1 個
+<main>: 1 開, 1 閉 ✅   # 已修復
+```
+
+**修復**：
+- 在第 560 行（詳情檢視結束）後添加 `</div>` 來閉合內容區域 div
+- 添加註解 `<!-- 結束：內容區域 -->`
+
+**修復後**：
+```python
+<div>: 61 開, 61 閉 ✅
+<main>: 1 開, 1 閉 ✅
+```
+
+**Commit**：`dd4ad5f`
 
 ---
 
@@ -162,13 +195,16 @@ return {
 - `<main>`: 1 開, 1 閉
 
 ✅ **admin/partials/shipment-details.php**
-- `<div>`: 61 開, 61 閉 (修復後)
+- `<div>`: 61 開, 61 閉 (修復後 - 經過 2 次修復)
 - `<main>`: 1 開, 1 閉 (修復後)
+- 問題 7：添加 `</main>` 標籤
+- 問題 8：添加內容區域 div 閉合標籤
 
 **結論**：所有頁面的 HTML 結構現已正確，標籤完全平衡。
 
 ---
 
 **最後更新**：2026-01-24
-**總計修復**：7 個關鍵問題
+**總計修復**：8 個關鍵問題
 **驗證狀態**：✅ 所有頁面 HTML 結構已驗證
+**注意事項**：shipment-details.php 經過 2 輪修復才完全解決標籤問題
