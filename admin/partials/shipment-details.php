@@ -14,7 +14,9 @@ $shipment_details_template = <<<'HTML'
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
-    <!-- Header（與商品頁面一致，放在外層） -->
+    <!-- ============================================ -->
+    <!-- 頁首部分（在 v-show 外面，列表時顯示） -->
+    <!-- ============================================ -->
     <header v-show="currentView === 'list'" class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
@@ -40,10 +42,14 @@ $shipment_details_template = <<<'HTML'
             </button>
         </div>
     </header>
+    <!-- 結束：頁首部分 -->
 
-    <!-- Content Area -->
+    <!-- ============================================ -->
+    <!-- 內容區域 -->
+    <!-- ============================================ -->
     <div class="flex-1 overflow-auto bg-slate-50/50 relative">
-        <!-- 列表視圖 -->
+
+        <!-- 列表檢視 -->
         <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
             <!-- Smart Search Box（頁面搜尋框） -->
@@ -397,9 +403,10 @@ $shipment_details_template = <<<'HTML'
             </div>
         </div>
     </div>
-    </div><!-- 列表視圖結束 -->
+    </div>
+    <!-- 結束：列表檢視 -->
 
-    <!-- 子分頁視圖（詳情） -->
+    <!-- 詳情檢視 -->
     <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
         <!-- Sticky Header -->
         <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">

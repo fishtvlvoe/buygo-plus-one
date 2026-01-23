@@ -10,6 +10,8 @@
 
 | 文件 | 用途 | 何時閱讀 |
 |------|------|----------|
+| [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) | **實施檢查清單（進度追蹤）** | **每次對話開始時** |
+| [CODING-STANDARDS.md](CODING-STANDARDS.md) | **編碼規範和模式** | **修改任何代碼前** |
 | [TODO-BUYGO.md](TODO-BUYGO.md) | 待完成任務與已完成歸檔 | 開始新任務前 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 技術架構（資料庫、API、LINE 整合） | 修改 LINE API、資料庫查詢前 |
 | [BUGFIX-CHECKLIST.md](BUGFIX-CHECKLIST.md) | 已修復問題清單（防止再次踩坑） | 修改已修復功能前 |
