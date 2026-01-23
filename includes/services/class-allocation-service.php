@@ -435,10 +435,15 @@ class AllocationService
                 'new_product_allocated' => $new_product_allocated
             ]);
 
-            // 8. 【新增】自動建立子訂單
+            // 8. 【修復】先刪除舊的子訂單，再建立新的
+            // 這是為了避免重複分配時數量累加的 Bug
             $child_orders = [];
             foreach ($allocations as $order_id => $allocated_qty) {
                 if ($allocated_qty > 0) {
+                    // 8.1 先刪除該父訂單+該商品的舊子訂單
+                    $this->delete_existing_child_orders($product_id, $order_id);
+
+                    // 8.2 建立新的子訂單
                     $child_order = $this->create_child_order($product_id, $order_id, $allocated_qty);
                     if (!is_wp_error($child_order)) {
                         $child_orders[] = $child_order;
@@ -460,6 +465,73 @@ class AllocationService
             ], 'error');
             return new WP_Error('ALLOCATION_UPDATE_FAILED', '更新分配數量失敗：' . $e->getMessage());
         }
+    }
+
+    /**
+     * 刪除已存在的子訂單
+     *
+     * 在重新分配時，先刪除該父訂單+該商品的舊子訂單
+     * 避免重複分配導致數量累加
+     *
+     * @param int $product_id 商品 ID (FluentCart variation ID)
+     * @param int $parent_order_id 父訂單 ID
+     * @return int 刪除的子訂單數量
+     */
+    private function delete_existing_child_orders($product_id, $parent_order_id)
+    {
+        global $wpdb;
+
+        $this->debugService->log('AllocationService', '檢查並刪除舊的子訂單', [
+            'product_id' => $product_id,
+            'parent_order_id' => $parent_order_id
+        ]);
+
+        // 1. 找出該父訂單+該商品的所有子訂單
+        $child_orders = $wpdb->get_results($wpdb->prepare(
+            "SELECT child_o.id
+             FROM {$wpdb->prefix}fct_orders child_o
+             INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+             WHERE child_o.parent_id = %d
+             AND child_o.type = 'split'
+             AND child_oi.object_id = %d",
+            $parent_order_id,
+            $product_id
+        ), \ARRAY_A);
+
+        if (empty($child_orders)) {
+            $this->debugService->log('AllocationService', '沒有找到需要刪除的舊子訂單');
+            return 0;
+        }
+
+        $deleted_count = 0;
+        foreach ($child_orders as $child) {
+            $child_order_id = (int)$child['id'];
+
+            // 2. 先刪除子訂單的 order_items
+            $wpdb->delete(
+                $wpdb->prefix . 'fct_order_items',
+                ['order_id' => $child_order_id],
+                ['%d']
+            );
+
+            // 3. 再刪除子訂單本身
+            $result = $wpdb->delete(
+                $wpdb->prefix . 'fct_orders',
+                ['id' => $child_order_id],
+                ['%d']
+            );
+
+            if ($result !== false) {
+                $deleted_count++;
+            }
+        }
+
+        $this->debugService->log('AllocationService', '已刪除舊的子訂單', [
+            'deleted_count' => $deleted_count,
+            'child_order_ids' => \array_column($child_orders, 'id')
+        ]);
+
+        return $deleted_count;
     }
 
     /**
