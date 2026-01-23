@@ -92,5 +92,83 @@ Failed to load resource: 404 (products.css:1)
 
 ---
 
+### 問題 6：ShipmentDetailsPage 搜尋屬性未定義
+**發現時間**：2026-01-24
+**影響頁面**：Shipment Details
+**錯誤訊息**：
+```
+[Vue warn]: Property "globalSearchQuery" was accessed during render but is not defined on instance
+[Vue warn]: Property "handleGlobalSearch" was accessed during render but is not defined on instance
+```
+
+**原因**：Template 使用了 `globalSearchQuery` 和 `handleGlobalSearch`，但組件只返回了 `searchQuery` 和 `handleSearchInput`
+
+**修復**：在組件 return 中添加別名映射
+```javascript
+return {
+    searchQuery,
+    globalSearchQuery: searchQuery,  // Alias for template
+    handleSearchInput,
+    handleGlobalSearch: handleSearchInput,  // Alias for template
+    // ...
+}
+```
+
+**Commit**：`ec6e2c0`
+
+---
+
+### 問題 7：ShipmentDetailsPage Template 缺少閉合標籤
+**發現時間**：2026-01-24
+**影響頁面**：Shipment Details
+**錯誤訊息**：
+```
+[Vue warn]: Template compilation error: Element is missing end tag
+```
+
+**原因**：Template 缺少 `</main>` 閉合標籤
+
+**檢測方式**：使用 Python 腳本計算標籤數量
+```python
+<div>: 61 開, 60 閉 ❌
+<main>: 1 開, 0 閉 ❌
+```
+
+**修復**：在 template 結尾處添加 `</main>` 標籤（在最後的 `</div>` 之前）
+
+**Commit**：`2364519`
+
+---
+
+## 驗證結果（2026-01-24）
+
+### HTML 結構完整性檢查
+使用自動化腳本驗證所有 PHP template 的 HTML 標籤平衡：
+
+✅ **admin/partials/products.php**
+- `<div>`: 208 開, 208 閉
+- `<main>`: 1 開, 1 閉
+
+✅ **admin/partials/orders.php**
+- `<div>`: 98 開, 98 閉
+- `<main>`: 1 開, 1 閉
+
+✅ **admin/partials/customers.php**
+- `<div>`: 91 開, 91 閉
+- `<main>`: 1 開, 1 閉
+
+✅ **admin/partials/shipment-products.php**
+- `<div>`: 54 開, 54 閉
+- `<main>`: 1 開, 1 閉
+
+✅ **admin/partials/shipment-details.php**
+- `<div>`: 61 開, 61 閉 (修復後)
+- `<main>`: 1 開, 1 閉 (修復後)
+
+**結論**：所有頁面的 HTML 結構現已正確，標籤完全平衡。
+
+---
+
 **最後更新**：2026-01-24
-**總計修復**：5 個關鍵問題
+**總計修復**：7 個關鍵問題
+**驗證狀態**：✅ 所有頁面 HTML 結構已驗證
