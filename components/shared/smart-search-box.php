@@ -236,6 +236,9 @@ const BuyGoSmartSearchBox = {
 
                 const response = await fetch(`${this.apiEndpoint}?${params}`, {
                     credentials: 'include',
+                    headers: {
+                        'X-WP-Nonce': window.buygoWpNonce
+                    }
                 });
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -273,6 +276,9 @@ const BuyGoSmartSearchBox = {
 
                 const response = await fetch(`${this.apiEndpoint}?${params}`, {
                     credentials: 'include',
+                    headers: {
+                        'X-WP-Nonce': window.buygoWpNonce
+                    }
                 });
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
