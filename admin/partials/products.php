@@ -151,7 +151,7 @@ $products_component_template = <<<'HTML'
                     <div v-show="viewMode === 'table'" class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-200">
-                                <thead class="bg-slate-50/50">
+                                <thead class="bg-slate-50 border-b border-slate-200">
                                     <tr>
                                         <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
                                         <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[35%]">商品</th>
@@ -540,7 +540,7 @@ $products_component_template = <<<'HTML'
                                 </div>
                                 <!-- 桌面版表格 -->
                                 <table v-else class="hidden md:table min-w-full divide-y divide-slate-100">
-                                    <thead class="bg-slate-50">
+                                    <thead class="bg-slate-50 border-b border-slate-200">
                                         <tr>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">訂單編號</th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
