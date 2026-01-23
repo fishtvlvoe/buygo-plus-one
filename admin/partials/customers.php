@@ -104,7 +104,7 @@ $customers_component_template = <<<'HTML'
             <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50/50">
+                        <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
                                 <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">客戶</th>
