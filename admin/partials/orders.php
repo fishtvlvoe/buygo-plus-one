@@ -7,19 +7,8 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 // 載入 OrderDetailModal 元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
 ?>
-<style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    
-    /* Transitions */
-    .search-slide-enter-active, .search-slide-leave-active { transition: all 0.2s ease; }
-    .search-slide-enter-from, .search-slide-leave-to { opacity: 0; transform: translateY(-10px); }
-    
-    [v-cloak] { display: none; }
-</style>
+<!-- Orders Page Styles -->
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/orders.css', __FILE__)); ?>" />
 <?php
 $orders_component_template = <<<'HTML'
 <!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->

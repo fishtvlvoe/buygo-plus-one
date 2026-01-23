@@ -1,25 +1,9 @@
 <?php
 // 出貨管理頁面元件
 
-// CSS 動畫樣式（放在 template 外面避免 Vue 警告）
 ?>
-<style>
-/* 浮動工具列動畫 */
-@keyframes slide-in-from-bottom {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.shipment-animate-in {
-    animation: slide-in-from-bottom 0.3s ease-out;
-}
-</style>
+<!-- Shipment Products Page Styles -->
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('css/shipment-products.css', __FILE__)); ?>" />
 <?php
 
 $shipment_products_component_template = <<<'HTML'

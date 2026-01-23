@@ -1,0 +1,17 @@
+/**
+ * Customers Page Styles
+ * BuyGo+1 Plugin
+ *
+ * 客戶頁面專用樣式
+ */
+
+/* Transitions */
+.search-slide-enter-active,
+.search-slide-leave-active {
+    transition: all 0.2s ease;
+}
+.search-slide-enter-from,
+.search-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
