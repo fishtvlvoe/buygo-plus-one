@@ -617,7 +617,8 @@ const ShipmentDetailsPageComponent = {
                     cache: 'no-store',
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     }
                 });
                 const result = await response.json();
@@ -988,7 +989,8 @@ const ShipmentDetailsPageComponent = {
                     cache: 'no-store',
                     headers: {
                         'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
                     }
                 });
                 const result = await response.json();
