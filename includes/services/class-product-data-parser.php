@@ -24,77 +24,100 @@ class ProductDataParser {
 	private $required_fields = array( 'name', 'price' );
 
 	/**
-	 * Logger
+	 * Debug Service
 	 *
-	 * @var object
+	 * @var Debug_Service
 	 */
-	private $logger;
+	private $debug_service;
 
 	/**
 	 * 建構函數
 	 */
 	public function __construct() {
-		// Logger will be initialized when available
-		// $this->logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
+		$this->debug_service = Debug_Service::get_instance();
 	}
 
 	/**
 	 * 解析訊息
 	 *
 	 * @param string $message 訊息內容
-	 * @return array
+	 * @return array|WP_Error
 	 */
 	public function parse( $message ) {
-		$data = array();
+		$this->debug_service->log( 'ProductDataParser', '開始解析產品資料', array(
+			'text_length' => strlen( $message )
+		) );
 
-		// 分割訊息為多行
-		$lines = explode( "\n", trim( $message ) );
+		try {
+			// 輸入驗證
+			if ( empty( $message ) || ! is_string( $message ) ) {
+				throw new \Exception( '訊息內容不能為空' );
+			}
 
-		// 第一行為商品名稱
-		if ( ! empty( $lines[0] ) ) {
-			$data['name'] = trim( $lines[0] );
-		}
+			$data = array();
 
-		// 解析其他欄位
-		foreach ( $lines as $line ) {
-			$this->parse_line( $line, $data );
-		}
+			// 分割訊息為多行
+			$lines = explode( "\n", trim( $message ) );
 
-		// 如果有多個數量、價格或原價，在解析完成後分配給 variations
-		// 這樣可以確保即使這些欄位在分類之後解析，也能正確分配
-		if ( ! empty( $data['variations'] ) && is_array( $data['variations'] ) ) {
-			// 分配數量
-			if ( ! empty( $data['quantities'] ) ) {
-				foreach ( $data['variations'] as $index => $variation ) {
-					if ( isset( $data['quantities'][ $index ] ) ) {
-						$data['variations'][ $index ]['quantity'] = $data['quantities'][ $index ];
+			// 第一行為商品名稱
+			if ( ! empty( $lines[0] ) ) {
+				$data['name'] = trim( $lines[0] );
+			}
+
+			// 解析其他欄位
+			foreach ( $lines as $line ) {
+				$this->parse_line( $line, $data );
+			}
+
+			// 如果有多個數量、價格或原價，在解析完成後分配給 variations
+			// 這樣可以確保即使這些欄位在分類之後解析，也能正確分配
+			if ( ! empty( $data['variations'] ) && is_array( $data['variations'] ) ) {
+				// 分配數量
+				if ( ! empty( $data['quantities'] ) ) {
+					foreach ( $data['variations'] as $index => $variation ) {
+						if ( isset( $data['quantities'][ $index ] ) ) {
+							$data['variations'][ $index ]['quantity'] = $data['quantities'][ $index ];
+						}
+					}
+				}
+
+				// 分配價格
+				if ( ! empty( $data['prices'] ) ) {
+					foreach ( $data['variations'] as $index => $variation ) {
+						if ( isset( $data['prices'][ $index ] ) ) {
+							$data['variations'][ $index ]['price'] = $data['prices'][ $index ];
+						}
+					}
+				}
+
+				// 分配原價
+				if ( ! empty( $data['compare_prices'] ) ) {
+					foreach ( $data['variations'] as $index => $variation ) {
+						if ( isset( $data['compare_prices'][ $index ] ) ) {
+							$data['variations'][ $index ]['compare_price'] = $data['compare_prices'][ $index ];
+						}
 					}
 				}
 			}
-			
-			// 分配價格
-			if ( ! empty( $data['prices'] ) ) {
-				foreach ( $data['variations'] as $index => $variation ) {
-					if ( isset( $data['prices'][ $index ] ) ) {
-						$data['variations'][ $index ]['price'] = $data['prices'][ $index ];
-					}
-				}
-			}
-			
-			// 分配原價
-			if ( ! empty( $data['compare_prices'] ) ) {
-				foreach ( $data['variations'] as $index => $variation ) {
-					if ( isset( $data['compare_prices'][ $index ] ) ) {
-						$data['variations'][ $index ]['compare_price'] = $data['compare_prices'][ $index ];
-					}
-				}
-			}
+
+			$this->debug_service->log( 'ProductDataParser', '解析成功', array(
+				'product_name' => $data['name'] ?? '',
+				'price' => $data['price'] ?? 0,
+				'has_variations' => ! empty( $data['variations'] ),
+				'variation_count' => ! empty( $data['variations'] ) ? count( $data['variations'] ) : 0
+			) );
+
+			return $data;
+
+		} catch ( \Exception $e ) {
+			$this->debug_service->log( 'ProductDataParser', '解析失敗', array(
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			), 'error' );
+
+			return new \WP_Error( 'parse_failed', '解析失敗：' . $e->getMessage() );
 		}
-
-		// Logger will be used when available
-		// $this->logger->debug( 'Parsed message', $data );
-
-		return $data;
 	}
 
 	/**
@@ -354,8 +377,12 @@ class ProductDataParser {
 
 		$data['price'] = $price;
 
-		// Logger will be used when available
-		// $this->logger->debug( 'Price parsed', array( 'input' => $price_string, 'price' => $price ) );
+		if ( $price <= 0 ) {
+			$this->debug_service->log( 'ProductDataParser', '價格為 0 或負數', array(
+				'input' => $price_string,
+				'price' => $price
+			), 'warning' );
+		}
 	}
 
 	/**
@@ -365,43 +392,69 @@ class ProductDataParser {
 	 * @return string YYYY-MM-DD 格式
 	 */
 	private function parse_date( $date_string ) {
-		// 移除空白
-		$date_string = trim( $date_string );
+		try {
+			// 移除空白
+			$date_string = trim( $date_string );
 
-		// 分割日期
-		$parts = preg_split( '/[\/\-]/', $date_string );
-
-		if ( count( $parts ) === 2 ) {
-			// MM/DD 格式
-			$month = str_pad( $parts[0], 2, '0', STR_PAD_LEFT );
-			$day   = str_pad( $parts[1], 2, '0', STR_PAD_LEFT );
-			$year  = date( 'Y' );
-
-			// 如果月份小於當前月份，表示是明年
-			if ( intval( $month ) < intval( date( 'm' ) ) ) {
-				$year++;
+			if ( empty( $date_string ) ) {
+				throw new \Exception( '日期字串為空' );
 			}
 
-			return "{$year}-{$month}-{$day}";
-		} elseif ( count( $parts ) === 3 ) {
-			// YYYY/MM/DD 或 MM/DD/YYYY 格式
-			if ( strlen( $parts[0] ) === 4 ) {
-				// YYYY/MM/DD
-				$year  = $parts[0];
-				$month = str_pad( $parts[1], 2, '0', STR_PAD_LEFT );
-				$day   = str_pad( $parts[2], 2, '0', STR_PAD_LEFT );
-			} else {
-				// MM/DD/YYYY
+			// 分割日期
+			$parts = preg_split( '/[\/\-]/', $date_string );
+
+			if ( count( $parts ) === 2 ) {
+				// MM/DD 格式
 				$month = str_pad( $parts[0], 2, '0', STR_PAD_LEFT );
 				$day   = str_pad( $parts[1], 2, '0', STR_PAD_LEFT );
-				$year  = $parts[2];
+				$year  = date( 'Y' );
+
+				// 驗證月份和日期
+				if ( intval( $month ) < 1 || intval( $month ) > 12 ) {
+					throw new \Exception( '月份無效：' . $month );
+				}
+				if ( intval( $day ) < 1 || intval( $day ) > 31 ) {
+					throw new \Exception( '日期無效：' . $day );
+				}
+
+				// 如果月份小於當前月份，表示是明年
+				if ( intval( $month ) < intval( date( 'm' ) ) ) {
+					$year++;
+				}
+
+				return "{$year}-{$month}-{$day}";
+			} elseif ( count( $parts ) === 3 ) {
+				// YYYY/MM/DD 或 MM/DD/YYYY 格式
+				if ( strlen( $parts[0] ) === 4 ) {
+					// YYYY/MM/DD
+					$year  = $parts[0];
+					$month = str_pad( $parts[1], 2, '0', STR_PAD_LEFT );
+					$day   = str_pad( $parts[2], 2, '0', STR_PAD_LEFT );
+				} else {
+					// MM/DD/YYYY
+					$month = str_pad( $parts[0], 2, '0', STR_PAD_LEFT );
+					$day   = str_pad( $parts[1], 2, '0', STR_PAD_LEFT );
+					$year  = $parts[2];
+				}
+
+				return "{$year}-{$month}-{$day}";
 			}
 
-			return "{$year}-{$month}-{$day}";
-		}
+			// 無法解析，返回原始字串
+			$this->debug_service->log( 'ProductDataParser', '日期格式無法解析', array(
+				'date_string' => $date_string
+			), 'warning' );
 
-		// 無法解析，返回原始字串
-		return $date_string;
+			return $date_string;
+
+		} catch ( \Exception $e ) {
+			$this->debug_service->log( 'ProductDataParser', '日期解析失敗', array(
+				'date_string' => $date_string,
+				'error' => $e->getMessage()
+			), 'warning' );
+
+			return $date_string;
+		}
 	}
 
 	/**
@@ -444,8 +497,12 @@ class ProductDataParser {
 			'missing' => $errors,
 		);
 
-		// Logger will be used when available
-		// $this->logger->debug( 'Validation result', $result );
+		if ( ! empty( $errors ) ) {
+			$this->debug_service->log( 'ProductDataParser', '資料驗證失敗', array(
+				'missing_fields' => $errors,
+				'product_name' => $data['name'] ?? ''
+			), 'warning' );
+		}
 
 		return $result;
 	}
@@ -551,8 +608,12 @@ class ProductDataParser {
 			$result['quantity']   = intval( $matches[2] );
 		}
 
-		// Logger will be used when available
-		// $this->logger->debug( 'Parsed +1 message', $result );
+		$this->debug_service->log( 'ProductDataParser', '解析 +1 訊息', array(
+			'message' => $message,
+			'product_id' => $result['product_id'],
+			'quantity' => $result['quantity'],
+			'is_standalone' => $result['is_standalone']
+		) );
 
 		return $result;
 	}
