@@ -732,6 +732,10 @@ HTML;
 ?>
 
 
+<script type="text/x-template" id="orders-page-template">
+    <?php echo $orders_component_template; ?>
+</script>
+
 
 <!-- Orders Page Component -->
 <script>

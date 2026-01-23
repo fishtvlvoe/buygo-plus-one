@@ -19,7 +19,7 @@ const CustomersPageComponent = {
     components: {
         'smart-search-box': BuyGoSmartSearchBox
     },
-    template: `<?php echo $customers_component_template; ?>`,
+    template: '#customers-page-template',
     setup() {
         const { ref, computed, onMounted } = Vue;
 

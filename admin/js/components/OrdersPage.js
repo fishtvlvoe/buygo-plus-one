@@ -21,7 +21,7 @@ const OrdersPageComponent = {
         'order-detail-modal': OrderDetailModal,
         'smart-search-box': BuyGoSmartSearchBox
     },
-    template: `<?php echo $orders_component_template; ?>`,
+    template: '#orders-page-template',
     setup() {
         const { ref, computed, onMounted, watch } = Vue;
 
