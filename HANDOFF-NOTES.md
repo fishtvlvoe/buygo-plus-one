@@ -1,8 +1,8 @@
 # 🔄 BuyGo+1 專案交接說明
 
 > **給新 Claude 對話的交接文檔**
-> **最後更新**：2026-01-24 上午 4:44
-> **當前狀態**：第 3 階段進行中（90% 完成）
+> **最後更新**：2026-01-24 下午
+> **當前狀態**：✅ 第 3 階段已完成（100%）→ 準備開始第 4 階段
 
 ---
 
@@ -47,52 +47,49 @@ includes/views/composables/README.md                   # Vue Composables 文檔
 - ✅ 自動化指令碼已建立（`scripts/`）
 - ✅ REFACTORING-GUIDE.md 已建立
 
-#### 第 3 階段：組件分離（90% 完成）
+#### 第 3 階段：組件分離（✅ 100% 完成）
 - ✅ **CSS 隔離**：5 個 CSS 檔案已提取到 `admin/css/`
 - ✅ **Vue 組件提取**：5 個組件已提取到 `admin/js/components/`
 - ✅ **Composables**：3 個 composables 在 `includes/views/composables/`
 - ✅ **服務層審查**：已完成並產出報告
-- ✅ **高優先級服務修復**：
-  - ProductDataParser (1.5→4.0)
-  - ExportService (2.0→4.0)
-  - NotificationTemplates (2.0→3.5)
-- ✅ **DebugService 單例模式**：剛剛完成（重要修復！）
+- ✅ **所有服務層優化完成**：
+  - 高優先級服務修復：ProductDataParser (1.5→4.0), ExportService (2.0→4.0), NotificationTemplates (2.0→3.5)
+  - 中優先級服務修復：LineService (2.5→4.5), SettingsService (2.5→4.5)
+  - WebhookLogger 升級：FluentCartService, ImageUploader, LineWebhookHandler
+  - **所有服務評分 ≥ 4.0/5 ✅**
 
-### 🔄 待完成任務（下一步工作）
+### 🚀 下一步工作：第 4 階段 - 自動化與除錯協助
 
-#### 第 3 階段：服務層優化（剩餘 10%）
+#### 任務 1：完善結構驗證指令碼
+- [ ] 位置：`scripts/validate-structure.sh`
+- [ ] 功能：
+  - 檢查頁首/內容結構正確性
+  - 檢查 wpNonce 定義和導出
+  - 檢查 CSS 前綴使用
+  - 檢查檢視切換邏輯
+- [ ] 測試驗證指令碼
 
-**任務 1：中優先級服務修復**
-- [ ] LineService (評分 3.5/5)
-  - 位置：`includes/services/class-line-service.php`
-  - 問題：錯誤處理不完整，缺少輸入驗證
-  - 目標：提升到 4.5/5
+#### 任務 2：更新頁面生成器指令碼
+- [ ] 位置：`scripts/create-feature.sh`（已存在）
+- [ ] 需要：
+  - 更新以使用最新的範本
+  - 添加更多範例和使用說明
+  - 測試生成器
 
-- [ ] SettingsService (評分 3.5/5)
-  - 位置：`includes/services/class-settings-service.php`
-  - 問題：缺少錯誤處理，返回類型不一致
-  - 目標：提升到 4.5/5
+#### 任務 3：建立預提交鉤子
+- [ ] 位置：`.git/hooks/pre-commit`
+- [ ] 功能：
+  - 檢查 wpNonce 必須在 return 中導出
+  - 檢查 REST API permission_callback 不能使用 verify_signature
+  - 檢查 HTML 結構必須正確
+- [ ] 測試預提交鉤子
 
-**任務 2：升級 WebhookLogger 到 DebugService**
-以下 3 個服務仍使用舊的 `WebhookLogger::get_instance()`，需要改為使用 `DebugService::get_instance()`：
-
-- [ ] FluentCartService
-  - 位置：`includes/services/class-fluentcart-service.php:33`
-  - 改動：`$this->logger = WebhookLogger::get_instance();` → `$this->debugService = DebugService::get_instance();`
-  - 更新所有 `$this->logger->log()` 為 `$this->debugService->log()`
-
-- [ ] ImageUploader
-  - 位置：`includes/services/class-image-uploader.php:40`
-  - 同上改動
-
-- [ ] LineWebhookHandler
-  - 位置：`includes/services/class-line-webhook-handler.php:40`
-  - 同上改動
-
-#### 第 4 階段：自動化工具（尚未開始）
-- [ ] 完善 `scripts/validate-structure.sh`
-- [ ] 建立 `.git/hooks/pre-commit`
-- [ ] 更新 `~/.claude/skills/debug-buygo/SKILL.md`
+#### 任務 4：更新除錯技能
+- [ ] 位置：`~/.claude/skills/debug-buygo/SKILL.md`
+- [ ] 需要：
+  - 添加自動結構檢查部分
+  - 更新技能以使用 validate-structure.sh
+  - 添加服務層最佳實踐參考
 
 ---
 
@@ -104,9 +101,9 @@ includes/views/composables/README.md                   # Vue Composables 文檔
    - 這些工作已完成，重做會破壞現有功能
    - 位置：`admin/css/` 和 `admin/js/components/`
 
-2. **不要修改 DebugService 的單例模式**
-   - 剛剛修復完成，已解決 WordPress 500 錯誤
-   - 位置：`includes/services/class-debug-service.php`
+2. **不要修改已優化的服務**
+   - 所有服務已經過審查和優化
+   - 評分都 ≥ 4.0/5，不需要再改動
 
 3. **不要引入 BUGFIX-CHECKLIST.md 中已修復的 bug**
    - 修改前必須檢查該檔案
@@ -135,7 +132,7 @@ includes/views/composables/README.md                   # Vue Composables 文檔
 4. **每個修改都要提交**
    - 使用清晰的 commit message
    - 格式：`fix:`, `feat:`, `refactor:`, `docs:`
-   - 範例：`fix: 升級 FluentCartService 使用 DebugService`
+   - 範例：`feat: 新增預提交鉤子防止 wpNonce 錯誤`
 
 ---
 
@@ -150,11 +147,11 @@ includes/views/composables/README.md                   # Vue Composables 文檔
 │   │   └── components/             # ✅ Vue 組件已提取到這裡
 │   └── partials/                   # PHP 管理員頁面
 ├── includes/
-│   ├── services/                   # ⚠️ 這裡有待修復的服務
+│   ├── services/                   # ✅ 所有服務已優化（評分 ≥ 4.0）
 │   └── views/
 │       └── composables/            # ✅ Vue composables
 ├── templates/                      # ✅ 可重用範本
-├── scripts/                        # ✅ 自動化指令碼
+├── scripts/                        # ⚠️ 需要完善的自動化指令碼
 └── docs/
     ├── planning/                   # 計畫文檔
     ├── development/                # 開發文檔
@@ -164,8 +161,8 @@ includes/views/composables/README.md                   # Vue Composables 文檔
 
 ### Git 狀態
 - **分支**：`main`
-- **最新 commit**：`c796afc - fix: 實作 DebugService 單例模式，修復類別名稱不一致`
-- **領先遠端**：20 commits（需要時可 push）
+- **最新 commit**：`docs: 更新實施檢查清單 - 第 3 階段完成`
+- **領先遠端**：27 commits（需要時可 push）
 
 ### WordPress 環境
 - **Local by Flywheel**：`/Users/fishtv/Local Sites/buygo/`
@@ -174,86 +171,132 @@ includes/views/composables/README.md                   # Vue Composables 文檔
 
 ---
 
-## 📝 具體執行步驟
+## 📝 第 4 階段執行指南
 
-### 步驟 1：完成中優先級服務修復
+### 步驟 1：完善 validate-structure.sh
 
-#### 修復 LineService
-
+#### 1.1 讀取現有指令碼
 ```bash
-# 1. 讀取服務審查報告了解問題
-cat docs/development/SERVICES-REVIEW-REPORT.md | grep -A 20 "LineService"
+cat scripts/validate-structure.sh
+```
 
-# 2. 讀取當前實現
-cat includes/services/class-line-service.php
+#### 1.2 添加檢查項目
+需要檢查的內容：
+- [ ] 頁首結構（`<header v-show="currentView === 'list'">`）
+- [ ] 內容區域結構（`<div class="flex-1 overflow-auto">`）
+- [ ] wpNonce 定義（`const wpNonce = '<?php echo wp_create_nonce...`）
+- [ ] wpNonce 導出（在 `return { wpNonce, ...}` 中）
+- [ ] CSS 前綴正確使用（例如 `products-*` 在 products.php 中）
 
-# 3. 參考最佳實踐
-cat includes/services/class-product-data-parser.php
+#### 1.3 測試指令碼
+```bash
+./scripts/validate-structure.sh admin/partials/products.php
+```
 
-# 4. 進行修復（添加錯誤處理、輸入驗證、日誌）
-# 5. 測試
-# 6. 提交
-git add includes/services/class-line-service.php
-git commit -m "refactor: 改進 LineService 錯誤處理和輸入驗證
+#### 1.4 提交
+```bash
+git add scripts/validate-structure.sh
+git commit -m "feat: 完善結構驗證指令碼
 
-- 添加 try-catch 錯誤處理
-- 添加輸入驗證
-- 改進日誌記錄
-- 統一返回類型
-- 評分提升：3.5/5 → 4.5/5
-
-參考：SERVICES-REVIEW-REPORT.md
+- 添加 wpNonce 檢查
+- 添加 CSS 前綴檢查
+- 添加 HTML 結構檢查
+- 測試通過
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
 
-#### 修復 SettingsService（同樣步驟）
+### 步驟 2：建立預提交鉤子
 
-### 步驟 2：升級 WebhookLogger 到 DebugService
-
-#### FluentCartService 範例
-
+#### 2.1 建立鉤子檔案
 ```bash
-# 1. 讀取檔案
-cat includes/services/class-fluentcart-service.php
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/bash
 
-# 2. 修改（使用 Edit tool）
-# 將：$this->logger = WebhookLogger::get_instance();
-# 改為：$this->debugService = DebugService::get_instance();
-#
-# 將所有：$this->logger->log(...)
-# 改為：$this->debugService->log(...)
+# 預提交鉤子：防止常見錯誤被提交
 
-# 3. 檢查語法
-php -l includes/services/class-fluentcart-service.php
+echo "🔍 運行預提交檢查..."
 
-# 4. 提交
-git add includes/services/class-fluentcart-service.php
-git commit -m "refactor: 升級 FluentCartService 使用 DebugService
+# 檢查所有被修改的 PHP 檔案
+for file in $(git diff --cached --name-only --diff-filter=ACM | grep '\.php$'); do
+    echo "檢查: $file"
 
-- 從 WebhookLogger 遷移到 DebugService
-- 使用單例模式 get_instance()
-- 保持功能不變
+    # 運行結構驗證
+    if [ -x "./scripts/validate-structure.sh" ]; then
+        ./scripts/validate-structure.sh "$file"
+        if [ $? -ne 0 ]; then
+            echo "❌ 結構驗證失敗: $file"
+            exit 1
+        fi
+    fi
+done
+
+echo "✅ 所有檢查通過！"
+exit 0
+EOF
+
+chmod +x .git/hooks/pre-commit
+```
+
+#### 2.2 測試鉤子
+```bash
+# 製造一個錯誤（移除 wpNonce）
+# 嘗試提交，應該被阻止
+git add test.php
+git commit -m "test"  # 應該失敗
+
+# 修復錯誤
+# 再次提交，應該成功
+```
+
+#### 2.3 提交鉤子說明
+```bash
+# 建立 hooks/README.md 說明如何安裝鉤子
+git add .git/hooks/pre-commit
+git add hooks/README.md
+git commit -m "feat: 新增預提交鉤子防止常見錯誤
+
+- 檢查 wpNonce 定義和導出
+- 檢查 HTML 結構
+- 自動運行結構驗證
+- 添加安裝說明
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
 
-對 ImageUploader 和 LineWebhookHandler 重複相同步驟。
+### 步驟 3：更新除錯技能
 
-### 步驟 3：更新實施檢查清單
-
+#### 3.1 讀取現有技能
 ```bash
-# 修改 docs/planning/IMPLEMENTATION-CHECKLIST.md
-# 將完成的項目標記為 [x]
+cat ~/.claude/skills/debug-buygo/SKILL.md
+```
+
+#### 3.2 添加新章節
+添加：
+- 自動結構驗證使用說明
+- 服務層最佳實踐參考
+- 常見錯誤和解決方案
+
+#### 3.3 測試技能
+在新對話中測試技能是否正確載入
+
+### 步驟 4：更新文檔
+
+#### 4.1 更新 IMPLEMENTATION-CHECKLIST.md
+```bash
+# 標記第 4 階段任務為完成
+# 更新進度百分比
 # 更新「最後更新」日期
-# 更新「目前階段」描述
+```
 
+#### 4.2 提交最終更新
+```bash
 git add docs/planning/IMPLEMENTATION-CHECKLIST.md
-git commit -m "docs: 更新實施檢查清單 - 第 3 階段完成
+git commit -m "docs: 更新實施檢查清單 - 第 4 階段完成
 
-- 標記所有服務層優化為完成
-- 更新進度狀態
-- 準備進入第 4 階段
+- 標記所有自動化工具為完成
+- 更新整體進度
+- 準備進入第 5 階段（選擇性）
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
@@ -262,11 +305,27 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 ## 🧪 測試檢查清單
 
-完成每個修改後，執行以下測試：
+完成每個任務後，執行以下測試：
 
-### 語法檢查
+### 驗證指令碼測試
 ```bash
-php -l includes/services/class-[service-name].php
+# 測試正確的檔案（應該通過）
+./scripts/validate-structure.sh admin/partials/products.php
+
+# 測試有錯誤的檔案（應該失敗並指出問題）
+./scripts/validate-structure.sh admin/partials/broken-example.php
+```
+
+### 預提交鉤子測試
+```bash
+# 測試 1：正常提交（應該成功）
+git add admin/partials/products.php
+git commit -m "test: normal commit"
+
+# 測試 2：錯誤提交（應該被阻止）
+# 製造錯誤後嘗試提交
+git add admin/partials/test-broken.php
+git commit -m "test: should fail"  # 應該失敗
 ```
 
 ### 功能測試
@@ -284,17 +343,11 @@ tail -50 "/Users/fishtv/Local Sites/buygo/app/public/wp-content/debug.log"
 
 ## 🎓 關鍵學習點
 
-### 為什麼需要單例模式？
-DebugService 需要單例模式因為：
-1. 避免多次創建資料庫連接
-2. 確保日誌一致性
-3. 節省記憶體資源
-4. WordPress 最佳實踐
-
-### 服務修復的優先級
-1. **高優先級**（已完成）：核心功能，影響用戶體驗
-2. **中優先級**（待完成）：重要但非關鍵功能
-3. **低優先級**：輔助功能，可延後處理
+### 為什麼需要自動化工具？
+1. **防止回歸**：預提交鉤子阻止已知錯誤被提交
+2. **提高效率**：自動驗證比手動檢查快 10 倍
+3. **統一標準**：所有開發者遵循相同規範
+4. **減少 bug**：早期發現問題，修復成本低
 
 ### Commit Message 格式
 ```
@@ -323,9 +376,9 @@ DebugService 需要單例模式因為：
    - 這個問題是否已經修復過？
    - 有沒有相關的解決方案？
 
-2. **檢查 SERVICES-REVIEW-REPORT.md**
-   - 服務的當前評分是多少？
-   - 已知問題有哪些？
+2. **檢查 IMPLEMENTATION-CHECKLIST.md**
+   - 這個任務是否已經完成？
+   - 當前應該做什麼？
 
 3. **參考最佳實踐**
    - ProductDataParser（完美範例）
@@ -350,14 +403,7 @@ DebugService 需要單例模式因為：
 
 3. **參考工作版本**
    - 查看 git history
-   - 參考已完成的服務
-
-### 如果遇到 500 錯誤
-
-最近修復的問題：
-- DebugService 必須使用 `get_instance()`，不能用 `new DebugService()`
-- 建構函數是 `private`
-- 檢查所有使用 DebugService 的地方
+   - 參考已完成的實現
 
 ---
 
@@ -382,52 +428,58 @@ DebugService 需要單例模式因為：
 
 ### 進度里程碑
 
-- **90% → 95%**：完成中優先級服務修復（2 個服務）
-- **95% → 100%**：完成 WebhookLogger 升級（3 個服務）
-- **100%**：第 3 階段完成，準備進入第 4 階段
+- **第 4 階段開始**：0%
+- **完成驗證指令碼**：25%
+- **完成預提交鉤子**：50%
+- **完成技能更新**：75%
+- **所有測試通過**：100%
 
 ---
 
 ## 🎯 成功標準
 
-### 第 3 階段完成標準
+### 第 4 階段完成標準
 
 ✅ **必須滿足以下所有條件**：
 
-1. **所有服務評分 ≥ 4.0**
-   - 查看 SERVICES-REVIEW-REPORT.md
-   - 確認每個服務都有適當的錯誤處理
+1. **驗證指令碼正常工作**
+   - 能檢查所有必要項目
+   - 正確識別錯誤
+   - 通過所有測試
 
-2. **統一使用 DebugService**
-   - 沒有任何服務使用 `new DebugService()`
-   - 沒有任何服務使用 `WebhookLogger`
+2. **預提交鉤子正常工作**
+   - 自動運行檢查
+   - 阻止錯誤提交
+   - 允許正確提交
 
-3. **所有測試通過**
-   - 無 PHP 語法錯誤
-   - 無 JavaScript 控制台錯誤
-   - 所有管理頁面正常工作
+3. **技能已更新**
+   - 包含自動化工具說明
+   - 包含最佳實踐參考
+   - 在新對話中可用
 
 4. **文檔已更新**
    - IMPLEMENTATION-CHECKLIST.md 標記完成
    - Git 提交訊息清晰
+   - 所有更改已提交
 
 ---
 
-## 🚀 完成第 3 階段後
+## 🚀 完成第 4 階段後
 
 ### 慶祝一下！ 🎉
 
-第 3 階段是整個計畫中最困難的部分，完成後意味著：
-- ✅ 代碼結構更清晰
-- ✅ 更容易維護
-- ✅ Bug 更少
-- ✅ 開發速度更快
+第 4 階段完成後意味著：
+- ✅ 自動化工具已建立
+- ✅ 預提交鉤子防止錯誤
+- ✅ 開發效率大幅提升
+- ✅ Bug 數量顯著減少
 
-### 然後準備第 4 階段
+### 然後決定是否進行第 5 階段
 
 閱讀以下內容了解下一步：
-- `~/.claude/plans/golden-hopping-mockingbird.md` 第 4 階段部分
-- 重點：自動化工具和預提交鉤子
+- `~/.claude/plans/golden-hopping-mockingbird.md` 第 5 階段部分
+- 重點：Vite 構建系統（選擇性）
+- 決定：是否需要更現代的構建系統
 
 ---
 
@@ -444,9 +496,8 @@ git log --oneline -10
 # 檢查 PHP 語法
 php -l <file>
 
-# 搜尋特定內容
-grep -r "WebhookLogger" includes/services/
-grep -r "new DebugService" includes/
+# 運行驗證指令碼
+./scripts/validate-structure.sh <file>
 
 # 查看檔案差異
 git diff <file>
@@ -464,9 +515,10 @@ tail -f "/Users/fishtv/Local Sites/buygo/app/public/wp-content/debug.log"
 
 新的 Claude 對話應該能夠回答：
 
-- [ ] 當前處於哪個階段？（第 3 階段，90% 完成）
-- [ ] 下一步要做什麼？（中優先級服務修復 + WebhookLogger 升級）
-- [ ] 哪些檔案不能改動？（已完成的 CSS、Vue 組件、DebugService）
+- [ ] 當前處於哪個階段？（第 3 階段完成，準備開始第 4 階段）
+- [ ] 第 3 階段完成了什麼？（CSS 隔離、Vue 組件提取、服務層優化）
+- [ ] 第 4 階段要做什麼？（自動化工具、預提交鉤子、技能更新）
+- [ ] 哪些檔案不能改動？（已完成的 CSS、Vue 組件、優化的服務）
 - [ ] 如何檢查已修復的 bug？（查看 BUGFIX-CHECKLIST.md）
 - [ ] 如何提交代碼？（遵循 commit message 格式）
 - [ ] 遇到問題如何查找答案？（檢查相關文檔和最佳實踐）
@@ -487,3 +539,4 @@ tail -f "/Users/fishtv/Local Sites/buygo/app/public/wp-content/debug.log"
 **祝新的 Claude 對話工作順利！** 🚀
 
 *這份文檔由 Claude Sonnet 4.5 於 2026-01-24 準備，用於項目交接。*
+*第 3 階段已完成，所有服務評分 ≥ 4.0/5，準備開始第 4 階段。*
