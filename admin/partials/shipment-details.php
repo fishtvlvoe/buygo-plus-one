@@ -10,170 +10,195 @@ if (!defined('ABSPATH')) {
 
 // HTML Template
 $shipment_details_template = <<<'HTML'
-<div class="min-h-screen bg-slate-50 relative">
+<div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+    <!-- Main Content -->
+    <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
+
     <!-- 列表視圖 -->
     <div v-show="currentView === 'list'">
-    <!-- 頁面標題 -->
-    <div class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm sticky top-0 z-30 md:static">
-        <div class="pl-12 md:pl-0">
-            <h1 class="text-xl font-bold text-slate-900">出貨</h1>
-        </div>
-    </div>
 
-    <!-- 分頁 Tabs -->
-    <div class="bg-white border-b border-slate-200">
-        <div class="flex gap-8 px-6">
-            <button
-                @click="activeTab = 'ready_to_ship'"
-                :class="activeTab === 'ready_to_ship' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                class="py-4 px-1 border-b-2 font-medium text-sm transition"
-            >
-                待出貨
-                <span v-if="stats.ready_to_ship > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
-                    {{ stats.ready_to_ship }}
-                </span>
-            </button>
-            <button 
-                @click="activeTab = 'shipped'"
-                :class="activeTab === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                class="py-4 px-1 border-b-2 font-medium text-sm transition"
-            >
-                已出貨 
-                <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
-                    {{ stats.shipped }}
-                </span>
-            </button>
-            <button 
-                @click="activeTab = 'archived'"
-                :class="activeTab === 'archived' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                class="py-4 px-1 border-b-2 font-medium text-sm transition"
-            >
-                存檔區 
-                <span v-if="stats.archived > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
-                    {{ stats.archived }}
-                </span>
+    <!-- Header（與訂單頁面一致） -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
+        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">出貨</h1>
+                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
+                    首頁 <span class="text-slate-300">/</span> 出貨管理
+                </nav>
+            </div>
+        </div>
+
+        <!-- Right Actions -->
+        <div class="flex items-center gap-2 md:gap-3 shrink-0">
+            <!-- Desktop Search -->
+            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
+                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
+                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <!-- Notification -->
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </button>
         </div>
-    </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="flex-1 overflow-auto bg-slate-50/50 relative">
+        <div class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+
+            <!-- Smart Search Box（頁面搜尋框） -->
+            <smart-search-box
+                api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+                :search-fields="['product_name', 'customer_name']"
+                placeholder="搜尋商品或客戶"
+                display-field="product_name"
+                display-sub-field="customer_name"
+                :show-currency-toggle="false"
+                @select="handleSearchSelect"
+                @search="handleSearchInput"
+                @clear="handleSearchClear"
+            />
+
+            <!-- 分頁 Tabs -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="flex gap-8 px-6 border-b border-slate-200">
+                    <button
+                        @click="activeTab = 'ready_to_ship'"
+                        :class="activeTab === 'ready_to_ship' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                    >
+                        待出貨
+                        <span v-if="stats.ready_to_ship > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
+                            {{ stats.ready_to_ship }}
+                        </span>
+                    </button>
+                    <button
+                        @click="activeTab = 'shipped'"
+                        :class="activeTab === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                    >
+                        已出貨
+                        <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
+                            {{ stats.shipped }}
+                        </span>
+                    </button>
+                    <button
+                        @click="activeTab = 'archived'"
+                        :class="activeTab === 'archived' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                    >
+                        存檔區
+                        <span v-if="stats.archived > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+                            {{ stats.archived }}
+                        </span>
+                    </button>
+                </div>
     
-    <!-- 批次操作工具列（只在有勾選時顯示） -->
-    <div v-if="selectedShipments.length > 0" class="bg-orange-50 border-b border-orange-200 px-4 md:px-6 py-3">
-        <!-- 桌面版 -->
-        <div class="hidden md:flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <span class="text-sm text-slate-700">
-                    已選擇 {{ selectedShipments.length }} 個出貨單
-                </span>
-                <button
-                    @click="clearSelection"
-                    class="text-sm text-slate-600 hover:text-slate-900"
-                >
-                    清除勾選
-                </button>
-            </div>
+                <!-- 批次操作工具列（只在有勾選時顯示） -->
+                <div v-if="selectedShipments.length > 0" class="bg-orange-50 border-b border-orange-200 px-4 md:px-6 py-3">
+                    <!-- 桌面版 -->
+                    <div class="hidden md:flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm text-slate-700">
+                                已選擇 {{ selectedShipments.length }} 個出貨單
+                            </span>
+                            <button
+                                @click="clearSelection"
+                                class="text-sm text-slate-600 hover:text-slate-900"
+                            >
+                                清除勾選
+                            </button>
+                        </div>
 
-            <div class="flex items-center gap-3">
-                <!-- 待出貨分頁：批次標記已出貨 -->
-                <button
-                    v-if="activeTab === 'ready_to_ship'"
-                    @click="batchMarkShipped"
-                    class="buygo-btn buygo-btn-accent"
-                >
-                    批次標記已出貨（{{ selectedShipments.length }}）
-                </button>
+                        <div class="flex items-center gap-3">
+                            <!-- 待出貨分頁：批次標記已出貨 -->
+                            <button
+                                v-if="activeTab === 'ready_to_ship'"
+                                @click="batchMarkShipped"
+                                class="buygo-btn buygo-btn-accent"
+                            >
+                                批次標記已出貨（{{ selectedShipments.length }}）
+                            </button>
 
-                <!-- 已出貨分頁：批次移至存檔 -->
-                <button
-                    v-if="activeTab === 'shipped'"
-                    @click="batchArchive"
-                    class="buygo-btn buygo-btn-secondary"
-                >
-                    批次移至存檔（{{ selectedShipments.length }}）
-                </button>
+                            <!-- 已出貨分頁：批次移至存檔 -->
+                            <button
+                                v-if="activeTab === 'shipped'"
+                                @click="batchArchive"
+                                class="buygo-btn buygo-btn-secondary"
+                            >
+                                批次移至存檔（{{ selectedShipments.length }}）
+                            </button>
 
-                <!-- 批次匯出 Excel -->
-                <button
-                    v-if="selectedShipments.length > 0"
-                    @click="batchExport"
-                    class="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
-                >
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    匯出 Excel（{{ selectedShipments.length }}）
-                </button>
-            </div>
-        </div>
+                            <!-- 批次匯出 Excel -->
+                            <button
+                                v-if="selectedShipments.length > 0"
+                                @click="batchExport"
+                                class="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
+                            >
+                                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                匯出 Excel（{{ selectedShipments.length }}）
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- 手機版 -->
-        <div class="md:hidden space-y-2">
-            <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-slate-700">
-                    已選 {{ selectedShipments.length }} 筆
-                </span>
-                <button
-                    @click="clearSelection"
-                    class="text-xs text-slate-600"
-                >
-                    清除
-                </button>
-            </div>
-            <div class="flex gap-2">
-                <!-- 待出貨分頁：批次出貨 -->
-                <button
-                    v-if="activeTab === 'ready_to_ship'"
-                    @click="batchMarkShipped"
-                    class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium active:bg-blue-600"
-                >
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    出貨 ({{ selectedShipments.length }})
-                </button>
+                    <!-- 手機版 -->
+                    <div class="md:hidden space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-slate-700">
+                                已選 {{ selectedShipments.length }} 筆
+                            </span>
+                            <button
+                                @click="clearSelection"
+                                class="text-xs text-slate-600"
+                            >
+                                清除
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <!-- 待出貨分頁：批次出貨 -->
+                            <button
+                                v-if="activeTab === 'ready_to_ship'"
+                                @click="batchMarkShipped"
+                                class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium active:bg-blue-600"
+                            >
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                出貨 ({{ selectedShipments.length }})
+                            </button>
 
-                <!-- 已出貨分頁：批次存檔 -->
-                <button
-                    v-if="activeTab === 'shipped'"
-                    @click="batchArchive"
-                    class="flex-1 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium active:bg-slate-700"
-                >
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                    </svg>
-                    存檔 ({{ selectedShipments.length }})
-                </button>
+                            <!-- 已出貨分頁：批次存檔 -->
+                            <button
+                                v-if="activeTab === 'shipped'"
+                                @click="batchArchive"
+                                class="flex-1 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium active:bg-slate-700"
+                            >
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                                存檔 ({{ selectedShipments.length }})
+                            </button>
 
-                <!-- 批次匯出 Excel -->
-                <button
-                    @click="batchExport"
-                    class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600"
-                >
-                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Excel
-                </button>
-            </div>
-        </div>
-    </div>
+                            <!-- 批次匯出 Excel -->
+                            <button
+                                @click="batchExport"
+                                class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600"
+                            >
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- 智慧搜尋框 -->
-    <div class="px-6 py-4 border-b border-slate-200">
-        <smart-search-box
-            api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
-            :search-fields="['product_name', 'customer_name']"
-            placeholder="搜尋商品或客戶"
-            display-field="product_name"
-            display-sub-field="customer_name"
-            :show-currency-toggle="false"
-            @select="handleSearchSelect"
-            @search="handleSearchInput"
-            @clear="handleSearchClear"
-        />
-    </div>
-
-    <!-- 出貨單列表 -->
-    <div class="p-4 md:p-6">
+                <!-- 出貨單列表 -->
+                <div class="p-4 md:p-6">
         <div v-if="loading" class="buygo-loading">
             <div class="buygo-loading-spinner"></div>
             <p>載入中...</p>
