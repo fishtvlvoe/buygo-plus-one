@@ -16,8 +16,15 @@ if (!defined('ABSPATH')) {
  */
 class Plugin {
     /**
+     * 資料庫版本號
+     *
+     * @var string
+     */
+    const DB_VERSION = '1.2.0';
+
+    /**
      * 單例實例
-     * 
+     *
      * @var Plugin|null
      */
     private static $instance = null;
@@ -188,7 +195,7 @@ class Plugin {
     private function maybe_upgrade_database(): void
     {
         $current_db_version = get_option('buygo_plus_one_db_version', '0');
-        $required_db_version = '1.2.0'; // 修復出貨單資料表結構
+        $required_db_version = self::DB_VERSION; // 使用類別常數
 
         // 載入必要的類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
