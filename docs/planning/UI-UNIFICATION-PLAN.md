@@ -281,6 +281,7 @@
 ## 🔗 相關參考
 
 - [UI-UX-GOLDEN-PRINCIPLES.md](../development/UI-UX-GOLDEN-PRINCIPLES.md) - 完整設計規範
+- [PAGE-COMPONENT-DECOMPOSITION-PLAN.md](PAGE-COMPONENT-DECOMPOSITION-PLAN.md) - 頁面組件分解計畫（本週平行進行）
 - [PROGRESS-TRACKER.md](PROGRESS-TRACKER.md) - 進度追蹤
 - [PRE-COMMIT-HOOK-REPORT.md](../development/PRE-COMMIT-HOOK-REPORT.md) - Hook 自動化檢查
 
