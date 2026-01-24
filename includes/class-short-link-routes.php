@@ -24,14 +24,15 @@ class ShortLinkRoutes {
     private function __construct() {
         // 註冊 rewrite rule
         add_action('init', array($this, 'add_rewrite_rules'));
-        
+
         // 註冊 query var
         add_filter('query_vars', array($this, 'add_query_vars'));
-        
+
         // 處理 template redirect
         add_action('template_redirect', array($this, 'handle_short_link'), 1);
-        
-        // 注意：flush_rewrite_rules 會在 buygo-plus-one.php 的 activation hook 中執行
+
+        // 檢查是否需要刷新 rewrite rules（在外掛啟用後首次載入時執行）
+        add_action('init', array($this, 'maybe_flush_rewrite_rules'), 20);
     }
     
     /**
@@ -102,10 +103,29 @@ class ShortLinkRoutes {
     }
     
     /**
-     * 刷新 rewrite rules（在啟用外掛時執行）
+     * 標記需要刷新 rewrite rules（在啟用外掛時呼叫）
+     *
+     * 不直接執行 flush_rewrite_rules()，而是設定 flag
+     * 讓系統在下次 init hook 時才執行，確保時序正確
      */
     public function flush_rewrite_rules() {
-        $this->add_rewrite_rules();
-        flush_rewrite_rules();
+        // 設定 transient 標記，表示需要刷新 rewrite rules
+        set_transient('buygo_plus_one_flush_rewrite_rules', 1, 60);
+    }
+
+    /**
+     * 檢查是否需要刷新 rewrite rules
+     *
+     * 在 init hook (priority 20) 執行，確保在 add_rewrite_rules() 之後
+     */
+    public function maybe_flush_rewrite_rules() {
+        // 檢查是否有刷新標記
+        if (get_transient('buygo_plus_one_flush_rewrite_rules')) {
+            // 刪除標記
+            delete_transient('buygo_plus_one_flush_rewrite_rules');
+
+            // 執行刷新（此時 rewrite rules 已經透過 init hook 註冊完成）
+            flush_rewrite_rules();
+        }
     }
 }
