@@ -29,6 +29,16 @@ $settings_component_template = <<<'HTML'
 
         <!-- 右側操作區 -->
         <div class="flex items-center gap-2 md:gap-3 shrink-0">
+            <!-- 前往 Portal 按鈕 -->
+            <a href="<?php echo esc_url(home_url('/buygo-portal/')); ?>"
+                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm font-medium hidden sm:inline-flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+                <span class="hidden md:inline">前往 Portal</span>
+                <span class="md:hidden">Portal</span>
+            </a>
+
             <!-- 手機版搜尋按鈕 -->
             <button @click="showMobileSearch = !showMobileSearch"
                 class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
