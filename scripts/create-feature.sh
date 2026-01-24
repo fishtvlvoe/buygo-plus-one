@@ -10,11 +10,19 @@
 # 範例：
 #   ./scripts/create-feature.sh Report 報表
 #   ./scripts/create-feature.sh Category 分類
+#   ./scripts/create-feature.sh Inventory 庫存
 #
 # 這會建立：
-#   - includes/services/class-{entity}-service.php
-#   - includes/api/class-{entities}-api.php
-#   - admin/partials/{entities}.php
+#   - includes/services/class-{entity}-service.php      （服務層）
+#   - includes/api/class-{entities}-api.php             （REST API）
+#   - admin/partials/{entities}.php                     （管理員頁面）
+#
+# 建立後需要手動完成：
+#   1. 在 includes/api/class-api.php 中註冊 API
+#   2. 在路由中添加新頁面（如需要）
+#   3. 建立或修改資料表（如需要）
+#
+# 詳細說明請參考：docs/development/REFACTORING-GUIDE.md
 #
 
 set -e
@@ -112,13 +120,41 @@ fi
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}完成！${NC}"
+echo -e "${GREEN}完成！已建立以下檔案：${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo -e "${YELLOW}接下來需要手動完成：${NC}"
-echo "1. 在 class-api.php 中註冊新的 API"
-echo "2. 在路由中添加新頁面"
-echo "3. 建立資料表（如需要）"
+[ -f "$SERVICE_FILE" ] && echo -e "${GREEN}✓${NC} $SERVICE_FILE"
+[ -f "$API_FILE" ] && echo -e "${GREEN}✓${NC} $API_FILE"
+[ -f "$PAGE_FILE" ] && echo -e "${GREEN}✓${NC} $PAGE_FILE"
 echo ""
-echo "詳細說明請參考："
-echo "  docs/development/REFACTORING-GUIDE.md"
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}接下來需要手動完成：${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo ""
+echo -e "${YELLOW}1. 註冊 API 端點${NC}"
+echo "   編輯: includes/api/class-api.php"
+echo "   在 register_routes() 方法中添加："
+echo ""
+echo "   require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-${ENTITIES_LOWER}-api.php';"
+echo "   \$${ENTITY_LOWER}_api = new ${ENTITIES_UPPER}_API();"
+echo "   \$${ENTITY_LOWER}_api->register_routes();"
+echo ""
+echo -e "${YELLOW}2. 添加菜單項（如需要）${NC}"
+echo "   編輯: includes/class-admin.php"
+echo "   在 add_menu_pages() 方法中添加新的菜單項"
+echo ""
+echo -e "${YELLOW}3. 建立/修改資料表（如需要）${NC}"
+echo "   編輯: includes/class-activator.php"
+echo "   在 activate() 方法中添加資料表建立邏輯"
+echo ""
+echo -e "${YELLOW}4. 測試新功能${NC}"
+echo "   a) 執行結構驗證："
+echo "      ./scripts/validate-structure.sh"
+echo "   b) 測試 API 端點："
+echo "      /wp-json/buygo-plus-one/v1/${ENTITIES_LOWER}"
+echo "   c) 訪問管理員頁面（如已添加菜單）"
+echo ""
+echo -e "${GREEN}詳細說明請參考：${NC}"
+echo "  📖 docs/development/REFACTORING-GUIDE.md"
+echo "  📖 docs/development/CODING-STANDARDS.md"
+echo ""
