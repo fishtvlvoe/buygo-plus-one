@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name:       BuyGo+1 (開發版 - Boilerplate 重構)
+ * Plugin Name:       BuyGo+1
  * Plugin URI:        https://buygo.me
- * Description:       BuyGo 獨立賣場後台系統 - WordPress Plugin Boilerplate 重構版本
- * Version:           0.0.1-dev
+ * Description:       BuyGo 獨立賣場後台系統
+ * Version:           0.03
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
  * Author URI:        https://buygo.me
  * License:           GPL v2 or later
- * Text Domain:       buygo-plus-one-dev
+ * Text Domain:       buygo-plus-one
  * Domain Path:       /languages
  */
 
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('BUYGO_PLUS_ONE_VERSION', '0.0.1');
+define('BUYGO_PLUS_ONE_VERSION', '0.03');
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('BUYGO_PLUS_ONE_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
