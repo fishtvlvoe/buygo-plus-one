@@ -14,9 +14,9 @@
 
 檔案位置：`includes/services/class-line-service.php`
 
-- [ ] 找到 Line 464 的 `mt_rand(0, 999999)`
-- [ ] 改用 `random_int(0, 999999)` 替代
-- [ ] 測試綁定碼生成功能是否正常
+- [x] 找到 Line 464 的 `mt_rand(0, 999999)`
+- [x] 改用 `random_int(0, 999999)` 替代
+- [x] 測試綁定碼生成功能是否正常
 
 理由：
 
@@ -31,8 +31,8 @@
 
 檔案位置：`includes/api/class-line-webhook-api.php`
 
-- [ ] 檢查 Line 130 的簽章驗證邏輯
-- [ ] 決定是否調整「channel_secret 缺失時」的處理方式
+- [x] 檢查 Line 130 的簽章驗證邏輯
+- [x] 決定是否調整「channel_secret 缺失時」的處理方式
 
 目前行為：
 
@@ -70,10 +70,10 @@ if (empty($channel_secret)) {
 
 ### 2.1 清理備份檔案
 
-- [ ] 刪除 `includes/services/class-allocation-service.php.backup`
-- [ ] 刪除 `includes/services/class-shipment-service.php.backup`
-- [ ] 確認 Git 狀態（確保備份檔案不在版本控制中）
-- [ ] 提交 commit：「chore: 清理備份檔案」
+- [x] 刪除 `includes/services/class-allocation-service.php.backup`
+- [x] 刪除 `includes/services/class-shipment-service.php.backup`
+- [x] 確認 Git 狀態（確保備份檔案不在版本控制中）
+- [x] 提交 commit：「chore: 清理備份檔案」
 
 預估時間：2 分鐘
 
@@ -187,10 +187,10 @@ foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-*.php') as $s
 
 ### 明天的工作計畫（建議順序）
 
-1. Phase 1.1：修正綁定碼生成器（5 分鐘）✅ 必做
-2. Phase 2.1：清理備份檔案（2 分鐘）✅ 必做
+1. Phase 1.1：修正綁定碼生成器（5 分鐘）✅ 必做 - 完成
+2. Phase 2.1：清理備份檔案（2 分鐘）✅ 必做 - 完成
 3. Phase 3.2：提取資料庫版本號為常數（3 分鐘）✅ 建議做
-4. Phase 1.2：決定 Webhook 簽章驗證策略（10 分鐘）⚠️ 需決策
+4. Phase 1.2：決定 Webhook 簽章驗證策略（10 分鐘）✅ 完成（選擇 A）
 5. Phase 2.2：國際化支援（1-5 小時）❓ 看是否上架 WordPress.org
 6. Phase 3.1：移除 glob 載入方式（30 分鐘）❓ 可選
 
