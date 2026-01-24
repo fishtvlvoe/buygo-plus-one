@@ -126,12 +126,26 @@ class Line_Webhook_API {
 		// SettingsService 會自動從 buygo_core_settings 或獨立 option 讀取並解密
 		$channel_secret = \BuyGoPlus\Services\SettingsService::get( 'line_channel_secret', '' );
 
-		// 如果沒有設定 channel secret，跳過驗證（開發模式）
+		// 如果沒有設定 channel secret，根據環境決定是否跳過驗證
 		if ( empty( $channel_secret ) ) {
-			$logger->log( 'signature_verification_skipped', array(
-				'reason' => 'Channel secret not configured, skipping verification (development mode)',
-			) );
-			return true;
+			$is_dev = $this->is_development_mode();
+
+			if ( $is_dev ) {
+				// 開發環境：允許跳過驗證
+				$logger->log( 'signature_verification_skipped', array(
+					'reason' => 'Development mode: Channel secret not configured',
+					'mode' => 'development',
+				) );
+				return true;
+			} else {
+				// 正式環境：拒絕請求
+				$logger->log( 'signature_verification_failed', array(
+					'reason' => 'Production mode: Channel secret not configured',
+					'mode' => 'production',
+					'instruction' => 'Please configure LINE Channel Secret in plugin settings',
+				) );
+				return false;
+			}
 		}
 
 		// 如果沒有簽名，拒絕請求
@@ -163,5 +177,36 @@ class Line_Webhook_API {
 		}
 
 		return $is_valid;
+	}
+
+	/**
+	 * 檢查是否為開發模式
+	 *
+	 * @return bool
+	 */
+	private function is_development_mode() {
+		// 方法1: 檢查 WP_DEBUG（最常用）
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG === true ) {
+			return true;
+		}
+
+		// 方法2: 檢查環境類型（WordPress 5.5+）
+		if ( function_exists( 'wp_get_environment_type' ) ) {
+			$env_type = wp_get_environment_type();
+			if ( in_array( $env_type, array( 'development', 'local' ), true ) ) {
+				return true;
+			}
+		}
+
+		// 方法3: 檢查伺服器名稱（補充判斷）
+		if ( isset( $_SERVER['SERVER_NAME'] ) ) {
+			$server_name = sanitize_text_field( wp_unslash( $_SERVER['SERVER_NAME'] ) );
+			if ( in_array( $server_name, array( 'localhost', '127.0.0.1', '::1' ), true ) ) {
+				return true;
+			}
+		}
+
+		// 預設為正式環境（安全優先）
+		return false;
 	}
 }
