@@ -3,6 +3,7 @@ node_modules/
 
 # 備份檔案
 *.backup
+*.bak
 
 # IDE
 .vscode/
@@ -27,3 +28,8 @@ composer.lock
 # PHPUnit
 coverage/
 .phpunit.result.cache
+
+# 測試報告（自動生成）
+BUILD-REPORT.md
+*-TEST-REPORT.md
+AUTOMATION-TEST-REPORT.md
