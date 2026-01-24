@@ -30,10 +30,10 @@
   - 工作量：中等（3-4 小時）
   - 參考詳情：[TODO-BUYGO.md - P0-A](TODO-BUYGO.md#a-github-自動更新機制)
 
-- [ ] **完善 pre-commit hook 測試記錄**
+- [x] **完善 pre-commit hook 測試記錄** ✅ 已完成
   - 驗證現有的 pre-commit hook 運作正常
   - 更新文檔記錄測試結果
-  - 工作量：小（1 小時）
+  - 參考：[PRE-COMMIT-HOOK-REPORT.md](../development/PRE-COMMIT-HOOK-REPORT.md)
 
 ---
 
