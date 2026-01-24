@@ -27,7 +27,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders', [
             'methods' => 'GET',
             'callback' => [$this, 'get_orders'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'page' => [
                     'default' => 1,
@@ -59,7 +59,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -74,7 +74,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/status', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_order_status'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -89,7 +89,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/shipping-status', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_shipping_status'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -104,7 +104,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/ship', [
             'methods' => 'POST',
             'callback' => [$this, 'ship_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -119,7 +119,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/split', [
             'methods' => 'POST',
             'callback' => [$this, 'split_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -134,7 +134,7 @@ class Orders_API {
         register_rest_route($this->namespace, '/orders/(?P<id>\d+)/prepare', [
             'methods' => 'POST',
             'callback' => [$this, 'prepare_order'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -581,7 +581,41 @@ class Orders_API {
                     'code' => 'CREATE_ORDER_ITEMS_FAILED'
                 ], 500);
             }
-            
+
+            // 同步更新父訂單項目的 _allocated_qty（重新計算而非遞增，確保與實際子訂單同步）
+            foreach ($shipment_items as $item) {
+                $parent_order_item_id = $item['order_item_id'];
+                $parent_order_item = $order_items_map[$parent_order_item_id] ?? null;
+
+                if (!$parent_order_item) {
+                    continue;
+                }
+
+                // 計算該訂單項目現在的實際已分配數量（查詢所有子訂單項目）
+                $current_allocated = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_order_items oi
+                     INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                     WHERE o.parent_id = %d
+                     AND oi.object_id = %d
+                     AND o.type = 'split'",
+                    $order_id,
+                    (int)($parent_order_item['object_id'] ?? 0)
+                ));
+
+                // 更新父訂單項目的 line_meta
+                $parent_meta = json_decode($parent_order_item['line_meta'] ?? '{}', true) ?: [];
+                $parent_meta['_allocated_qty'] = (int)$current_allocated;
+
+                $wpdb->update(
+                    $table_items,
+                    ['line_meta' => json_encode($parent_meta)],
+                    ['id' => $parent_order_item_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+
             $debugService->log('Orders_API', '訂單拆分成功', [
                 'order_id' => $order_id,
                 'new_order_id' => $new_order_id,

@@ -7,17 +7,37 @@ if (!defined('ABSPATH')) {
 
 /**
  * Settings Service - 設定管理服務
- * 
+ *
  * 負責管理外掛的各種設定，使用 WordPress Options API 儲存
  */
 class SettingsService
 {
     /**
+     * Debug Service
+     *
+     * @var DebugService|null
+     */
+    private static $debugService = null;
+
+    /**
+     * 取得 Debug Service 實例
+     *
+     * @return DebugService
+     */
+    private static function get_debug_service(): DebugService
+    {
+        if (self::$debugService === null) {
+            self::$debugService = DebugService::get_instance();
+        }
+        return self::$debugService;
+    }
+    /**
      * 加密金鑰（可在 wp-config.php 中定義 BUYGO_ENCRYPTION_KEY）
+     * 注意：必須與舊外掛使用相同的預設金鑰，才能正確解密舊資料
      */
     private static function get_encryption_key(): string
     {
-        return defined('BUYGO_ENCRYPTION_KEY') ? BUYGO_ENCRYPTION_KEY : 'buygo-secret-key-default-change-in-production';
+        return defined('BUYGO_ENCRYPTION_KEY') ? BUYGO_ENCRYPTION_KEY : 'buygo-secret-key-default';
     }
     
     /**
@@ -58,10 +78,38 @@ class SettingsService
     private static function decrypt(string $data): string
     {
         if (empty($data)) {
+            self::get_debug_service()->log('SettingsService', '解密：空資料', [], 'warning');
             return $data;
         }
-        $decrypted = openssl_decrypt($data, self::cipher(), self::get_encryption_key());
-        return $decrypted !== false ? $decrypted : $data;
+
+        self::get_debug_service()->log('SettingsService', '開始解密', array(
+            'input_length' => strlen($data),
+            'cipher' => self::cipher(),
+        ));
+
+        try {
+            $decrypted = openssl_decrypt($data, self::cipher(), self::get_encryption_key());
+
+            if ($decrypted === false) {
+                $error = openssl_error_string();
+                self::get_debug_service()->log('SettingsService', '解密失敗', array(
+                    'openssl_error' => $error,
+                ), 'error');
+                return $data;
+            }
+
+            self::get_debug_service()->log('SettingsService', '解密成功', array(
+                'output_length' => strlen($decrypted),
+            ));
+
+            return $decrypted;
+
+        } catch (\Exception $e) {
+            self::get_debug_service()->log('SettingsService', '解密異常', array(
+                'error' => $e->getMessage(),
+            ), 'error');
+            return $data;
+        }
     }
     /**
      * 初始化角色權限
@@ -228,97 +276,244 @@ class SettingsService
     }
     
     /**
-     * 取得小幫手列表
-     * 
+     * 取得小幫手列表（依 seller_id 過濾）
+     *
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return array
      */
-    public static function get_helpers(): array
+    public static function get_helpers(?int $seller_id = null): array
     {
-        $helper_ids = get_option('buygo_helpers', []);
-        
-        if (empty($helper_ids) || !is_array($helper_ids)) {
-            return [];
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
         }
-        
+
+        // 檢查資料表是否存在（向後相容）
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            // 使用舊的 Option API（向後相容）
+            return self::get_helpers_from_option();
+        }
+
+        // 從資料表查詢
+        $helper_records = $wpdb->get_results($wpdb->prepare(
+            "SELECT user_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
+            $seller_id
+        ));
+
         $helpers = [];
-        foreach ($helper_ids as $user_id) {
-            $user = get_userdata($user_id);
+        foreach ($helper_records as $record) {
+            $user = get_userdata($record->user_id);
             if ($user) {
+                // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
                 $helpers[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $user->user_email,
+                    'avatar' => $avatar_url,
+                    'created_at' => $record->created_at,
                 ];
             }
         }
-        
+
+        // 如果資料表查詢為空，嘗試從 Option API 取得（向後相容）
+        if (empty($helpers)) {
+            $helpers = self::get_helpers_from_option();
+        }
+
+        return $helpers;
+    }
+
+    /**
+     * 舊版取得小幫手（從 Option，向後相容用）
+     *
+     * @return array
+     */
+    private static function get_helpers_from_option(): array
+    {
+        $helper_ids = get_option('buygo_helpers', []);
+
+        if (empty($helper_ids) || !is_array($helper_ids)) {
+            return [];
+        }
+
+        $helpers = [];
+        foreach ($helper_ids as $user_id) {
+            $user = get_userdata($user_id);
+            if ($user) {
+                // 取得頭像：優先使用 FluentCommunity 照片，否則使用 Gravatar
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
+                $helpers[] = [
+                    'id' => $user->ID,
+                    'name' => $user->display_name,
+                    'email' => $user->user_email,
+                    'avatar' => $avatar_url,
+                ];
+            }
+        }
+
         return $helpers;
     }
     
     /**
-     * 新增小幫手或管理員
-     * 
-     * @param int $user_id
+     * 新增小幫手或管理員（記錄 seller_id）
+     *
+     * @param int $user_id 使用者 ID
      * @param string $role 角色：'buygo_helper' 或 'buygo_admin'
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return bool
      */
-    public static function add_helper(int $user_id, string $role = 'buygo_helper'): bool
+    public static function add_helper(int $user_id, string $role = 'buygo_helper', ?int $seller_id = null): bool
     {
-        $user = get_userdata($user_id);
-        if (!$user) {
-            return false;
+        self::get_debug_service()->log('SettingsService', '開始新增小幫手/管理員', array(
+            'user_id' => $user_id,
+            'role' => $role,
+            'seller_id' => $seller_id,
+        ));
+
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'buygo_helpers';
+
+            $user = get_userdata($user_id);
+            if (!$user) {
+                self::get_debug_service()->log('SettingsService', '使用者不存在', array(
+                    'user_id' => $user_id,
+                ), 'warning');
+                return false;
+            }
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
         }
-        
+
         if ($role === 'buygo_helper') {
-            // 新增小幫手
+            // 檢查資料表是否存在
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+                // 檢查是否已存在
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND seller_id = %d",
+                    $user_id,
+                    $seller_id
+                ));
+
+                if (!$exists) {
+                    // 插入到新資料表
+                    $wpdb->insert(
+                        $table_name,
+                        [
+                            'user_id' => $user_id,
+                            'seller_id' => $seller_id,
+                        ],
+                        ['%d', '%d']
+                    );
+                }
+            }
+
+            // 向後相容：也同時更新 Option API
             $helper_ids = get_option('buygo_helpers', []);
-            
             if (!is_array($helper_ids)) {
                 $helper_ids = [];
             }
-            
             if (!in_array($user_id, $helper_ids)) {
                 $helper_ids[] = $user_id;
                 update_option('buygo_helpers', $helper_ids);
             }
-            
+
             // 賦予小幫手角色
             $user->add_role('buygo_helper');
         } elseif ($role === 'buygo_admin') {
             // 新增管理員
             $user->add_role('buygo_admin');
         }
-        
-        return true;
+
+            self::get_debug_service()->log('SettingsService', '新增小幫手/管理員成功', array(
+                'user_id' => $user_id,
+                'role' => $role,
+            ));
+
+            return true;
+
+        } catch (\Exception $e) {
+            self::get_debug_service()->log('SettingsService', '新增小幫手/管理員失敗', array(
+                'user_id' => $user_id,
+                'role' => $role,
+                'error' => $e->getMessage(),
+            ), 'error');
+            return false;
+        }
     }
     
     /**
      * 移除小幫手
-     * 
-     * @param int $user_id
+     *
+     * @param int $user_id 使用者 ID
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return bool
      */
-    public static function remove_helper(int $user_id): bool
+    public static function remove_helper(int $user_id, ?int $seller_id = null): bool
     {
-        $helper_ids = get_option('buygo_helpers', []);
-        
-        if (!is_array($helper_ids)) {
-            return false;
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 如果沒有指定 seller_id，使用當前使用者
+        if ($seller_id === null) {
+            $seller_id = get_current_user_id();
         }
-        
-        $key = array_search($user_id, $helper_ids);
-        if ($key !== false) {
-            unset($helper_ids[$key]);
-            $helper_ids = array_values($helper_ids); // 重新索引
-            update_option('buygo_helpers', $helper_ids);
-            
-            // 移除小幫手角色
+
+        // 檢查資料表是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            // 從新資料表刪除
+            $wpdb->delete(
+                $table_name,
+                [
+                    'user_id' => $user_id,
+                    'seller_id' => $seller_id,
+                ],
+                ['%d', '%d']
+            );
+        }
+
+        // 向後相容：也從 Option 中移除
+        $helper_ids = get_option('buygo_helpers', []);
+        if (is_array($helper_ids)) {
+            $key = array_search($user_id, $helper_ids);
+            if ($key !== false) {
+                unset($helper_ids[$key]);
+                $helper_ids = array_values($helper_ids);
+                update_option('buygo_helpers', $helper_ids);
+            }
+        }
+
+        // 檢查使用者是否還是其他賣家的小幫手
+        $remaining = 0;
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            $remaining = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
+                $user_id
+            ));
+        }
+
+        // 如果沒有其他關聯，移除角色
+        if (!$remaining) {
             $user = get_userdata($user_id);
             if ($user) {
                 $user->remove_role('buygo_helper');
             }
         }
-        
+
         return true;
     }
     
@@ -559,45 +754,70 @@ class SettingsService
      */
     public static function get(string $key, $default = null)
     {
-        // 方式 1：從 buygo_core_settings 讀取（舊外掛格式）
-        $core_settings = get_option('buygo_core_settings', []);
-        if (is_array($core_settings) && isset($core_settings[$key])) {
-            $value = $core_settings[$key];
-            
-            // 如果是加密欄位，嘗試解密
-            if (self::is_encrypted_field($key) && !empty($value)) {
-                $decrypted = self::decrypt($value);
-                // 如果解密成功且結果不同，使用解密後的值
-                if ($decrypted !== $value && !empty($decrypted)) {
-                    return $decrypted;
-                }
-            }
-            
-            return $value;
-        }
-        
-        // 方式 2：從獨立 option 讀取（新外掛格式）
+        // 方式 1：優先從獨立 option 讀取（新外掛格式）
+        // 這些是後台設定頁面保存的值，優先使用
         $option_key_map = [
             'line_channel_access_token' => 'buygo_line_channel_access_token',
             'line_channel_secret' => 'buygo_line_channel_secret',
             'line_liff_id' => 'buygo_line_liff_id',
         ];
-        
+
         if (isset($option_key_map[$key])) {
-            $value = get_option($option_key_map[$key], $default);
-            
+            $value = get_option($option_key_map[$key], '');
+
+            if (!empty($value)) {
+                self::get_debug_service()->log('SettingsService', '從獨立 option 讀取設定', array(
+                    'key' => $key,
+                    'value_length' => strlen($value),
+                ));
+
+                // 新外掛的資料也可能是加密的，嘗試解密
+                if (self::is_encrypted_field($key)) {
+                    $decrypted = self::decrypt($value);
+                    // 如果解密成功且結果與原值不同，使用解密後的值
+                    if ($decrypted !== false && $decrypted !== $value && !empty($decrypted)) {
+                        self::get_debug_service()->log('SettingsService', '解密成功', array(
+                            'key' => $key,
+                        ));
+                        return $decrypted;
+                    }
+                }
+
+                // 如果不需要解密或解密失敗，返回原值（可能是明文）
+                return $value;
+            }
+        }
+
+        // 方式 2：如果新外掛沒有值，從 buygo_core_settings 讀取（舊外掛格式）
+        $core_settings = get_option('buygo_core_settings', []);
+        if (is_array($core_settings) && isset($core_settings[$key])) {
+            $value = $core_settings[$key];
+
+            self::get_debug_service()->log('SettingsService', '從 buygo_core_settings 讀取設定（備用）', array(
+                'key' => $key,
+                'value_length' => strlen($value),
+            ));
+
             // 如果是加密欄位，嘗試解密
             if (self::is_encrypted_field($key) && !empty($value)) {
                 $decrypted = self::decrypt($value);
-                // 如果解密成功且結果不同，使用解密後的值
-                if ($decrypted !== $value && !empty($decrypted)) {
+
+                // 如果解密成功（返回非 false 且不為空），使用解密後的值
+                if ($decrypted !== false && !empty($decrypted)) {
+                    self::get_debug_service()->log('SettingsService', '使用解密後的值', array(
+                        'key' => $key,
+                    ));
                     return $decrypted;
                 }
             }
-            
+
             return $value;
         }
-        
+
+        self::get_debug_service()->log('SettingsService', '找不到設定，使用預設值', array(
+            'key' => $key,
+        ), 'warning');
+
         return $default;
     }
     
@@ -645,52 +865,82 @@ class SettingsService
      */
     public static function test_line_connection(?string $custom_token = null): array
     {
-        if (!empty($custom_token)) {
-            $token = $custom_token;
-        } else {
-            $settings = self::get_line_settings();
-            $token = $settings['channel_access_token'] ?? '';
-        }
+        self::get_debug_service()->log('SettingsService', '開始測試 LINE 連線', array(
+            'using_custom_token' => !empty($custom_token),
+        ));
+
+        try {
+            if (!empty($custom_token)) {
+                $token = $custom_token;
+            } else {
+                $settings = self::get_line_settings();
+                $token = $settings['channel_access_token'] ?? '';
+            }
+
+            if (empty($token)) {
+                self::get_debug_service()->log('SettingsService', 'Token 未設定', [], 'warning');
+                return [
+                    'success' => false,
+                    'message' => 'Channel Access Token 未設定'
+                ];
+            }
         
-        if (empty($token)) {
+            // 測試 API 呼叫
+            $response = wp_remote_get('https://api.line.me/v2/bot/info', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $token
+                ],
+                'timeout' => 10
+            ]);
+
+            if (is_wp_error($response)) {
+                self::get_debug_service()->log('SettingsService', 'LINE API 連線失敗', array(
+                    'error' => $response->get_error_message(),
+                ), 'error');
+                return [
+                    'success' => false,
+                    'message' => '連線失敗：' . $response->get_error_message()
+                ];
+            }
+
+            $status_code = wp_remote_retrieve_response_code($response);
+
+            if ($status_code === 200) {
+                $body = json_decode(wp_remote_retrieve_body($response), true);
+                self::get_debug_service()->log('SettingsService', 'LINE 連線測試成功', array(
+                    'bot_info' => $body,
+                ));
+                return [
+                    'success' => true,
+                    'message' => '連線成功',
+                    'data' => $body
+                ];
+            } else {
+                // 嘗試解析錯誤訊息
+                $body = json_decode(wp_remote_retrieve_body($response), true);
+                $error_msg = $body['message'] ?? 'HTTP ' . $status_code;
+
+                self::get_debug_service()->log('SettingsService', 'LINE API 返回錯誤', array(
+                    'status_code' => $status_code,
+                    'error_message' => $error_msg,
+                ), 'error');
+
+                return [
+                    'success' => false,
+                    'message' => '連線失敗：' . $error_msg
+                ];
+            }
+
+        } catch (\Exception $e) {
+            self::get_debug_service()->log('SettingsService', '測試 LINE 連線時發生異常', array(
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ), 'error');
+
             return [
                 'success' => false,
-                'message' => 'Channel Access Token 未設定'
-            ];
-        }
-        
-        // 測試 API 呼叫
-        $response = wp_remote_get('https://api.line.me/v2/bot/info', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $token
-            ],
-            'timeout' => 10
-        ]);
-        
-        if (is_wp_error($response)) {
-            return [
-                'success' => false,
-                'message' => '連線失敗：' . $response->get_error_message()
-            ];
-        }
-        
-        $status_code = wp_remote_retrieve_response_code($response);
-        
-        if ($status_code === 200) {
-            $body = json_decode(wp_remote_retrieve_body($response), true);
-            return [
-                'success' => true,
-                'message' => '連線成功',
-                'data' => $body
-            ];
-        } else {
-            // 嘗試解析錯誤訊息
-            $body = json_decode(wp_remote_retrieve_body($response), true);
-            $error_msg = $body['message'] ?? 'HTTP ' . $status_code;
-            
-            return [
-                'success' => false,
-                'message' => '連線失敗：' . $error_msg
+                'message' => '測試連線時發生錯誤：' . $e->getMessage()
             ];
         }
     }

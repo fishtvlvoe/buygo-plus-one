@@ -1,0 +1,644 @@
+# Copyright (C) 2025 WPDAXUE.COM
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WPKJ Payment Gateway for FluentCart with Alipay\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wpkj-fluentcart-"
+"alipay-payment\n"
+"POT-Creation-Date: 2025-11-12 20:18+0800\n"
+"PO-Revision-Date: 2026-01-24 07:13+0000\n"
+"Last-Translator: WordPress大學 <support@wpdaxue.com>\n"
+"Language-Team: 繁體中文（台灣）\n"
+"Language: zh_TW\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Domain: wpkj-alipay-gateway-for-fluentcart\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext:1,2;__ngettext_noop:1,2\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#. translators: %s: product title
+#: src/Subscription/AlipayRecurringAgreement.php:571
+#, php-format
+msgid "%s - Auto Renewal"
+msgstr "%s - 自動續約"
+
+#. translators: %s: product title
+#: src/Subscription/AlipaySubscriptionProcessor.php:240
+#, php-format
+msgid "%s - Renewal"
+msgstr "%s - 續訂"
+
+#. translators: %s: product title
+#: src/Subscription/AlipaySubscriptionProcessor.php:246
+#, php-format
+msgid "%s - Subscription"
+msgstr "%s - 訂閱"
+
+#: src/Gateway/AlipayGateway.php:185
+msgid "Alipay"
+msgstr "支付寶"
+
+#: src/Gateway/AlipayGateway.php:674
+msgid "Alipay does not support the currency you are using!"
+msgstr "支付寶不支援您使用的貨幣！"
+
+#: src/Processor/PaymentStatusChecker.php:274
+msgid "Alipay Face-to-Face Payment Confirmed"
+msgstr "支付寶當面付付款已確認"
+
+#: src/Processor/PaymentProcessor.php:456
+msgid "Alipay Payment Confirmation"
+msgstr "支付寶付款確認"
+
+#: src/Processor/PaymentProcessor.php:499
+msgid "Alipay Payment Failed"
+msgstr "支付寶付款失敗"
+
+#. Description of the plugin
+#: wpkj-alipay-gateway-for-fluentcart.php
+#, fuzzy
+msgid ""
+"Alipay payment gateway integration for FluentCart - Support PC Web, Mobile "
+"WAP, Face-to-Face, In-App payments, and Subscriptions"
+msgstr "FluentCart 的支付寶付款閘道整合 - 支援 PC 網頁、行動 WAP、當面付、App 內支付與訂閱"
+
+#: src/Gateway/AlipayGateway.php:218 src/Gateway/AlipayGateway.php:246
+msgid "Alipay Public Key"
+msgstr "支付寶公鑰"
+
+#: src/Gateway/AlipayGateway.php:306
+msgid "Alipay Recurring Agreement Process:"
+msgstr "支付寶定期扣款協議流程："
+
+#: src/Gateway/AlipayGateway.php:221
+msgid "Alipay RSA2 public key (paste without header/footer)"
+msgstr "支付寶 RSA2 公鑰（貼上時不含頁首/頁尾）"
+
+#: src/Gateway/AlipayGateway.php:249
+msgid "Alipay RSA2 public key for sandbox (paste without header/footer)"
+msgstr "支付寶沙盒 RSA2 公鑰（貼上時不含頁首/頁尾）"
+
+#: src/Processor/FaceToFacePageHandler.php:177
+msgid "Amount"
+msgstr "金額"
+
+#: src/Gateway/AlipayGateway.php:204 src/Gateway/AlipayGateway.php:232
+msgid "App ID"
+msgstr "App ID"
+
+#: src/Gateway/AlipayGateway.php:370
+msgid "App ID is required!"
+msgstr "必填 App ID！"
+
+#: src/Gateway/AlipayGateway.php:211 src/Gateway/AlipayGateway.php:239
+msgid "Application Private Key"
+msgstr "應用程式私鑰"
+
+#: src/Gateway/AlipayGateway.php:308
+msgid "Auto renewal: System automatically deducts payment on billing date"
+msgstr "自動續約：系統會在帳單日自動扣款"
+
+#: src/Gateway/AlipayGateway.php:338
+msgid "Automatic Subscription Cancellation Rules:"
+msgstr "自動取消訂閱規則："
+
+#: src/Gateway/AlipayGateway.php:320
+msgid ""
+"Automatically cancel subscription when parent order is canceled (Initial "
+"order only)"
+msgstr "當父訂單取消時自動取消訂閱（僅限首次訂單）"
+
+#: src/Gateway/AlipayGateway.php:309
+msgid ""
+"Cancellation: Customer can cancel agreement anytime from their Alipay app"
+msgstr "取消：顧客可隨時在支付寶 App 內取消協議"
+
+#: src/Gateway/AlipayGateway.php:260
+msgid "Configure this URL in your Alipay application settings:"
+msgstr "在您的支付寶應用程式設定中設定此 URL："
+
+#: src/Gateway/AlipayGateway.php:429
+msgid "Credentials validated successfully!"
+msgstr "憑證驗證成功！"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:304
+msgid "Daily"
+msgstr "每日"
+
+#: src/Gateway/AlipayGateway.php:345
+msgid "Default:"
+msgstr "預設："
+
+#: src/API/AlipayAPI.php:196 src/API/AlipayAPI.php:519 
+#: src/API/AlipayAPI.php:615 src/API/AlipayAPI.php:707
+msgid "Empty response from Alipay"
+msgstr "支付寶回應為空"
+
+#: src/Gateway/AlipayGateway.php:280
+msgid ""
+"Enable automatic recurring payment (⚠️ Requires Alipay Recurring Payment "
+"service)"
+msgstr "啟用自動定期扣款（⚠️ 需要支付寶定期扣款服務）"
+
+#: src/Gateway/AlipayGateway.php:267
+msgid "Enable automatic refund when order is cancelled"
+msgstr "啟用在訂單取消時自動退款"
+
+#: src/Gateway/AlipayGateway.php:271
+msgid ""
+"Enable Face-to-Face QR code payment for PC/Desktop (Scan with Alipay app)"
+msgstr "啟用桌機/電腦的當面付 QR Code 付款（使用支付寶 App 掃描）"
+
+#: src/API/AlipayAPI.php:230
+msgid "Face-to-Face payment creation failed"
+msgstr "當面付付款建立失敗"
+
+#: src/Processor/PaymentStatusChecker.php:199
+msgid "Failed to check payment status"
+msgstr "無法檢查付款狀態"
+
+#: src/Gateway/AlipayGateway.php:475
+msgid "Failed to encrypt private key. Please try again."
+msgstr "加密私鑰失敗，請再試一次。"
+
+#: src/Gateway/AlipayGateway.php:310
+msgid ""
+"Fallback: If agreement deduction fails, customer receives manual payment "
+"notification"
+msgstr "備援方案：若協議扣款失敗，顧客會收到手動付款通知"
+
+#: src/Gateway/AlipayGateway.php:190
+msgid "Gateway Description"
+msgstr "閘道描述"
+
+#: src/Gateway/AlipayGateway.php:294
+msgid "How It Works"
+msgstr "運作方式"
+
+#. translators: %d: HTTP status code
+#: src/API/AlipayAPI.php:187 src/API/AlipayAPI.php:509 
+#: src/API/AlipayAPI.php:605 src/API/AlipayAPI.php:698
+#, php-format
+msgid "HTTP %d error from Alipay"
+msgstr "支付寶回傳 HTTP %d 錯誤"
+
+#. Author URI of the plugin
+#: wpkj-alipay-gateway-for-fluentcart.php
+#, fuzzy
+msgid "https://www.wpdaxue.com"
+msgstr "https://www.wpdaxue.com"
+
+#. Plugin URI of the plugin
+#: wpkj-alipay-gateway-for-fluentcart.php
+#, fuzzy
+msgid "https://www.wpdaxue.com/wpkj-alipay-gateway-for-fluentcart.html"
+msgstr "https://www.wpdaxue.com/wpkj-alipay-gateway-for-fluentcart.html"
+
+#: src/Gateway/AlipayGateway.php:307
+msgid "Initial purchase: Customer signs recurring agreement + first payment"
+msgstr "首次購買：顧客簽署定期協議 + 首次付款"
+
+#: src/Gateway/AlipayGateway.php:421
+msgid ""
+"Invalid Alipay Public Key format. Please paste the RSA2 public key content "
+"without header/footer."
+msgstr "支付寶公鑰格式無效，請直接貼上 RSA2 公鑰內容，不要包含頁首/頁尾。"
+
+#: src/Gateway/AlipayGateway.php:378
+msgid "Invalid App ID format. It should be 16 digits."
+msgstr "App ID 格式無效，應為 16 位數字。"
+
+#: src/API/AlipayAPI.php:210 src/API/AlipayAPI.php:533 
+#: src/API/AlipayAPI.php:629 src/API/AlipayAPI.php:726
+msgid "Invalid JSON response from Alipay"
+msgstr "支付寶的 JSON 回應無效"
+
+#: src/Processor/PaymentProcessor.php:221
+msgid "Invalid payment amount. Amount must be greater than zero."
+msgstr "付款金額無效。金額必須大於 0。"
+
+#: src/Gateway/AlipayGateway.php:396
+msgid ""
+"Invalid Private Key format. Please paste the RSA2 key content without "
+"header/footer."
+msgstr "私鑰格式無效。請貼上 RSA2 金鑰內容，不要包含頁首/頁尾。"
+
+#: src/Gateway/AlipayGateway.php:576
+#, fuzzy
+#| msgid "Invalid response from Alipay"
+msgid "Invalid refund response from Alipay"
+msgstr "支付寶退款回應無效"
+
+#: src/API/AlipayAPI.php:223 src/API/AlipayAPI.php:739
+msgid "Invalid response structure from Alipay"
+msgstr "支付寶的回應結構無效"
+
+#: src/Processor/PaymentStatusChecker.php:76
+msgid "Invalid transaction ID"
+msgstr "交易 ID 無效"
+
+#: src/Gateway/AlipayGateway.php:199
+msgid "Live Credentials"
+msgstr "正式環境憑證"
+
+#: src/Gateway/AlipaySettingsBase.php:235
+msgid "Live private key is not configured"
+msgstr "尚未設定正式環境私鑰"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:306
+msgid "Monthly"
+msgstr "每月"
+
+#: src/Subscription/AlipayRecurringAgreement.php:452
+msgid "No agreement found."
+msgstr "找不到扣款協議。"
+
+#: src/Subscription/AlipayRecurringAgreement.php:242
+msgid "No recurring agreement found for this subscription."
+msgstr "找不到此訂閱的定期扣款協議。"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:75
+msgid "No subscription found."
+msgstr "找不到訂閱。"
+
+#: src/Subscription/AlipaySubscriptions.php:76
+msgid "No valid Alipay transaction found for this subscription."
+msgstr "找不到此訂閱的有效支付寶交易。"
+
+#: src/Gateway/AlipayGateway.php:343
+msgid "Note:"
+msgstr "注意："
+
+#: src/Gateway/AlipayGateway.php:311
+msgid ""
+"Note: Without this feature, all renewals require manual payment by customer."
+msgstr "注意：如果沒有此功能，所有續訂都需要顧客手動付款。"
+
+#: src/Gateway/AlipayGateway.php:257
+msgid "Notify URL (Webhook)"
+msgstr "通知 URL（Webhook）"
+
+#: src/Gateway/AlipayGateway.php:325
+msgid "Order Cancellation Rules"
+msgstr "訂單取消規則"
+
+#. translators: %s: website name
+#: src/Processor/PaymentProcessor.php:292
+#, php-format
+msgid "Order from %s"
+msgstr "來自 %s 的訂單"
+
+#: src/Processor/FaceToFacePageHandler.php:175
+msgid "Order Information"
+msgstr "訂單資訊"
+
+#: src/Processor/FaceToFacePageHandler.php:176
+msgid "Order Number"
+msgstr "訂單編號"
+
+#: src/Gateway/AlipayGateway.php:66 src/Gateway/AlipayGateway.php:191 
+#: src/Gateway/AlipayGateway.php:716
+msgid "Pay securely with Alipay - Support PC, Mobile WAP, and In-App payments"
+msgstr "使用支付寶安全付款 - 支援 PC、手機 WAP 與 App 內支付"
+
+#. translators: %s: maximum transaction amount in CNY
+#: src/Processor/PaymentProcessor.php:230
+#, php-format
+msgid "Payment amount exceeds Alipay single transaction limit (%s CNY)."
+msgstr "付款金額超出支付寶單筆交易上限（%s CNY）。"
+
+#: src/Processor/PaymentStatusChecker.php:181
+msgid "Payment cancelled or closed"
+msgstr "付款已取消或已關閉"
+
+#: src/Processor/PaymentStatusChecker.php:106 
+#: src/Processor/PaymentStatusChecker.php:174
+msgid "Payment completed successfully"
+msgstr "付款已成功完成"
+
+#. translators: %s: Alipay transaction ID
+#: src/Processor/PaymentProcessor.php:459
+#, php-format
+msgid "Payment confirmed from Alipay. Trade No: %s"
+msgstr "支付寶已確認付款。交易編號：%s"
+
+#. translators: %s: Alipay transaction ID
+#: src/Processor/PaymentStatusChecker.php:277
+#, php-format
+msgid "Payment confirmed via status polling. Trade No: %s"
+msgstr "已透過狀態輪詢確認付款。交易編號：%s"
+
+#: src/Processor/FaceToFacePageHandler.php:173
+msgid "Payment failed"
+msgstr "付款失敗"
+
+#. translators: %s: failure reason
+#: src/Processor/PaymentProcessor.php:502
+#, php-format
+msgid "Payment failed. Reason: %s"
+msgstr "付款失败。原因：%s"
+
+#: src/Processor/FaceToFacePageHandler.php:172
+msgid "Payment successful! Redirecting..."
+msgstr "付款成功！正在重新導向..."
+
+#: src/Processor/FaceToFacePageHandler.php:174
+msgid "Payment timeout, please refresh and try again"
+msgstr "付款逾時，請重新整理後再試一次"
+
+#: src/Processor/PaymentStatusChecker.php:149
+msgid "Payment verification in progress..."
+msgstr "付款驗證進行中..."
+
+#: src/Gateway/AlipayGateway.php:284
+msgid "Personal Product Code"
+msgstr "個人產品代碼"
+
+#: src/Processor/FaceToFacePageHandler.php:178
+msgid "Please open Alipay app and scan the QR code to complete payment"
+msgstr "請開啟支付寶 App，掃描 QR Code 完成付款"
+
+#: wpkj-alipay-gateway-for-fluentcart.php:130
+msgid "Plugin Activation Error"
+msgstr "外掛啟用錯誤"
+
+#: src/Gateway/AlipayGateway.php:404
+msgid ""
+"Private Key appears to be too short. Please ensure you are using RSA2 (2048-"
+"bit) key."
+msgstr "私鑰似乎太短。請確認您使用的是 RSA2（2048 位元）金鑰。"
+
+#: src/Gateway/AlipayGateway.php:286
+msgid ""
+"Product code provided by Alipay after signing recurring payment contract. "
+"Common values: GENERAL_WITHHOLDING_P (general withholding). Leave empty if "
+"not using recurring agreement."
+msgstr "支付寶在簽訂定期扣款合約後提供的產品代碼。常見值：GENERAL_WITHHOLDING_P（一般預扣）。若不使用定期扣款協議，請留空。"
+
+#: src/API/AlipayAPI.php:248
+msgid "QR code not found in response"
+msgstr "回應中找不到 QR Code"
+
+#: src/Gateway/AlipayGateway.php:162
+msgid "Ready to process payment"
+msgstr "準備處理付款"
+
+#: src/Subscription/AlipayRecurringAgreement.php:93
+msgid "Recurring agreement feature is not enabled."
+msgstr "尚未啟用定期扣款協議功能。"
+
+#: src/Subscription/AlipayRecurringAgreement.php:256
+msgid "Recurring agreement is not active."
+msgstr "定期扣款協議尚未生效。"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:557
+msgid "Redirecting to Alipay for recurring agreement..."
+msgstr "正在重新導向至支付寶以完成定期扣款協議..."
+
+#: src/Processor/PaymentProcessor.php:111
+msgid "Redirecting to Alipay payment gateway..."
+msgstr "正在重新導向至支付寶付款閘道..."
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:368 
+#: src/Subscription/AlipaySubscriptionProcessor.php:397
+msgid "Redirecting to Alipay..."
+msgstr "正在重新導向至支付寶..."
+
+#: src/Processor/PaymentProcessor.php:186 
+#: src/Subscription/AlipaySubscriptionProcessor.php:459
+msgid "Redirecting to payment page..."
+msgstr "正在重新導向至付款頁面..."
+
+#: src/Gateway/AlipayGateway.php:517
+#, fuzzy
+msgid "Refund amount is required."
+msgstr "必須提供退款金額。"
+
+#: src/Gateway/AlipayGateway.php:584
+#, fuzzy
+msgid "Refund failed"
+msgstr "退款失敗"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:516
+msgid "Renewal payment completed automatically."
+msgstr "續訂付款已自動完成。"
+
+#: src/Subscription/AlipayRecurringAgreement.php:357
+msgid "Renewal payment successful."
+msgstr "續訂付款成功。"
+
+#: src/Processor/FaceToFacePageHandler.php:170
+msgid "Scan QR Code to Pay with Alipay"
+msgstr "請使用支付寶掃描 QR Code 付款"
+
+#: src/Processor/FaceToFacePageHandler.php:247
+msgid "Secure payment service provided by Alipay"
+msgstr "由支付寶提供的安全付款服務"
+
+#: src/Processor/PaymentStatusChecker.php:67
+msgid "Security verification failed"
+msgstr "安全驗證失敗"
+
+#: src/Subscription/AlipayRecurringAgreement.php:568 
+#: src/Subscription/AlipaySubscriptionProcessor.php:233
+msgid "Subscription"
+msgstr "訂閱"
+
+#. translators: %d: subscription ID
+#: src/Listeners/OrderCancelListener.php:195
+#, php-format
+msgid "Subscription #%d was automatically canceled due to order cancellation"
+msgstr "由於訂單取消，訂閱 #%d 已自動取消"
+
+#: src/Gateway/AlipayGateway.php:276
+msgid "Subscription & Recurring Payment"
+msgstr "訂閱與定期扣款"
+
+#: src/Subscription/AlipayRecurringAgreement.php:576
+msgid "Subscription Auto Renewal"
+msgstr "訂閱自動續約"
+
+#: src/Listeners/OrderCancelListener.php:192
+msgid "Subscription Auto-Canceled"
+msgstr "訂閱已自動取消"
+
+#. translators: %d: order ID
+#: src/Listeners/OrderCancelListener.php:156
+#, php-format
+msgid ""
+"Subscription automatically canceled because parent order #%d was canceled"
+msgstr "由於父訂單 #%d 已取消，訂閱已自動取消"
+
+#: src/Subscription/AlipaySubscriptions.php:185
+msgid "Subscription cancelled successfully."
+msgstr "訂閱已成功取消。"
+
+#: src/Subscription/AlipaySubscriptions.php:168 
+#: src/Subscription/AlipaySubscriptions.php:323
+msgid "Subscription not found."
+msgstr "找不到訂閱。"
+
+#. translators: 1: billing interval text (e.g., Monthly), 2: order ID
+#: src/Subscription/AlipaySubscriptionProcessor.php:277
+#, php-format
+msgid "Subscription payment - %1$s - Order #%2$s"
+msgstr "訂閱付款 - %1$s - 訂單 #%2$s"
+
+#: src/Gateway/AlipayGateway.php:275
+msgid "Subscription Settings"
+msgstr "訂閱設定"
+
+#: src/Subscription/AlipaySubscriptions.php:130
+msgid "Subscription synced successfully."
+msgstr "訂閱已成功同步。"
+
+#: src/Gateway/AlipayGateway.php:227
+msgid "Test Credentials"
+msgstr "測試環境憑證"
+
+#: src/Gateway/AlipaySettingsBase.php:214
+msgid "Test private key is not configured"
+msgstr "尚未設定測試私鑰"
+
+#: src/Processor/FaceToFacePageHandler.php:239
+msgid "The page will automatically refresh after payment is completed"
+msgstr "付款完成後，頁面會自動重新整理"
+
+#: src/Gateway/AlipayGateway.php:192
+msgid ""
+"This description will be displayed on the checkout page when customers "
+"select Alipay. Leave empty to use default."
+msgstr "顧客選擇支付寶時，這段描述會顯示在結帳頁。留空則使用預設值。"
+
+#: src/Gateway/AlipayGateway.php:344
+msgid ""
+"This feature helps maintain data consistency between orders and "
+"subscriptions. All operations are logged in the order activity log."
+msgstr "此功能有助於維持訂單與訂閱之間的資料一致性。所有操作都會記錄在訂單活動記錄中。"
+
+#: src/Gateway/AlipayGateway.php:346
+msgid ""
+"This feature is DISABLED by default. Enable it only if you need automatic "
+"synchronization between order and subscription status."
+msgstr "此功能預設停用。只有在您需要訂單與訂閱狀態自動同步時才啟用。"
+
+#: src/Subscription/AlipaySubscriptions.php:54
+msgid "This subscription is not using Alipay as payment method."
+msgstr "此訂閱未使用支付寶作為付款方式。"
+
+#: src/Subscription/AlipaySubscriptions.php:327
+msgid "This subscription is not using Alipay."
+msgstr "此訂閱未使用支付寶。"
+
+#: src/Gateway/AlipayGateway.php:262
+msgid "This URL will receive payment notifications from Alipay."
+msgstr "此 URL 會接收來自支付寶的付款通知。"
+
+#: src/Processor/PaymentProcessor.php:67
+msgid "Transaction has already been completed."
+msgstr "交易已完成。"
+
+#: src/Processor/PaymentStatusChecker.php:87
+msgid "Transaction not found"
+msgstr "找不到交易紀錄"
+
+#: src/Gateway/AlipaySettingsBase.php:244
+msgid "Unable to decrypt live private key. Please re-enter your credentials."
+msgstr "無法解密正式環境私鑰。請重新輸入您的憑證。"
+
+#: src/Gateway/AlipaySettingsBase.php:223
+msgid "Unable to decrypt test private key. Please re-enter your credentials."
+msgstr "無法解密測試私鑰。請重新輸入您的憑證。"
+
+#: src/API/AlipayAPI.php:540 src/API/AlipayAPI.php:636
+msgid "Unexpected response format from Alipay"
+msgstr "支付寶的回應格式異常"
+
+#: src/Processor/PaymentStatusChecker.php:133 
+#: src/Processor/PaymentStatusChecker.php:189
+msgid "Waiting for payment"
+msgstr "等待付款"
+
+#: src/Processor/FaceToFacePageHandler.php:171
+msgid "Waiting for payment..."
+msgstr "正在等待付款..."
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:305
+msgid "Weekly"
+msgstr "每周"
+
+#: src/Gateway/AlipayGateway.php:321
+msgid ""
+"When enabled, canceling the initial subscription order will automatically "
+"cancel the associated subscription. This does NOT affect renewal orders - "
+"canceling a renewal order will never cancel the subscription."
+msgstr "啟用後，取消首次訂閱訂單會自動取消相關訂閱。這不會影響續訂訂單——取消續訂訂單永遠不會取消訂閱。"
+
+#. Author of the plugin
+#: wpkj-alipay-gateway-for-fluentcart.php
+#, fuzzy
+msgid "WPDAXUE.COM"
+msgstr "WPDAXUE.COM"
+
+#. Plugin Name of the plugin
+#: wpkj-alipay-gateway-for-fluentcart.php
+#, fuzzy
+msgid "WPKJ Payment Gateway for FluentCart with Alipay"
+msgstr "WPKJ 付款閘道（支援 FluentCart 與支付寶）"
+
+#: wpkj-alipay-gateway-for-fluentcart.php:33 
+#: wpkj-alipay-gateway-for-fluentcart.php:129
+msgid ""
+"WPKJ Payment Gateway for FluentCart with Alipay requires FluentCart to be "
+"installed and activated."
+msgstr "WPKJ FluentCart 支付寶付款外掛需要先安裝並啟用 FluentCart。"
+
+#: wpkj-alipay-gateway-for-fluentcart.php:45
+msgid ""
+"WPKJ Payment Gateway for FluentCart with Alipay requires FluentCart version "
+"1.2.0 or higher."
+msgstr "WPKJ FluentCart 支付寶付款外掛需要 FluentCart 1.2.0 或更高版本。"
+
+#: src/Subscription/AlipaySubscriptionProcessor.php:307
+msgid "Yearly"
+msgstr "每年"
+
+#: src/Gateway/AlipayGateway.php:207
+msgid "Your Alipay application ID (16 digits)"
+msgstr "您的支付寶應用程式 ID（16 位）"
+
+#: src/Gateway/AlipayGateway.php:235
+msgid "Your Alipay sandbox application ID (16 digits)"
+msgstr "您的支付寶沙盒應用程式 ID（16 位）"
+
+#: src/Gateway/AlipayGateway.php:214
+msgid "Your application RSA2 private key (paste without header/footer)"
+msgstr "您的應用程式 RSA2 私鑰（貼上時不含頁首/頁尾）"
+
+#: src/Gateway/AlipayGateway.php:242
+msgid ""
+"Your application RSA2 private key for sandbox (paste without header/footer)"
+msgstr "您的應用程式沙盒 RSA2 私鑰（貼上時不含頁首/頁尾）"
+
+#: src/Gateway/AlipayGateway.php:339
+msgid ""
+"✅ WILL cancel: Initial subscription order (type=subscription) is canceled"
+msgstr "✅ 會取消：首次訂閱訂單（type=subscription）被取消"
+
+#: src/Gateway/AlipayGateway.php:342
+msgid "❌ Will NOT cancel: Orders from other payment methods"
+msgstr "❌ 不會取消：其他付款方式的訂單"
+
+#: src/Gateway/AlipayGateway.php:340
+msgid "❌ Will NOT cancel: Renewal order (type=renewal) is canceled"
+msgstr "❌ 不會取消：續訂訂單（type=renewal）被取消"
+
+#: src/Gateway/AlipayGateway.php:341
+msgid "❌ Will NOT cancel: Subscription already in canceled status"
+msgstr "❌ 不會取消：訂閱已處於取消狀態"

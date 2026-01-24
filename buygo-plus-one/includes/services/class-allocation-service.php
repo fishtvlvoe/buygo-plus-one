@@ -22,7 +22,7 @@ class AllocationService
 
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
     }
 
     /**
@@ -96,16 +96,31 @@ class AllocationService
             }
             
             // 6. 執行分配（更新 order_item meta）
+            // 注意：為了防止舊外掛的 hook 造成重複計算，我們改為「根據子訂單數量計算」而不是「直接遞增」
             $allocated_count = 0;
             foreach ($items as $item) {
                 $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                $already_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
-                $still_needed = max(0, (int)$item['quantity'] - $already_allocated);
-                
+
+                // 新方法：從 order_id 和 object_id 計算實際已分配數量（透過查詢子訂單）
+                $actual_allocated = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_order_items oi
+                     INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                     WHERE o.parent_id = %d
+                     AND oi.object_id = %d
+                     AND o.type = 'split'",
+                    $item['order_id'],
+                    (int)$item['object_id']
+                ));
+
+                $still_needed = max(0, (int)$item['quantity'] - (int)$actual_allocated);
+
                 if ($still_needed > 0 && $available > 0) {
                     $to_allocate = min($still_needed, $available);
-                    $meta_data['_allocated_qty'] = $already_allocated + $to_allocate;
-                    
+                    // 新方法：計算應該設定的總值（不是遞增）
+                    $new_allocated_total = (int)$actual_allocated + $to_allocate;
+                    $meta_data['_allocated_qty'] = $new_allocated_total;
+
                     $result = $wpdb->update(
                         $wpdb->prefix . 'fct_order_items',
                         ['line_meta' => json_encode($meta_data)],
@@ -113,19 +128,32 @@ class AllocationService
                         ['%s'],
                         ['%d']
                     );
-                    
+
                     if ($result === false) {
                         $wpdb->query('ROLLBACK');
                         return new WP_Error('DB_ERROR', '更新訂單項目失敗：' . $wpdb->last_error);
                     }
-                    
+
                     $available -= $to_allocate;
                     $allocated_count += $to_allocate;
                 }
             }
             
             // 7. 更新商品的「已分配」總數
-            $new_allocated = $allocated + $allocated_count;
+            // 新方法：重新計算而非遞增（確保與實際子訂單數量同步）
+            $recalc_allocated = $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_order_items oi
+                 INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
+                 WHERE oi.post_id = %d
+                 AND oi.object_id = %d
+                 AND o.parent_id IS NOT NULL
+                 AND o.type = 'split'",
+                $post_id,
+                $product_id
+            ));
+
+            $new_allocated = max((int)$recalc_allocated, 0);
             $result = update_post_meta($post_id, '_buygo_allocated', $new_allocated);
 
             // 注意：update_post_meta 在新值與舊值相同時會回傳 false，這不是錯誤
@@ -172,6 +200,10 @@ class AllocationService
     {
         global $wpdb;
 
+        // 直接寫入日誌檔案進行除錯
+        $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
+        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] getProductOrders called with product_id: %d\n", date('Y-m-d H:i:s'), $product_id), FILE_APPEND);
+
         $this->debugService->log('AllocationService', '取得商品訂單列表', [
             'product_id' => $product_id
         ]);
@@ -210,10 +242,18 @@ class AllocationService
              WHERE oi.object_id = %d
              AND o.parent_id IS NULL
              AND o.status NOT IN ('cancelled', 'refunded')
-             AND o.shipping_status NOT IN ('shipped', 'completed')
+             AND (o.shipping_status IS NULL OR o.shipping_status NOT IN ('shipped', 'completed'))
              ORDER BY o.created_at DESC",
             $product_id
         ), ARRAY_A);
+
+        // 記錄 SQL 查詢結果
+        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] SQL query returned %d items\n", date('Y-m-d H:i:s'), count($items)), FILE_APPEND);
+        if (empty($items)) {
+            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] No items found. Last SQL error: %s\n", date('Y-m-d H:i:s'), $wpdb->last_error), FILE_APPEND);
+        } else {
+            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] First item: %s\n", date('Y-m-d H:i:s'), json_encode($items[0])), FILE_APPEND);
+        }
 
         $orders = [];
         foreach ($items as $item) {
@@ -227,14 +267,17 @@ class AllocationService
             $required = (int)$item['quantity'];
             $pending = $required - $allocated_to_child;
 
-            // 如果已經全部建立子訂單，跳過此訂單項目
+            // 【修復】顯示所有待分配的訂單（包括部分分配和未分配）
+            // 即使 pending <= 0，也應該顯示已部分分配或已分配的訂單，以便核對
+            // 只有在沒有任何出貨活動時才考慮隱藏
+            // 保留原邏輯但添加日誌
             if ($pending <= 0) {
-                $this->debugService->log('AllocationService', '跳過已完全分配的訂單項目', [
+                $this->debugService->log('AllocationService', '訂單已完全分配，但仍顯示以供核對', [
                     'order_item_id' => $item['order_item_id'],
                     'required' => $required,
                     'allocated_to_child' => $allocated_to_child
                 ]);
-                continue;
+                // 不再 continue，而是允許顯示
             }
 
             $first_name = $item['first_name'] ?? '';
@@ -321,34 +364,32 @@ class AllocationService
                 return new WP_Error('NO_ORDER_ITEMS', '找不到對應的訂單項目');
             }
             
-            // 4. 先計算所有訂單的總分配數量（包括未在此次更新的訂單）
-            // 取得所有訂單項目的當前分配數量
-            $all_items = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}fct_order_items 
-                 WHERE object_id = %d",
+            // 4. 計算本次分配後的總分配數量
+            // 【增量模式】每次分配都建立新的子訂單，不覆蓋現有子訂單
+
+            // 4.1 查詢當前已分配的總數量（從子訂單計算）
+            $current_child_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_orders child_o
+                 INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                 WHERE child_o.type = 'split'
+                 AND child_oi.object_id = %d",
                 $product_id
-            ), ARRAY_A);
-            
-            $total_allocated = 0;
-            $items_to_update = [];
-            
-            // 建立要更新的訂單項目索引
-            foreach ($items as $item) {
-                $items_to_update[(int)$item['order_id']] = $item;
-            }
-            
-            // 計算總分配數量
-            foreach ($all_items as $item) {
-                $order_id = (int)$item['order_id'];
-                if (isset($items_to_update[$order_id])) {
-                    // 使用新的分配數量
-                    $total_allocated += isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
-                } else {
-                    // 使用現有的分配數量
-                    $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                    $total_allocated += (int)($meta_data['_allocated_qty'] ?? 0);
-                }
-            }
+            ));
+
+            // 4.2 計算本次要新增的分配數量
+            $new_allocation_total = \array_sum($allocations);
+
+            // 4.3 計算最終的總分配數量
+            // 【增量模式】= 當前已分配 + 本次新分配（每次都新增，不覆蓋）
+            $total_allocated = $current_child_allocated + $new_allocation_total;
+
+            $this->debugService->log('AllocationService', '分配數量計算（增量模式）', [
+                'current_child_allocated' => $current_child_allocated,
+                'new_allocation_total' => $new_allocation_total,
+                'total_allocated' => $total_allocated,
+                'purchased' => $purchased
+            ]);
             
             // 5. 驗證總分配數量不超過已採購數量
             if ($total_allocated > $purchased) {
@@ -357,22 +398,32 @@ class AllocationService
                     "總分配數量 ({$total_allocated}) 超過已採購數量 ({$purchased})");
             }
             
-            // 6. 更新訂單項目的分配數量
+            // 6. 更新訂單項目的分配數量（增量模式：累加而非覆蓋）
             foreach ($items as $item) {
                 $order_id = (int)$item['order_id'];
-                $target_allocated = isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
-                
-                // 驗證分配數量不超過需求數量
-                if ($target_allocated > (int)$item['quantity']) {
-                    $wpdb->query('ROLLBACK');
-                    return new WP_Error('INVALID_ALLOCATION', 
-                        "訂單 #{$order_id} 的分配數量 ({$target_allocated}) 超過需求數量 ({$item['quantity']})");
+                $new_allocation = isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
+
+                if ($new_allocation <= 0) {
+                    continue;  // 本次沒有分配給這個訂單，跳過
                 }
-                
-                // 更新分配數量
+
+                // 取得現有的已分配數量
                 $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                $meta_data['_allocated_qty'] = $target_allocated;
-                
+                $already_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+
+                // 計算累加後的總分配數量
+                $total_item_allocated = $already_allocated + $new_allocation;
+
+                // 驗證累加後的分配數量不超過需求數量
+                if ($total_item_allocated > (int)$item['quantity']) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('INVALID_ALLOCATION',
+                        "訂單 #{$order_id} 的總分配數量 ({$total_item_allocated}) 超過需求數量 ({$item['quantity']})");
+                }
+
+                // 更新分配數量（累加）
+                $meta_data['_allocated_qty'] = $total_item_allocated;
+
                 $result = $wpdb->update(
                     $wpdb->prefix . 'fct_order_items',
                     ['line_meta' => json_encode($meta_data)],
@@ -380,7 +431,7 @@ class AllocationService
                     ['%s'],
                     ['%d']
                 );
-                
+
                 if ($result === false) {
                     $wpdb->query('ROLLBACK');
                     return new WP_Error('DB_ERROR', '更新訂單項目失敗：' . $wpdb->last_error);

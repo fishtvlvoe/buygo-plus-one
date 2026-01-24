@@ -8,11 +8,18 @@ if (!defined('ABSPATH')) {
 
 /**
  * NotificationTemplates - 通知模板管理服務
- * 
+ *
  * 負責管理所有 LINE 通知模板（已移除 Email 通知）
  * 從舊版 BuyGo 外掛複製並調整命名空間
  */
 class NotificationTemplates {
+
+    /**
+     * Debug Service 實例
+     *
+     * @var DebugService
+     */
+    private static $debug_service;
 
     /**
      * 快取所有自訂模板（單次請求內）
@@ -29,61 +36,94 @@ class NotificationTemplates {
      */
     private static $cache_group = 'buygo_notification_templates';
 
+    /**
+     * 初始化 Debug Service
+     */
+    private static function init_debug_service() {
+        if (self::$debug_service === null) {
+            self::$debug_service = DebugService::get_instance();
+        }
+    }
+
     public static function get($key, $args = []) {
-        $templates = self::definitions();
-        
-        if (!isset($templates[$key])) {
-            return null;
-        }
+        self::init_debug_service();
 
-        // 先從資料庫讀取自訂模板，如果沒有則使用預設值
-        $custom_template = self::get_custom_template($key);
-        
-        // 如果自訂模板存在，使用自訂模板（即使 line.message 為空，也使用自訂模板）
-        // 這樣可以讓用戶清空模板內容，而不會被預設模板覆蓋
-        if ($custom_template !== null) {
-            $template = $custom_template;
-        } else {
-            $template = $templates[$key];
-        }
+        try {
+            $templates = self::definitions();
 
-        // 檢查是否為 Flex Message 類型
-        $template_type = $template['type'] ?? 'text';
-        
-        if ($template_type === 'flex') {
-            // Flex Message 模板
-            $flex_template = $template['line']['flex_template'] ?? [];
-            
-            // 處理變數替換
-            if (!empty($flex_template)) {
-                $flex_template['title'] = self::replace_placeholders($flex_template['title'] ?? '', $args);
-                $flex_template['description'] = self::replace_placeholders($flex_template['description'] ?? '', $args);
-                
-                // 處理按鈕的 label（action 不需要替換）
-                if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
-                    foreach ($flex_template['buttons'] as &$button) {
-                        if (isset($button['label'])) {
-                            $button['label'] = self::replace_placeholders($button['label'], $args);
+            if (!isset($templates[$key])) {
+                self::$debug_service->log('NotificationTemplates', '模板不存在', [
+                    'key' => $key
+                ], 'warning');
+                return null;
+            }
+
+            // 先從資料庫讀取自訂模板，如果沒有則使用預設值
+            $custom_template = self::get_custom_template($key);
+
+            // 如果自訂模板存在，使用自訂模板（即使 line.message 為空，也使用自訂模板）
+            // 這樣可以讓用戶清空模板內容，而不會被預設模板覆蓋
+            if ($custom_template !== null) {
+                $template = $custom_template;
+            } else {
+                $template = $templates[$key];
+            }
+
+            // 檢查是否為 Flex Message 類型
+            $template_type = $template['type'] ?? 'text';
+
+            if ($template_type === 'flex') {
+                // Flex Message 模板
+                $flex_template = $template['line']['flex_template'] ?? [];
+
+                // 處理變數替換
+                if (!empty($flex_template)) {
+                    $flex_template['title'] = self::replace_placeholders($flex_template['title'] ?? '', $args);
+                    $flex_template['description'] = self::replace_placeholders($flex_template['description'] ?? '', $args);
+
+                    // 處理按鈕的 label（action 不需要替換）
+                    if (isset($flex_template['buttons']) && is_array($flex_template['buttons'])) {
+                        foreach ($flex_template['buttons'] as &$button) {
+                            if (isset($button['label'])) {
+                                $button['label'] = self::replace_placeholders($button['label'], $args);
+                            }
                         }
                     }
                 }
-            }
-            
-            return [
-                'type' => 'flex',
-                'line' => [
-                    'flex_template' => $flex_template
-                ]
-            ];
-        } else {
-            // 文字模板
-            $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
 
+                return [
+                    'type' => 'flex',
+                    'line' => [
+                        'flex_template' => $flex_template
+                    ]
+                ];
+            } else {
+                // 文字模板
+                $line_message = self::replace_placeholders($template['line']['message'] ?? '', $args);
+
+                return [
+                    'type' => 'text',
+                    'line' => [
+                        'type' => 'text',
+                        'text' => $line_message
+                    ]
+                ];
+            }
+
+        } catch (\Exception $e) {
+            self::$debug_service->log('NotificationTemplates', '取得模板失敗', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 'error');
+
+            // 返回預設空模板
             return [
                 'type' => 'text',
                 'line' => [
                     'type' => 'text',
-                    'text' => $line_message
+                    'text' => ''
                 ]
             ];
         }
@@ -403,18 +443,49 @@ class NotificationTemplates {
 
     /**
      * 儲存自訂模板
-     * 
+     *
      * @param array $templates 模板資料陣列
+     * @return bool|\WP_Error 成功返回 true，失敗返回 WP_Error
      */
     public static function save_custom_templates($templates) {
-        // 驗證並標準化資料格式
-        $normalized_templates = self::normalize_templates($templates);
-        
-        // 儲存到資料庫
-        update_option('buygo_notification_templates', $normalized_templates);
-        
-        // 清除所有快取（確保前後端都能讀取到最新資料）
-        self::clear_cache();
+        self::init_debug_service();
+
+        self::$debug_service->log('NotificationTemplates', '開始儲存自訂模板', [
+            'template_count' => count($templates)
+        ]);
+
+        try {
+            // 驗證並標準化資料格式
+            $normalized_templates = self::normalize_templates($templates);
+
+            // 儲存到資料庫
+            $result = update_option('buygo_notification_templates', $normalized_templates);
+
+            if (!$result && get_option('buygo_notification_templates') !== $normalized_templates) {
+                self::$debug_service->log('NotificationTemplates', '儲存模板失敗', [
+                    'templates' => $templates
+                ], 'error');
+                return new \WP_Error('save_failed', '儲存模板失敗');
+            }
+
+            // 清除所有快取（確保前後端都能讀取到最新資料）
+            self::clear_cache();
+
+            self::$debug_service->log('NotificationTemplates', '儲存模板成功', [
+                'template_count' => count($normalized_templates)
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            self::$debug_service->log('NotificationTemplates', '儲存模板異常', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 'error');
+
+            return new \WP_Error('save_exception', $e->getMessage());
+        }
     }
     
     /**
@@ -526,19 +597,31 @@ class NotificationTemplates {
 
     /**
      * 組裝 Flex Message JSON
-     * 
+     *
      * @param array $flex_template Flex Message 模板資料
-     * @return array LINE Flex Message JSON 格式
+     * @return array|null LINE Flex Message JSON 格式或 null
      */
     public static function build_flex_message($flex_template) {
-        if (empty($flex_template)) {
-            return null;
-        }
+        self::init_debug_service();
 
-        $logo_url = $flex_template['logo_url'] ?? '';
-        $title = $flex_template['title'] ?? '圖片已收到！';
-        $description = $flex_template['description'] ?? '請選擇您要使用的上架格式：';
-        $buttons = $flex_template['buttons'] ?? [];
+        try {
+            if (empty($flex_template)) {
+                self::$debug_service->log('NotificationTemplates', 'Flex 模板為空', [], 'warning');
+                return null;
+            }
+
+            // 驗證必要欄位
+            if (!isset($flex_template['logo_url']) || !isset($flex_template['title'])) {
+                self::$debug_service->log('NotificationTemplates', 'Flex 模板缺少必要欄位', [
+                    'flex_template' => $flex_template
+                ], 'error');
+                return null;
+            }
+
+            $logo_url = $flex_template['logo_url'] ?? '';
+            $title = $flex_template['title'] ?? '圖片已收到！';
+            $description = $flex_template['description'] ?? '請選擇您要使用的上架格式：';
+            $buttons = $flex_template['buttons'] ?? [];
 
         // 建立 Flex Message 結構
         $flex_message = [
@@ -634,6 +717,17 @@ class NotificationTemplates {
         }
 
         return $flex_message;
+
+        } catch (\Exception $e) {
+            self::$debug_service->log('NotificationTemplates', '組裝 Flex Message 失敗', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'flex_template' => $flex_template
+            ], 'error');
+
+            return null;
+        }
     }
 
     private static function replace_placeholders($text, $args) {

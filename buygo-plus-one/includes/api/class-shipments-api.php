@@ -39,12 +39,12 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipments'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'create_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -52,12 +52,12 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
             [
                 'methods' => 'PUT',
                 'callback' => [$this, 'update_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -65,7 +65,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_mark_shipped'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -74,7 +74,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'archive_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -83,7 +83,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'merge_shipments'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -92,7 +92,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_archive_shipments'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -101,7 +101,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipment_detail'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -110,7 +110,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'export_shipments'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -119,7 +119,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'transfer_to_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -128,7 +128,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_transfer_to_shipment'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
 
@@ -137,7 +137,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_diagnostics'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [API::class, 'check_permission'],
             ],
         ]);
     }

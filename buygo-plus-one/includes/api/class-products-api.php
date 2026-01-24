@@ -15,7 +15,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products', [
             'methods' => 'GET',
             'callback' => [$this, 'get_products'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'page' => [
                     'default' => 1,
@@ -43,7 +43,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)', [
             'methods' => 'PUT',
             'callback' => [$this, 'update_product'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -78,7 +78,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products/batch-delete', [
             'methods' => 'POST',
             'callback' => [$this, 'batch_delete'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'ids' => [
                     'required' => true,
@@ -93,14 +93,14 @@ class Products_API {
         register_rest_route($this->namespace, '/products/export', [
             'methods' => 'GET',
             'callback' => [$this, 'export_csv'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
         ]);
         
         // POST /products/{id}/image - 上傳商品圖片
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/image', [
             'methods' => 'POST',
             'callback' => [$this, 'upload_image'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -115,7 +115,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/image', [
             'methods' => 'DELETE',
             'callback' => [$this, 'delete_image'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -130,7 +130,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/buyers', [
             'methods' => 'GET',
             'callback' => [$this, 'get_buyers'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -145,7 +145,7 @@ class Products_API {
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/orders', [
             'methods' => 'GET',
             'callback' => [$this, 'get_product_orders'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -160,14 +160,14 @@ class Products_API {
         register_rest_route($this->namespace, '/products/allocate', [
             'methods' => 'POST',
             'callback' => [$this, 'allocate_stock'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
         ]);
 
         // POST /products/{id}/allocate-all - 一鍵分配（將某客戶的所有訂單全部分配）
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/allocate-all', [
             'methods' => 'POST',
             'callback' => [$this, 'allocate_all_for_customer'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [API::class, 'check_permission'],
             'args' => [
                 'id' => [
                     'required' => true,

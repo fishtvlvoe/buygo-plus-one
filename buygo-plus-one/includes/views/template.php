@@ -39,9 +39,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Design System CSS (基於 UI/UX Pro Max 建議 + Demo 設計稿) -->
     <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/assets/design-system.css'); ?>">
 
-    <!-- BuyGo Core JS Modules -->
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/js/RouterMixin.js'); ?>"></script>
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/js/DesignSystem.js'); ?>"></script>
+    <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
+    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
+    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/DesignSystem.js'); ?>"></script>
 
     <style>
         body {
@@ -83,9 +83,14 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- useCurrency Composable (全站幣別處理邏輯) -->
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/composables/useCurrency.js'); ?>"></script>
 
+    <!-- Global WP Nonce for REST API -->
+    <script>
+        window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+    </script>
+
     <?php
-    // 載入頁面元件（如果存在）
-    $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/pages/' . $current_page . '.php';
+    // 載入頁面元件（如果存在）- 新路徑：admin/partials/
+    $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $current_page . '.php';
     $has_page_component = false;
     if (file_exists($page_file)) {
         require $page_file;

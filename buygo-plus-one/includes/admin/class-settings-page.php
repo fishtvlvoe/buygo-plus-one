@@ -16,20 +16,12 @@ if (!defined('ABSPATH')) {
  */
 class SettingsPage
 {
-    private $debugPage = null;
-    
     public function __construct()
     {
-        add_action('admin_menu', [$this, 'add_admin_menu'], 20); // 優先級設為 20，確保在 DebugPage 之後執行
+        add_action('admin_menu', [$this, 'add_admin_menu'], 20);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
-        
-        // 取得 DebugPage 實例
-        global $buygo_plus_one_debug_page;
-        if (isset($buygo_plus_one_debug_page)) {
-            $this->debugPage = $buygo_plus_one_debug_page;
-        }
     }
 
     /**
@@ -37,39 +29,36 @@ class SettingsPage
      */
     public function add_admin_menu(): void
     {
+        // 主選單：BuyGo+1
         add_menu_page(
-            'BuyGo+1 設定',
-            'BuyGo+1 設定',
+            'BuyGo+1',
+            'BuyGo+1',
             'manage_options',
-            'buygo-settings',
-            [$this, 'render_settings_page'],
-            'dashicons-admin-generic',
+            'buygo-plus-one',
+            [$this, 'render_templates_page'],  // 預設顯示 LINE 模板頁面
+            'dashicons-cart',
             30
         );
-        
-        // 獨立的通知模板管理頁面
+
+        // 子選單 1：LINE 模板（第一個位置）
         add_submenu_page(
-            'buygo-settings',
-            'Line 通知模板管理',
-            'Line 通知模板管理',
+            'buygo-plus-one',
+            'LINE 模板',
+            'LINE 模板',
             'manage_options',
-            'buygo-templates',
-            [$this, 'render_templates_page'],
-            1
+            'buygo-plus-one',  // 與主選單相同 slug，覆蓋預設子選單
+            [$this, 'render_templates_page']
         );
-        
-        // 將 BuyGo 除錯移入成為子選單
-        if ($this->debugPage) {
-            add_submenu_page(
-                'buygo-settings',
-                'BuyGo 除錯',
-                'BuyGo 除錯',
-                'manage_options',
-                'buygo-plus-one-debug',
-                [$this->debugPage, 'render_debug_page'],
-                99
-            );
-        }
+
+        // 子選單 2：設定（第二個位置）
+        add_submenu_page(
+            'buygo-plus-one',
+            '設定',
+            '設定',
+            'manage_options',
+            'buygo-settings',
+            [$this, 'render_settings_page']
+        );
     }
 
     /**
@@ -87,13 +76,14 @@ class SettingsPage
      */
     public function enqueue_scripts($hook): void
     {
-        if ($hook !== 'toplevel_page_buygo-settings' && $hook !== 'buygo-settings_page_buygo-templates') {
+        // 檢查是否在 BuyGo+1 的後台頁面
+        if ($hook !== 'toplevel_page_buygo-plus-one' && $hook !== 'buygo1_page_buygo-settings') {
             return;
         }
 
         wp_enqueue_script(
             'buygo-settings-admin',
-            plugin_dir_url(__FILE__) . '../../assets/js/admin-settings.js',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/admin-settings.js',
             ['jquery'],
             '1.0.0',
             true
@@ -101,7 +91,7 @@ class SettingsPage
 
         wp_enqueue_style(
             'buygo-settings-admin',
-            plugin_dir_url(__FILE__) . '../../assets/css/admin-settings.css',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-settings.css',
             [],
             '1.0.0'
         );
@@ -111,6 +101,21 @@ class SettingsPage
             'restUrl' => rest_url('buygo-plus-one/v1'),
             'nonce' => wp_create_nonce('wp_rest') // REST API 使用 wp_rest nonce
         ]);
+
+        // 阻擋 Cloudflare Beacon 以修復效能問題
+        add_action('admin_print_footer_scripts', function() {
+            ?>
+            <script>
+            // 阻擋 Cloudflare Web Analytics Beacon
+            (function() {
+                if (typeof window !== 'undefined') {
+                    window.__cfBeacon = null;
+                    window.cfjsloader = null;
+                }
+            })();
+            </script>
+            <?php
+        }, 1);
     }
 
     /**
@@ -118,6 +123,10 @@ class SettingsPage
      */
     public function render_settings_page(): void
     {
+        // 效能監控
+        $start_time = microtime(true);
+        error_log('[BuyGo Performance] Settings page load started');
+
         // 處理表單提交
         if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
             $this->handle_form_submit();
@@ -135,11 +144,14 @@ class SettingsPage
         ];
 
         // 取得 LINE 設定
+        $settings_start = microtime(true);
         $line_settings = SettingsService::get_line_settings();
+        $settings_time = microtime(true) - $settings_start;
+        error_log(sprintf('[BuyGo Performance] get_line_settings took %.4f seconds', $settings_time));
 
         ?>
         <div class="wrap">
-            <h1>BuyGo+1 設定</h1>
+            <h1>設定</h1>
             
             <!-- Tab 導航 -->
             <nav class="nav-tab-wrapper">
@@ -178,6 +190,12 @@ class SettingsPage
             </div>
         </div>
         <?php
+        // 記錄總載入時間
+        $total_time = microtime(true) - $start_time;
+        error_log(sprintf('[BuyGo Performance] Settings page total load time: %.4f seconds', $total_time));
+
+        // 停用 Heartbeat API 以提升效能
+        wp_deregister_script('heartbeat');
     }
 
     /**
@@ -185,20 +203,77 @@ class SettingsPage
      */
     private function render_line_tab($settings): void
     {
+        // Debug: 顯示解密狀態
+        $debug_info = [];
+        $raw_token = get_option('buygo_core_settings', [])['line_channel_access_token'] ?? null;
+        if (!$raw_token) {
+            $raw_token = get_option('buygo_line_channel_access_token', null);
+        }
+
+        if ($raw_token) {
+            $debug_info['token_exists'] = true;
+            $debug_info['token_length'] = strlen($raw_token);
+            $debug_info['token_preview'] = substr($raw_token, 0, 20) . '...';
+            $debug_info['decrypted_length'] = strlen($settings['channel_access_token']);
+            $debug_info['encryption_key_defined'] = defined('BUYGO_ENCRYPTION_KEY');
+        } else {
+            $debug_info['token_exists'] = false;
+        }
+
         ?>
+
+        <!-- Debug Information -->
+        <div class="notice notice-info" style="margin: 20px 0;">
+            <h3>🔍 LINE 設定 Debug 資訊</h3>
+            <table class="widefat" style="margin-top: 10px;">
+                <tr>
+                    <th style="width: 200px;">Token 是否存在</th>
+                    <td><?php echo $debug_info['token_exists'] ? '✅ 是' : '❌ 否'; ?></td>
+                </tr>
+                <?php if ($debug_info['token_exists']): ?>
+                <tr>
+                    <th>加密資料長度</th>
+                    <td><?php echo $debug_info['token_length']; ?> 字元</td>
+                </tr>
+                <tr>
+                    <th>加密資料預覽</th>
+                    <td><code><?php echo esc_html($debug_info['token_preview']); ?></code></td>
+                </tr>
+                <tr>
+                    <th>解密後長度</th>
+                    <td><?php echo $debug_info['decrypted_length']; ?> 字元</td>
+                </tr>
+                <tr>
+                    <th>解密結果</th>
+                    <td>
+                        <?php if ($debug_info['decrypted_length'] > 0): ?>
+                            <span style="color: green;">✅ 解密成功</span>
+                        <?php else: ?>
+                            <span style="color: red;">❌ 解密失敗或資料為空</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>加密金鑰已定義</th>
+                    <td><?php echo $debug_info['encryption_key_defined'] ? '✅ 是' : '⚠️ 否（使用預設金鑰）'; ?></td>
+                </tr>
+                <?php endif; ?>
+            </table>
+        </div>
+
         <form method="post" action="">
             <?php wp_nonce_field('buygo_settings'); ?>
-            
+
             <table class="form-table">
                 <tr>
                     <th scope="row">
                         <label for="line_channel_access_token">Channel Access Token</label>
                     </th>
                     <td>
-                        <input type="text" 
+                        <input type="text"
                                id="line_channel_access_token"
-                               name="line_channel_access_token" 
-                               class="regular-text" 
+                               name="line_channel_access_token"
+                               class="regular-text"
                                value="<?php echo esc_attr($settings['channel_access_token']); ?>" />
                         <p class="description">LINE Bot 的 Channel Access Token</p>
                     </td>
@@ -875,62 +950,64 @@ class SettingsPage
     {
         global $wpdb;
 
-        $stats = [];
+        $stats = [
+            'wp_products' => 0,
+            'fct_products' => 0,
+            'orders' => 0,
+            'parent_orders' => 0,
+            'child_orders' => 0,
+            'order_items' => 0,
+            'shipments' => 0,
+            'shipment_items' => 0,
+            'customers' => 0,
+        ];
 
-        // WordPress 商品數量
-        $wp_products_query = "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'";
-        $stats['wp_products'] = (int) $wpdb->get_var($wp_products_query);
+        // 輔助函數：安全查詢資料表數量（先檢查資料表是否存在）
+        $safe_count = function($table_name, $where = '') use ($wpdb) {
+            $full_table_name = $wpdb->prefix . $table_name;
+            $table_exists = $wpdb->get_var(
+                $wpdb->prepare("SHOW TABLES LIKE %s", $full_table_name)
+            );
+            if (!$table_exists) {
+                return 0;
+            }
+            $query = "SELECT COUNT(*) FROM {$full_table_name}";
+            if ($where) {
+                $query .= " WHERE {$where}";
+            }
+            return (int) $wpdb->get_var($query);
+        };
 
-        // 如果查詢失敗，記錄錯誤
-        if ($wpdb->last_error) {
-            error_log('BuyGo Stats Error (wp_products): ' . $wpdb->last_error);
-            error_log('Query: ' . $wp_products_query);
-        }
+        // WordPress 商品數量 (posts 資料表一定存在)
+        $stats['wp_products'] = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'"
+        );
 
         // FluentCart 商品數量 (存在 wp_posts 中，post_type = 'fluent-products')
-        // 注意：這是 BuyGo 系統自訂的 post_type，不是 FluentCart 官方的 'fc_product'
         $stats['fct_products'] = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'"
         );
 
-        // 訂單數量
-        $stats['orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders"
-        );
+        // 訂單數量（安全查詢）
+        $stats['orders'] = $safe_count('fct_orders');
 
         // 父訂單數量
-        $stats['parent_orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders WHERE parent_id IS NULL"
-        );
+        $stats['parent_orders'] = $safe_count('fct_orders', 'parent_id IS NULL');
 
         // 子訂單數量
-        $stats['child_orders'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders WHERE parent_id IS NOT NULL AND type = 'split'"
-        );
+        $stats['child_orders'] = $safe_count('fct_orders', "parent_id IS NOT NULL AND type = 'split'");
 
         // 訂單項目數量
-        $stats['order_items'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_order_items"
-        );
+        $stats['order_items'] = $safe_count('fct_order_items');
 
         // 出貨單數量
-        $stats['shipments'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}buygo_shipments"
-        );
+        $stats['shipments'] = $safe_count('buygo_shipments');
 
         // 出貨單項目數量
-        $stats['shipment_items'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}buygo_shipment_items"
-        );
+        $stats['shipment_items'] = $safe_count('buygo_shipment_items');
 
         // 客戶數量
-        $stats['customers'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}fct_customers"
-        );
-
-        // Debug: 記錄統計資料
-        error_log('BuyGo Test Data Stats: ' . print_r($stats, true));
-        error_log('DB Prefix: ' . $wpdb->prefix);
+        $stats['customers'] = $safe_count('fct_customers');
 
         return $stats;
     }
@@ -942,27 +1019,44 @@ class SettingsPage
     {
         global $wpdb;
 
+        // 輔助函數：檢查資料表是否存在
+        $table_exists = function($table_name) use ($wpdb) {
+            $full_table_name = $wpdb->prefix . $table_name;
+            return $wpdb->get_var(
+                $wpdb->prepare("SHOW TABLES LIKE %s", $full_table_name)
+            ) === $full_table_name;
+        };
+
+        // 輔助函數：安全刪除資料表內容
+        $safe_delete = function($table_name) use ($wpdb, $table_exists) {
+            if ($table_exists($table_name)) {
+                $wpdb->query("DELETE FROM {$wpdb->prefix}{$table_name}");
+                return true;
+            }
+            return false;
+        };
+
         try {
             // 開始交易
             $wpdb->query('START TRANSACTION');
 
             // 1. 清除出貨單項目
-            $wpdb->query("DELETE FROM {$wpdb->prefix}buygo_shipment_items");
+            $safe_delete('buygo_shipment_items');
 
             // 2. 清除出貨單
-            $wpdb->query("DELETE FROM {$wpdb->prefix}buygo_shipments");
+            $safe_delete('buygo_shipments');
 
             // 3. 清除訂單項目
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_order_items");
+            $safe_delete('fct_order_items');
 
             // 4. 清除訂單
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_orders");
+            $safe_delete('fct_orders');
 
             // 5. 清除 FluentCart 商品變體 (如果表存在)
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_variations");
+            $safe_delete('fct_product_variations');
 
             // 6. 清除 FluentCart 商品 (如果表存在)
-            $wpdb->query("DELETE FROM {$wpdb->prefix}fct_products");
+            $safe_delete('fct_products');
 
             // 7. 獲取所有 WordPress 商品 ID (post_type = 'product')
             $product_ids = $wpdb->get_col(
@@ -1596,7 +1690,7 @@ LIMIT 10`,
         
         ?>
         <div class="wrap">
-            <h1>Line 通知模板管理</h1>
+            <h1>Line 模板</h1>
             <?php settings_errors('buygo_settings'); ?>
             <?php $this->render_templates_tab(); ?>
         </div>
@@ -1708,8 +1802,8 @@ LIMIT 10`,
         <div id="buygo-templates-page">
             <form method="post" action="">
                 <?php wp_nonce_field('buygo_settings'); ?>
-                
-                <h2>Line 通知模板管理</h2>
+
+                <h2>Line 模板</h2>
                 <p class="description">
                     編輯買家、賣家和系統通知的 LINE 模板。可使用變數：<code>{變數名稱}</code>
                 </p>
@@ -2130,7 +2224,7 @@ LIMIT 10`,
                                 </tbody>
                             </table>
                             <p class="description" style="margin-top: 15px;">
-                                💡 提示：關鍵字的新增、編輯、刪除功能請使用前端 Portal 的「Line 通知模板管理」頁面進行管理。
+                                💡 提示：關鍵字的新增、編輯、刪除功能請使用前端 Portal 的「Line 模板」頁面進行管理。
                             </p>
                         <?php endif; ?>
                     </div>

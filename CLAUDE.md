@@ -65,6 +65,7 @@ buygo-plus-one/
 ### 服務層模式
 
 `includes/services/` 中的服務包含商業邏輯：
+
 - `ProductService` - 商品 CRUD 和庫存管理
 - `OrderService` - 訂單處理和狀態
 - `ShipmentService` - 出貨管理
@@ -74,6 +75,7 @@ buygo-plus-one/
 ### API 層模式
 
 `includes/api/` 中的 REST 端點遵循 WordPress REST API 慣例：
+
 - 基礎命名空間：`buygo-plus-one/v1`
 - 驗證方式：WordPress nonce/cookie 或 API 金鑰
 
@@ -89,6 +91,7 @@ buygo-plus-one/
 單元測試位於 `tests/Unit/`，使用 PHPUnit 9 搭配 Yoast PHPUnit Polyfills。測試不需要 WordPress，只測試純 PHP 商業邏輯。
 
 測試結構對應原始碼：
+
 ```
 tests/Unit/Services/ProductServiceBasicTest.php
     → 測試 includes/services/class-product-service.php
@@ -111,6 +114,7 @@ tests/Unit/Services/ProductServiceBasicTest.php
 ## 主要相依套件
 
 此外掛整合了：
+
 - FluentCart（電商平台）
 - LINE Messaging API（通知、webhooks）
 
@@ -123,5 +127,28 @@ tests/Unit/Services/ProductServiceBasicTest.php
 ## 對話紀錄
 
 ### 2026-01-22
+
 - 建立 CLAUDE.md 檔案
 - 使用者要求：將文件改為繁體中文、後續對話使用繁體中文回應、記錄重要對話內容
+
+版本紀錄規範
+存檔 (當我說「存檔」或「提交」時)
+
+1. 執行 git diff 檢查本次改動
+2. 執行 git add . 和 git commit (根據改動自動生成備註)
+3. 在 CHANGELOG.md 頂部添加紀錄，格式：
+
+YYYY-MM-DD HH:mm
+• 改動內容
+
+回退 (當我說「回退」或「撤銷」時)
+
+1. 先告訴我會回退到哪個版本 (顯示上一次的提交資訊)
+2. 等我確認後再執行回退
+3. 回退後在 CHANGELOG.md 頂部紀錄：
+
+YYYY-MM-DD HH:mm
+• 回退：撤銷了 xxx 改動
+
+查看歷史 (當我說「歷史」或「紀錄」時)
+顯示最近 5 次提交的簡要資訊

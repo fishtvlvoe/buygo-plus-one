@@ -13,7 +13,7 @@ class Debug_API
     
     public function __construct()
     {
-        $this->debugService = new DebugService();
+        $this->debugService = DebugService::get_instance();
         add_action('rest_api_init', [$this, 'register_routes']);
     }
     
@@ -23,7 +23,8 @@ class Debug_API
             'methods' => 'POST',
             'callback' => [$this, 'log'],
             'permission_callback' => function() {
-                return is_user_logged_in();
+                // 僅允許管理員存取 Debug API
+                return current_user_can('manage_options') || current_user_can('buygo_admin');
             }
         ]);
     }

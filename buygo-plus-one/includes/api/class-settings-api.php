@@ -74,7 +74,14 @@ class Settings_API {
                 ]
             ]
         ]);
-        
+
+        // GET /settings/users/recent - 取得最近加入的會員（用於搜尋提示）
+        register_rest_route($this->namespace, '/settings/users/recent', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_recent_users'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
+
         // GET /settings/user/permissions - 取得當前使用者權限
         register_rest_route($this->namespace, '/settings/user/permissions', [
             'methods' => 'GET',
@@ -292,33 +299,54 @@ class Settings_API {
     
     /**
      * 搜尋使用者
+     * 注意：此 API 已使用 check_permission_for_admin 保護，僅管理員可存取
      */
     public function search_users($request) {
         try {
             $query = $request->get_param('query');
-            
+
             if (empty($query)) {
                 return new \WP_REST_Response([
                     'success' => true,
                     'data' => []
                 ], 200);
             }
-            
+
+            // 限制搜尋字串長度，避免過度查詢
+            $query = substr($query, 0, 50);
+
             $users = get_users([
                 'search' => '*' . $query . '*',
                 'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
-                'number' => 20,
+                'number' => 10, // 限制結果數量
             ]);
-            
+
             $results = [];
             foreach ($users as $user) {
+                // 遮罩電子郵件（只顯示前3字元和域名）
+                $email = $user->user_email;
+                $email_parts = explode('@', $email);
+                if (count($email_parts) === 2) {
+                    $local = $email_parts[0];
+                    $domain = $email_parts[1];
+                    $masked_local = substr($local, 0, 3) . '***';
+                    $email = $masked_local . '@' . $domain;
+                }
+
+                // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
                 $results[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
-                    'email' => $user->user_email,
+                    'email' => $email,
+                    'avatar' => $avatar_url,
                 ];
             }
-            
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $results
@@ -330,7 +358,57 @@ class Settings_API {
             ], 500);
         }
     }
-    
+
+    /**
+     * 取得最近加入的會員（用於搜尋提示）
+     * 注意：此 API 已使用 check_permission_for_admin 保護，僅管理員可存取
+     */
+    public function get_recent_users($request) {
+        try {
+            $users = get_users([
+                'orderby' => 'registered',
+                'order' => 'DESC',
+                'number' => 3, // 只返回最新 3 筆
+            ]);
+
+            $results = [];
+            foreach ($users as $user) {
+                // 遮罩電子郵件（只顯示前3字元和域名）
+                $email = $user->user_email;
+                $email_parts = explode('@', $email);
+                if (count($email_parts) === 2) {
+                    $local = $email_parts[0];
+                    $domain = $email_parts[1];
+                    $masked_local = substr($local, 0, 3) . '***';
+                    $email = $masked_local . '@' . $domain;
+                }
+
+                // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
+                $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+                if (empty($avatar_url)) {
+                    $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
+                }
+
+                $results[] = [
+                    'id' => $user->ID,
+                    'name' => $user->display_name,
+                    'email' => $email,
+                    'avatar' => $avatar_url,
+                ];
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $results
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '取得最新會員失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * 權限檢查（一般使用者）
      */
@@ -483,17 +561,12 @@ class Settings_API {
     
     /**
      * 權限檢查（僅管理員）
-     * TODO: 測試完成後，統一設定權限檢查
      */
     public function check_permission_for_admin() {
-        // 暫時允許所有請求（測試階段）
-        // 測試完成後，改為：
-        // if (!is_user_logged_in()) {
-        //     return false;
-        // }
-        // return current_user_can('buygo_admin') || current_user_can('manage_options');
-        
-        return true;
+        if (!is_user_logged_in()) {
+            return false;
+        }
+        return current_user_can('buygo_admin') || current_user_can('manage_options');
     }
     
     /**

@@ -1,12 +1,12 @@
 === BuyGo+1 ===
-Contributors: buygoteam
-Tags: ecommerce, marketplace, backend
-Requires at least: 5.8
-Tested up to: 6.4
-Requires PHP: 7.4
-Stable tag: 0.0.1
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+貢獻者：buygoteam
+標籤：電商、市集、後台管理
+需要 WordPress 最少版本：5.8
+測試至 WordPress 版本：6.4
+需要 PHP 版本：7.4
+穩定版本標籤：0.0.1
+授權條款：GPLv2 或更新版本
+授權條款網址：http://www.gnu.org/licenses/gpl-2.0.html
 
 BuyGo 獨立賣場後台系統
 
@@ -22,6 +22,6 @@ BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功
 
 == Changelog ==
 
-= 0.0.1 =
+= 0.0.2 =
 * 初始版本
 * 建立基礎外掛架構
