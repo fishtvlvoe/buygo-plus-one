@@ -23,6 +23,16 @@ class PluginCompatibility
     const OLD_PLUGIN_DIR = 'buygo';
 
     /**
+     * 正式版外掛的主檔案路徑（從開發版角度來看）
+     */
+    const DEV_PLUGIN_FILE = 'buygo-plus-one/buygo-plus-one.php';
+
+    /**
+     * 正式版外掛的目錄名稱（從開發版角度來看）
+     */
+    const DEV_PLUGIN_DIR = 'buygo-plus-one';
+
+    /**
      * 檢查是否可以安全啟用新外掛
      *
      * @return array ['can_activate' => bool, 'message' => string, 'warnings' => array]
@@ -35,15 +45,23 @@ class PluginCompatibility
             'warnings' => []
         ];
 
-        // 檢查舊外掛是否啟用
-        if (self::is_old_plugin_active()) {
+        // 檢查開發版是否啟用 - 這是不允許的（會產生常數衝突）
+        if (self::is_dev_plugin_active()) {
             $result['can_activate'] = false;
-            $result['message'] = self::get_conflict_message();
+            $result['message'] = self::get_dev_conflict_message();
             return $result;
         }
 
+        // 檢查舊外掛是否啟用 - 允許共存，但顯示警告
+        if (self::is_old_plugin_active()) {
+            $result['warnings'][] = [
+                'type' => 'old_plugin_active',
+                'message' => '偵測到舊版 BuyGo 外掛正在運行。新外掛將以共存模式運行，自動停用可能衝突的功能。建議測試後逐步移轉到新外掛。'
+            ];
+        }
+
         // 檢查舊外掛是否存在（但未啟用）
-        if (self::is_old_plugin_installed()) {
+        if (self::is_old_plugin_installed() && !self::is_old_plugin_active()) {
             $result['warnings'][] = [
                 'type' => 'old_plugin_installed',
                 'message' => '偵測到舊版 BuyGo 外掛已安裝但未啟用。建議在新外掛穩定後移除舊外掛以避免混淆。'
@@ -83,6 +101,27 @@ class PluginCompatibility
     public static function is_old_plugin_installed(): bool
     {
         $plugin_dir = WP_PLUGIN_DIR . '/' . self::OLD_PLUGIN_DIR;
+        return is_dir($plugin_dir);
+    }
+
+    /**
+     * 檢查開發版外掛是否已啟用
+     */
+    public static function is_dev_plugin_active(): bool
+    {
+        if (!function_exists('is_plugin_active')) {
+            include_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        return is_plugin_active(self::DEV_PLUGIN_FILE);
+    }
+
+    /**
+     * 檢查開發版外掛是否已安裝
+     */
+    public static function is_dev_plugin_installed(): bool
+    {
+        $plugin_dir = WP_PLUGIN_DIR . '/' . self::DEV_PLUGIN_DIR;
         return is_dir($plugin_dir);
     }
 
@@ -127,27 +166,47 @@ class PluginCompatibility
     }
 
     /**
-     * 取得衝突警告訊息
+     * 取得舊外掛衝突警告訊息（已不再使用，因為允許共存）
+     * @deprecated 保留此方法以維持向後兼容
      */
     public static function get_conflict_message(): string
     {
         return <<<HTML
-<div class="notice notice-error">
-    <h3>⚠️ 無法啟用 BuyGo+1 開發版</h3>
+<div class="notice notice-warning">
+    <h3>⚠️ BuyGo 外掛共存模式</h3>
     <p>偵測到 <strong>舊版 BuyGo 外掛</strong> 正在運行。</p>
-    <p>為了避免數據衝突和系統不穩定，請先停用舊版外掛後再啟用新版。</p>
-    <h4>可能發生的問題：</h4>
-    <ul>
-        <li>子訂單在舊外掛中顯示為 "Unknown Product"</li>
-        <li>訂單數據不一致</li>
-        <li>出貨單功能異常</li>
-    </ul>
+    <p>新外掛將以共存模式運行，並自動停用可能衝突的功能。</p>
     <h4>建議步驟：</h4>
     <ol>
-        <li>停用舊版 BuyGo 外掛</li>
-        <li>備份數據庫（以防萬一）</li>
+        <li>測試新外掛的所有功能是否正常</li>
+        <li>確認數據正確顯示</li>
+        <li>測試完成後，可考慮停用舊外掛並移除</li>
+    </ol>
+</div>
+HTML;
+    }
+
+    /**
+     * 取得正式版衝突錯誤訊息（從開發版角度）
+     */
+    public static function get_dev_conflict_message(): string
+    {
+        return <<<HTML
+<div class="notice notice-error">
+    <h3>⚠️ 無法啟用 BuyGo+1 開發版</h3>
+    <p>偵測到 <strong>BuyGo+1 正式版</strong> 正在運行。</p>
+    <p>兩個版本使用相同的 PHP 常數和類別名稱，無法同時啟用，會導致嚴重錯誤。</p>
+    <h4>發生的問題：</h4>
+    <ul>
+        <li>PHP Fatal Error: Cannot redeclare constant</li>
+        <li>Class already declared 錯誤</li>
+        <li>系統完全無法運作</li>
+    </ul>
+    <h4>解決步驟：</h4>
+    <ol>
+        <li>停用 BuyGo+1 正式版</li>
         <li>啟用 BuyGo+1 開發版</li>
-        <li>確認所有功能正常後，可考慮移除舊外掛</li>
+        <li>或者：若在生產環境，建議使用正式版</li>
     </ol>
 </div>
 HTML;
@@ -243,7 +302,8 @@ HTML;
     /**
      * 在運行時檢查兼容性（每次載入時）
      *
-     * 如果偵測到舊外掛被啟用，顯示管理員通知
+     * 如果偵測到開發版被啟用，顯示管理員錯誤通知
+     * 如果偵測到舊外掛被啟用，顯示管理員資訊通知
      */
     public static function runtime_check(): void
     {
@@ -251,39 +311,78 @@ HTML;
             return;
         }
 
+        // 檢查開發版衝突（嚴重錯誤）
+        if (self::is_dev_plugin_active()) {
+            add_action('admin_notices', [self::class, 'show_dev_conflict_notice']);
+        }
+
+        // 檢查舊外掛共存（資訊通知）
         if (self::is_old_plugin_active()) {
-            add_action('admin_notices', [self::class, 'show_conflict_notice']);
+            add_action('admin_notices', [self::class, 'show_coexist_info_notice']);
         }
     }
 
     /**
-     * 顯示衝突通知
+     * 顯示衝突通知（已廢棄，保留向後兼容）
+     * @deprecated
      */
     public static function show_conflict_notice(): void
+    {
+        // 此方法已被 show_dev_conflict_notice 和 show_coexist_info_notice 取代
+        self::show_coexist_info_notice();
+    }
+
+    /**
+     * 顯示正式版衝突的嚴重錯誤通知（從開發版角度）
+     */
+    public static function show_dev_conflict_notice(): void
+    {
+        echo <<<HTML
+<div class="notice notice-error is-dismissible">
+    <h3>🚫 BuyGo+1 外掛衝突 - 嚴重錯誤</h3>
+    <p><strong>BuyGo+1 開發版</strong> 和 <strong>BuyGo+1 正式版</strong> 同時啟用中！</p>
+    <p style="color: #d63638;"><strong>⚠️ 這會導致 PHP Fatal Error 和系統崩潰！</strong></p>
+    <h4>衝突原因：</h4>
+    <ul>
+        <li>兩個外掛定義了相同的 PHP 常數（BUYGO_PLUS_ONE_VERSION 等）</li>
+        <li>兩個外掛使用相同的 namespace 和類別名稱</li>
+        <li>PHP 不允許重複定義，會產生 Fatal Error</li>
+    </ul>
+    <p><strong>請立即停用其中一個外掛！</strong>（生產環境建議保留正式版，開發測試建議保留開發版）</p>
+</div>
+HTML;
+    }
+
+    /**
+     * 顯示與舊外掛共存的資訊通知
+     */
+    public static function show_coexist_info_notice(): void
     {
         $child_orders_check = self::check_child_orders();
         $child_orders_warning = '';
 
         if ($child_orders_check['has_child_orders']) {
             $child_orders_warning = sprintf(
-                '<p style="color: #d63638;"><strong>⚠️ 重要：</strong>系統中有 %d 筆子訂單。' .
-                '若停用新外掛並使用舊外掛，這些訂單將顯示為「Unknown Product」。</p>',
+                '<p style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107;">' .
+                '<strong>📊 子訂單資訊：</strong>系統中有 %d 筆子訂單（由新外掛的分單功能產生）。' .
+                '若停用新外掛，這些訂單在舊外掛中將顯示為「Unknown Product」。</p>',
                 $child_orders_check['child_orders_count']
             );
         }
 
         echo <<<HTML
-<div class="notice notice-error">
-    <h3>⚠️ BuyGo 外掛衝突警告</h3>
-    <p><strong>舊版 BuyGo</strong> 和 <strong>BuyGo+1 開發版</strong> 同時啟用中！</p>
-    <p>這可能導致：</p>
+<div class="notice notice-info is-dismissible">
+    <h3>ℹ️ BuyGo 外掛共存模式</h3>
+    <p><strong>BuyGo+1</strong> 和 <strong>舊版 BuyGo</strong> 正在共存模式下運行。</p>
+    <p>新外掛已自動偵測到舊外掛，並停用可能衝突的功能以確保系統穩定。</p>
+    <h4>📋 共存模式說明：</h4>
     <ul>
-        <li>訂單數據顯示異常</li>
-        <li>子訂單無法正確顯示</li>
-        <li>出貨單功能衝突</li>
+        <li>✅ 新外掛的核心功能正常運作</li>
+        <li>✅ 與舊外掛不衝突的功能已啟用</li>
+        <li>⚠️ 可能衝突的功能已自動停用</li>
     </ul>
     {$child_orders_warning}
-    <p><strong>請立即停用其中一個外掛。</strong></p>
+    <p><strong>建議：</strong>測試新外掛功能正常後，可考慮停用並移除舊外掛以獲得最佳效能。</p>
 </div>
 HTML;
     }
@@ -293,12 +392,18 @@ HTML;
      */
     public static function get_status_report(): array
     {
+        $dev_active = self::is_dev_plugin_active();
+        $old_active = self::is_old_plugin_active();
+
         return [
-            'old_plugin_active' => self::is_old_plugin_active(),
+            'dev_plugin_active' => $dev_active,
+            'dev_plugin_installed' => self::is_dev_plugin_installed(),
+            'old_plugin_active' => $old_active,
             'old_plugin_installed' => self::is_old_plugin_installed(),
             'legacy_data' => self::check_legacy_data(),
             'child_orders' => self::check_child_orders(),
-            'safe_to_run' => !self::is_old_plugin_active()
+            'safe_to_run' => !$dev_active, // 只要開發版未啟用就安全
+            'coexist_mode' => $old_active && !$dev_active // 共存模式
         ];
     }
 
@@ -312,9 +417,18 @@ HTML;
         $html = '<div class="buygo-compatibility-report" style="background: #fff; padding: 15px; border: 1px solid #ccd0d4; margin: 10px 0;">';
         $html .= '<h3 style="margin-top: 0;">🔍 外掛兼容性狀態</h3>';
 
+        // 開發版外掛狀態
+        if ($report['dev_plugin_active']) {
+            $html .= '<p style="color: #d63638;">🚫 <strong>BuyGo+1 開發版：</strong>啟用中（嚴重衝突！請立即停用）</p>';
+        } elseif ($report['dev_plugin_installed']) {
+            $html .= '<p style="color: #dba617;">⚠️ <strong>BuyGo+1 開發版：</strong>已安裝但未啟用</p>';
+        } else {
+            $html .= '<p style="color: #00a32a;">✅ <strong>BuyGo+1 開發版：</strong>未安裝</p>';
+        }
+
         // 舊外掛狀態
         if ($report['old_plugin_active']) {
-            $html .= '<p style="color: #d63638;">❌ <strong>舊版 BuyGo 外掛：</strong>啟用中（衝突！）</p>';
+            $html .= '<p style="color: #0073aa;">ℹ️ <strong>舊版 BuyGo 外掛：</strong>啟用中（共存模式）</p>';
         } elseif ($report['old_plugin_installed']) {
             $html .= '<p style="color: #dba617;">⚠️ <strong>舊版 BuyGo 外掛：</strong>已安裝但未啟用</p>';
         } else {
@@ -343,17 +457,25 @@ HTML;
 
         // 總結
         $html .= '<hr style="margin: 15px 0;">';
-        if ($report['safe_to_run']) {
+        if ($report['dev_plugin_active']) {
+            $html .= '<p style="color: #d63638;"><strong>🚫 目前狀態：嚴重衝突！開發版和正式版不能同時啟用</strong></p>';
+        } elseif ($report['coexist_mode']) {
+            $html .= '<p style="color: #0073aa;"><strong>ℹ️ 目前狀態：共存模式 - 新舊外掛同時運行</strong></p>';
+        } elseif ($report['safe_to_run']) {
             $html .= '<p style="color: #00a32a;"><strong>✅ 目前狀態：安全運行中</strong></p>';
         } else {
-            $html .= '<p style="color: #d63638;"><strong>❌ 目前狀態：檢測到衝突，請停用舊外掛</strong></p>';
+            $html .= '<p style="color: #d63638;"><strong>❌ 目前狀態：檢測到衝突</strong></p>';
         }
 
         // 切換建議
-        if ($report['child_orders']['has_child_orders']) {
+        if ($report['dev_plugin_active']) {
+            $html .= '<p><strong>🔧 處理建議：</strong>請立即停用 BuyGo+1 開發版或正式版其中一個，建議保留正式版。</p>';
+        } elseif ($report['coexist_mode']) {
+            $html .= '<p><strong>📋 共存模式建議：</strong>新外掛已自動停用可能衝突的功能。測試完成後建議停用舊外掛以獲得最佳效能。</p>';
+        } elseif ($report['child_orders']['has_child_orders']) {
             $html .= '<p><strong>📋 切換建議：</strong>由於已有子訂單數據，建議繼續使用新外掛。若需切換回舊外掛，子訂單將顯示異常。</p>';
         } else {
-            $html .= '<p><strong>📋 切換建議：</strong>目前可安全在新舊外掛間切換（一次只能啟用一個）。</p>';
+            $html .= '<p><strong>📋 切換建議：</strong>目前可安全在新舊外掛間切換（一次只能啟用一個，開發版與正式版互斥）。</p>';
         }
 
         $html .= '</div>';
