@@ -23,12 +23,27 @@
 
 ---
 
-### P1 - 本週完成（未開始）
+### P1 - 本週完成（進行中）
 
 - [ ] **A. GitHub 自動更新機制**
   - 讓客戶可透過 WordPress 後台自動更新外掛
   - 工作量：中等（3-4 小時）
   - 參考詳情：[TODO-BUYGO.md - P0-A](TODO-BUYGO.md#a-github-自動更新機制)
+
+- [ ] **UI 統一計畫 - Phase 1**（本週完成，1/31 前）
+  - 統一 5 個頁面的 UI 規範（Header、搜尋框、狀態標籤等）
+  - 工作量：大（8 小時）
+  - Phase 1A：備貨頁面（2 小時）
+  - Phase 1B：出貨頁面（2 小時）
+  - Phase 1C：客戶頁面（1.5 小時）
+  - Phase 2：商品+訂單微調（2.5 小時）
+  - 參考：[UI-UNIFICATION-PLAN.md](UI-UNIFICATION-PLAN.md)
+
+- [ ] **頁面組件分解計畫**（架構準備 + 實施）
+  - 建立 RouterMixin.js 和 DesignSystem.js
+  - 整合到 products.php 和 orders.php
+  - 工作量：中等（4-6 小時，平行進行）
+  - 參考：[PAGE-COMPONENT-DECOMPOSITION-PLAN.md](PAGE-COMPONENT-DECOMPOSITION-PLAN.md)
 
 - [x] **完善 pre-commit hook 測試記錄** ✅ 已完成
   - 驗證現有的 pre-commit hook 運作正常
@@ -51,9 +66,10 @@
 | 階段 | 狀態 | 完成度 |
 |------|------|--------|
 | **第 1-3 階段（代碼優化）** | ✅ 完成 | 100% |
-| **P0 優化任務** | 🟢 進行中 | 66% (2/3) |
-| **P1 後續工作** | ⏳ 待開始 | 0% |
-| **P2 新功能** | 📋 規劃中 | 0% |
+| **P0 優化任務** | ✅ 完成 | 100% (3/3) |
+| **P1 UI 統一 + 組件分解** | 🟡 規劃完成，準備開始 | 0% |
+| **P1 GitHub 自動更新** | ⏳ 待開始 | 0% |
+| **P2 多樣式產品** | 📋 規劃中 | 0% |
 
 ---
 
@@ -67,7 +83,11 @@
 - [DEVELOPMENT-PLAN.md](DEVELOPMENT-PLAN.md) - 開發總體計畫（第 1-4 階段）
 - [LAUNCH-PLAN.md](LAUNCH-PLAN.md) - 上線發布計畫
 
-### 詳細規劃
+### 詳細規劃（本週重點）
+- [UI-UNIFICATION-PLAN.md](UI-UNIFICATION-PLAN.md) - UI 統一計畫（黃金設計原則實施）
+- [PAGE-COMPONENT-DECOMPOSITION-PLAN.md](PAGE-COMPONENT-DECOMPOSITION-PLAN.md) - 頁面組件分解計畫
+
+### 其他詳細規劃
 - [多樣式商品工作計畫.md](多樣式商品工作計畫.md) - Phase C 詳細規劃
 - [repair-strategy.md](repair-strategy.md) - Bug 修復策略
 
