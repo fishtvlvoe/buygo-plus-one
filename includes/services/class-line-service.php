@@ -461,7 +461,7 @@ class LineService {
 		$this->maybe_create_table();
 
 		do {
-			$code = str_pad( mt_rand( 0, 999999 ), 6, '0', STR_PAD_LEFT );
+			$code = str_pad( random_int( 0, 999999 ), 6, '0', STR_PAD_LEFT );
 			$exists = $wpdb->get_var( $wpdb->prepare(
 				"SELECT COUNT(*) FROM {$this->table_name} WHERE binding_code = %s AND status = 'pending'",
 				$code
