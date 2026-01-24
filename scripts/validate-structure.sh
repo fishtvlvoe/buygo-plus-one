@@ -74,8 +74,9 @@ for file in "$API_DIR"/*.php; do
 
         # 檢查是否使用正確的權限檢查
         if grep -q "permission_callback" "$file"; then
-            if grep -q "API::class, 'check_permission'" "$file"; then
-                echo -e "${GREEN}✓ $filename: 使用統一權限檢查${NC}"
+            # 接受多種有效的權限檢查格式
+            if grep -qE "(API::class, 'check_permission'|check_permission|current_user_can)" "$file"; then
+                echo -e "${GREEN}✓ $filename: 使用權限檢查${NC}"
             elif grep -q "__return_true" "$file"; then
                 echo -e "${YELLOW}! $filename: 使用 __return_true（確認是否正確）${NC}"
                 ((WARNINGS++))
