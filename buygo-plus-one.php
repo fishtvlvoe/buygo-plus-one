@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name:       BuyGo+1
+ * Plugin Name:       BuyGo+1 開發版
  * Plugin URI:        https://buygo.me
- * Description:       BuyGo 獨立賣場後台系統
- * Version:           0.03
+ * Description:       BuyGo 獨立賣場後台系統 開發測試版
+ * Version:           0.02
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
  * Author URI:        https://buygo.me
  * License:           GPL v2 or later
- * Text Domain:       buygo-plus-one
+ * Text Domain:       buygo.me
  * Domain Path:       /languages
  */
 
@@ -17,8 +17,15 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-// Define plugin constants
-define('BUYGO_PLUS_ONE_VERSION', '0.03');
+// Define plugin constants (支援與舊版共存)
+// 注意：舊版 buygo 使用 BUYGO_PLUS_ONE_PATH/URL，新版使用 BUYGO_PLUS_ONE_PLUGIN_DIR/URL
+// 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
+
+if (!defined('BUYGO_PLUS_ONE_VERSION')) {
+    define('BUYGO_PLUS_ONE_VERSION', '0.03-dev');
+}
+
+// 新版專用的常數（舊版不會定義這些）
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('BUYGO_PLUS_ONE_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
@@ -51,6 +58,8 @@ register_activation_hook(__FILE__, function () {
     \BuyGoPlus\Services\WebhookLogger::create_table();
     
     // 建立 LINE Service 資料表（如果不存在）
+    // Note: LineService requires DebugService in its constructor
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
     \BuyGoPlus\Services\LineService::create_table();
     
