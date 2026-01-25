@@ -111,7 +111,9 @@ function buygo_fc_payuni_bootstrap(): void
     /**
      * 在 Thank You / 收據頁顯示 ATM/CVS 待付款資訊（銀行代碼、繳費帳號、截止時間）。
      */
-    $renderPendingBox = function ($transaction) {
+    $payuniPendingRendered = false;
+
+    $renderPendingBox = function ($transaction) use (&$payuniPendingRendered) {
         if (!$transaction || ($transaction->payment_method ?? '') !== 'payuni') {
             return;
         }
@@ -132,6 +134,8 @@ function buygo_fc_payuni_bootstrap(): void
         if (!$payNo && !$expireDate) {
             return;
         }
+
+        $payuniPendingRendered = true;
 
         $title = '付款資訊（待完成）';
         if ($paymentType === '2') {
@@ -175,6 +179,25 @@ function buygo_fc_payuni_bootstrap(): void
         $order = is_array($config) ? ($config['order'] ?? null) : null;
         $trx = ($order && !empty($order->last_transaction)) ? $order->last_transaction : null;
         $renderPendingBox($trx);
+    }, 10, 1);
+
+    add_action('fluent_cart/after_receipt', function ($payload) use ($renderPendingBox, &$payuniPendingRendered) {
+        if ($payuniPendingRendered) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- receipt page
+        $trxHash = !empty($_GET['trx_hash']) ? sanitize_text_field(wp_unslash($_GET['trx_hash'])) : '';
+
+        if (!$trxHash) {
+            return;
+        }
+
+        $trx = \FluentCart\App\Models\OrderTransaction::query()->where('uuid', $trxHash)->first();
+
+        if ($trx) {
+            $renderPendingBox($trx);
+        }
     }, 10, 1);
 
     /**
