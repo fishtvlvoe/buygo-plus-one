@@ -65,6 +65,57 @@ function buygo_fc_payuni_bootstrap(): void
         return;
     }
 
+    // FluentCart 前台金額顯示：TWD 隱藏不必要的小數（例如 NT$30.00 → NT$30）
+    add_filter('fluent_cart/hide_unnecessary_decimals', function ($hide, $context) {
+        if (!class_exists(\FluentCart\Api\CurrencySettings::class)) {
+            return $hide;
+        }
+
+        try {
+            $currency = (string) \FluentCart\Api\CurrencySettings::get('currency');
+        } catch (\Throwable $e) {
+            $currency = '';
+        }
+
+        if ($currency === 'TWD') {
+            return true;
+        }
+
+        return $hide;
+    }, 10, 2);
+
+    // 結帳頁只在「購物車包含訂閱」時顯示 payuni_subscription，避免實體商品出現兩個 PayUNi 選項。
+    add_filter('fluent_cart/checkout_active_payment_methods', function ($methods, $context) {
+        $cart = is_array($context) ? ($context['cart'] ?? null) : null;
+
+        $hasSubscription = false;
+        if ($cart && is_object($cart) && method_exists($cart, 'hasSubscription')) {
+            try {
+                $hasSubscription = (bool) $cart->hasSubscription();
+            } catch (\Throwable $e) {
+                $hasSubscription = false;
+            }
+        }
+
+        if ($hasSubscription) {
+            return $methods;
+        }
+
+        if (!is_array($methods)) {
+            return $methods;
+        }
+
+        $filtered = array_filter($methods, function ($method) {
+            if (!is_object($method) || !method_exists($method, 'getMeta')) {
+                return true;
+            }
+
+            return (string) $method->getMeta('route') !== 'payuni_subscription';
+        });
+
+        return array_values($filtered);
+    }, 20, 2);
+
     add_action('fluent_cart/register_payment_methods', function ($args) {
         try {
             $gatewayManager = $args['gatewayManager'];
@@ -72,6 +123,11 @@ function buygo_fc_payuni_bootstrap(): void
             $gateway = new \BuyGoFluentCart\PayUNi\Gateway\PayUNiGateway();
 
             $gatewayManager->register('payuni', $gateway);
+
+            // PayUNi 信用卡（定期定額 / 訂閱）
+            $subGateway = new \BuyGoFluentCart\PayUNi\Gateway\PayUNiSubscriptionGateway();
+
+            $gatewayManager->register('payuni_subscription', $subGateway);
         } catch (\Throwable $e) {
             // Fail-safe: never break FluentCart admin UI.
             error_log('[fluentcart-payuni] Failed to register PayUNi gateway: ' . $e->getMessage());
@@ -104,9 +160,89 @@ function buygo_fc_payuni_bootstrap(): void
 
         echo '<p class="fct-payuni-description">' . esc_html($desc) . '</p>';
 
-        // Inline handler (avoid relying on wp_enqueue_script on checkout page)
-        echo '<script>(function(){if(window.__buygoFcPayuniCheckoutLoaded){return;}window.__buygoFcPayuniCheckoutLoaded=true;window.addEventListener(\"fluent_cart_load_payments_payuni\",function(event){var submitButton=window.fluentcart_checkout_vars&&window.fluentcart_checkout_vars.submit_button;if(event&&event.detail&&event.detail.paymentLoader){event.detail.paymentLoader.enableCheckoutButton((submitButton&&submitButton.text)||\"送出訂單\");}});})();</script>';
+        // PayUNi（一次性）站內先選擇付款方式，再導向 PayUNi
+        echo '<div class="fct-payuni-method-choice" style="margin:12px 0 0;">';
+
+        echo '<div style="font-size:14px;font-weight:600;margin:0 0 8px;">' . esc_html__('付款方式', 'fluentcart-payuni') . '</div>';
+
+        echo '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
+
+        echo '<label style="display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer;">';
+        echo '<input type="radio" name="payuni_payment_type" value="credit" checked>';
+        echo '<span>' . esc_html__('信用卡', 'fluentcart-payuni') . '</span>';
+        echo '</label>';
+
+        echo '<label style="display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer;">';
+        echo '<input type="radio" name="payuni_payment_type" value="atm">';
+        echo '<span>' . esc_html__('ATM 轉帳', 'fluentcart-payuni') . '</span>';
+        echo '</label>';
+
+        echo '<label style="display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer;">';
+        echo '<input type="radio" name="payuni_payment_type" value="cvs">';
+        echo '<span>' . esc_html__('超商繳費', 'fluentcart-payuni') . '</span>';
+        echo '</label>';
+
+        echo '</div>';
+
+        echo '<div style="margin:10px 0 0;color:#6b7280;font-size:13px;line-height:1.4;">' . esc_html__('送出訂單後會導向 PayUNi 付款頁（依你選的付款方式開啟對應流程）。', 'fluentcart-payuni') . '</div>';
+
+        echo '</div>';
     }, 10, 1);
+
+    /**
+     * PayUNi 訂閱（定期定額）- 站內信用卡欄位
+     *
+     * 注意：這裡只輸出輸入欄位，卡號資料不會寫入 DB，只會在本次 checkout request 送到後端呼叫 PayUNi。
+     */
+    add_action('fluent_cart/checkout_embed_payment_method_content', function ($args) {
+        $route = is_array($args) ? ($args['route'] ?? '') : '';
+        if ($route !== 'payuni_subscription') {
+            return;
+        }
+
+        echo '<div class="fct-payuni-subscription-fields" style="margin:12px 0;">';
+        echo '<p style="margin:0 0 10px;">' . esc_html__('使用 PayUNi 信用卡定期定額付款（初次需 3D 驗證）。', 'fluentcart-payuni') . '</p>';
+
+        echo '<div style="display:grid;grid-template-columns:1fr;gap:10px;max-width:420px;">';
+
+        echo '<label style="display:block;">';
+        echo '<div style="margin:0 0 6px;">' . esc_html__('卡號', 'fluentcart-payuni') . '</div>';
+        echo '<input name="payuni_card_number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
+        echo '</label>';
+
+        echo '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+        echo '<label style="display:block;">';
+        echo '<div style="margin:0 0 6px;">' . esc_html__('有效期限（MM/YY）', 'fluentcart-payuni') . '</div>';
+        echo '<input name="payuni_card_expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="12/30" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
+        echo '</label>';
+        echo '<label style="display:block;">';
+        echo '<div style="margin:0 0 6px;">' . esc_html__('安全碼（CVC）', 'fluentcart-payuni') . '</div>';
+        echo '<input name="payuni_card_cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
+        echo '</label>';
+        echo '</div>';
+
+        echo '</div>';
+
+        echo '<p style="margin:10px 0 0;color:#6b7280;font-size:13px;line-height:1.4;">' . esc_html__('提示：初次付款會導向 3D 驗證頁，完成後會回到收據頁。', 'fluentcart-payuni') . '</p>';
+        echo '</div>';
+    }, 10, 1);
+
+    /**
+     * PayUNi 訂閱（定期定額）前台保底：
+     *
+     * FluentCart 在送單前會檢查 window.is_{payment_method}_ready，
+     * 若沒有被設成 true，按鈕會保持 disabled，或送單時直接被擋下。
+     *
+     * 由於 checkout 頁大量使用 fragments/innerHTML 更新，fragment 內的 script 有機率不會執行，
+     * 所以這裡用 wp_footer 輸出全域腳本，確保按鈕能正確解鎖。
+     */
+    add_action('wp_footer', function () {
+        if (is_admin()) {
+            return;
+        }
+
+        echo '<script>(function(){if(window.__buygoFcPayuniReadyBridgeLoaded){return;}window.__buygoFcPayuniReadyBridgeLoaded=true;function getSubmitText(){var sb=window.fluentcart_checkout_vars&&window.fluentcart_checkout_vars.submit_button;return(sb&&sb.text)||"Place Order";}function markReady(method){try{window["is_"+method+"_ready"]=true;}catch(e){}}function enableCheckoutButton(){var txt=getSubmitText();if(window.fluent_cart_checkout_ui_service&&window.fluent_cart_checkout_ui_service.enableCheckoutButton){window.fluent_cart_checkout_ui_service.enableCheckoutButton();if(window.fluent_cart_checkout_ui_service.setCheckoutButtonText){window.fluent_cart_checkout_ui_service.setCheckoutButtonText(txt);}}var btn=document.querySelector("[data-fluent-cart-checkout-page-checkout-button]")||document.getElementById("fluent_cart_order_btn");if(btn){btn.removeAttribute("disabled");if(btn.dataset){btn.dataset.loading="";}btn.innerHTML=txt;}}function getSelectedMethod(){var el=document.querySelector("input[name=\'_fct_pay_method\']:checked");return el?el.value:"";}function activate(method,event){markReady(method);var txt=getSubmitText();if(event&&event.detail&&event.detail.paymentLoader&&event.detail.paymentLoader.enableCheckoutButton){event.detail.paymentLoader.enableCheckoutButton(txt);return;}enableCheckoutButton();}function activateIfSelected(){var m=getSelectedMethod();if(m==="payuni"){activate("payuni");return;}if(m==="payuni_subscription"){activate("payuni_subscription");return;}}window.addEventListener("fluent_cart_after_checkout_js_loaded",activateIfSelected);window.addEventListener("fluentCartFragmentsReplaced",function(){setTimeout(activateIfSelected,0);});document.addEventListener("change",function(e){var t=e&&e.target;if(!t||t.name!=="_fct_pay_method"||!t.checked){return;}if(t.value==="payuni"){activate("payuni");return;}if(t.value==="payuni_subscription"){activate("payuni_subscription");return;}});window.addEventListener("fluent_cart_load_payments_payuni",function(e){activate("payuni",e);});window.addEventListener("fluent_cart_load_payments_payuni_subscription",function(e){activate("payuni_subscription",e);});window.addEventListener("fluent_cart_load_payments_payuni-subscription",function(e){activate("payuni_subscription",e);});activateIfSelected();})();</script>';
+    }, 50);
 
     /**
      * 在 Thank You / 收據頁顯示 ATM/CVS 待付款資訊（銀行代碼、繳費帳號、截止時間）。
@@ -222,6 +358,32 @@ function buygo_fc_payuni_bootstrap(): void
         $isReturn = !empty($_REQUEST['payuni_return']) && sanitize_text_field(wp_unslash($_REQUEST['payuni_return'])) === '1';
 
         if ($isReturn) {
+            // 有些情境（例如：金流端用 GET 轉址）不會把 EncryptInfo/HashInfo 帶回來，
+            // 但網址上仍會有 trx_hash。這種狀況下直接導回收據頁，避免卡在空白 SUCCESS。
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- return from gateway
+            $hasEncrypt = !empty($_REQUEST['EncryptInfo']) || !empty($_REQUEST['HashInfo']);
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- return from gateway
+            $requestTrxHash = !empty($_REQUEST['trx_hash']) ? sanitize_text_field(wp_unslash($_REQUEST['trx_hash'])) : '';
+
+            if (!$hasEncrypt && $requestTrxHash) {
+                $transaction = \FluentCart\App\Models\OrderTransaction::query()
+                    ->where('uuid', $requestTrxHash)
+                    ->where('transaction_type', \FluentCart\App\Helpers\Status::TRANSACTION_TYPE_CHARGE)
+                    ->first();
+
+                if ($transaction) {
+                    $receiptUrl = add_query_arg([
+                        'trx_hash' => $requestTrxHash,
+                        'fct_redirect' => 'yes',
+                        'payuni_return' => '1',
+                    ], $transaction->getReceiptPageUrl(true));
+
+                    wp_safe_redirect($receiptUrl);
+                    exit;
+                }
+            }
+
             $trxHash = (new \BuyGoFluentCart\PayUNi\Webhook\ReturnHandler())->handleReturn();
 
             if ($trxHash) {
@@ -253,6 +415,26 @@ function buygo_fc_payuni_bootstrap(): void
 
         (new \BuyGoFluentCart\PayUNi\Webhook\NotifyHandler())->processNotify();
     }, 1);
+
+    /**
+     * PayUNi 訂閱（定期定額）排程扣款
+     *
+     * FluentCart 會用 Action Scheduler 每 5 分鐘觸發一次 fluent_cart/scheduler/five_minutes_tasks。
+     * 我們在這裡掃描「到期」的 payuni_subscription 訂閱，呼叫 PayUNi credit API 幕後扣款，
+     * 成功後用 FluentCart 的 SubscriptionService::recordRenewalPayment 建立 renewal 訂單/交易。
+     */
+    add_action('fluent_cart/scheduler/five_minutes_tasks', function () {
+        if (!class_exists(\FluentCart\App\Models\Subscription::class)) {
+            return;
+        }
+
+        try {
+            (new \BuyGoFluentCart\PayUNi\Scheduler\PayUNiSubscriptionRenewalRunner())->run();
+        } catch (\Throwable $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            error_log('[fluentcart-payuni] Renewal runner error: ' . $e->getMessage());
+        }
+    }, 20);
 
     /**
      * 保底：如果 FluentCart 把使用者先導到收據頁（付款待處理），

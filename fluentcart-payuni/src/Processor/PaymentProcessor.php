@@ -85,10 +85,28 @@ final class PaymentProcessor
         $encryptInfo['NotifyURL'] = $notifyUrl;
         $encryptInfo['Lang'] = 'zh-tw';
 
+        // 站內選擇付款方式（一次性）：credit / atm / cvs
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- checkout request
+        $payType = !empty($_REQUEST['payuni_payment_type']) ? sanitize_text_field(wp_unslash($_REQUEST['payuni_payment_type'])) : '';
+
         // 至少要指定一種支付方式，否則 PayUNi 可能直接回跳（看起來像「沒進入付款頁」）
-        $encryptInfo['Credit'] = 1;
-        $encryptInfo['ATM'] = 1;
-        $encryptInfo['CVS'] = 1;
+        $encryptInfo['Credit'] = 0;
+        $encryptInfo['ATM'] = 0;
+        $encryptInfo['CVS'] = 0;
+
+        if ($payType === 'atm') {
+            $encryptInfo['ATM'] = 1;
+        } elseif ($payType === 'cvs') {
+            $encryptInfo['CVS'] = 1;
+        } elseif ($payType === 'credit') {
+            $encryptInfo['Credit'] = 1;
+        } else {
+            // fallback: 全開（維持舊行為）
+            $encryptInfo['Credit'] = 1;
+            $encryptInfo['ATM'] = 1;
+            $encryptInfo['CVS'] = 1;
+            $payType = 'all';
+        }
 
         // Always log initiation (for debugging)
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -121,6 +139,7 @@ final class PaymentProcessor
                 'trade_amt' => $tradeAmt,
                 'return_url' => $returnUrl,
                 'notify_url' => $notifyUrl,
+                'checkout_payment_type' => $payType,
             ]),
         ]);
         $transaction->save();
