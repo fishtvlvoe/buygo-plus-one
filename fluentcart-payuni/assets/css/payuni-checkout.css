@@ -1,0 +1,167 @@
+.buygo-payuni {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: #0f172a;
+}
+
+.buygo-payuni * {
+  box-sizing: border-box;
+}
+
+.buygo-payuni p {
+  margin: 0;
+  line-height: 1.6;
+  color: #0f172a;
+}
+
+.buygo-payuni .muted {
+  color: #475569;
+}
+
+.buygo-payuni .small {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.buygo-payuni .card {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+}
+
+.buygo-payuni .section {
+  margin-top: 14px;
+}
+
+.buygo-payuni .section-title {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+}
+
+.buygo-payuni .methods {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.buygo-payuni .method {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.buygo-payuni .method:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.buygo-payuni .method.selected {
+  border-color: var(--buygo-payuni-accent, #136196);
+  background: rgba(19, 97, 150, 0.06);
+  box-shadow: 0 0 0 3px rgba(19, 97, 150, 0.12);
+}
+
+.buygo-payuni .method .left {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.buygo-payuni .method .radio {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--buygo-payuni-accent, #136196);
+}
+
+.buygo-payuni .method .label {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.buygo-payuni .method .desc {
+  margin-top: 2px;
+}
+
+.buygo-payuni .field {
+  display: grid;
+  gap: 6px;
+}
+
+.buygo-payuni .grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.buygo-payuni .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.buygo-payuni label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.buygo-payuni input[type="text"],
+.buygo-payuni input[type="tel"],
+.buygo-payuni input[type="password"],
+.buygo-payuni select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.buygo-payuni input::placeholder {
+  color: #94a3b8;
+}
+
+.buygo-payuni input:focus,
+.buygo-payuni select:focus {
+  border-color: var(--buygo-payuni-accent, #136196);
+  box-shadow: 0 0 0 3px rgba(19, 97, 150, 0.18);
+}
+
+.buygo-payuni .hint {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 420px) {
+  .buygo-payuni .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buygo-payuni .method,
+  .buygo-payuni input,
+  .buygo-payuni select {
+    transition: none;
+  }
+}
+

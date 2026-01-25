@@ -113,8 +113,28 @@ final class ReturnHandler
                 (new PaymentProcessor($settings))->processFailedPayment($transaction, $decrypted, 'return_credit');
             }
         } elseif ($paymentMethod === 'payuni') {
-            // UPP（一次性，含 ATM/CVS/信用卡導轉頁）
             $processor = new PaymentProcessor($settings);
+            $meta = $transaction->meta ?? [];
+            $payuniMeta = is_array($meta) ? ($meta['payuni'] ?? []) : [];
+            $tradeType = is_array($payuniMeta) ? (string) ($payuniMeta['trade_type'] ?? '') : '';
+
+            // 一次性信用卡（站內刷卡 + 3D）：PayUNi credit API 回跳
+            // 判斷準據：transaction meta 的 trade_type=credit（其次才用 payload 的欄位做保底）
+            $maybeCredit = ($tradeType === 'credit') || (isset($decrypted['Status']) && !isset($decrypted['TradeStatus']));
+
+            if ($maybeCredit) {
+                $status = (string) ($decrypted['Status'] ?? '');
+
+                if ($status === 'SUCCESS') {
+                    $processor->confirmCreditPaymentSuccess($transaction, $decrypted, 'return_credit');
+                } else {
+                    $processor->processFailedPayment($transaction, $decrypted, 'return_credit');
+                }
+
+                return $trxHash;
+            }
+
+            // UPP（一次性，含 ATM/CVS/信用卡導轉頁）
             $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
             $paymentType = (string) ($decrypted['PaymentType'] ?? '');
 

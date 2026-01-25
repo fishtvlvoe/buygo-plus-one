@@ -286,6 +286,8 @@ class PayUNiGateway extends AbstractPaymentGateway
         return [
             'buygo_fc_payuni_data' => [
                 'description' => $description,
+                'css_url' => BUYGO_FC_PAYUNI_URL . 'assets/css/payuni-checkout.css',
+                'accent' => '#136196',
             ],
         ];
     }

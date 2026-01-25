@@ -118,8 +118,42 @@ final class NotifyHandler
 
         $processor = new PaymentProcessor($settings);
 
+        $meta = $transaction->meta ?? [];
+        $payuniMeta = is_array($meta) ? ($meta['payuni'] ?? []) : [];
+        $tradeType = is_array($payuniMeta) ? (string) ($payuniMeta['trade_type'] ?? '') : '';
+
         $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
         $paymentType = (string) ($decrypted['PaymentType'] ?? '');
+
+        // ATM/CVS 幕後通知（通常是 Status=SUCCESS + PayTime 等欄位）
+        // 這裡不要用 TradeStatus 判斷，因為 atm/cvs 的 notify payload 格式不同。
+        if (isset($decrypted['Status']) && !$tradeStatus && ($tradeType === 'atm' || $tradeType === 'cvs')) {
+            $status = (string) ($decrypted['Status'] ?? '');
+
+            if ($status === 'SUCCESS') {
+                $processor->confirmPaymentSuccess($transaction, $decrypted, 'notify_' . $tradeType);
+            } else {
+                $processor->processFailedPayment($transaction, $decrypted, 'notify_' . $tradeType);
+            }
+
+            $this->sendResponse('SUCCESS');
+            return;
+        }
+
+        // 一次性信用卡（站內刷卡 + 3D）：PayUNi credit API notify（可能沒有 TradeStatus）
+        $maybeCredit = ($tradeType === 'credit') || (isset($decrypted['Status']) && !$tradeStatus);
+
+        if ($maybeCredit) {
+            $status = (string) ($decrypted['Status'] ?? '');
+            if ($status === 'SUCCESS') {
+                $processor->confirmCreditPaymentSuccess($transaction, $decrypted, 'notify_credit');
+            } else {
+                $processor->processFailedPayment($transaction, $decrypted, 'notify_credit');
+            }
+
+            $this->sendResponse('SUCCESS');
+            return;
+        }
 
         // TradeStatus: 0 待付款 / 1 已付款 / 2 付款失敗 / 3 付款取消
         if ($tradeStatus === '1') {
