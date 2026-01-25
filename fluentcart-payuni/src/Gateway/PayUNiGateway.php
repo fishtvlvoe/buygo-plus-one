@@ -113,6 +113,12 @@ class PayUNiGateway extends AbstractPaymentGateway
             'method' => 'payuni',
         ], site_url('/'));
 
+        $returnUrl = add_query_arg([
+            'fct_payment_listener' => '1',
+            'method' => 'payuni',
+            'payuni_return' => '1',
+        ], site_url('/'));
+
         return [
             'notice' => [
                 'value' => $this->renderStoreModeNotice(),
@@ -193,6 +199,17 @@ class PayUNiGateway extends AbstractPaymentGateway
                     esc_html($notifyUrl)
                 ),
             ],
+
+            'return_url_info' => [
+                'type' => 'html_attr',
+                'label' => __('Return URL（回跳）', 'fluentcart-payuni'),
+                'value' => sprintf(
+                    '<div class="mt-3"><p class="mb-2">%s</p><code class="copyable-content">%s</code><p class="mt-2 text-sm text-gray-600">%s</p></div>',
+                    esc_html__('請到 PayUNi 後台設定這個網址：', 'fluentcart-payuni'),
+                    esc_html($returnUrl),
+                    esc_html__('提示：外掛每筆訂單也會另外送出「帶 trx_hash 的 ReturnURL」給 PayUNi，這條是固定備援入口。', 'fluentcart-payuni')
+                ),
+            ],
         ];
     }
 
@@ -205,6 +222,10 @@ class PayUNiGateway extends AbstractPaymentGateway
 
         if (isset($data['notify_url_info'])) {
             unset($data['notify_url_info']);
+        }
+
+        if (isset($data['return_url_info'])) {
+            unset($data['return_url_info']);
         }
 
         // Keep Logger option aligned (best-effort)
@@ -281,8 +302,30 @@ class PayUNiGateway extends AbstractPaymentGateway
         $isReturn = !empty($_REQUEST['payuni_return']) && sanitize_text_field(wp_unslash($_REQUEST['payuni_return'])) === '1';
 
         if ($isReturn) {
-            (new ReturnHandler())->handleReturn();
-            echo esc_html('SUCCESS');
+            $trxHash = (new ReturnHandler())->handleReturn();
+
+            if (!$trxHash) {
+                echo esc_html('SUCCESS');
+                exit;
+            }
+
+            $transaction = \FluentCart\App\Models\OrderTransaction::query()
+                ->where('uuid', $trxHash)
+                ->where('transaction_type', \FluentCart\App\Helpers\Status::TRANSACTION_TYPE_CHARGE)
+                ->first();
+
+            if (!$transaction) {
+                echo esc_html('SUCCESS');
+                exit;
+            }
+
+            $receiptUrl = add_query_arg([
+                'trx_hash' => $trxHash,
+                'fct_redirect' => 'yes',
+                'payuni_return' => '1',
+            ], $transaction->getReceiptPageUrl(true));
+
+            wp_safe_redirect($receiptUrl);
             exit;
         }
 

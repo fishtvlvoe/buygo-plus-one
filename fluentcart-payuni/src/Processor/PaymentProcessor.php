@@ -37,7 +37,9 @@ final class PaymentProcessor
 
         $trxHash = $transaction->uuid;
 
-        $merchantTradeNo = $trxHash . '__' . time() . '_' . substr(md5(wp_generate_password(12, false, false)), 0, 8);
+        // PayUNi MerTradeNo 有長度限制，不能直接用 32 位 uuid + timestamp。
+        // 用「交易 id + 非數字分隔 + 短時間戳」來保持短且可回找。
+        $merchantTradeNo = $this->generateMerTradeNo($transaction);
 
         $mode = $this->settings->getMode();
 
@@ -51,13 +53,12 @@ final class PaymentProcessor
             'mode' => $mode,
         ]);
 
-        $receiptUrl = $transaction->getReceiptPageUrl(true);
-
         $returnUrl = add_query_arg([
-            'trx_hash' => $trxHash,
-            'fct_redirect' => 'yes',
+            'fct_payment_listener' => '1',
+            'method' => 'payuni',
             'payuni_return' => '1',
-        ], $receiptUrl);
+            'trx_hash' => $trxHash,
+        ], site_url('/'));
 
         $notifyUrl = add_query_arg([
             'fct_payment_listener' => '1',
@@ -71,6 +72,7 @@ final class PaymentProcessor
             'MerID' => $this->settings->getMerId($mode),
             'MerTradeNo' => $merchantTradeNo,
             'TradeAmt' => $tradeAmt,
+            'ExpireDate' => gmdate('Y-m-d', strtotime('+7 days')),
             'Timestamp' => time(),
         ];
 
@@ -81,6 +83,24 @@ final class PaymentProcessor
         $encryptInfo['ProdDesc'] = $this->buildProdDesc($order);
         $encryptInfo['ReturnURL'] = $returnUrl;
         $encryptInfo['NotifyURL'] = $notifyUrl;
+        $encryptInfo['Lang'] = 'zh-tw';
+
+        // 至少要指定一種支付方式，否則 PayUNi 可能直接回跳（看起來像「沒進入付款頁」）
+        $encryptInfo['Credit'] = 1;
+        $encryptInfo['ATM'] = 1;
+        $encryptInfo['CVS'] = 1;
+
+        // Always log initiation (for debugging)
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        error_log('[buygo-payuni][INIT] ' . wp_json_encode([
+            'trx_hash' => $trxHash,
+            'mode' => $mode,
+            'endpoint' => (new PayUNiAPI($this->settings))->getEndpointUrl('upp', $mode),
+            'MerTradeNo' => $merchantTradeNo,
+            'TradeAmt' => $tradeAmt,
+            'ReturnURL' => $returnUrl,
+            'NotifyURL' => $notifyUrl,
+        ]));
 
         $api = new PayUNiAPI($this->settings);
         $params = $api->buildParams($encryptInfo, 'upp', '2.0', $mode);
@@ -270,6 +290,24 @@ final class PaymentProcessor
         }
 
         return (string) get_bloginfo('name');
+    }
+
+    private function generateMerTradeNo($transaction): string
+    {
+        $id = (int) ($transaction->id ?? 0);
+        if ($id < 1) {
+            // fallback: 取 uuid 前 10 碼（仍然短）
+            $idPart = substr((string) ($transaction->uuid ?? ''), 0, 10);
+            $idPart = preg_replace('/[^a-zA-Z0-9]/', '', (string) $idPart);
+            $idPart = $idPart ?: (string) time();
+            return 'T' . $idPart;
+        }
+
+        $timePart = base_convert((string) time(), 10, 36);
+        $randPart = substr(md5(wp_generate_password(12, false, false)), 0, 2);
+
+        // Example: "123Akw3f9zq" (digit id + 'A' + base36 time + 2 chars)
+        return $id . 'A' . $timePart . $randPart;
     }
 }
 

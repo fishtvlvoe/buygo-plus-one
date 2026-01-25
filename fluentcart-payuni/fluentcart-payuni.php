@@ -109,6 +109,129 @@ function buygo_fc_payuni_bootstrap(): void
     }, 10, 1);
 
     /**
+     * 在 Thank You / 收據頁顯示 ATM/CVS 待付款資訊（銀行代碼、繳費帳號、截止時間）。
+     */
+    $renderPendingBox = function ($transaction) {
+        if (!$transaction || ($transaction->payment_method ?? '') !== 'payuni') {
+            return;
+        }
+
+        $meta = $transaction->meta ?? [];
+        $payuni = is_array($meta) ? ($meta['payuni'] ?? []) : [];
+        $pending = is_array($payuni) ? ($payuni['pending'] ?? null) : null;
+
+        if (!is_array($pending)) {
+            return;
+        }
+
+        $paymentType = (string) ($pending['payment_type'] ?? '');
+        $bankType = (string) ($pending['bank_type'] ?? '');
+        $payNo = (string) ($pending['pay_no'] ?? '');
+        $expireDate = (string) ($pending['expire_date'] ?? '');
+
+        if (!$payNo && !$expireDate) {
+            return;
+        }
+
+        $title = '付款資訊（待完成）';
+        if ($paymentType === '2') {
+            $title = 'ATM 轉帳資訊（待付款）';
+        } elseif ($paymentType === '3') {
+            $title = '超商繳費資訊（待付款）';
+        }
+
+        echo '<div style="margin:16px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">';
+        echo '<div style="font-weight:700;margin-bottom:8px;">' . esc_html($title) . '</div>';
+
+        if ($bankType) {
+            echo '<div style="margin-bottom:6px;">銀行代碼：<code style="padding:2px 6px;background:#f3f4f6;border-radius:6px;">' . esc_html($bankType) . '</code></div>';
+        }
+
+        if ($payNo) {
+            echo '<div style="margin-bottom:6px;">繳費帳號：<code style="padding:2px 6px;background:#f3f4f6;border-radius:6px;">' . esc_html($payNo) . '</code></div>';
+        }
+
+        if ($expireDate) {
+            echo '<div style="margin-bottom:0;">繳費截止：' . esc_html($expireDate) . '</div>';
+        }
+
+        echo '<div style="margin-top:10px;color:#6b7280;font-size:13px;line-height:1.4;">完成付款後，狀態會在 PayUNi 通知（NotifyURL）到達後自動更新。你也可以稍後重新整理這個頁面。</div>';
+        echo '</div>';
+    };
+
+    add_action('fluent_cart/receipt/thank_you/after_order_header', function ($config) use ($renderPendingBox) {
+        // 優先用網址上的 trx_hash 找到正確交易（避免抓到 order->last_transaction 不是同一筆）
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- receipt page
+        $trxHash = !empty($_GET['trx_hash']) ? sanitize_text_field(wp_unslash($_GET['trx_hash'])) : '';
+
+        if ($trxHash) {
+            $trx = \FluentCart\App\Models\OrderTransaction::query()->where('uuid', $trxHash)->first();
+            if ($trx) {
+                $renderPendingBox($trx);
+                return;
+            }
+        }
+
+        $order = is_array($config) ? ($config['order'] ?? null) : null;
+        $trx = ($order && !empty($order->last_transaction)) ? $order->last_transaction : null;
+        $renderPendingBox($trx);
+    }, 10, 1);
+
+    /**
+     * Back-compat listener:
+     * 有些金流後台/舊設定會用 ?fct_payment_listener=1&method=payuni 送回來，
+     * 但 FluentCart 的 IPN listener 其實是 ?fluent-cart=fct_payment_listener_ipn&method=xxx。
+     *
+     * 這裡直接把 payuni 的回呼/回跳在 template_redirect 接住，避免落回主題頁。
+     */
+    add_action('template_redirect', function () {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- webhook/return
+        $isLegacyListener = !empty($_REQUEST['fct_payment_listener']) && sanitize_text_field(wp_unslash($_REQUEST['fct_payment_listener'])) === '1';
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- webhook/return
+        $method = !empty($_REQUEST['method']) ? sanitize_text_field(wp_unslash($_REQUEST['method'])) : '';
+
+        if (!$isLegacyListener || $method !== 'payuni') {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- webhook/return
+        $isReturn = !empty($_REQUEST['payuni_return']) && sanitize_text_field(wp_unslash($_REQUEST['payuni_return'])) === '1';
+
+        if ($isReturn) {
+            $trxHash = (new \BuyGoFluentCart\PayUNi\Webhook\ReturnHandler())->handleReturn();
+
+            if ($trxHash) {
+                $transaction = \FluentCart\App\Models\OrderTransaction::query()
+                    ->where('uuid', $trxHash)
+                    ->where('transaction_type', \FluentCart\App\Helpers\Status::TRANSACTION_TYPE_CHARGE)
+                    ->first();
+
+                if ($transaction) {
+                    $receiptUrl = add_query_arg([
+                        'trx_hash' => $trxHash,
+                        'fct_redirect' => 'yes',
+                        'payuni_return' => '1',
+                    ], $transaction->getReceiptPageUrl(true));
+
+                    wp_safe_redirect($receiptUrl);
+                    exit;
+                }
+            }
+
+            echo esc_html('SUCCESS');
+            exit;
+        }
+
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo esc_html('OK');
+            exit;
+        }
+
+        (new \BuyGoFluentCart\PayUNi\Webhook\NotifyHandler())->processNotify();
+    }, 1);
+
+    /**
      * 保底：如果 FluentCart 把使用者先導到收據頁（付款待處理），
      * 我們在「剛下單的那一次」自動導到 PayUNi 付款頁。
      */

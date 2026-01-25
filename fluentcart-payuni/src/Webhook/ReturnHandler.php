@@ -19,7 +19,7 @@ use BuyGoFluentCart\PayUNi\Utils\Logger;
  */
 final class ReturnHandler
 {
-    public function handleReturn(): void
+    public function handleReturn(): string
     {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- return from gateway
         $trxHash = isset($_REQUEST['trx_hash']) ? sanitize_text_field(wp_unslash($_REQUEST['trx_hash'])) : '';
@@ -34,7 +34,7 @@ final class ReturnHandler
         $hashInfo = isset($_REQUEST['HashInfo']) ? (string) wp_unslash($_REQUEST['HashInfo']) : '';
 
         if (!$encryptInfo || !$hashInfo) {
-            return;
+            return '';
         }
 
         $settings = new PayUNiSettingsBase();
@@ -44,7 +44,7 @@ final class ReturnHandler
             Logger::warning('Return HashInfo mismatch', [
                 'trx_hash' => $trxHash,
             ]);
-            return;
+            return '';
         }
 
         $decrypted = $crypto->decryptInfo($encryptInfo);
@@ -52,7 +52,7 @@ final class ReturnHandler
             Logger::warning('Return decrypt failed', [
                 'trx_hash' => $trxHash,
             ]);
-            return;
+            return '';
         }
 
         if (!$trxHash) {
@@ -61,8 +61,24 @@ final class ReturnHandler
         }
 
         if (!$trxHash) {
-            return;
+            return '';
         }
+
+        // Always log return payload (for debugging the "stuck pending" issue)
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        error_log('[buygo-payuni][RETURN] ' . wp_json_encode([
+            'trx_hash' => $trxHash,
+            'TradeStatus' => (string) ($decrypted['TradeStatus'] ?? ''),
+            'PaymentType' => (string) ($decrypted['PaymentType'] ?? ''),
+            'Message' => (string) ($decrypted['Message'] ?? ''),
+            'TradeNo' => (string) ($decrypted['TradeNo'] ?? ''),
+            'MerTradeNo' => (string) ($decrypted['MerTradeNo'] ?? ''),
+            'TradeAmt' => (string) ($decrypted['TradeAmt'] ?? ''),
+            'PayNo' => (string) ($decrypted['PayNo'] ?? ''),
+            'BankType' => (string) ($decrypted['BankType'] ?? ''),
+            'ExpireDate' => (string) ($decrypted['ExpireDate'] ?? ''),
+            'raw_keys' => array_keys($decrypted),
+        ]));
 
         $transaction = OrderTransaction::query()
             ->where('uuid', $trxHash)
@@ -70,11 +86,11 @@ final class ReturnHandler
             ->first();
 
         if (!$transaction) {
-            return;
+            return '';
         }
 
         if (($transaction->payment_method ?? '') !== 'payuni') {
-            return;
+            return '';
         }
 
         Logger::info('PayUNi return received', [
@@ -82,13 +98,33 @@ final class ReturnHandler
         ]);
 
         $processor = new PaymentProcessor($settings);
-        $status = (string) ($decrypted['Status'] ?? '');
+        $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
+        $paymentType = (string) ($decrypted['PaymentType'] ?? '');
 
-        if ($status === 'SUCCESS') {
+        // TradeStatus: 0 待付款 / 1 已付款 / 2 付款失敗 / 3 付款取消
+        if ($tradeStatus === '1') {
             $processor->confirmPaymentSuccess($transaction, $decrypted, 'return');
+        } elseif ($tradeStatus === '0') {
+            $transaction->meta = array_merge($transaction->meta ?? [], [
+                'payuni' => array_merge(($transaction->meta['payuni'] ?? []), [
+                    'pending' => [
+                        'payment_type' => $paymentType,
+                        'trade_no' => (string) ($decrypted['TradeNo'] ?? ''),
+                        'trade_amt' => (string) ($decrypted['TradeAmt'] ?? ''),
+                        'message' => (string) ($decrypted['Message'] ?? ''),
+                        'bank_type' => (string) ($decrypted['BankType'] ?? ''),
+                        'pay_no' => (string) ($decrypted['PayNo'] ?? ''),
+                        'expire_date' => (string) ($decrypted['ExpireDate'] ?? ''),
+                        'raw' => $decrypted,
+                    ],
+                ]),
+            ]);
+            $transaction->save();
         } else {
             $processor->processFailedPayment($transaction, $decrypted, 'return');
         }
+
+        return $trxHash;
     }
 
     private function extractTrxHashFromMerTradeNo(string $merTradeNo): string
@@ -107,6 +143,17 @@ final class ReturnHandler
         $parts = explode('_', $merTradeNo, 2);
         if (!empty($parts[0])) {
             return (string) $parts[0];
+        }
+
+        // New format: "{transaction_id}A{timebase36}{rand}"
+        if (preg_match('/^(\d+)A/i', $merTradeNo, $m)) {
+            $trxId = (int) ($m[1] ?? 0);
+            if ($trxId > 0) {
+                $transaction = OrderTransaction::query()->where('id', $trxId)->first();
+                if ($transaction && !empty($transaction->uuid)) {
+                    return (string) $transaction->uuid;
+                }
+            }
         }
 
         return '';

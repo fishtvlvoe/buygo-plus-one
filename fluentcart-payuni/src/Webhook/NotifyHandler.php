@@ -67,6 +67,21 @@ final class NotifyHandler
             return;
         }
 
+        // Always log notify payload (for debugging)
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        error_log('[buygo-payuni][NOTIFY] ' . wp_json_encode([
+            'TradeStatus' => (string) ($decrypted['TradeStatus'] ?? ''),
+            'PaymentType' => (string) ($decrypted['PaymentType'] ?? ''),
+            'Message' => (string) ($decrypted['Message'] ?? ''),
+            'TradeNo' => (string) ($decrypted['TradeNo'] ?? ''),
+            'MerTradeNo' => (string) ($decrypted['MerTradeNo'] ?? ''),
+            'TradeAmt' => (string) ($decrypted['TradeAmt'] ?? ''),
+            'PayNo' => (string) ($decrypted['PayNo'] ?? ''),
+            'BankType' => (string) ($decrypted['BankType'] ?? ''),
+            'ExpireDate' => (string) ($decrypted['ExpireDate'] ?? ''),
+            'raw_keys' => array_keys($decrypted),
+        ]));
+
         $merchantTradeNo = (string) ($decrypted['MerTradeNo'] ?? '');
         $trxHash = $this->extractTrxHashFromMerTradeNo($merchantTradeNo);
 
@@ -103,9 +118,28 @@ final class NotifyHandler
 
         $processor = new PaymentProcessor($settings);
 
-        $status = (string) ($decrypted['Status'] ?? '');
-        if ($status === 'SUCCESS') {
+        $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
+        $paymentType = (string) ($decrypted['PaymentType'] ?? '');
+
+        // TradeStatus: 0 待付款 / 1 已付款 / 2 付款失敗 / 3 付款取消
+        if ($tradeStatus === '1') {
             $processor->confirmPaymentSuccess($transaction, $decrypted, 'notify');
+        } elseif ($tradeStatus === '0') {
+            $transaction->meta = array_merge($transaction->meta ?? [], [
+                'payuni' => array_merge(($transaction->meta['payuni'] ?? []), [
+                    'pending' => [
+                        'payment_type' => $paymentType,
+                        'trade_no' => (string) ($decrypted['TradeNo'] ?? ''),
+                        'trade_amt' => (string) ($decrypted['TradeAmt'] ?? ''),
+                        'message' => (string) ($decrypted['Message'] ?? ''),
+                        'bank_type' => (string) ($decrypted['BankType'] ?? ''),
+                        'pay_no' => (string) ($decrypted['PayNo'] ?? ''),
+                        'expire_date' => (string) ($decrypted['ExpireDate'] ?? ''),
+                        'raw' => $decrypted,
+                    ],
+                ]),
+            ]);
+            $transaction->save();
         } else {
             $processor->processFailedPayment($transaction, $decrypted, 'notify');
         }
@@ -135,6 +169,17 @@ final class NotifyHandler
         $parts = explode('_', $merTradeNo, 2);
         if (!empty($parts[0])) {
             return (string) $parts[0];
+        }
+
+        // New format: "{transaction_id}A{timebase36}{rand}"
+        if (preg_match('/^(\d+)A/i', $merTradeNo, $m)) {
+            $trxId = (int) ($m[1] ?? 0);
+            if ($trxId > 0) {
+                $transaction = OrderTransaction::query()->where('id', $trxId)->first();
+                if ($transaction && !empty($transaction->uuid)) {
+                    return (string) $transaction->uuid;
+                }
+            }
         }
 
         return '';
