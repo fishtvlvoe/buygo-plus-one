@@ -26,18 +26,18 @@ class LineWebhookHandler {
 	private $product_data_parser;
 
 	/**
-	 * Debug Service
+	 * Webhook Logger
 	 *
-	 * @var DebugService
+	 * @var WebhookLogger
 	 */
-	private $debugService;
+	private $logger;
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->product_data_parser = new ProductDataParser();
-		$this->debugService = DebugService::get_instance();
+		$this->logger = WebhookLogger::get_instance();
 	}
 
 	/**
@@ -117,7 +117,7 @@ class LineWebhookHandler {
 		set_time_limit( 0 );
 
 		// Log webhook received
-		$this->debugService->log( 'webhook_received', array( 'event_count' => count( $events ) ) );
+		$this->logger->log( 'webhook_received', array( 'event_count' => count( $events ) ) );
 
 		foreach ( $events as $event ) {
 			// Check for Verify Event (Dummy Token)
@@ -212,7 +212,7 @@ class LineWebhookHandler {
 		$reply_token = $event['replyToken'] ?? '';
 
 		// Log image message received
-		$this->debugService->log( 'image_uploaded', array(
+		$this->logger->log( 'image_uploaded', array(
 			'message_id' => $message_id,
 			'line_uid' => $line_uid,
 		), null, $line_uid );
@@ -223,7 +223,7 @@ class LineWebhookHandler {
 
 		if ( ! $user ) {
 			// User not bound
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'User not bound',
 				'line_uid' => $line_uid,
 				'step' => 'user_lookup',
@@ -235,7 +235,7 @@ class LineWebhookHandler {
 			return;
 		}
 
-		$this->debugService->log( 'user_found', array(
+		$this->logger->log( 'user_found', array(
 			'user_id' => $user->ID,
 			'line_uid' => $line_uid,
 			'step' => 'user_lookup',
@@ -248,7 +248,7 @@ class LineWebhookHandler {
 		// 3. buygo_helper 小幫手（buygo_helper 角色或 wp_buygo_helpers 資料表中）
 		if ( ! $this->can_upload_product( $user ) ) {
 			// 記錄權限被拒絕的詳細資訊
-			$this->debugService->log( 'permission_denied', array(
+			$this->logger->log( 'permission_denied', array(
 				'message' => 'User does not have permission to upload products',
 				'user_id' => $user->ID,
 				'user_login' => $user->user_login,
@@ -265,7 +265,7 @@ class LineWebhookHandler {
 			return;
 		}
 
-		$this->debugService->log( 'permission_granted', array(
+		$this->logger->log( 'permission_granted', array(
 			'user_id' => $user->ID,
 			'roles' => $user->roles ?? [],
 		), $user->ID, $line_uid );
@@ -275,7 +275,7 @@ class LineWebhookHandler {
 		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
 
 		// Debug: 記錄 token 狀態
-		$this->debugService->log( 'token_retrieved', array(
+		$this->logger->log( 'token_retrieved', array(
 			'has_token' => ! empty( $token ),
 			'token_length' => ! empty( $token ) ? strlen( $token ) : 0,
 			'token_preview' => ! empty( $token ) ? substr( $token, 0, 20 ) . '...' : '[empty]',
@@ -283,7 +283,7 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		if ( empty( $token ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Channel Access Token is empty',
 				'line_uid' => $line_uid,
 				'step' => 'get_token',
@@ -291,7 +291,7 @@ class LineWebhookHandler {
 			return;
 		}
 
-		$this->debugService->log( 'image_download_start', array(
+		$this->logger->log( 'image_download_start', array(
 			'message_id' => $message_id,
 			'user_id' => $user->ID,
 			'line_uid' => $line_uid,
@@ -302,7 +302,7 @@ class LineWebhookHandler {
 		$attachment_id = $image_uploader->download_and_upload( $message_id, $user->ID );
 
 		if ( is_wp_error( $attachment_id ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Image upload failed',
 				'error' => $attachment_id->get_error_message(),
 			), $user->ID, $line_uid );
@@ -315,14 +315,14 @@ class LineWebhookHandler {
 			return;
 		}
 
-		$this->debugService->log( 'image_uploaded_success', array(
+		$this->logger->log( 'image_uploaded_success', array(
 			'attachment_id' => $attachment_id,
 			'user_id' => $user->ID,
 			'step' => 'image_uploaded',
 		), $user->ID, $line_uid );
 
 		// Send Flex Message menu
-		$this->debugService->log( 'template_lookup_start', array(
+		$this->logger->log( 'template_lookup_start', array(
 			'template_key' => 'flex_image_upload_menu',
 			'step' => 'send_reply',
 		), $user->ID, $line_uid );
@@ -330,7 +330,7 @@ class LineWebhookHandler {
 		$template = \BuyGoPlus\Services\NotificationTemplates::get('flex_image_upload_menu', []);
 		
 		if ( $template && isset( $template['line']['flex_template'] ) ) {
-			$this->debugService->log( 'flex_template_found', array(
+			$this->logger->log( 'flex_template_found', array(
 				'template_key' => 'flex_image_upload_menu',
 				'step' => 'send_reply',
 			), $user->ID, $line_uid );
@@ -338,7 +338,7 @@ class LineWebhookHandler {
 			$flex_message = \BuyGoPlus\Services\NotificationTemplates::build_flex_message( $template['line']['flex_template'] );
 			$this->send_reply( $reply_token, $flex_message, $line_uid );
 		} else {
-			$this->debugService->log( 'flex_template_not_found', array(
+			$this->logger->log( 'flex_template_not_found', array(
 				'template_key' => 'flex_image_upload_menu',
 				'step' => 'send_reply_fallback',
 			), $user->ID, $line_uid );
@@ -358,8 +358,50 @@ class LineWebhookHandler {
 		$line_uid     = $event['source']['userId'] ?? '';
 		$reply_token  = $event['replyToken'] ?? '';
 
+		// 綁定碼流程（用 Messaging API 的 source.userId，確保可推播）
+		// 支援：
+		// - 直接輸入 6 位數：123456
+		// - 或輸入：綁定 123456 / bind 123456
+		$maybe_code = null;
+		if ( preg_match( '/^\s*(?:綁定|bind)?\s*([0-9]{6})\s*$/iu', $text, $m ) ) {
+			$maybe_code = $m[1];
+		}
+
+		if ( $maybe_code ) {
+			$line_service = new LineService();
+			$verify = $line_service->verify_binding_code( $maybe_code, $line_uid );
+
+			if ( is_wp_error( $verify ) ) {
+				$this->logger->log( 'binding_failed', array(
+					'code' => $maybe_code,
+					'line_uid' => $line_uid,
+					'error_code' => $verify->get_error_code(),
+					'error_message' => $verify->get_error_message(),
+				), null, $line_uid );
+
+				$this->send_reply( $reply_token, '綁定失敗：' . $verify->get_error_message(), $line_uid );
+				return;
+			}
+
+			$user_id = intval( $verify['user_id'] ?? 0 );
+
+			if ( $user_id > 0 ) {
+				// 向後相容：同步寫入 user_meta（其他模組可能依賴）
+				update_user_meta( $user_id, 'buygo_line_user_id', $line_uid );
+			}
+
+			$this->logger->log( 'binding_completed', array(
+				'code' => $maybe_code,
+				'user_id' => $user_id,
+				'line_uid' => $line_uid,
+			), $user_id ?: null, $line_uid );
+
+			$this->send_reply( $reply_token, '綁定成功！之後下單與出貨通知都會推播到這個 LINE。', $line_uid );
+			return;
+		}
+
 		// Log text message received
-		$this->debugService->log( 'text_message_received', array(
+		$this->logger->log( 'text_message_received', array(
 			'text' => substr( $text, 0, 100 ), // Log first 100 characters
 			'line_uid' => $line_uid,
 		), null, $line_uid );
@@ -391,7 +433,7 @@ class LineWebhookHandler {
 		// Check permissions (使用統一的權限檢查方法)
 		if ( ! $this->can_upload_product( $user ) ) {
 			// 記錄權限被拒絕的詳細資訊
-			$this->debugService->log( 'permission_denied', array(
+			$this->logger->log( 'permission_denied', array(
 				'message' => 'User does not have permission to upload products',
 				'user_id' => $user->ID,
 				'user_login' => $user->user_login,
@@ -443,7 +485,7 @@ class LineWebhookHandler {
 		}
 
 		// Log product creation attempt
-		$this->debugService->log( 'product_creating', array(
+		$this->logger->log( 'product_creating', array(
 			'product_name' => $product_data['name'] ?? '',
 			'user_id' => $user->ID,
 		), $user->ID, $line_uid );
@@ -453,7 +495,7 @@ class LineWebhookHandler {
 		$post_id = $fluentcart_service->create_product( $product_data, $image_ids );
 
 		if ( is_wp_error( $post_id ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Product creation failed',
 				'error' => $post_id->get_error_message(),
 				'product_data' => $product_data,
@@ -474,7 +516,7 @@ class LineWebhookHandler {
 		}
 
 		// Log success
-		$this->debugService->log( 'product_created', array(
+		$this->logger->log( 'product_created', array(
 			'product_id' => $post_id,
 			'product_name' => $product_data['name'] ?? '',
 			'user_id' => $user->ID,
@@ -486,7 +528,7 @@ class LineWebhookHandler {
 		$product_url = home_url( "/item/{$post_id}" );
 		
 		// 記錄日誌以便除錯
-		$this->debugService->log( 'product_url_generated', array(
+		$this->logger->log( 'product_url_generated', array(
 			'product_id' => $post_id,
 			'permalink' => get_permalink( $post_id ),
 			'short_url' => $product_url,
@@ -684,7 +726,7 @@ class LineWebhookHandler {
 
 			// 檢查是否匹配主關鍵字
 			if ( $text_trimmed === $keyword ) {
-				$this->debugService->log( 'keyword_matched', array(
+				$this->logger->log( 'keyword_matched', array(
 					'keyword' => $keyword,
 					'line_uid' => $line_uid,
 				), null, $line_uid );
@@ -695,7 +737,7 @@ class LineWebhookHandler {
 			foreach ( $aliases as $alias ) {
 				$alias_trimmed = trim( $alias );
 				if ( $text_trimmed === $alias_trimmed ) {
-					$this->debugService->log( 'keyword_alias_matched', array(
+					$this->logger->log( 'keyword_alias_matched', array(
 						'keyword' => $keyword,
 						'alias' => $alias,
 						'line_uid' => $line_uid,
@@ -779,7 +821,7 @@ class LineWebhookHandler {
 		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
 
 		if ( empty( $token ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Channel Access Token is empty',
 				'action' => 'send_reply',
 			), null, $line_uid );
@@ -823,7 +865,7 @@ class LineWebhookHandler {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Failed to send LINE reply',
 				'error' => $response->get_error_message(),
 				'action' => 'send_reply',
@@ -838,7 +880,7 @@ class LineWebhookHandler {
 		if ( $status_code === 200 ) {
 			// 記錄成功發送
 			$message_type = is_array( $message ) ? ( isset( $message['type'] ) ? $message['type'] : 'array' ) : 'text';
-			$this->debugService->log( 'reply_sent', array(
+			$this->logger->log( 'reply_sent', array(
 				'message' => 'LINE reply sent successfully',
 				'message_type' => $message_type,
 				'status_code' => $status_code,
@@ -846,7 +888,7 @@ class LineWebhookHandler {
 			return true;
 		} else {
 			// 記錄失敗
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'LINE API returned error',
 				'status_code' => $status_code,
 				'response' => $response_body,

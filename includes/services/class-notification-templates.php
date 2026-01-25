@@ -842,6 +842,7 @@ class NotificationTemplates {
                     'message' => "✅ 訂單已建立\n\n訂單編號：#{order_id}\n訂單金額：NT$ {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
                 ]
             ],
+
             'order_cancelled' => [
                 'line' => [
                     'message' => "❌ 您的訂單有異動/取消。\n\n訂單編號：{order_id}\n說明：{note}"

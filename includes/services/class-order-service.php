@@ -269,6 +269,18 @@ class OrderService
                 'new_status' => $status
             ]);
 
+            // 觸發狀態變更通知（提供給其他模組，例如 LINE 推播）
+            \do_action('buygo_shipping_status_changed', $orderId, $oldStatus, $status);
+
+            // 特定狀態事件（與 ShippingStatusService 保持一致）
+            if ($status === 'shipped') {
+                \do_action('buygo_order_shipped', $orderId);
+            } elseif ($status === 'completed') {
+                \do_action('buygo_order_completed', $orderId);
+            } elseif ($status === 'out_of_stock') {
+                \do_action('buygo_order_out_of_stock', $orderId);
+            }
+
             // 【重要】如果是子訂單，同步更新父訂單的 shipping_status
             if (!empty($order->parent_id)) {
                 $this->syncParentShippingStatus($order->parent_id);
