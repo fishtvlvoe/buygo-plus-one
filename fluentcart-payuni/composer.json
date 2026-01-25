@@ -1,0 +1,28 @@
+{
+  "name": "buygo/fluentcart-payuni",
+  "description": "PayUNi gateway for FluentCart (dev/test tooling)",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": "^8.2 || ^8.3 || ^8.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BuyGoFluentCart\\PayUNi\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "BuyGoFluentCart\\PayUNi\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit -c phpunit-unit.xml",
+    "test:unit": "phpunit -c phpunit-unit.xml --verbose",
+    "test:coverage": "phpunit -c phpunit-unit.xml --coverage-html coverage"
+  }
+}
+
