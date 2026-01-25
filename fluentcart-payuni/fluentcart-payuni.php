@@ -148,7 +148,9 @@ function buygo_fc_payuni_bootstrap(): void
             return;
         }
 
-        $desc = '使用 PayUNi（統一金流）付款，將導向至 PayUNi 付款頁完成付款。';
+        // 不要在程式內硬編碼舊版「導向 PayUNi 付款頁」文案；
+        // 若後台未填寫描述，這裡就不輸出，避免跟實際流程（站內刷卡/取號）不一致。
+        $desc = '';
 
         $method = is_array($args) ? ($args['method'] ?? null) : null;
         if (is_object($method) && isset($method->settings) && is_object($method->settings) && method_exists($method->settings, 'get')) {
@@ -158,7 +160,9 @@ function buygo_fc_payuni_bootstrap(): void
             }
         }
 
-        echo '<p class="fct-payuni-description">' . esc_html($desc) . '</p>';
+        if ($desc) {
+            echo '<p class="fct-payuni-description">' . esc_html($desc) . '</p>';
+        }
 
         // PayUNi（一次性）站內先選擇付款方式，再導向 PayUNi
         echo '<div class="fct-payuni-method-choice" style="margin:12px 0 0;">';

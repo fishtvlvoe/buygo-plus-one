@@ -280,8 +280,9 @@ class PayUNiGateway extends AbstractPaymentGateway
     public function getLocalizeData(): array
     {
         $customDescription = (string) ($this->settings->get('gateway_description') ?? '');
-
-        $description = $customDescription ?: __('使用 PayUNi（統一金流）付款，將導向至 PayUNi 付款頁完成付款。', 'fluentcart-payuni');
+        // 不要在程式內硬編碼舊版「導向 PayUNi 付款頁」文案；
+        // 若後台未填寫描述，就交由前端使用更符合現況的預設說明（或不顯示）。
+        $description = $customDescription ?: '';
 
         return [
             'buygo_fc_payuni_data' => [

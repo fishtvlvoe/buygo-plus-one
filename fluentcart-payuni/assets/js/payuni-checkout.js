@@ -256,7 +256,7 @@ window.addEventListener('fluent_cart_load_payments_payuni', function (event) {
       const hint = createEl(
         'div',
         'hint small muted',
-        '提示：卡號資料只用於當次付款，不會寫入資料庫。'
+        '請放心，我們將由「統一金流」加密，你的個人資料。'
       );
       section.appendChild(hint);
 
