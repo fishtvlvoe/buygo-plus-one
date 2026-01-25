@@ -7,6 +7,7 @@ use FluentCart\App\Helpers\Status;
 
 use BuyGoFluentCart\PayUNi\Gateway\PayUNiSettingsBase;
 use BuyGoFluentCart\PayUNi\Processor\PaymentProcessor;
+use BuyGoFluentCart\PayUNi\Processor\SubscriptionPaymentProcessor;
 use BuyGoFluentCart\PayUNi\Services\PayUNiCryptoService;
 use BuyGoFluentCart\PayUNi\Utils\Logger;
 
@@ -89,39 +90,58 @@ final class ReturnHandler
             return '';
         }
 
-        if (($transaction->payment_method ?? '') !== 'payuni') {
-            return '';
-        }
-
         Logger::info('PayUNi return received', [
             'transaction_uuid' => $trxHash,
         ]);
 
-        $processor = new PaymentProcessor($settings);
-        $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
-        $paymentType = (string) ($decrypted['PaymentType'] ?? '');
+        // 這裡不要用「有沒有 TradeStatus」來猜是哪一種回傳，
+        // 直接以 FluentCart 這筆 transaction 的 payment_method 作為準據，避免誤判導致訂閱永遠卡未付款。
+        $paymentMethod = (string) ($transaction->payment_method ?? '');
 
-        // TradeStatus: 0 待付款 / 1 已付款 / 2 付款失敗 / 3 付款取消
-        if ($tradeStatus === '1') {
-            $processor->confirmPaymentSuccess($transaction, $decrypted, 'return');
-        } elseif ($tradeStatus === '0') {
-            $transaction->meta = array_merge($transaction->meta ?? [], [
-                'payuni' => array_merge(($transaction->meta['payuni'] ?? []), [
-                    'pending' => [
-                        'payment_type' => $paymentType,
-                        'trade_no' => (string) ($decrypted['TradeNo'] ?? ''),
-                        'trade_amt' => (string) ($decrypted['TradeAmt'] ?? ''),
-                        'message' => (string) ($decrypted['Message'] ?? ''),
-                        'bank_type' => (string) ($decrypted['BankType'] ?? ''),
-                        'pay_no' => (string) ($decrypted['PayNo'] ?? ''),
-                        'expire_date' => (string) ($decrypted['ExpireDate'] ?? ''),
-                        'raw' => $decrypted,
-                    ],
-                ]),
-            ]);
-            $transaction->save();
+        if ($paymentMethod === 'payuni_subscription') {
+            // credit（訂閱/定期定額初次 3D 回跳）
+            $status = (string) ($decrypted['Status'] ?? '');
+
+            // 少數情況 PayUNi 可能沒有 Status，但會有 TradeStatus
+            if (!$status && array_key_exists('TradeStatus', $decrypted)) {
+                $status = ((string) ($decrypted['TradeStatus'] ?? '') === '1') ? 'SUCCESS' : 'FAILED';
+            }
+
+            if ($status === 'SUCCESS') {
+                (new SubscriptionPaymentProcessor($settings))->confirmCreditPaymentSucceeded($transaction, $decrypted, 'return_credit');
+            } else {
+                (new PaymentProcessor($settings))->processFailedPayment($transaction, $decrypted, 'return_credit');
+            }
+        } elseif ($paymentMethod === 'payuni') {
+            // UPP（一次性，含 ATM/CVS/信用卡導轉頁）
+            $processor = new PaymentProcessor($settings);
+            $tradeStatus = (string) ($decrypted['TradeStatus'] ?? '');
+            $paymentType = (string) ($decrypted['PaymentType'] ?? '');
+
+            // TradeStatus: 0 待付款 / 1 已付款 / 2 付款失敗 / 3 付款取消
+            if ($tradeStatus === '1') {
+                $processor->confirmPaymentSuccess($transaction, $decrypted, 'return');
+            } elseif ($tradeStatus === '0') {
+                $transaction->meta = array_merge($transaction->meta ?? [], [
+                    'payuni' => array_merge(($transaction->meta['payuni'] ?? []), [
+                        'pending' => [
+                            'payment_type' => $paymentType,
+                            'trade_no' => (string) ($decrypted['TradeNo'] ?? ''),
+                            'trade_amt' => (string) ($decrypted['TradeAmt'] ?? ''),
+                            'message' => (string) ($decrypted['Message'] ?? ''),
+                            'bank_type' => (string) ($decrypted['BankType'] ?? ''),
+                            'pay_no' => (string) ($decrypted['PayNo'] ?? ''),
+                            'expire_date' => (string) ($decrypted['ExpireDate'] ?? ''),
+                            'raw' => $decrypted,
+                        ],
+                    ]),
+                ]);
+                $transaction->save();
+            } else {
+                $processor->processFailedPayment($transaction, $decrypted, 'return');
+            }
         } else {
-            $processor->processFailedPayment($transaction, $decrypted, 'return');
+            return '';
         }
 
         return $trxHash;
