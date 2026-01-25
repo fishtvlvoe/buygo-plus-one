@@ -91,7 +91,9 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-image-uploader.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-notifier.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-webhook-handler.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';
@@ -124,6 +126,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-global-search-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-line-webhook-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-liff-login-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-orders-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-products-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
@@ -167,6 +170,12 @@ class Plugin {
         
         // 初始化 FluentCart 產品頁面自訂
         FluentCartProductPage::instance();
+
+        // 初始化 LINE 訂單通知（下單成功 / 已出貨）
+        new \BuyGoPlus\Services\LineOrderNotifier();
+
+        // FluentCart 收據頁：顯示 LINE 綁定碼
+        new \BuyGoPlus\Services\LineBindingReceipt();
         
         // 初始化 API
         new \BuyGoPlus\Api\API();
