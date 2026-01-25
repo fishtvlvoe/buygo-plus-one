@@ -1,0 +1,79 @@
+<div class="buygo-payuni" style="--buygo-payuni-accent:#136196;margin:12px 0;">
+
+  <div class="card">
+
+    <p class="muted">使用 PayUNi 信用卡定期定額付款（初次需 3D 驗證）。</p>
+
+    <div class="section">
+
+      <div class="section-title">付款方式</div>
+
+      <div class="methods">
+
+        <label class="method selected">
+
+          <div class="left">
+
+            <input class="radio" type="radio" name="payuni_payment_type" value="credit" checked>
+
+            <div>
+
+              <div class="label">信用卡</div>
+
+              <div class="desc small muted">初次付款會導向 3D 驗證頁，完成後回到收據頁，後續將由系統自動續扣。</div>
+
+            </div>
+
+          </div>
+
+        </label>
+
+      </div>
+
+    </div>
+
+    <div class="section">
+
+      <div class="section-title">信用卡資料</div>
+
+      <div class="grid">
+
+        <div class="field">
+
+          <label for="buygo_payuni_subscription_card_number">卡號</label>
+
+          <input id="buygo_payuni_subscription_card_number" name="payuni_card_number" type="tel" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242">
+
+        </div>
+
+        <div class="grid-2">
+
+          <div class="field">
+
+            <label for="buygo_payuni_subscription_card_expiry">有效期限（MM/YY）</label>
+
+            <input id="buygo_payuni_subscription_card_expiry" name="payuni_card_expiry" type="tel" inputmode="numeric" autocomplete="cc-exp" placeholder="12/30">
+
+          </div>
+
+          <div class="field">
+
+            <label for="buygo_payuni_subscription_card_cvc">安全碼（CVC）</label>
+
+            <input id="buygo_payuni_subscription_card_cvc" name="payuni_card_cvc" type="tel" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="hint small muted">請放心，我們將由「統一金流」加密，你的個人資料。</div>
+
+      <div class="hint small muted">提示：初次付款會導向 3D 驗證頁，完成後會回到收據頁。</div>
+
+    </div>
+
+  </div>
+
+</div>

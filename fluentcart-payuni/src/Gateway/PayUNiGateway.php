@@ -62,15 +62,22 @@ class PayUNiGateway extends AbstractPaymentGateway
 
     public static function validateSettings($data): array
     {
-        $storeMode = 'test';
-
-        try {
-            $storeMode = (string) (new \FluentCart\Api\StoreSettings())->get('order_mode');
-        } catch (\Throwable $e) {
-            $storeMode = 'test';
+        $gatewayMode = (string) ($data['gateway_mode'] ?? 'follow_store');
+        if ($gatewayMode !== 'follow_store' && $gatewayMode !== 'test' && $gatewayMode !== 'live') {
+            $gatewayMode = 'follow_store';
         }
 
-        $mode = ($storeMode === 'live') ? 'live' : 'test';
+        if ($gatewayMode === 'test' || $gatewayMode === 'live') {
+            $mode = $gatewayMode;
+        } else {
+            $storeMode = 'test';
+            try {
+                $storeMode = (string) (new \FluentCart\Api\StoreSettings())->get('order_mode');
+            } catch (\Throwable $e) {
+                $storeMode = 'test';
+            }
+            $mode = ($storeMode === 'live') ? 'live' : 'test';
+        }
 
         $merId = (string) ($data[$mode . '_mer_id'] ?? '');
 
@@ -124,6 +131,18 @@ class PayUNiGateway extends AbstractPaymentGateway
                 'value' => $this->renderStoreModeNotice(),
                 'label' => __('PayUNi', 'fluentcart-payuni'),
                 'type' => 'notice',
+            ],
+
+            'gateway_mode' => [
+                'type' => 'radio',
+                'label' => __('PayUNi 模式', 'fluentcart-payuni'),
+                'value' => (string) ($this->settings->get('gateway_mode') ?? 'follow_store'),
+                'options' => [
+                    'follow_store' => __('跟隨商店（依 FluentCart 訂單模式）', 'fluentcart-payuni'),
+                    'test' => __('強制測試（Sandbox）', 'fluentcart-payuni'),
+                    'live' => __('強制正式（Live）', 'fluentcart-payuni'),
+                ],
+                'description' => __('預設會跟隨 FluentCart 的「訂單模式」。若你需要在同一個商店裡切換測試/正式金鑰，可在這裡強制指定。', 'fluentcart-payuni'),
             ],
 
             'gateway_description' => [
@@ -238,19 +257,31 @@ class PayUNiGateway extends AbstractPaymentGateway
 
     public function renderStoreModeNotice(): string
     {
-        $mode = 'test';
+        $storeMode = 'test';
 
         try {
-            $mode = (string) (new \FluentCart\Api\StoreSettings())->get('order_mode');
+            $storeMode = (string) (new \FluentCart\Api\StoreSettings())->get('order_mode');
         } catch (\Throwable $e) {
-            $mode = 'test';
+            $storeMode = 'test';
         }
 
-        if ($mode === 'test') {
-            return '<div class="mt-5"><span class="text-warning-500">' . esc_html__('目前商店是測試模式。要使用正式收款，請先到商店設定把「訂單模式」切到正式（Live），並填好正式環境的 MerID/Hash Key/Hash IV。', 'fluentcart-payuni') . '</span></div>';
+        $storeMode = ($storeMode === 'live') ? 'live' : 'test';
+        $override = (string) ($this->settings->get('gateway_mode') ?? 'follow_store');
+        $effective = ($override === 'test' || $override === 'live') ? $override : $storeMode;
+
+        if ($effective === 'test') {
+            $prefix = ($override === 'test')
+                ? esc_html__('目前 PayUNi 已強制使用測試環境（Sandbox）。', 'fluentcart-payuni')
+                : esc_html__('目前商店是測試模式。', 'fluentcart-payuni');
+
+            return '<div class="mt-5"><span class="text-warning-500">' . $prefix . ' ' . esc_html__('要使用正式收款，請填好正式環境的 MerID/Hash Key/Hash IV，並將模式切換到正式（Live）。', 'fluentcart-payuni') . '</span></div>';
         }
 
-        return '<div class="mt-5"><span class="text-success-500">' . esc_html__('目前商店是正式模式（Live）。', 'fluentcart-payuni') . '</span></div>';
+        $prefix = ($override === 'live')
+            ? esc_html__('目前 PayUNi 已強制使用正式環境（Live）。', 'fluentcart-payuni')
+            : esc_html__('目前商店是正式模式（Live）。', 'fluentcart-payuni');
+
+        return '<div class="mt-5"><span class="text-success-500">' . $prefix . '</span></div>';
     }
 
     public function makePaymentFromPaymentInstance(PaymentInstance $paymentInstance)

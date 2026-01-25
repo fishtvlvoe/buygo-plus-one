@@ -82,6 +82,30 @@ class PayUNiSubscriptionGateway extends AbstractPaymentGateway
         return (new PayUNiGateway())->fields();
     }
 
+    public function getEnqueueScriptSrc($hasSubscription = 'no'): array
+    {
+        return [
+            [
+                'handle' => 'buygo-fc-payuni-checkout',
+                'src' => BUYGO_FC_PAYUNI_URL . 'assets/js/payuni-checkout.js',
+            ],
+        ];
+    }
+
+    public function getLocalizeData(): array
+    {
+        $customDescription = (string) ($this->settings->get('gateway_description') ?? '');
+        $description = $customDescription ?: '';
+
+        return [
+            'buygo_fc_payuni_subscription_data' => [
+                'description' => $description,
+                'css_url' => BUYGO_FC_PAYUNI_URL . 'assets/css/payuni-checkout.css',
+                'accent' => '#136196',
+            ],
+        ];
+    }
+
     public static function beforeSettingsUpdate($data, $oldSettings): array
     {
         return PayUNiGateway::beforeSettingsUpdate($data, $oldSettings);

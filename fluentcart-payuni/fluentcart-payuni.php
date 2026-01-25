@@ -204,31 +204,18 @@ function buygo_fc_payuni_bootstrap(): void
             return;
         }
 
-        echo '<div class="fct-payuni-subscription-fields" style="margin:12px 0;">';
-        echo '<p style="margin:0 0 10px;">' . esc_html__('使用 PayUNi 信用卡定期定額付款（初次需 3D 驗證）。', 'fluentcart-payuni') . '</p>';
+        $templatePath = BUYGO_FC_PAYUNI_PATH . 'templates/checkout/payuni-subscription.html';
 
-        echo '<div style="display:grid;grid-template-columns:1fr;gap:10px;max-width:420px;">';
+        if (file_exists($templatePath)) {
+            // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingCustomConstant -- plugin internal template
+            echo file_get_contents($templatePath);
+        }
 
-        echo '<label style="display:block;">';
-        echo '<div style="margin:0 0 6px;">' . esc_html__('卡號', 'fluentcart-payuni') . '</div>';
-        echo '<input name="payuni_card_number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
-        echo '</label>';
+        // FluentCart 的 embed container 可能會過濾 <link> 標籤，導致後備 UI 沒有套到 CSS。
+        // 所以這裡只做「保險載入腳本」：確保 payuni-checkout.js 一定會跑、一定會把 CSS 插到 head。
+        $jsUrl = BUYGO_FC_PAYUNI_URL . 'assets/js/payuni-checkout.js';
 
-        echo '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-        echo '<label style="display:block;">';
-        echo '<div style="margin:0 0 6px;">' . esc_html__('有效期限（MM/YY）', 'fluentcart-payuni') . '</div>';
-        echo '<input name="payuni_card_expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="12/30" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
-        echo '</label>';
-        echo '<label style="display:block;">';
-        echo '<div style="margin:0 0 6px;">' . esc_html__('安全碼（CVC）', 'fluentcart-payuni') . '</div>';
-        echo '<input name="payuni_card_cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;">';
-        echo '</label>';
-        echo '</div>';
-
-        echo '</div>';
-
-        echo '<p style="margin:10px 0 0;color:#6b7280;font-size:13px;line-height:1.4;">' . esc_html__('提示：初次付款會導向 3D 驗證頁，完成後會回到收據頁。', 'fluentcart-payuni') . '</p>';
-        echo '</div>';
+        echo '<script>(function(){try{if(window.__buygoFcPayuniCheckoutUiLoaded){return;}var s=document.createElement("script");s.src=' . wp_json_encode($jsUrl) . ';s.defer=true;document.head.appendChild(s);}catch(e){}})();</script>';
     }, 10, 1);
 
     /**

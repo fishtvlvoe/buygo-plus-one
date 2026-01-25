@@ -77,6 +77,9 @@ class PayUNiSettingsBase extends BaseGatewaySettings
         return [
             'is_active' => 'no',
             'payment_mode' => 'test',
+            // 跟隨商店（FluentCart order_mode）/ 強制測試 / 強制正式
+            // follow_store | test | live
+            'gateway_mode' => 'follow_store',
             'gateway_description' => '',
             'test_mer_id' => '',
             'test_hash_key' => '',
@@ -103,8 +106,14 @@ class PayUNiSettingsBase extends BaseGatewaySettings
             $this->storeSettings = new StoreSettings();
         }
 
+        $override = (string) ($this->get('gateway_mode') ?? '');
+        if ($override === 'test' || $override === 'live') {
+            return $override;
+        }
+
         // FluentCart 的 store 設定會有 order_mode（test/live）
-        return (string) $this->storeSettings->get('order_mode');
+        $storeMode = (string) $this->storeSettings->get('order_mode');
+        return ($storeMode === 'live') ? 'live' : 'test';
     }
 
     public function isActive(): bool
