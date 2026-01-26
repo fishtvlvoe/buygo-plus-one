@@ -1,0 +1,22 @@
+/**
+ * Shipment Products Page Styles
+ * BuyGo+1 Plugin
+ *
+ * 備貨頁面專用樣式
+ */
+
+/* 浮動工具列動畫 */
+@keyframes slide-in-from-bottom {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.shipment-animate-in {
+    animation: slide-in-from-bottom 0.3s ease-out;
+}
