@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<phpunit
+    bootstrap="tests/bootstrap-unit.php"
+    backupGlobals="false"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    >
+    <testsuites>
+        <testsuite name="BuyGo Plus One - Unit Tests">
+            <directory>./tests/Unit/</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">./includes/Services/</directory>
+        </include>
+    </coverage>
+</phpunit>
