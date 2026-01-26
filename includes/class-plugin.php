@@ -90,7 +90,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-image-uploader.php';
+        // class-image-uploader.php 已遷移到 buygo-line-notify，透過 Facade 使用
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-notifier.php';

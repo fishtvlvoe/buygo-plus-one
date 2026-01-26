@@ -11,6 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// 檢查 buygo-line-notify 外掛是否啟用
+if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
+	// 如果外掛未啟用，記錄錯誤但不中斷執行（向後相容）
+	if ( function_exists( 'add_action' ) ) {
+		add_action( 'admin_notices', function() {
+			echo '<div class="notice notice-error"><p>';
+			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 相關功能。';
+			echo '</p></div>';
+		} );
+	}
+}
+
 /**
  * Class LineWebhookHandler
  *
@@ -231,7 +243,7 @@ class LineWebhookHandler {
 
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_account_not_bound', [] );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '請先使用 LINE Login 綁定您的帳號。';
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -261,7 +273,7 @@ class LineWebhookHandler {
 				'display_name' => $user->display_name ?: $user->user_login,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -270,24 +282,19 @@ class LineWebhookHandler {
 			'roles' => $user->roles ?? [],
 		), $user->ID, $line_uid );
 
-		// Download and upload image
-		// 取得 Channel Access Token（自動從 buygo_core_settings 或獨立 option 讀取並解密）
-		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
-
-		// Debug: 記錄 token 狀態
-		$this->logger->log( 'token_retrieved', array(
-			'has_token' => ! empty( $token ),
-			'token_length' => ! empty( $token ) ? strlen( $token ) : 0,
-			'token_preview' => ! empty( $token ) ? substr( $token, 0, 20 ) . '...' : '[empty]',
-			'step' => 'get_token',
-		), $user->ID, $line_uid );
-
-		if ( empty( $token ) ) {
+		// 檢查 buygo-line-notify 是否啟用
+		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
 			$this->logger->log( 'error', array(
-				'message' => 'Channel Access Token is empty',
+				'message' => 'BuyGo Line Notify plugin is not active',
 				'line_uid' => $line_uid,
-				'step' => 'get_token',
+				'step' => 'plugin_check',
 			), $user->ID, $line_uid );
+
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_image_upload_failed', array(
+				'display_name' => $user->display_name ?: $user->user_login,
+			) );
+			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '圖片上傳功能暫時無法使用，請聯絡管理員。';
+			// 無法使用 Facade，直接返回
 			return;
 		}
 
@@ -298,7 +305,8 @@ class LineWebhookHandler {
 			'step' => 'download_image',
 		), $user->ID, $line_uid );
 
-		$image_uploader = new ImageUploader( $token );
+		// 使用 buygo-line-notify 的 ImageUploader
+		$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
 		$attachment_id = $image_uploader->download_and_upload( $message_id, $user->ID );
 
 		if ( is_wp_error( $attachment_id ) ) {
@@ -311,7 +319,7 @@ class LineWebhookHandler {
 				'display_name' => $user->display_name ?: $user->user_login,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '圖片上傳失敗，請稍後再試。';
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -336,7 +344,7 @@ class LineWebhookHandler {
 			), $user->ID, $line_uid );
 
 			$flex_message = \BuyGoPlus\Services\NotificationTemplates::build_flex_message( $template['line']['flex_template'] );
-			$this->send_reply( $reply_token, $flex_message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $flex_message, $line_uid );
 		} else {
 			$this->logger->log( 'flex_template_not_found', array(
 				'template_key' => 'flex_image_upload_menu',
@@ -344,7 +352,7 @@ class LineWebhookHandler {
 			), $user->ID, $line_uid );
 
 			// Fallback to text message if flex template not found
-			$this->send_reply( $reply_token, '圖片已收到！請發送商品資訊。', $line_uid );
+			$this->send_reply_via_facade( $reply_token, '圖片已收到！請發送商品資訊。', $line_uid );
 		}
 	}
 
@@ -379,7 +387,7 @@ class LineWebhookHandler {
 					'error_message' => $verify->get_error_message(),
 				), null, $line_uid );
 
-				$this->send_reply( $reply_token, '綁定失敗：' . $verify->get_error_message(), $line_uid );
+				$this->send_reply_via_facade( $reply_token, '綁定失敗：' . $verify->get_error_message(), $line_uid );
 				return;
 			}
 
@@ -396,7 +404,7 @@ class LineWebhookHandler {
 				'line_uid' => $line_uid,
 			), $user_id ?: null, $line_uid );
 
-			$this->send_reply( $reply_token, '綁定成功！之後下單與出貨通知都會推播到這個 LINE。', $line_uid );
+			$this->send_reply_via_facade( $reply_token, '綁定成功！之後下單與出貨通知都會推播到這個 LINE。', $line_uid );
 			return;
 		}
 
@@ -409,7 +417,7 @@ class LineWebhookHandler {
 		// 優先檢查關鍵字回應系統（後台設定的關鍵字模板）
 		$keyword_reply = $this->handle_keyword_reply( $text, $line_uid );
 		if ( $keyword_reply !== null ) {
-			$this->send_reply( $reply_token, $keyword_reply, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $keyword_reply, $line_uid );
 			return;
 		}
 
@@ -426,7 +434,7 @@ class LineWebhookHandler {
 		if ( ! $user ) {
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_account_not_bound', [] );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '請先使用 LINE Login 綁定您的帳號。';
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -447,7 +455,7 @@ class LineWebhookHandler {
 				'display_name' => $user->display_name ?: $user->user_login,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -462,7 +470,7 @@ class LineWebhookHandler {
 			);
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_data_incomplete', $template_args );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : "商品資料不完整，缺少：" . implode( '、', $missing_fields );
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -471,11 +479,10 @@ class LineWebhookHandler {
 		$product_data['line_uid'] = $line_uid;
 
 		// Get temporary images
-		// 取得 Channel Access Token（自動從 buygo_core_settings 或獨立 option 讀取並解密）
-		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
+		// 檢查 buygo-line-notify 是否啟用
 		$image_ids = array();
-		if ( ! empty( $token ) ) {
-			$image_uploader = new ImageUploader( $token );
+		if ( class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+			$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
 			$image_ids = $image_uploader->get_temp_images( $user->ID );
 			
 			// 將第一個圖片 ID 加入 product_data（FluentCartService 會使用）
@@ -505,13 +512,13 @@ class LineWebhookHandler {
 				'error_message' => $post_id->get_error_message(),
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '商品建立失敗：' . $post_id->get_error_message();
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
 		// Clear temporary images
-		if ( ! empty( $token ) && ! empty( $image_ids ) ) {
-			$image_uploader = new ImageUploader( $token );
+		if ( ! empty( $image_ids ) && class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+			$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
 			$image_uploader->clear_temp_images( $user->ID );
 		}
 
@@ -663,7 +670,7 @@ class LineWebhookHandler {
 
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_published', $template_args );
 		$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '商品建立成功';
-		$this->send_reply( $reply_token, $message, $line_uid );
+		$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 	}
 
 	/**
@@ -766,7 +773,7 @@ class LineWebhookHandler {
 			$message = $template && isset( $template['line']['text'] ) 
 				? $template['line']['text'] 
 				: "📋 複製以下格式發送：\n\n商品名稱\n價格：\n數量：";
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -776,7 +783,7 @@ class LineWebhookHandler {
 			$message = $template && isset( $template['line']['text'] ) 
 				? $template['line']['text'] 
 				: "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2：";
-			$this->send_reply( $reply_token, $message, $line_uid );
+			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
 
@@ -796,7 +803,7 @@ class LineWebhookHandler {
 		$reply_token = $event['replyToken'] ?? '';
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_line_follow', [] );
 		$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : "歡迎使用 BuyGo 商品上架 🎉";
-		$this->send_reply( $reply_token, $message );
+		$this->send_reply_via_facade( $reply_token, $message );
 	}
 
 	/**
@@ -809,93 +816,37 @@ class LineWebhookHandler {
 	}
 
 	/**
-	 * Send reply message
+	 * Send reply message via buygo-line-notify Facade
 	 *
 	 * @param string $reply_token Reply token
 	 * @param string|array $message Message content
 	 * @param string $line_uid LINE user ID (optional, for logging)
 	 * @return bool
 	 */
-	private function send_reply( $reply_token, $message, $line_uid = null ) {
-		// 使用新外掛的 SettingsService（自動從 buygo_core_settings 或獨立 option 讀取並解密）
-		$token = \BuyGoPlus\Services\SettingsService::get( 'line_channel_access_token', '' );
-
-		if ( empty( $token ) ) {
+	private function send_reply_via_facade( $reply_token, $message, $line_uid = null ) {
+		// 檢查 buygo-line-notify 是否啟用
+		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
 			$this->logger->log( 'error', array(
-				'message' => 'Channel Access Token is empty',
-				'action' => 'send_reply',
+				'message' => 'BuyGo Line Notify plugin is not active, cannot send reply',
+				'action' => 'send_reply_via_facade',
 			), null, $line_uid );
 			return false;
 		}
 
-		$url = 'https://api.line.me/v2/bot/message/reply';
+		// 使用 buygo-line-notify 的 LineMessagingService
+		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+		$result = $messaging->send_reply( $reply_token, $message, $line_uid );
 
-		// Handle Text vs Flex/Array
-		$messages_payload = [];
-		if ( is_array( $message ) ) {
-			if ( isset( $message['type'] ) ) {
-				$messages_payload = array( $message );
-			} else {
-				$messages_payload = $message;
-			}
-		} else {
-			$messages_payload = array(
-				array(
-					'type' => 'text',
-					'text' => $message,
-				)
-			);
-		}
-
-		$data = array(
-			'replyToken' => $reply_token,
-			'messages'   => $messages_payload,
-		);
-
-		$response = wp_remote_post(
-			$url,
-			array(
-				'headers' => array(
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $token,
-				),
-				'body'    => wp_json_encode( $data ),
-				'timeout' => 30,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
+		if ( is_wp_error( $result ) ) {
 			$this->logger->log( 'error', array(
-				'message' => 'Failed to send LINE reply',
-				'error' => $response->get_error_message(),
-				'action' => 'send_reply',
-				'reply_token' => substr( $reply_token, 0, 10 ) . '...',
+				'message' => 'Failed to send LINE reply via Facade',
+				'error' => $result->get_error_message(),
+				'action' => 'send_reply_via_facade',
 			), null, $line_uid );
 			return false;
 		}
 
-		$status_code = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-		
-		if ( $status_code === 200 ) {
-			// 記錄成功發送
-			$message_type = is_array( $message ) ? ( isset( $message['type'] ) ? $message['type'] : 'array' ) : 'text';
-			$this->logger->log( 'reply_sent', array(
-				'message' => 'LINE reply sent successfully',
-				'message_type' => $message_type,
-				'status_code' => $status_code,
-			), null, $line_uid );
-			return true;
-		} else {
-			// 記錄失敗
-			$this->logger->log( 'error', array(
-				'message' => 'LINE API returned error',
-				'status_code' => $status_code,
-				'response' => $response_body,
-				'action' => 'send_reply',
-			), null, $line_uid );
-			return false;
-		}
+		return $result;
 	}
 
 	/**
@@ -941,6 +892,6 @@ class LineWebhookHandler {
 		$message .= "數量：20\n\n";
 		$message .= "💡 輸入 /分類 查看可用分類";
 
-		$this->send_reply( $reply_token, $message );
+		$this->send_reply_via_facade( $reply_token, $message );
 	}
 }

@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuyGo+1 統一設計系統 - 所有頁面預覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#2563EB',
+                        secondary: '#3B82F6',
+                        cta: '#F97316',
+                        surface: '#FFFFFF',
+                        background: '#F8FAFC',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* 自訂 Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 頁面容器 */
+        .page-preview {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 設備標籤 */
+        .device-label {
+            background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        /* 表格 hover 效果 */
+        .table-row:hover {
+            background-color: #f8fafc;
+        }
+
+        /* 統一區塊樣式 */
+        .page-section {
+            scroll-margin-top: 2rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+
+        .versions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 側邊欄樣式 */
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .sidebar-nav-item:hover {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        .sidebar-nav-item.active {
+            background: #eff6ff;
+            color: #2563EB;
+            border-right: 3px solid #2563EB;
+        }
+
+        /* 分頁器樣式 */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .pagination-btn:hover {
+            border-color: #2563EB;
+            color: #2563EB;
+        }
+
+        .pagination-btn.active {
+            background: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 p-8">
+
+    <!-- 頂部標題 -->
+    <div class="max-w-[1600px] mx-auto mb-8">
+        <h1 class="text-4xl font-bold text-slate-900 mb-2">BuyGo+1 統一設計系統</h1>
+        <p class="text-lg text-slate-600">所有頁面完整預覽 - 桌面版和手機版垂直排列顯示</p>
+        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800"><strong>說明:</strong> 以下展示所有頁面統一後的設計。左側為桌面版 (1440px),右側為手機版 (375px)。</p>
+        </div>
+    </div>
+
+    <!-- 頁面導航 -->
+    <div class="max-w-[1600px] mx-auto mb-6 flex gap-2 flex-wrap">
+        <a href="#products" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition text-sm font-medium">商品頁面</a>
+        <a href="#orders" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition text-sm font-medium">訂單頁面</a>
+        <a href="#customers" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition text-sm font-medium">客戶頁面</a>
+        <a href="#shipments" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition text-sm font-medium">出貨頁面</a>
+        <a href="#settings" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition text-sm font-medium">設定頁面</a>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto space-y-12">
+
+        <!-- ==================== 商品頁面 ==================== -->
+        <section id="products" class="page-section">
+            <div class="section-header">
+                <h2>商品頁面 (Products)</h2>
+                <p>商品列表與庫存管理 - 保留搜尋、篩選、批次選擇功能</p>
+            </div>
+
+            <div class="versions-container">
+                <!-- 桌面版 -->
+                <div>
+                    <div class="device-label">桌面版 (1440px)</div>
+                    <div class="page-preview bg-slate-50">
+
+                        <!-- Sidebar -->
+                        <aside class="w-60 bg-white border-r border-slate-200 fixed left-0 top-0 h-full">
+                            <!-- Logo -->
+                            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    </div>
+                                    <span class="text-lg font-bold text-slate-900">BuyGo+1</span>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <nav class="py-4">
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item active">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>商品</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>訂單</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                    <span>備貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>出貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>客戶</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>設定</span>
+                                </a>
+                            </nav>
+                        </aside>
+
+                        <div class="ml-60">
+                        <!-- Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 mb-6">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">商品</h1>
+                                <nav class="text-xs text-slate-500 mt-0.5">首頁 / 商品列表</nav>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-64">
+                                    <input type="text" placeholder="全域搜尋..." class="pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">TWD</button>
+                            </div>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="px-6">
+
+                            <!-- Page Search -->
+                            <div class="mb-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="搜尋商品名稱或 SKU..." class="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                            </div>
+
+                            <!-- Toolbar -->
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="flex items-center bg-white border border-slate-200 rounded-lg p-1">
+                                    <button class="p-2 bg-primary text-white rounded-md">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                                    </button>
+                                    <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-md">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Table Container -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left"><input type="checkbox" class="rounded border-slate-300"></th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">商品</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">價格</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">狀態</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">下單</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">採購</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200">
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="h-14 w-14 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
+                                                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-bold text-slate-900">NIKE Air Max 90 經典運動鞋</div>
+                                                        <div class="text-xs text-slate-400 font-mono">ID: 1234</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">NT$ 3,500</td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-50 text-green-600 border border-green-200">已上架</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">25</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">30</td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex gap-1">
+                                                    <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                    </button>
+                                                    <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="h-14 w-14 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
+                                                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-bold text-slate-900">Adidas Ultraboost 22 跑鞋</div>
+                                                        <div class="text-xs text-slate-400 font-mono">ID: 1235</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">NT$ 4,200</td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-slate-50 text-slate-600 border border-slate-200">已下架</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">18</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">20</td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex gap-1">
+                                                    <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                    </button>
+                                                    <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- Pagination -->
+                                <div class="pagination">
+                                    <div class="pagination-info">顯示 1 到 5 筆，共 19 筆</div>
+                                    <div class="pagination-controls">
+                                        <select class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm">
+                                            <option>5 筆</option>
+                                            <option>10 筆</option>
+                                            <option>20 筆</option>
+                                        </select>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                        </button>
+                                        <button class="pagination-btn active">1</button>
+                                        <button class="pagination-btn">2</button>
+                                        <button class="pagination-btn">3</button>
+                                        <button class="pagination-btn">4</button>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手機版 -->
+                <div>
+                    <div class="device-label">手機版 (375px)</div>
+                    <div class="page-preview bg-slate-50 w-[375px] mx-auto">
+
+                        <!-- Mobile Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-3">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <h1 class="text-xl font-bold text-slate-900">商品</h1>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Mobile Search -->
+                        <div class="p-4 pb-0">
+                            <div class="relative">
+                                <input type="text" placeholder="搜尋商品..." class="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Content -->
+                        <div class="p-4 space-y-3">
+                            <!-- Product Card 1 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="flex gap-3 mb-3">
+                                    <input type="checkbox" class="mt-1 rounded border-slate-300">
+                                    <div class="h-20 w-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center shrink-0">
+                                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-bold text-slate-900 line-clamp-2">NIKE Air Max 90 經典運動鞋</div>
+                                        <div class="text-xs text-slate-400 font-mono mt-1">ID: 1234</div>
+                                        <div class="text-sm font-semibold text-slate-900 mt-2">NT$ 3,500</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-50 text-green-600 border border-green-200">已上架</span>
+                                    <span class="text-xs text-slate-500">下單: <strong class="text-slate-900">25</strong></span>
+                                    <span class="text-xs text-slate-500">採購: <strong class="text-slate-900">30</strong></span>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+
+                            <!-- Product Card 2 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="flex gap-3 mb-3">
+                                    <input type="checkbox" class="mt-1 rounded border-slate-300">
+                                    <div class="h-20 w-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center shrink-0">
+                                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-bold text-slate-900 line-clamp-2">Adidas Ultraboost 22 跑鞋</div>
+                                        <div class="text-xs text-slate-400 font-mono mt-1">ID: 1235</div>
+                                        <div class="text-sm font-semibold text-slate-900 mt-2">NT$ 4,200</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-50 text-slate-600 border border-slate-200">已下架</span>
+                                    <span class="text-xs text-slate-500">下單: <strong class="text-slate-900">18</strong></span>
+                                    <span class="text-xs text-slate-500">採購: <strong class="text-slate-900">20</strong></span>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== 訂單頁面 ==================== -->
+        <section id="orders" class="page-section">
+            <div class="section-header">
+                <h2>訂單頁面 (Orders)</h2>
+                <p>訂單列表與詳情管理 - 這是基準頁面 (最舒服的狀態)</p>
+            </div>
+
+            <div class="versions-container">
+                <!-- 桌面版 -->
+                <div>
+                    <div class="device-label">桌面版 (1440px)</div>
+                    <div class="page-preview bg-slate-50">
+
+                        <!-- Sidebar -->
+                        <aside class="w-60 bg-white border-r border-slate-200 fixed left-0 top-0 h-full">
+                            <!-- Logo -->
+                            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    </div>
+                                    <span class="text-lg font-bold text-slate-900">BuyGo+1</span>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <nav class="py-4">
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>商品</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item active">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>訂單</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                    <span>備貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>出貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>客戶</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>設定</span>
+                                </a>
+                            </nav>
+                        </aside>
+
+                        <div class="ml-60">
+                        <!-- Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 mb-6">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">訂單</h1>
+                                <nav class="text-xs text-slate-500 mt-0.5">首頁 / 訂單列表</nav>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-64">
+                                    <input type="text" placeholder="全域搜尋..." class="pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">TWD</button>
+                            </div>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="px-6">
+                            <!-- Page Search -->
+                            <div class="mb-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="搜尋訂單編號、客戶名稱或 Email..." class="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                            </div>
+
+                            <!-- Table Container -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left"><input type="checkbox" class="rounded border-slate-300"></th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">編號</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">客戶</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">項目</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">總金額</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">運送狀態</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">下單日期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200">
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-3 text-sm font-medium text-slate-900">#12345</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">王小明</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">NIKE Air Max × 2</td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">NT$ 8,990</td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-orange-50 text-orange-600 border border-orange-200">未出貨</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">2026-01-27</td>
+                                            <td class="px-4 py-3">
+                                                <button class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium border border-orange-200">轉備貨</button>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-3 text-sm font-medium text-slate-900">#12346</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">李美玲</td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">Adidas Ultra × 1</td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">NT$ 5,600</td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-50 text-green-600 border border-green-200">已出貨</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-slate-600">2026-01-26</td>
+                                            <td class="px-4 py-3">
+                                                <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- Pagination -->
+                                <div class="pagination">
+                                    <div class="pagination-info">顯示 1 到 5 筆，共 19 筆</div>
+                                    <div class="pagination-controls">
+                                        <select class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm">
+                                            <option>5 筆</option>
+                                            <option>10 筆</option>
+                                            <option>20 筆</option>
+                                        </select>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                        </button>
+                                        <button class="pagination-btn active">1</button>
+                                        <button class="pagination-btn">2</button>
+                                        <button class="pagination-btn">3</button>
+                                        <button class="pagination-btn">4</button>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手機版 -->
+                <div>
+                    <div class="device-label">手機版 (375px)</div>
+                    <div class="page-preview bg-slate-50 w-[375px] mx-auto">
+
+                        <!-- Mobile Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-3">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <h1 class="text-xl font-bold text-slate-900">訂單</h1>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Mobile Content -->
+                        <div class="p-4 space-y-3">
+                            <!-- Order Card 1 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-900">#12345</div>
+                                        <div class="text-xs text-slate-500">王小明</div>
+                                    </div>
+                                    <input type="checkbox" class="rounded border-slate-300">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                    <div>
+                                        <span class="text-slate-500">商品：</span>
+                                        <span class="text-slate-900">NIKE Air Max × 2</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-500">總金額：</span>
+                                        <span class="font-bold text-slate-900">NT$ 8,990</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-slate-500">運送：</span>
+                                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-50 text-orange-600 border border-orange-200">未出貨</span>
+                                    </div>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+
+                            <!-- Order Card 2 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-900">#12346</div>
+                                        <div class="text-xs text-slate-500">李美玲</div>
+                                    </div>
+                                    <input type="checkbox" class="rounded border-slate-300">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                    <div>
+                                        <span class="text-slate-500">商品：</span>
+                                        <span class="text-slate-900">Adidas Ultra × 1</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-500">總金額：</span>
+                                        <span class="font-bold text-slate-900">NT$ 5,600</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-slate-500">運送：</span>
+                                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-50 text-green-600 border border-green-200">已出貨</span>
+                                    </div>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== 客戶頁面 ==================== -->
+        <section id="customers" class="page-section">
+            <div class="section-header">
+                <h2>客戶頁面 (Customers)</h2>
+                <p>客戶列表與詳情管理</p>
+            </div>
+
+            <div class="versions-container">
+                <!-- 桌面版 -->
+                <div>
+                    <div class="device-label">桌面版 (1440px)</div>
+                    <div class="page-preview bg-slate-50">
+
+                        <!-- Sidebar -->
+                        <aside class="w-60 bg-white border-r border-slate-200 fixed left-0 top-0 h-full">
+                            <!-- Logo -->
+                            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    </div>
+                                    <span class="text-lg font-bold text-slate-900">BuyGo+1</span>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <nav class="py-4">
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>商品</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>訂單</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                    <span>備貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>出貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item active">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>客戶</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>設定</span>
+                                </a>
+                            </nav>
+                        </aside>
+
+                        <div class="ml-60">
+                        <!-- Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 mb-6">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">客戶</h1>
+                                <nav class="text-xs text-slate-500 mt-0.5">首頁 / 客戶</nav>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-64">
+                                    <input type="text" placeholder="全域搜尋..." class="pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">TWD</button>
+                            </div>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="px-6">
+                            <!-- Page Search -->
+                            <div class="mb-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="搜尋客戶名稱、電話或 Email..." class="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                            </div>
+
+                            <!-- Table Container -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left"><input type="checkbox" class="rounded border-slate-300"></th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">客戶</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase">訂單數</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">總消費</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200">
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-4"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">王</div>
+                                                    <div>
+                                                        <div class="text-sm font-bold text-slate-900">王小明</div>
+                                                        <div class="text-xs text-slate-500">0912-345-678</div>
+                                                        <div class="text-xs text-slate-400">wang@example.com</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm text-slate-600">12</td>
+                                            <td class="px-4 py-4 text-right text-sm font-semibold text-slate-900">NT$ 45,600</td>
+                                            <td class="px-4 py-4 text-center">
+                                                <button class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">查看</button>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-4"><input type="checkbox" class="rounded border-slate-300"></td>
+                                            <td class="px-4 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-sm">李</div>
+                                                    <div>
+                                                        <div class="text-sm font-bold text-slate-900">李美玲</div>
+                                                        <div class="text-xs text-slate-500">0923-456-789</div>
+                                                        <div class="text-xs text-slate-400">lee@example.com</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm text-slate-600">8</td>
+                                            <td class="px-4 py-4 text-right text-sm font-semibold text-slate-900">NT$ 32,100</td>
+                                            <td class="px-4 py-4 text-center">
+                                                <button class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">查看</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- Pagination -->
+                                <div class="pagination">
+                                    <div class="pagination-info">顯示 1 到 5 筆，共 19 筆</div>
+                                    <div class="pagination-controls">
+                                        <select class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm">
+                                            <option>5 筆</option>
+                                            <option>10 筆</option>
+                                            <option>20 筆</option>
+                                        </select>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                        </button>
+                                        <button class="pagination-btn active">1</button>
+                                        <button class="pagination-btn">2</button>
+                                        <button class="pagination-btn">3</button>
+                                        <button class="pagination-btn">4</button>
+                                        <button class="pagination-btn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手機版 -->
+                <div>
+                    <div class="device-label">手機版 (375px)</div>
+                    <div class="page-preview bg-slate-50 w-[375px] mx-auto">
+
+                        <!-- Mobile Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-3">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <h1 class="text-xl font-bold text-slate-900">客戶</h1>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Mobile Content -->
+                        <div class="p-4 space-y-3">
+                            <!-- Customer Card 1 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="mb-3">
+                                    <div class="text-base font-bold text-slate-900 mb-1">王小明</div>
+                                    <div class="text-sm text-slate-600 mb-1">0912-345-678</div>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <div>
+                                            <div class="text-xs text-slate-500">訂單數</div>
+                                            <div class="text-sm font-semibold text-slate-900">12</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs text-slate-500">總消費</div>
+                                            <div class="text-sm font-semibold text-slate-900">NT$ 45,600</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+
+                            <!-- Customer Card 2 -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <div class="mb-3">
+                                    <div class="text-base font-bold text-slate-900 mb-1">李美玲</div>
+                                    <div class="text-sm text-slate-600 mb-1">0923-456-789</div>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <div>
+                                            <div class="text-xs text-slate-500">訂單數</div>
+                                            <div class="text-sm font-semibold text-slate-900">8</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs text-slate-500">總消費</div>
+                                            <div class="text-sm font-semibold text-slate-900">NT$ 32,100</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">查看詳情</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== 出貨頁面 ==================== -->
+        <section id="shipments" class="page-section">
+            <div class="section-header">
+                <h2>出貨頁面 (Shipments)</h2>
+                <p>出貨單管理與狀態追蹤</p>
+            </div>
+
+            <div class="versions-container">
+                <!-- 桌面版 -->
+                <div>
+                    <div class="device-label">桌面版 (1440px)</div>
+                    <div class="page-preview bg-slate-50">
+
+                        <!-- Sidebar -->
+                        <aside class="w-60 bg-white border-r border-slate-200 fixed left-0 top-0 h-full">
+                            <!-- Logo -->
+                            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    </div>
+                                    <span class="text-lg font-bold text-slate-900">BuyGo+1</span>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <nav class="py-4">
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>商品</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>訂單</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                    <span>備貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item active">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>出貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>客戶</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>設定</span>
+                                </a>
+                            </nav>
+                        </aside>
+
+                        <div class="ml-60">
+                        <!-- Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 mb-6">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">出貨</h1>
+                                <nav class="text-xs text-slate-500 mt-0.5">首頁 / 出貨管理</nav>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-64">
+                                    <input type="text" placeholder="全域搜尋..." class="pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">TWD</button>
+                            </div>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="px-6">
+                            <!-- Page Search -->
+                            <div class="mb-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="搜尋出貨單號或客戶名稱..." class="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                            </div>
+
+                            <!-- Tabs -->
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+                                <div class="flex gap-8 px-6 border-b border-slate-200">
+                                    <button class="py-4 px-1 border-b-2 border-orange-500 text-orange-600 font-medium text-sm">
+                                        待出貨 <span class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">3</span>
+                                    </button>
+                                    <button class="py-4 px-1 border-b-2 border-transparent text-slate-600 font-medium text-sm">
+                                        已出貨 <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">12</span>
+                                    </button>
+                                    <button class="py-4 px-1 border-b-2 border-transparent text-slate-600 font-medium text-sm">
+                                        存檔區
+                                    </button>
+                                </div>
+
+                                <!-- Table -->
+                                <div class="p-6">
+                                    <table class="w-full">
+                                        <thead class="bg-slate-50 border-b border-slate-200">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left"><input type="checkbox" class="rounded border-slate-300"></th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">出貨單號</th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">日期</th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">客戶</th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">商品數量</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="px-4 py-4"><input type="checkbox" class="rounded border-slate-300"></td>
+                                                <td class="px-4 py-4 text-sm font-medium text-slate-900">SH-001</td>
+                                                <td class="px-4 py-4 text-sm text-slate-600">2026-01-27</td>
+                                                <td class="px-4 py-4 text-sm text-slate-600">王小明</td>
+                                                <td class="px-4 py-4 text-sm text-slate-600">5 件</td>
+                                                <td class="px-4 py-4 text-right">
+                                                    <div class="flex justify-end gap-2">
+                                                        <button class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium">查看</button>
+                                                        <button class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium">出貨</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <!-- Pagination -->
+                                    <div class="pagination">
+                                        <div class="pagination-info">顯示 1 到 5 筆，共 19 筆</div>
+                                        <div class="pagination-controls">
+                                            <select class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm">
+                                                <option>5 筆</option>
+                                                <option>10 筆</option>
+                                                <option>20 筆</option>
+                                            </select>
+                                            <button class="pagination-btn">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                            </button>
+                                            <button class="pagination-btn active">1</button>
+                                            <button class="pagination-btn">2</button>
+                                            <button class="pagination-btn">3</button>
+                                            <button class="pagination-btn">4</button>
+                                            <button class="pagination-btn">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手機版 -->
+                <div>
+                    <div class="device-label">手機版 (375px)</div>
+                    <div class="page-preview bg-slate-50 w-[375px] mx-auto">
+
+                        <!-- Mobile Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-3">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <h1 class="text-xl font-bold text-slate-900">出貨</h1>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Mobile Tabs -->
+                        <div class="bg-white border-b border-slate-200">
+                            <div class="flex">
+                                <button class="flex-1 py-3 border-b-2 border-orange-500 text-orange-600 font-medium text-sm">待出貨 (3)</button>
+                                <button class="flex-1 py-3 border-b-2 border-transparent text-slate-600 font-medium text-sm">已出貨 (12)</button>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Content -->
+                        <div class="p-4 space-y-3">
+                            <!-- Shipment Card -->
+                            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                <div class="p-4">
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <input type="checkbox" class="mt-1 rounded border-slate-300">
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-start">
+                                                <div>
+                                                    <h3 class="text-sm font-bold text-slate-900">SH-001</h3>
+                                                    <p class="text-xs text-slate-500">王小明</p>
+                                                </div>
+                                                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-600">待出貨</span>
+                                            </div>
+                                            <div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                                                <span>5 件</span>
+                                                <span>2026-01-27</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200">
+                                    <button class="py-3 text-slate-600 text-xs font-bold">查看</button>
+                                    <button class="py-3 text-blue-600 text-xs font-bold">出貨</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== 設定頁面 ==================== -->
+        <section id="settings" class="page-section">
+            <div class="section-header">
+                <h2>設定頁面 (Settings)</h2>
+                <p>系統設定與權限管理</p>
+            </div>
+
+            <div class="versions-container">
+                <!-- 桌面版 -->
+                <div>
+                    <div class="device-label">桌面版 (1440px)</div>
+                    <div class="page-preview bg-slate-50">
+
+                        <!-- Sidebar -->
+                        <aside class="w-60 bg-white border-r border-slate-200 fixed left-0 top-0 h-full">
+                            <!-- Logo -->
+                            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    </div>
+                                    <span class="text-lg font-bold text-slate-900">BuyGo+1</span>
+                                </div>
+                            </div>
+
+                            <!-- Navigation -->
+                            <nav class="py-4">
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>商品</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>訂單</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                    <span>備貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>出貨</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>客戶</span>
+                                </a>
+                                <a href="#" class="sidebar-nav-item active">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>設定</span>
+                                </a>
+                            </nav>
+                        </aside>
+
+                        <div class="ml-60">
+                        <!-- Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 mb-6">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">設定</h1>
+                                <nav class="text-xs text-slate-500 mt-0.5">首頁 / 設定</nav>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-64">
+                                    <input type="text" placeholder="全域搜尋..." class="pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-full">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">TWD</button>
+                            </div>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="px-6">
+                            <!-- Settings Card -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                <h3 class="text-lg font-bold text-slate-900 mb-6">一般設定</h3>
+
+                                <div class="space-y-6">
+                                    <!-- Setting Item -->
+                                    <div class="flex items-center justify-between py-4 border-b border-slate-200">
+                                        <div>
+                                            <div class="text-sm font-semibold text-slate-900">店家名稱</div>
+                                            <div class="text-xs text-slate-500 mt-1">設定顯示在前台的店家名稱</div>
+                                        </div>
+                                        <input type="text" value="BuyGo 商城" class="px-4 py-2 border border-slate-300 rounded-lg text-sm w-64">
+                                    </div>
+
+                                    <!-- Setting Item -->
+                                    <div class="flex items-center justify-between py-4 border-b border-slate-200">
+                                        <div>
+                                            <div class="text-sm font-semibold text-slate-900">預設幣別</div>
+                                            <div class="text-xs text-slate-500 mt-1">設定系統預設使用的幣別</div>
+                                        </div>
+                                        <select class="px-4 py-2 border border-slate-300 rounded-lg text-sm w-64">
+                                            <option>TWD (新台幣)</option>
+                                            <option>USD (美元)</option>
+                                            <option>JPY (日圓)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Setting Item -->
+                                    <div class="flex items-center justify-between py-4">
+                                        <div>
+                                            <div class="text-sm font-semibold text-slate-900">Email 通知</div>
+                                            <div class="text-xs text-slate-500 mt-1">訂單狀態變更時發送 Email 通知</div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked class="sr-only peer">
+                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 pt-6 border-t border-slate-200 flex justify-end">
+                                    <button class="px-6 py-2 bg-primary text-white rounded-lg font-medium">儲存設定</button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手機版 -->
+                <div>
+                    <div class="device-label">手機版 (375px)</div>
+                    <div class="page-preview bg-slate-50 w-[375px] mx-auto">
+
+                        <!-- Mobile Header -->
+                        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-3">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </button>
+                                <h1 class="text-xl font-bold text-slate-900">設定</h1>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+                                <button class="p-2">
+                                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Mobile Content -->
+                        <div class="p-4">
+                            <!-- Settings Card -->
+                            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                                <h3 class="text-base font-bold text-slate-900 mb-4">一般設定</h3>
+
+                                <div class="space-y-4">
+                                    <!-- Setting Item -->
+                                    <div class="py-3 border-b border-slate-200">
+                                        <div class="text-sm font-semibold text-slate-900 mb-1">店家名稱</div>
+                                        <input type="text" value="BuyGo 商城" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                                    </div>
+
+                                    <!-- Setting Item -->
+                                    <div class="py-3 border-b border-slate-200">
+                                        <div class="text-sm font-semibold text-slate-900 mb-1">預設幣別</div>
+                                        <select class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                                            <option>TWD (新台幣)</option>
+                                            <option>USD (美元)</option>
+                                            <option>JPY (日圓)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Setting Item -->
+                                    <div class="py-3 flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-semibold text-slate-900">Email 通知</div>
+                                            <div class="text-xs text-slate-500 mt-1">訂單狀態變更時發送通知</div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked class="sr-only peer">
+                                            <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6">
+                                    <button class="w-full py-2 bg-primary text-white rounded-lg font-medium">儲存設定</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <!-- 底部說明 -->
+    <div class="max-w-[1600px] mx-auto mt-12 p-6 bg-slate-900 text-white rounded-lg">
+        <h3 class="text-lg font-bold mb-2">設計系統統一規範</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <h4 class="font-semibold text-blue-400 mb-1">顏色系統</h4>
+                <ul class="space-y-1 text-slate-300">
+                    <li>• Primary: #2563EB (blue-600)</li>
+                    <li>• Background: #F8FAFC (slate-50)</li>
+                    <li>• Surface: #FFFFFF (white)</li>
+                    <li>• Text: #0F172A (slate-900)</li>
+                    <li>• Border: #E2E8F0 (slate-200)</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-blue-400 mb-1">字體系統</h4>
+                <ul class="space-y-1 text-slate-300">
+                    <li>• 標題: Inter Bold (20px)</li>
+                    <li>• 內文: Inter Regular (14px)</li>
+                    <li>• 等寬: Fira Code (價格、ID)</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-blue-400 mb-1">間距系統</h4>
+                <ul class="space-y-1 text-slate-300">
+                    <li>• Header 高度: 64px</li>
+                    <li>• 內容 Padding: 24px</li>
+                    <li>• 卡片圓角: 16px</li>
+                    <li>• 按鈕圓角: 8px</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

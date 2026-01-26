@@ -10,6 +10,18 @@ namespace BuyGoPlus\Services;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+// 檢查 buygo-line-notify 外掛是否啟用
+if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
+	// 如果外掛未啟用，記錄錯誤但不中斷執行（向後相容）
+	if ( function_exists( 'add_action' ) ) {
+		add_action( 'admin_notices', function() {
+			echo '<div class="notice notice-error"><p>';
+			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 訂單通知功能。';
+			echo '</p></div>';
+		} );
+	}
+}
  
 use FluentCart\App\Models\Order;
  
@@ -182,16 +194,24 @@ class LineOrderNotifier {
 			$this->maybeScheduleNextAttempt( $order, $event, $attempt );
 			return;
 		}
- 
+
+		// 檢查 buygo-line-notify 是否啟用
+		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+			$this->recordAttempt( $order, $event, $attempt, 'plugin_not_active', 'BuyGo Line Notify 外掛未啟用' );
+			return;
+		}
+
 		// 只串接既有模板系統：找不到模板就不送（避免硬編碼預設文案）
 		$message = $this->buildLineMessageFromTemplates( $order, $event );
- 
+
 		if ( empty( $message ) ) {
 			$this->recordAttempt( $order, $event, $attempt, 'empty_message', '模板內容為空，略過推播' );
 			return;
 		}
- 
-		$pushResult = $this->pushMessage( $lineUid, $message );
+
+		// 使用 buygo-line-notify 的 LineMessagingService
+		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+		$pushResult = $messaging->push_message( $lineUid, $message );
  
 		if ( \is_wp_error( $pushResult ) ) {
 			$this->recordAttempt( $order, $event, $attempt, 'push_failed', $pushResult->get_error_message() );
@@ -325,50 +345,6 @@ class LineOrderNotifier {
 		return $message;
 	}
  
-	/**
-	 * Push message to LINE.
-	 *
-	 * @param string $lineUid
-	 * @param array $message
-	 * @return true|\WP_Error
-	 */
-	private function pushMessage( string $lineUid, array $message ) {
-		$token = SettingsService::get( 'line_channel_access_token', '' );
-		if ( empty( $token ) ) {
-			return new \WP_Error( 'missing_token', 'LINE Channel Access Token 未設定' );
-		}
- 
-		$url  = 'https://api.line.me/v2/bot/message/push';
-		$body = [
-			'to'       => $lineUid,
-			'messages' => [ $message ],
-		];
- 
-		$response = \wp_remote_post(
-			$url,
-			[
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $token,
-				],
-				'body'    => \wp_json_encode( $body ),
-				'timeout' => 20,
-			]
-		);
- 
-		if ( \is_wp_error( $response ) ) {
-			return $response;
-		}
- 
-		$status = (int) \wp_remote_retrieve_response_code( $response );
-		$resp   = (string) \wp_remote_retrieve_body( $response );
- 
-		if ( $status < 200 || $status >= 300 ) {
-			return new \WP_Error( 'line_push_failed', 'LINE push failed: ' . $status . ' ' . $resp );
-		}
- 
-		return true;
-	}
  
 	/**
 	 * Record attempt metadata and debug logs.

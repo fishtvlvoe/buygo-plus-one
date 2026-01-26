@@ -1,0 +1,481 @@
+/**
+ * BuyGo+1 Design System - Buttons
+ *
+ * 按鈕元件樣式，基於訂單頁面提取
+ * 支援多種尺寸、變體和狀態
+ */
+
+/* ===== 按鈕基礎 ===== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-base) var(--ease-in-out);
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ===== 按鈕尺寸 ===== */
+
+/* Small */
+.btn-sm {
+  padding: var(--button-padding-y-sm) var(--button-padding-x-sm);
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-button);
+  gap: var(--gap-xs);
+}
+
+/* Medium (Default) */
+.btn-md {
+  padding: var(--button-padding-y-md) var(--button-padding-x-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-button);
+  gap: var(--gap-sm);
+}
+
+/* Large */
+.btn-lg {
+  padding: var(--button-padding-y-lg) var(--button-padding-x-lg);
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-button);
+  gap: var(--gap-md);
+}
+
+/* ===== 按鈕變體 ===== */
+
+/* Primary - 主要按鈕 */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  transform: scale(0.98);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Secondary - 次要按鈕 */
+.btn-secondary {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-base);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.btn-secondary:active:not(:disabled) {
+  background-color: var(--color-bg-subtle);
+  transform: scale(0.98);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+
+/* Outline - 外框按鈕 */
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-outline:active:not(:disabled) {
+  background-color: var(--color-primary-light);
+  transform: scale(0.98);
+}
+
+/* Ghost - 幽靈按鈕 */
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.btn-ghost:active:not(:disabled) {
+  background-color: var(--color-bg-subtle);
+  transform: scale(0.98);
+}
+
+/* Danger - 危險按鈕 */
+.btn-danger {
+  background-color: var(--color-error);
+  color: white;
+  border-color: var(--color-error);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-error-text);
+  border-color: var(--color-error-text);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.btn-danger:active:not(:disabled) {
+  background-color: var(--color-error-text);
+  transform: scale(0.98);
+}
+
+.btn-danger:focus-visible {
+  outline: 2px solid var(--color-error);
+  outline-offset: 2px;
+}
+
+/* Success - 成功按鈕 */
+.btn-success {
+  background-color: var(--color-success);
+  color: white;
+  border-color: var(--color-success);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--color-success-text);
+  border-color: var(--color-success-text);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.btn-success:active:not(:disabled) {
+  background-color: var(--color-success-text);
+  transform: scale(0.98);
+}
+
+/* Link - 連結按鈕 */
+.btn-link {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: transparent;
+  text-decoration: underline;
+  box-shadow: none;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+}
+
+.btn-link:active:not(:disabled) {
+  color: var(--color-primary-dark);
+}
+
+/* ===== 按鈕圖示 ===== */
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-button);
+}
+
+.btn-icon-sm {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.25rem;
+}
+
+.btn-icon-lg {
+  width: 3rem;
+  height: 3rem;
+  padding: 0.75rem;
+}
+
+.btn svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* ===== 按鈕群組 ===== */
+
+.btn-group {
+  display: inline-flex;
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-button);
+  overflow: hidden;
+}
+
+.btn-group .btn {
+  border-radius: 0;
+  border-right: none;
+  box-shadow: none;
+}
+
+.btn-group .btn:first-child {
+  border-radius: var(--radius-button) 0 0 var(--radius-button);
+}
+
+.btn-group .btn:last-child {
+  border-radius: 0 var(--radius-button) var(--radius-button) 0;
+  border-right: 1px solid var(--color-border-base);
+}
+
+.btn-group .btn:only-child {
+  border-radius: var(--radius-button);
+  border-right: 1px solid var(--color-border-base);
+}
+
+/* ===== 載入狀態 ===== */
+
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  top: 50%;
+  left: 50%;
+  margin-left: -0.5rem;
+  margin-top: -0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.6s linear infinite;
+}
+
+.btn-primary.btn-loading::after,
+.btn-danger.btn-loading::after,
+.btn-success.btn-loading::after {
+  border-color: white;
+  border-top-color: transparent;
+}
+
+/* ===== 按鈕全寬 ===== */
+
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ===== 按鈕圓形 ===== */
+
+.btn-circle {
+  border-radius: var(--radius-full);
+  padding: var(--space-2);
+}
+
+/* ===== 特殊用途按鈕 ===== */
+
+/* 貨幣選擇器 */
+.btn-currency {
+  padding: 0.375rem var(--space-3);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-base);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base) var(--ease-in-out);
+}
+
+.btn-currency:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* 通知按鈕 */
+.btn-notification {
+  padding: var(--space-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  transition: all var(--transition-base) var(--ease-in-out);
+  position: relative;
+}
+
+.btn-notification:hover {
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-hover);
+}
+
+/* 通知徽章 */
+.btn-notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-error);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-surface);
+}
+
+/* 前往 Portal 按鈕 */
+.btn-portal {
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-button);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base) var(--ease-in-out);
+}
+
+.btn-portal:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* 搜尋按鈕 */
+.btn-search {
+  padding: var(--space-2);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-button);
+  background-color: transparent;
+  transition: all var(--transition-base) var(--ease-in-out);
+}
+
+.btn-search:hover {
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-hover);
+}
+
+/* ===== 響應式按鈕 ===== */
+
+@media (max-width: 768px) {
+  .btn-responsive {
+    width: 100%;
+  }
+
+  .btn-portal .btn-portal-text-full {
+    display: none;
+  }
+
+  .btn-portal .btn-portal-text-short {
+    display: inline;
+  }
+}
+
+@media (min-width: 769px) {
+  .btn-portal .btn-portal-text-full {
+    display: inline;
+  }
+
+  .btn-portal .btn-portal-text-short {
+    display: none;
+  }
+}
+
+/* ===== 按鈕 Hover 效果增強 ===== */
+
+.btn-lift {
+  transition: transform var(--transition-base) var(--ease-out),
+              box-shadow var(--transition-base) var(--ease-out);
+}
+
+.btn-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-lift:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-button);
+}
+
+/* ===== 無障礙支援 ===== */
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* 減少動畫 */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .btn-loading::after {
+    animation: none;
+  }
+}
+
+/* ===== Icon + Text 按鈕 ===== */
+
+.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.btn-with-icon svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Icon 在右側 */
+.btn-icon-right {
+  flex-direction: row-reverse;
+}
+
+/* ===== 下拉按鈕 ===== */
+
+.btn-dropdown {
+  position: relative;
+}
+
+.btn-dropdown-caret {
+  margin-left: var(--gap-xs);
+  width: 0.5em;
+  height: 0.5em;
+  transition: transform var(--transition-base) var(--ease-in-out);
+}
+
+.btn-dropdown.active .btn-dropdown-caret {
+  transform: rotate(180deg);
+}
