@@ -2094,6 +2094,7 @@ const SettingsPageComponent = {
         });
         
         return {
+            wpNonce,
             activeTemplateTab,
             templateTabs,
             templateEdits,

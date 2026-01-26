@@ -16,6 +16,13 @@ if (!defined('ABSPATH')) {
  */
 class Plugin {
     /**
+     * 資料庫版本號
+     *
+     * @var string
+     */
+    const DB_VERSION = '1.2.0';
+
+    /**
      * 單例實例
      *
      * @var Plugin|null
@@ -84,7 +91,9 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-image-uploader.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-notifier.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-webhook-handler.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';
@@ -117,6 +126,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-global-search-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-line-webhook-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-liff-login-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-orders-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-products-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
@@ -129,9 +139,6 @@ class Plugin {
         // 載入 FluentCart/FluentCommunity 整合
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
-
-        // 載入自動更新器
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
     }
     
     /**
@@ -163,6 +170,12 @@ class Plugin {
         
         // 初始化 FluentCart 產品頁面自訂
         FluentCartProductPage::instance();
+
+        // 初始化 LINE 訂單通知（下單成功 / 已出貨）
+        new \BuyGoPlus\Services\LineOrderNotifier();
+
+        // FluentCart 收據頁：顯示 LINE 綁定碼
+        new \BuyGoPlus\Services\LineBindingReceipt();
         
         // 初始化 API
         new \BuyGoPlus\Api\API();
@@ -199,13 +212,6 @@ class Plugin {
             </script>
             <?php
         }, 1);
-
-        // 初始化自動更新器
-        $updater = new \BuyGoPlus\Updater(
-            BUYGO_PLUS_ONE_PLUGIN_FILE,
-            BUYGO_PLUS_ONE_VERSION
-        );
-        $updater->init();
     }
 
     /**
@@ -217,7 +223,7 @@ class Plugin {
     private function maybe_upgrade_database(): void
     {
         $current_db_version = get_option('buygo_plus_one_db_version', '0');
-        $required_db_version = '1.2.0'; // 修復出貨單資料表結構
+        $required_db_version = self::DB_VERSION; // 使用類別常數
 
         // 載入必要的類別
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';

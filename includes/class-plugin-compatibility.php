@@ -23,14 +23,14 @@ class PluginCompatibility
     const OLD_PLUGIN_DIR = 'buygo';
 
     /**
-     * 開發版外掛的主檔案路徑
+     * 正式版外掛的主檔案路徑（從開發版角度來看）
      */
-    const DEV_PLUGIN_FILE = 'buygo-plus-one-dev/buygo-plus-one.php';
+    const DEV_PLUGIN_FILE = 'buygo-plus-one/buygo-plus-one.php';
 
     /**
-     * 開發版外掛的目錄名稱
+     * 正式版外掛的目錄名稱（從開發版角度來看）
      */
-    const DEV_PLUGIN_DIR = 'buygo-plus-one-dev';
+    const DEV_PLUGIN_DIR = 'buygo-plus-one';
 
     /**
      * 檢查是否可以安全啟用新外掛
@@ -187,14 +187,14 @@ HTML;
     }
 
     /**
-     * 取得開發版衝突錯誤訊息
+     * 取得正式版衝突錯誤訊息（從開發版角度）
      */
     public static function get_dev_conflict_message(): string
     {
         return <<<HTML
 <div class="notice notice-error">
-    <h3>⚠️ 無法啟用 BuyGo+1</h3>
-    <p>偵測到 <strong>BuyGo+1 開發版</strong> 正在運行。</p>
+    <h3>⚠️ 無法啟用 BuyGo+1 開發版</h3>
+    <p>偵測到 <strong>BuyGo+1 正式版</strong> 正在運行。</p>
     <p>兩個版本使用相同的 PHP 常數和類別名稱，無法同時啟用，會導致嚴重錯誤。</p>
     <h4>發生的問題：</h4>
     <ul>
@@ -204,9 +204,9 @@ HTML;
     </ul>
     <h4>解決步驟：</h4>
     <ol>
-        <li>停用 BuyGo+1 開發版</li>
-        <li>啟用 BuyGo+1 正式版</li>
-        <li>若需要開發測試，請在開發環境中使用開發版</li>
+        <li>停用 BuyGo+1 正式版</li>
+        <li>啟用 BuyGo+1 開發版</li>
+        <li>或者：若在生產環境，建議使用正式版</li>
     </ol>
 </div>
 HTML;
@@ -333,14 +333,14 @@ HTML;
     }
 
     /**
-     * 顯示開發版衝突的嚴重錯誤通知
+     * 顯示正式版衝突的嚴重錯誤通知（從開發版角度）
      */
     public static function show_dev_conflict_notice(): void
     {
         echo <<<HTML
 <div class="notice notice-error is-dismissible">
     <h3>🚫 BuyGo+1 外掛衝突 - 嚴重錯誤</h3>
-    <p><strong>BuyGo+1 正式版</strong> 和 <strong>BuyGo+1 開發版</strong> 同時啟用中！</p>
+    <p><strong>BuyGo+1 開發版</strong> 和 <strong>BuyGo+1 正式版</strong> 同時啟用中！</p>
     <p style="color: #d63638;"><strong>⚠️ 這會導致 PHP Fatal Error 和系統崩潰！</strong></p>
     <h4>衝突原因：</h4>
     <ul>
@@ -348,7 +348,7 @@ HTML;
         <li>兩個外掛使用相同的 namespace 和類別名稱</li>
         <li>PHP 不允許重複定義，會產生 Fatal Error</li>
     </ul>
-    <p><strong>請立即停用其中一個外掛！建議保留正式版，停用開發版。</strong></p>
+    <p><strong>請立即停用其中一個外掛！</strong>（生產環境建議保留正式版，開發測試建議保留開發版）</p>
 </div>
 HTML;
     }

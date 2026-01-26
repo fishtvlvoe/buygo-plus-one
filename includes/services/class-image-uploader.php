@@ -24,11 +24,11 @@ class ImageUploader {
 	private $channel_access_token;
 
 	/**
-	 * Debug Service
+	 * Webhook Logger
 	 *
-	 * @var DebugService
+	 * @var WebhookLogger
 	 */
-	private $debugService;
+	private $logger;
 
 	/**
 	 * Constructor
@@ -37,7 +37,7 @@ class ImageUploader {
 	 */
 	public function __construct( $channel_access_token ) {
 		$this->channel_access_token = $channel_access_token;
-		$this->debugService         = DebugService::get_instance();
+		$this->logger               = WebhookLogger::get_instance();
 	}
 
 	/**
@@ -50,7 +50,7 @@ class ImageUploader {
 	public function download_and_upload( $message_id, $user_id ) {
 		// Validate user_id
 		if ( $user_id <= 0 ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Invalid user_id provided to download_and_upload',
 				'message_id' => $message_id,
 				'user_id' => $user_id,
@@ -58,7 +58,7 @@ class ImageUploader {
 			return new \WP_Error( 'invalid_user_id', 'Invalid user ID' );
 		}
 
-		$this->debugService->log( 'image_download_start', array(
+		$this->logger->log( 'image_download_start', array(
 			'message_id' => $message_id,
 			'user_id' => $user_id,
 		), $user_id );
@@ -80,7 +80,7 @@ class ImageUploader {
 		// 3. 暫存圖片 ID
 		$this->store_temp_image( $user_id, $attachment_id );
 
-		$this->debugService->log( 'image_uploaded_success', array(
+		$this->logger->log( 'image_uploaded_success', array(
 			'attachment_id' => $attachment_id,
 		), $user_id );
 
@@ -101,7 +101,7 @@ class ImageUploader {
 		$url = "https://api-data.line.me/v2/bot/message/{$message_id}/content";
 
 		// Debug: 記錄使用的 token 資訊
-		$this->debugService->log( 'image_download_line', array(
+		$this->logger->log( 'image_download_line', array(
 			'url' => $url,
 			'token_length' => strlen( $this->channel_access_token ),
 			'token_preview' => substr( $this->channel_access_token, 0, 30 ) . '...',
@@ -119,7 +119,7 @@ class ImageUploader {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'Failed to download from LINE',
 				'error' => $response->get_error_message(),
 			) );
@@ -128,7 +128,7 @@ class ImageUploader {
 
 		$status_code = wp_remote_retrieve_response_code( $response );
 		if ( $status_code !== 200 ) {
-			$this->debugService->log( 'error', array(
+			$this->logger->log( 'error', array(
 				'message' => 'LINE API error',
 				'status_code' => $status_code,
 				'response' => wp_remote_retrieve_body( $response ),
@@ -142,7 +142,7 @@ class ImageUploader {
 			return new \WP_Error( 'empty_image', '圖片資料為空' );
 		}
 
-		$this->debugService->log( 'image_downloaded', array(
+		$this->logger->log( 'image_downloaded', array(
 			'size' => strlen( $image_data ),
 		) );
 
@@ -176,7 +176,7 @@ class ImageUploader {
 			return new \WP_Error( 'file_write_error', '無法寫入檔案' );
 		}
 
-		$this->debugService->log( 'image_file_saved', array( 'path' => $file_path ) );
+		$this->logger->log( 'image_file_saved', array( 'path' => $file_path ) );
 
 		// 取得檔案類型
 		$filetype = wp_check_filetype( $filename, null );
@@ -195,7 +195,7 @@ class ImageUploader {
 				$user_id = 1;
 			}
 
-			$this->debugService->log( 'warning', array(
+			$this->logger->log( 'warning', array(
 				'message' => 'Invalid user_id provided for image upload, using default admin',
 				'provided_user_id' => $original_user_id,
 				'fallback_user_id' => $user_id,
@@ -225,14 +225,14 @@ class ImageUploader {
 		$attach_data = wp_generate_attachment_metadata( $attachment_id, $file_path );
 		wp_update_attachment_metadata( $attachment_id, $attach_data );
 
-		$this->debugService->log( 'image_attachment_created', array(
+		$this->logger->log( 'image_attachment_created', array(
 			'attachment_id' => $attachment_id,
 			'metadata' => $attach_data,
 		), $user_id );
 
 		// Check if Media Cloud is active
 		if ( $this->is_media_cloud_active() ) {
-			$this->debugService->log( 'media_cloud_active', array(
+			$this->logger->log( 'media_cloud_active', array(
 				'message' => 'Media Cloud is active, image will be uploaded to cloud storage',
 			), $user_id );
 		}
@@ -267,7 +267,7 @@ class ImageUploader {
 
 		update_user_meta( $user_id, '_buygo_temp_images', $temp_images );
 
-		$this->debugService->log( 'image_stored_temp', array(
+		$this->logger->log( 'image_stored_temp', array(
 			'attachment_id' => $attachment_id,
 			'total_images' => count( $temp_images ),
 		), $user_id );
@@ -292,6 +292,6 @@ class ImageUploader {
 	public function clear_temp_images( $user_id ) {
 		delete_user_meta( $user_id, '_buygo_temp_images' );
 
-		$this->debugService->log( 'temp_images_cleared', array(), $user_id );
+		$this->logger->log( 'temp_images_cleared', array(), $user_id );
 	}
 }
