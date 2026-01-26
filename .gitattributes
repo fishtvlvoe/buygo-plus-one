@@ -1,0 +1,16 @@
+# 開發腳本
+release.sh export-ignore
+bump-version.sh export-ignore
+
+# 開發文件
+GITHUB-SETUP.md export-ignore
+
+# 測試檔案（如果有）
+tests/ export-ignore
+phpunit.xml export-ignore
+
+# 開發工具
+.gitignore export-ignore
+.gitattributes export-ignore
+composer.json export-ignore
+composer.lock export-ignore
