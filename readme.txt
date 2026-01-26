@@ -14,11 +14,25 @@ BuyGo 獨立賣場後台系統
 
 BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功能。
 
+**重要**：此外掛需要 `buygo-line-notify` 外掛才能正常運作 LINE 相關功能。請先安裝並啟用 `buygo-line-notify`。
+
 == Installation ==
 
-1. 上傳 `buygo-plus-one` 資料夾到 `/wp-content/plugins/` 目錄
-2. 在 WordPress 後台的「外掛」選單中啟用 BuyGo+1
-3. 訪問 `yoursite.com/buygo-portal/dashboard` 開始使用
+1. **先安裝 `buygo-line-notify` 外掛**
+   - 上傳 `buygo-line-notify` 資料夾到 `/wp-content/plugins/` 目錄
+   - 在 WordPress 後台的「外掛」選單中啟用 BuyGo Line Notify
+   - 完成 LINE Channel 設定（Access Token、Channel Secret）
+
+2. **再安裝 `buygo-plus-one` 外掛**
+   - 上傳 `buygo-plus-one` 資料夾到 `/wp-content/plugins/` 目錄
+   - 在 WordPress 後台的「外掛」選單中啟用 BuyGo+1
+   - 訪問 `yoursite.com/buygo-portal/dashboard` 開始使用
+
+== Requirements ==
+
+* WordPress 5.8 或更新版本
+* PHP 7.4 或更新版本
+* buygo-line-notify 外掛（必須先安裝並啟用）
 
 == Changelog ==
 

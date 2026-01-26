@@ -11,13 +11,51 @@
 - 📊 庫存分配管理
 - ⚙️ 彈性設定系統
 
+## 外掛依賴
+
+**重要**：`buygo-plus-one-dev` 需要 `buygo-line-notify` 外掛才能正常運作 LINE 相關功能。
+
+### 安裝順序
+
+1. **先安裝並啟用 `buygo-line-notify`**
+   - 這是 LINE 基礎設施外掛，提供圖片上傳、訊息發送等核心功能
+   - 在 `buygo-line-notify` 中完成 LINE Channel 設定（Access Token、Channel Secret）
+
+2. **再安裝並啟用 `buygo-plus-one-dev`**
+   - 這是業務邏輯外掛，提供商品上架、訂單通知等功能
+   - 依賴 `buygo-line-notify` 提供的 Facade API
+
+### 依賴關係
+
+```
+buygo-line-notify (基礎設施層)
+    ├── ImageUploader - 圖片上傳
+    ├── LineMessagingService - 訊息發送
+    ├── SettingsService - 設定管理
+    └── Logger - 日誌服務
+    └── BuygoLineNotify (Facade API)
+
+buygo-plus-one-dev (業務邏輯層)
+    ├── LineWebhookHandler - 使用 BuygoLineNotify::image_uploader()
+    ├── LineOrderNotifier - 使用 BuygoLineNotify::messaging()
+    └── 其他業務邏輯服務
+```
+
+如果 `buygo-line-notify` 未啟用，系統會顯示管理員通知提醒。
+
 ## 快速開始
 
 ### 安裝
 
-1. 上傳到 `/wp-content/plugins/buygo-plus-one/`
-2. 在 WordPress 後台啟用外掛
-3. 訪問 `yoursite.com/buygo-portal/dashboard`
+1. **安裝 `buygo-line-notify`**
+   - 上傳到 `/wp-content/plugins/buygo-line-notify/`
+   - 在 WordPress 後台啟用
+   - 完成 LINE Channel 設定
+
+2. **安裝 `buygo-plus-one-dev`**
+   - 上傳到 `/wp-content/plugins/buygo-plus-one/`
+   - 在 WordPress 後台啟用
+   - 訪問 `yoursite.com/buygo-portal/dashboard`
 
 ### 開發部署流程
 

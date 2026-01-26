@@ -27,10 +27,18 @@ class FluentCartService {
 	private $debugService;
 
 	/**
+	 * Webhook Logger
+	 *
+	 * @var WebhookLogger
+	 */
+	private $webhookLogger;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->debugService = DebugService::get_instance();
+		$this->webhookLogger = WebhookLogger::get_instance();
 	}
 
 	/**
@@ -42,11 +50,15 @@ class FluentCartService {
 	 */
 	public function create_product( $product_data, $image_ids = array() ) {
 		if ( ! class_exists( 'FluentCart\App\App' ) ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'FluentCart not installed',
+			$error_message = 'FluentCart 未安裝';
+			$this->debugService->log( 'FluentCartService', $error_message, array(
 				'product_data' => $product_data,
-			), $product_data['user_id'] ?? null, null );
-			return new \WP_Error( 'fluentcart_not_installed', 'FluentCart 未安裝' );
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => $error_message,
+				'product_data' => $product_data,
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+			return new \WP_Error( 'fluentcart_not_installed', $error_message );
 		}
 
 		try {
@@ -61,42 +73,72 @@ class FluentCartService {
 				'ping_status' => 'closed',
 			);
 
-			$this->debugService->log( 'product_post_creating', array(
+			$this->debugService->log( 'FluentCartService', '開始建立商品 Post', array(
 				'post_data' => $post_data,
-			), $product_data['user_id'] ?? null, null );
+			), 'info' );
 
 			$product_id = wp_insert_post( $post_data, true );
 
 			if ( is_wp_error( $product_id ) ) {
-				$this->debugService->log( 'error', array(
-					'message' => 'wp_insert_post failed',
+				$error_message = 'wp_insert_post 失敗：' . $product_id->get_error_message();
+				$this->debugService->log( 'FluentCartService', $error_message, array(
 					'error' => $product_id->get_error_message(),
-				), $product_data['user_id'] ?? null, null );
+					'error_code' => $product_id->get_error_code(),
+				), 'error' );
+				$this->webhookLogger->log( 'error', array(
+					'message' => $error_message,
+					'error' => $product_id->get_error_message(),
+					'error_code' => $product_id->get_error_code(),
+				), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
 				return $product_id;
 			}
 
-			$this->debugService->log( 'product_post_created', array(
+			$this->debugService->log( 'FluentCartService', '商品 Post 建立成功', array(
 				'product_id' => $product_id,
-			), $product_data['user_id'] ?? null, null );
+			), 'info' );
 
 		// 建立 FluentCart 商品詳情
 		// 檢查是否為多樣式產品
 		if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
 			// 多樣式產品：建立多個變體
-			$this->create_variable_product( $product_id, $product_data );
+			$details_result = $this->create_variable_product( $product_id, $product_data );
+			if ( is_wp_error( $details_result ) ) {
+				// 如果建立失敗，刪除已建立的 post
+				wp_delete_post( $product_id, true );
+				// 記錄錯誤到 WebhookLogger
+				$this->webhookLogger->log( 'error', array(
+					'message' => '多樣式商品建立失敗',
+					'error' => $details_result->get_error_message(),
+					'error_code' => $details_result->get_error_code(),
+					'product_id' => $product_id,
+				), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+				return $details_result;
+			}
 		} else {
 			// 單一商品：建立單一變體
-			$this->create_product_details( $product_id, $product_data );
+			$details_result = $this->create_product_details( $product_id, $product_data );
+			if ( is_wp_error( $details_result ) ) {
+				// 如果建立失敗，刪除已建立的 post
+				wp_delete_post( $product_id, true );
+				// 記錄錯誤到 WebhookLogger
+				$this->webhookLogger->log( 'error', array(
+					'message' => '商品詳情建立失敗',
+					'error' => $details_result->get_error_message(),
+					'error_code' => $details_result->get_error_code(),
+					'product_id' => $product_id,
+				), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+				return $details_result;
+			}
 		}
 
 		// 設定圖片
 			$image_attachment_id = $product_data['image_attachment_id'] ?? ( ! empty( $image_ids ) ? $image_ids[0] : null );
 			if ( ! empty( $image_attachment_id ) ) {
 				set_post_thumbnail( $product_id, intval( $image_attachment_id ) );
-				$this->debugService->log( 'product_image_set', array(
+				$this->debugService->log( 'FluentCartService', '商品圖片已設定', array(
 					'product_id' => $product_id,
 					'attachment_id' => $image_attachment_id,
-				), $product_data['user_id'] ?? null, null );
+				), 'info' );
 			}
 
 			// 儲存 meta（LINE UID 等）
@@ -122,26 +164,31 @@ class FluentCartService {
 			update_post_meta( $product_id, '_fct_subscription_enabled', 'no' );
 			
 			// 記錄日誌以便除錯
-			$this->debugService->log( 'product_payment_term_set', array(
+			$this->debugService->log( 'FluentCartService', '商品付款期限已設定', array(
 				'product_id' => $product_id,
 				'payment_term' => 'one_time',
-			), $product_data['user_id'] ?? null, null );
+			), 'info' );
 
 			do_action( 'buygo/product/created', $product_id, $product_data, $line_uid );
 
-			$this->debugService->log( 'product_created_success', array(
+			$this->debugService->log( 'FluentCartService', '商品建立成功', array(
 				'product_id' => $product_id,
 				'product_name' => $product_data['name'] ?? '',
-			), $product_data['user_id'] ?? null, $line_uid );
+			), 'info' );
 
 			return $product_id;
 
 		} catch ( \Exception $e ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'Product creation exception',
+			$error_message = '商品建立發生例外：' . $e->getMessage();
+			$this->debugService->log( 'FluentCartService', $error_message, array(
 				'error' => $e->getMessage(),
 				'trace' => $e->getTraceAsString(),
-			), $product_data['user_id'] ?? null, null );
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => $error_message,
+				'error' => $e->getMessage(),
+				'trace' => $e->getTraceAsString(),
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
 			return new \WP_Error( 'exception', $e->getMessage() );
 		}
 	}
@@ -151,6 +198,7 @@ class FluentCartService {
 	 *
 	 * @param int $product_id Product ID
 	 * @param array $data Product data
+	 * @return bool|\WP_Error 成功返回 true，失敗返回 WP_Error
 	 */
 	private function create_product_details( $product_id, $data ) {
 		global $wpdb;
@@ -179,23 +227,61 @@ class FluentCartService {
 
 		$table_name = $wpdb->prefix . 'fct_product_details';
 
-		// 檢查表是否存在
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'fct_product_details table not found',
-			), null, null );
-			return;
+		// 檢查表是否存在（使用 prepare 確保安全性）
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+		if ( $table_exists !== $table_name ) {
+			$error = new \WP_Error( 'table_not_found', 'fct_product_details 資料表不存在' );
+			$this->debugService->log( 'FluentCartService', 'fct_product_details 資料表不存在', array(
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => 'fct_product_details 資料表不存在',
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $error;
 		}
 
-		$wpdb->insert( $table_name, $detail_data );
+		$result = $wpdb->insert( $table_name, $detail_data );
 
-		$this->debugService->log( 'product_details_created', array(
+		if ( $result === false ) {
+			$error = new \WP_Error( 'insert_failed', '商品詳情插入失敗：' . $wpdb->last_error );
+			$this->debugService->log( 'FluentCartService', '商品詳情插入失敗', array(
+				'error' => $wpdb->last_error,
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+				'detail_data' => $detail_data,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => '商品詳情插入失敗',
+				'error' => $wpdb->last_error,
+				'error_code' => 'insert_failed',
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $error;
+		}
+
+		$this->debugService->log( 'FluentCartService', '商品詳情建立成功', array(
 			'product_id' => $product_id,
 			'insert_id' => $wpdb->insert_id,
-		), null, null );
+		), 'info' );
 
 		// 建立預設變體（FluentCart 需要）
-		$this->create_default_variation( $product_id, $data );
+		$variation_result = $this->create_default_variation( $product_id, $data );
+		if ( is_wp_error( $variation_result ) ) {
+			// 記錄錯誤到 WebhookLogger
+			$this->webhookLogger->log( 'error', array(
+				'message' => '預設變體建立失敗',
+				'error' => $variation_result->get_error_message(),
+				'error_code' => $variation_result->get_error_code(),
+				'product_id' => $product_id,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $variation_result;
+		}
+
+		return true;
 	}
 
 	/**
@@ -203,6 +289,7 @@ class FluentCartService {
 	 *
 	 * @param int $product_id Product ID
 	 * @param array $data Product data (包含 variations 陣列)
+	 * @return bool|\WP_Error 成功返回 true，失敗返回 WP_Error
 	 */
 	private function create_variable_product( $product_id, $data ) {
 		global $wpdb;
@@ -242,24 +329,62 @@ class FluentCartService {
 
 		$table_name = $wpdb->prefix . 'fct_product_details';
 
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'fct_product_details table not found',
-			), null, null );
-			return;
+		// 檢查表是否存在（使用 prepare 確保安全性）
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+		if ( $table_exists !== $table_name ) {
+			$error = new \WP_Error( 'table_not_found', 'fct_product_details 資料表不存在' );
+			$this->debugService->log( 'FluentCartService', 'fct_product_details 資料表不存在', array(
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => 'fct_product_details 資料表不存在',
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $error;
 		}
 
-		$wpdb->insert( $table_name, $detail_data );
+		$result = $wpdb->insert( $table_name, $detail_data );
 
-		$this->debugService->log( 'variable_product_details_created', array(
+		if ( $result === false ) {
+			$error = new \WP_Error( 'insert_failed', '多樣式商品詳情插入失敗：' . $wpdb->last_error );
+			$this->debugService->log( 'FluentCartService', '多樣式商品詳情插入失敗', array(
+				'error' => $wpdb->last_error,
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => '多樣式商品詳情插入失敗',
+				'error' => $wpdb->last_error,
+				'error_code' => 'insert_failed',
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $error;
+		}
+
+		$this->debugService->log( 'FluentCartService', '多樣式商品詳情建立成功', array(
 			'product_id' => $product_id,
 			'variations_count' => count( $data['variations'] ),
-		), null, null );
+		), 'info' );
 
 		// 為每個變體建立 variation
 		$default_variation_id = null;
 		foreach ( $data['variations'] as $index => $variation ) {
 			$variation_id = $this->create_variation( $product_id, $variation, $data );
+			if ( is_wp_error( $variation_id ) ) {
+				// 記錄錯誤到 WebhookLogger
+				$this->webhookLogger->log( 'error', array(
+					'message' => '變體建立失敗',
+					'error' => $variation_id->get_error_message(),
+					'error_code' => $variation_id->get_error_code(),
+					'product_id' => $product_id,
+					'variation_index' => $index,
+				), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+				// 如果變體建立失敗，返回錯誤
+				return $variation_id;
+			}
 			if ( $variation_id && $index === 0 ) {
 				$default_variation_id = $variation_id;
 			}
@@ -273,6 +398,8 @@ class FluentCartService {
 				array( 'post_id' => $product_id )
 			);
 		}
+
+		return true;
 	}
 
 	/**
@@ -281,18 +408,27 @@ class FluentCartService {
 	 * @param int $product_id Product ID
 	 * @param array $variation Variation data
 	 * @param array $product_data Full product data
-	 * @return int|null Variation ID
+	 * @return int|\WP_Error Variation ID 或錯誤
 	 */
 	private function create_variation( $product_id, $variation, $product_data ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'fct_product_variations';
 
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'fct_product_variations table not found',
-			), null, null );
-			return null;
+		// 檢查表是否存在（使用 prepare 確保安全性）
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+		if ( $table_exists !== $table_name ) {
+			$error = new \WP_Error( 'table_not_found', 'fct_product_variations 資料表不存在' );
+			$this->debugService->log( 'FluentCartService', 'fct_product_variations 資料表不存在', array(
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => 'fct_product_variations 資料表不存在',
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+			return $error;
 		}
 
 		$price = intval( $variation['price'] ?? $product_data['price'] ?? 0 ) * 100; // 轉換為分
@@ -336,18 +472,27 @@ class FluentCartService {
 		$result = $wpdb->insert( $table_name, $variation_data );
 
 		if ( $result === false ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'Variation insert failed',
+			$error = new \WP_Error( 'insert_failed', '變體插入失敗：' . $wpdb->last_error );
+			$this->debugService->log( 'FluentCartService', '變體插入失敗', array(
 				'error' => $wpdb->last_error,
-			), null, null );
-			return null;
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => '變體插入失敗',
+				'error' => $wpdb->last_error,
+				'error_code' => 'insert_failed',
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+			return $error;
 		}
 
-		$this->debugService->log( 'variation_created', array(
+		$this->debugService->log( 'FluentCartService', '變體建立成功', array(
 			'product_id' => $product_id,
 			'variation_id' => $wpdb->insert_id,
 			'variation_title' => $variation_title,
-		), null, null );
+		), 'info' );
 
 		return $wpdb->insert_id;
 	}
@@ -357,6 +502,7 @@ class FluentCartService {
 	 *
 	 * @param int $product_id Product ID
 	 * @param array $data Product data
+	 * @return bool|\WP_Error 成功返回 true，失敗返回 WP_Error
 	 */
 	private function create_default_variation( $product_id, $data ) {
 		global $wpdb;
@@ -384,11 +530,20 @@ class FluentCartService {
 
 		$table_name = $wpdb->prefix . 'fct_product_variations';
 
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) !== $table_name ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'fct_product_variations table not found',
-			), null, null );
-			return;
+		// 檢查表是否存在（使用 prepare 確保安全性）
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+		if ( $table_exists !== $table_name ) {
+			$error = new \WP_Error( 'table_not_found', 'fct_product_variations 資料表不存在' );
+			$this->debugService->log( 'FluentCartService', 'fct_product_variations 資料表不存在', array(
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => 'fct_product_variations 資料表不存在',
+				'error' => $error->get_error_message(),
+				'table_name' => $table_name,
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+			return $error;
 		}
 
 		$variation_data = array(
@@ -411,15 +566,27 @@ class FluentCartService {
 		$result = $wpdb->insert( $table_name, $variation_data );
 
 		if ( $result === false ) {
-			$this->debugService->log( 'error', array(
-				'message' => 'Product variation insert failed',
+			$error = new \WP_Error( 'insert_failed', '商品變體插入失敗：' . $wpdb->last_error );
+			$this->debugService->log( 'FluentCartService', '商品變體插入失敗', array(
 				'error' => $wpdb->last_error,
-			), null, null );
-		} else {
-			$this->debugService->log( 'product_variation_created', array(
 				'product_id' => $product_id,
-				'insert_id' => $wpdb->insert_id,
-			), null, null );
+				'table_name' => $table_name,
+			), 'error' );
+			$this->webhookLogger->log( 'error', array(
+				'message' => '商品變體插入失敗',
+				'error' => $wpdb->last_error,
+				'error_code' => 'insert_failed',
+				'product_id' => $product_id,
+				'table_name' => $table_name,
+			), $data['user_id'] ?? null, $data['line_uid'] ?? null );
+			return $error;
 		}
+
+		$this->debugService->log( 'FluentCartService', '商品變體建立成功', array(
+			'product_id' => $product_id,
+			'insert_id' => $wpdb->insert_id,
+		), 'info' );
+
+		return true;
 	}
 }
