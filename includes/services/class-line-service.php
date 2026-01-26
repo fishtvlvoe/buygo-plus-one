@@ -234,12 +234,14 @@ class LineService {
 				$this->table_name,
 				[
 					'user_id' => $user_id,
+					// pending 狀態下尚未取得 line_uid，先用空字串佔位（資料表欄位為 NOT NULL）
+					'line_uid' => '',
 					'binding_code' => $code,
 					'status' => 'pending',
 					'created_at' => current_time( 'mysql' ),
-					'expires_at' => $expires_at,
+					'binding_code_expires_at' => $expires_at,
 				],
-				[ '%d', '%s', '%s', '%s', '%s' ]
+				[ '%d', '%s', '%s', '%s', '%s', '%s' ]
 			);
 
 			if ( $inserted === false ) {
@@ -313,11 +315,11 @@ class LineService {
 				throw new \Exception( 'Code already used or expired' );
 			}
 
-			if ( strtotime( $binding->expires_at ) < time() ) {
+			if ( strtotime( $binding->binding_code_expires_at ) < time() ) {
 				$wpdb->update( $this->table_name, [ 'status' => 'expired' ], [ 'id' => $binding->id ] );
 				$this->debugService->log( 'LineService', '綁定碼已過期', array(
 					'code' => $code,
-					'expires_at' => $binding->expires_at,
+					'expires_at' => $binding->binding_code_expires_at,
 				), 'warning' );
 				throw new \Exception( 'Code expired' );
 			}
@@ -418,7 +420,7 @@ class LineService {
 					'line_uid' => $line_uid,
 					'status' => 'completed',
 					'created_at' => current_time( 'mysql' ),
-					'expires_at' => current_time( 'mysql' ),
+					'binding_code_expires_at' => current_time( 'mysql' ),
 					'completed_at' => current_time( 'mysql' ),
 				],
 				[ '%d', '%s', '%s', '%s', '%s', '%s', '%s' ]
@@ -483,7 +485,7 @@ class LineService {
 			$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
 
 			if ( $table_exists ) {
-				$result = $wpdb->query( "UPDATE {$this->table_name} SET status = 'expired' WHERE status = 'pending' AND expires_at < NOW()" );
+				$result = $wpdb->query( "UPDATE {$this->table_name} SET status = 'expired' WHERE status = 'pending' AND binding_code_expires_at < NOW()" );
 
 				$this->debugService->log( 'LineService', '清理過期綁定碼完成', array(
 					'expired_count' => $result !== false ? $result : 0,
