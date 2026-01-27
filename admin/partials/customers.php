@@ -8,11 +8,16 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/customers.css', __FILE__)); ?>" />
 <?php
 $customers_component_template = <<<'HTML'
-<main class="min-h-screen bg-slate-50">
 
-    <!-- ============================================ -->
-    <!-- 頁首部分 -->
-    <!-- ============================================ -->
+<!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->
+<div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+
+    <!-- Main Content -->
+    <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
+
+        <!-- ============================================ -->
+        <!-- 頁首部分 -->
+        <!-- ============================================ -->
     <header class="page-header">
         <div class="page-header-left" v-show="!showMobileSearch">
             <h1 class="page-header-title">客戶</h1>
@@ -429,7 +434,9 @@ $customers_component_template = <<<'HTML'
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
     </div>
-</main>
+
+    </main>
+</div>
 HTML;
 ?>
 
