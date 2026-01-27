@@ -130,8 +130,8 @@ $customers_component_template = <<<'HTML'
                                 <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
                                 <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
                                 <td class="px-2 py-4 text-center">
-                                    <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition whitespace-nowrap">
-                                        查看詳情
+                                    <button @click="navigateTo('detail', customer.id)" class="btn btn-primary">
+                                        查看
                                     </button>
                                 </td>
                             </tr>
@@ -157,8 +157,8 @@ $customers_component_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
-                    <button @click="navigateTo('detail', customer.id)" class="w-full buygo-btn buygo-btn-primary">
-                        查看詳情
+                    <button @click="navigateTo('detail', customer.id)" class="w-full btn btn-primary">
+                        查看
                     </button>
                 </div>
             </div> <!-- End mobile cards -->
