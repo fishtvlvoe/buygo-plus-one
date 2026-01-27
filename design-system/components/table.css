@@ -1,143 +1,77 @@
 /**
- * Table Component (Desktop)
- * 桌面版表格樣式
+ * Table Component
+ * 表格組件樣式 - 桌面版專用
  */
 
-/* ========================================
-   Table Container
-   ======================================== */
-
 .data-table {
-  display: none; /* 手機版隱藏 */
-  background-color: var(--color-white);
-  border-radius: var(--border-radius-2xl); /* rounded-2xl */
+  width: 100%;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-slate-200);
+  border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
-@media (min-width: 768px) {
-  .data-table {
-    display: block;
-  }
-}
-
-/* Table */
 .data-table table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
 }
 
-/* Table Head */
 .data-table thead {
   background-color: var(--color-slate-50);
-  border-bottom: 1px solid var(--color-slate-200);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .data-table thead th {
-  padding: 1rem; /* px-4 py-4 */
+  padding: 1rem;  /* px-4 py-4 */
+  text-align: left;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--color-slate-500);
   text-transform: uppercase;
-  letter-spacing: 0.05em; /* tracking-wider */
+  letter-spacing: var(--letter-spacing-wider);
+  white-space: nowrap;
 }
 
-/* Table Body */
+.data-table thead th.text-center {
+  text-align: center;
+}
+
+.data-table thead th.text-right {
+  text-align: right;
+}
+
 .data-table tbody {
-  background-color: var(--color-white);
+  background-color: white;
 }
 
 .data-table tbody tr {
   border-bottom: 1px solid var(--color-slate-100);
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-fast);
 }
 
 .data-table tbody tr:hover {
-  background-color: var(--color-slate-50);
+  background-color: var(--color-hover-bg);
 }
 
 .data-table tbody td {
-  padding: 1rem; /* px-4 py-4 */
+  padding: 1rem;  /* px-4 py-4 */
   font-size: var(--font-size-sm);
   color: var(--color-slate-600);
 }
 
-/* Text Alignment Utilities */
-.data-table .text-left {
-  text-align: left;
-}
-
-.data-table .text-center {
+.data-table tbody td.text-center {
   text-align: center;
 }
 
-.data-table .text-right {
+.data-table tbody td.text-right {
   text-align: right;
 }
 
-/* ========================================
-   Customer-Specific Styles
-   ======================================== */
-
-/* Customer Info Container */
-.customer-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem; /* gap-3 */
-  min-width: 0;
-}
-
-/* Customer Avatar */
-.customer-avatar {
-  width: 2.5rem; /* w-10 */
-  height: 2.5rem; /* h-10 */
-  border-radius: 9999px; /* rounded-full */
-  background-color: var(--color-slate-100);
-  flex-shrink: 0;
-  border: 1px solid var(--color-slate-200);
-  object-fit: cover;
-}
-
-/* Customer Details */
-.customer-details {
-  min-width: 0;
-  flex: 1;
-}
-
-/* Customer Name */
-.customer-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-slate-900);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.customer-name:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-/* Customer Phone */
-.customer-phone {
-  font-size: var(--font-size-xs);
-  color: var(--color-slate-500);
-  margin-top: 0.125rem; /* mt-0.5 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Customer Email */
-.customer-email {
-  font-size: 0.625rem; /* text-[10px] */
-  color: var(--color-slate-400);
-  margin-top: 0.125rem; /* mt-0.5 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Desktop only - hide on mobile */
+@media (max-width: 767px) {
+  .data-table {
+    display: none;
+  }
 }

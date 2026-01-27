@@ -1,153 +1,54 @@
 /**
- * BuyGo+1 Design System - Color Tokens
- *
- * 顏色系統基於訂單頁面（最舒服的狀態）提取
- * 使用 CSS 變數定義，支援深色模式擴展
+ * Color Tokens
+ * 從 customers.php 提取的顏色系統
  */
 
 :root {
-  /* ===== 主要色彩 ===== */
+  /* Primary Colors - 主要色彩 */
+  --color-primary: #3b82f6;        /* blue-500 */
+  --color-primary-dark: #2563eb;   /* blue-600 */
+  --color-primary-light: #60a5fa;  /* blue-400 */
+  --color-primary-50: #eff6ff;     /* blue-50 */
 
-  /* Primary - 主要品牌色 (藍色系) */
-  --color-primary: #2563EB;           /* blue-600 */
-  --color-primary-hover: #1D4ED8;     /* blue-700 */
-  --color-primary-light: #DBEAFE;     /* blue-50 */
-  --color-primary-dark: #1E40AF;      /* blue-800 */
+  /* Slate Colors - 灰階色彩 */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
 
-  /* ===== 中性色 (Slate) ===== */
+  /* Status Colors - 狀態色彩 */
+  --color-success: #10b981;        /* green-500 */
+  --color-success-50: #f0fdf4;     /* green-50 */
+  --color-success-600: #059669;    /* green-600 */
+  --color-success-700: #047857;    /* green-700 */
 
-  /* 背景色 */
-  --color-bg-base: #F8FAFC;           /* slate-50 - 頁面主背景 */
-  --color-bg-surface: #FFFFFF;        /* white - 卡片、表格背景 */
-  --color-bg-subtle: #F1F5F9;         /* slate-100 - 輸入框、次要背景 */
-  --color-bg-hover: #F8FAFC;          /* slate-50 - hover 狀態背景 */
+  --color-error: #ef4444;          /* red-500 */
+  --color-error-50: #fef2f2;       /* red-50 */
+  --color-error-600: #dc2626;      /* red-600 */
 
-  /* 文字色 */
-  --color-text-primary: #0F172A;      /* slate-900 - 主要文字 */
-  --color-text-secondary: #475569;    /* slate-600 - 次要文字 */
-  --color-text-tertiary: #64748B;     /* slate-500 - 輔助文字、標籤 */
-  --color-text-muted: #94A3B8;        /* slate-400 - 提示文字 */
-  --color-text-disabled: #CBD5E1;     /* slate-300 - 禁用文字 */
+  --color-warning: #f59e0b;        /* amber-500 */
+  --color-warning-50: #fffbeb;     /* amber-50 */
 
-  /* 邊框色 */
-  --color-border-base: #E2E8F0;       /* slate-200 - 主要邊框 */
-  --color-border-subtle: #F1F5F9;     /* slate-100 - 次要邊框 */
-  --color-border-strong: #CBD5E1;     /* slate-300 - 強調邊框 */
+  --color-info: #3b82f6;           /* blue-500 */
+  --color-info-50: #eff6ff;        /* blue-50 */
 
-  /* ===== 語義色彩 ===== */
+  /* Semantic Colors - 語意色彩 */
+  --color-background: #f8fafc;     /* slate-50 */
+  --color-surface: #ffffff;        /* white */
+  --color-border: #e2e8f0;         /* slate-200 */
+  --color-border-light: #f1f5f9;   /* slate-100 */
+  --color-text: #0f172a;           /* slate-900 */
+  --color-text-secondary: #64748b; /* slate-500 */
+  --color-text-muted: #94a3b8;     /* slate-400 */
 
-  /* Success - 成功狀態 (綠色系) */
-  --color-success: #16A34A;           /* green-600 */
-  --color-success-bg: #F0FDF4;        /* green-50 */
-  --color-success-text: #15803D;      /* green-700 */
-  --color-success-border: #86EFAC;    /* green-300 */
-
-  /* Warning - 警告狀態 (橙色系) */
-  --color-warning: #EA580C;           /* orange-600 */
-  --color-warning-bg: #FFF7ED;        /* orange-50 */
-  --color-warning-text: #C2410C;      /* orange-700 */
-  --color-warning-border: #FDBA74;    /* orange-300 */
-
-  /* Error - 錯誤狀態 (紅色系) */
-  --color-error: #DC2626;             /* red-600 */
-  --color-error-bg: #FEF2F2;          /* red-50 */
-  --color-error-text: #B91C1C;        /* red-700 */
-  --color-error-border: #FCA5A5;      /* red-300 */
-
-  /* Info - 資訊狀態 (藍色系) */
-  --color-info: #0284C7;              /* sky-600 */
-  --color-info-bg: #F0F9FF;           /* sky-50 */
-  --color-info-text: #075985;         /* sky-700 */
-  --color-info-border: #7DD3FC;       /* sky-300 */
-
-  /* ===== 狀態徽章色彩 ===== */
-
-  /* 待處理 (橙色) */
-  --badge-pending-bg: #FFF7ED;        /* orange-50 */
-  --badge-pending-text: #EA580C;      /* orange-600 */
-
-  /* 處理中 (藍色) */
-  --badge-processing-bg: #EFF6FF;     /* blue-50 */
-  --badge-processing-text: #2563EB;   /* blue-600 */
-
-  /* 已完成 (綠色) */
-  --badge-completed-bg: #F0FDF4;      /* green-50 */
-  --badge-completed-text: #16A34A;    /* green-600 */
-
-  /* 已取消 (灰色) */
-  --badge-canceled-bg: #F8FAFC;       /* slate-50 */
-  --badge-canceled-text: #64748B;     /* slate-500 */
-
-  /* ===== 互動狀態色彩 ===== */
-
-  /* Focus Ring */
-  --color-focus-ring: #3B82F6;        /* blue-500 */
-  --color-focus-ring-offset: #FFFFFF; /* white */
-
-  /* Selection */
-  --color-selection-bg: #DBEAFE;      /* blue-50 */
-  --color-selection-text: #1E40AF;    /* blue-800 */
-
-  /* ===== 覆蓋層 ===== */
-
-  /* Overlay */
-  --color-overlay: rgba(15, 23, 42, 0.5);      /* slate-900 with 50% opacity */
-  --color-overlay-light: rgba(15, 23, 42, 0.3); /* slate-900 with 30% opacity */
-
-  /* ===== 捲軸色彩 ===== */
-
-  --scrollbar-track: #F1F5F9;         /* slate-100 */
-  --scrollbar-thumb: #CBD5E1;         /* slate-300 */
-  --scrollbar-thumb-hover: #94A3B8;   /* slate-400 */
-}
-
-/* ===== 深色模式 (預留) ===== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* 可根據需求添加深色模式顏色變數 */
-  }
-}
-
-/* ===== 語義類別 ===== */
-
-/* 背景類別 */
-.bg-base { background-color: var(--color-bg-base); }
-.bg-surface { background-color: var(--color-bg-surface); }
-.bg-subtle { background-color: var(--color-bg-subtle); }
-
-/* 文字類別 */
-.text-primary { color: var(--color-text-primary); }
-.text-secondary { color: var(--color-text-secondary); }
-.text-tertiary { color: var(--color-text-tertiary); }
-.text-muted { color: var(--color-text-muted); }
-
-/* 邊框類別 */
-.border-base { border-color: var(--color-border-base); }
-.border-subtle { border-color: var(--color-border-subtle); }
-.border-strong { border-color: var(--color-border-strong); }
-
-/* 主要色類別 */
-.bg-primary { background-color: var(--color-primary); }
-.text-primary-color { color: var(--color-primary); }
-.border-primary { border-color: var(--color-primary); }
-
-/* 狀態徽章類別 */
-.badge-pending {
-  background-color: var(--badge-pending-bg);
-  color: var(--badge-pending-text);
-}
-
-.badge-processing {
-  background-color: var(--badge-processing-bg);
-  color: var(--badge-processing-text);
-}
-
-.badge-completed {
-  background-color: var(--badge-completed-bg);
-  color: var(--badge-completed-text);
-}
-
-.badge-canceled {
-  background-color: var(--badge-canceled-bg);
-  color: var(--badge-canceled-text);
+  /* Interactive Colors - 互動色彩 */
+  --color-hover-bg: #f8fafc;       /* slate-50 */
+  --color-hover-border: #cbd5e1;   /* slate-300 */
+  --color-focus-ring: #3b82f6;     /* blue-500 */
 }
