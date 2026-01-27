@@ -4,71 +4,77 @@
 // 載入智慧搜尋框元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
 ?>
-<!-- Customers Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/customers.css', __FILE__)); ?>" />
+<style>
+/* Transitions */
+.search-slide-enter-active, .search-slide-leave-active {
+    transition: all 0.2s ease;
+}
+.search-slide-enter-from, .search-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+</style>
 <?php
 $customers_component_template = <<<'HTML'
-
-    <!-- ============================================ -->
-    <!-- 頁首部分 -->
-    <!-- ============================================ -->
-    <header class="page-header">
-        <div class="page-header-left" v-show="!showMobileSearch">
-            <h1 class="page-header-title">客戶</h1>
-            <nav class="page-header-breadcrumb">
-                <a href="/buygo-portal/dashboard">首頁</a>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                <span class="active">客戶</span>
-                <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
-                <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentCustomerId }}</span>
-            </nav>
+<main class="min-h-screen bg-slate-50">
+    <!-- Header（與 products.php 一致） -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">客戶</h1>
+                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
+                    <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="text-slate-900 font-medium">客戶</span>
+                    <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
+                    <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentCustomerId }}</span>
+                </nav>
+            </div>
         </div>
 
         <!-- 右側操作區 -->
-        <div class="page-header-actions">
+        <div class="flex items-center gap-2 md:gap-3 shrink-0">
             <!-- 手機版搜尋按鈕 -->
-            <button @click="showMobileSearch = !showMobileSearch" class="search-toggle-mobile">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <button @click="showMobileSearch = !showMobileSearch"
+                class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </button>
 
             <!-- 桌面版全域搜尋框 -->
-            <div class="global-search">
-                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch">
-                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
+                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
+                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
 
             <!-- 通知鈴鐺 -->
-            <button class="notification-bell">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </button>
 
             <!-- 幣別切換 -->
-            <button @click="toggleCurrency" class="btn btn-secondary btn-sm">
+            <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
                 {{ displayCurrency }}
             </button>
         </div>
 
         <!-- 手機版搜尋覆蓋層 -->
         <transition name="search-slide">
-            <div v-if="showMobileSearch" class="mobile-search-overlay">
-                <div class="global-search">
-                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch">
-                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
+                <div class="relative flex-1">
+                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
+                        class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <button @click="showMobileSearch = false" class="btn btn-secondary btn-sm">取消</button>
+                <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
             </div>
         </transition>
     </header>
-    <!-- 結束：頁首部分 -->
 
-    <!-- ============================================ -->
-    <!-- 內容區域 -->
-    <!-- ============================================ -->
-
-    <!-- 列表檢視 -->
+    <!-- 客戶列表容器 -->
     <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
-        <!-- Smart Search Box (使用設計系統 smart-search-box classes) -->
+        <!-- Smart Search Box -->
         <smart-search-box
             api-endpoint="/wp-json/buygo-plus-one/v1/customers"
             :search-fields="['full_name', 'phone', 'email']"
@@ -95,97 +101,100 @@ $customers_component_template = <<<'HTML'
         <!-- Content -->
         <div v-else>
             <!-- 桌面版表格 -->
-            <div class="data-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="text-center" style="width: 3rem;"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="form-checkbox"></th>
-                            <th class="text-left" style="width: 25%;">客戶</th>
-                            <th class="text-center">訂單數</th>
-                            <th class="text-right">總消費</th>
-                            <th class="text-center">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="customer in customers" :key="customer.id">
-                            <td class="text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="form-checkbox"></td>
-                            <td>
-                                <div class="customer-info">
-                                    <img :src="customer.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="customer.full_name" class="customer-avatar">
-                                    <div class="customer-details">
-                                        <div class="customer-name" @click="navigateTo('detail', customer.id)">
-                                            {{ customer.full_name || '-' }}
+            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
+                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">客戶</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">訂單數</th>
+                                <th class="px-2 py-4 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">總消費</th>
+                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-100">
+                            <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <img :src="customer.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="customer.full_name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
+                                                {{ customer.full_name || '-' }}
+                                            </div>
+                                            <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
                                         </div>
-                                        <div class="customer-phone">{{ customer.phone || '-' }}</div>
-                                        <div class="customer-email">{{ customer.email || '-' }}</div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="text-center">{{ customer.order_count || 0 }}</td>
-                            <td class="text-right">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
-                            <td class="text-center">
-                                <button @click="navigateTo('detail', customer.id)" class="btn btn-primary btn-sm">
-                                    查看詳情
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </td>
+                                <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
+                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
+                                <td class="px-2 py-4 text-center">
+                                    <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition whitespace-nowrap">
+                                        查看詳情
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div> <!-- End desktop table -->
 
             <!-- 手機版卡片 -->
-            <div class="card-list">
-                <div v-for="customer in customers" :key="customer.id" class="card">
-                    <div class="card-title">{{ customer.full_name || '-' }}</div>
-                    <div class="card-subtitle">{{ customer.phone || '-' }}</div>
-                    <div class="card-meta">
-                        <div class="card-meta-item">
-                            <span class="card-meta-label">訂單數</span>
-                            <span class="card-meta-value">{{ customer.order_count || 0 }}</span>
-                        </div>
-                        <div class="card-meta-item">
-                            <span class="card-meta-label">總消費</span>
-                            <span class="card-meta-value">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</span>
+            <div class="md:hidden space-y-4 md:space-y-6">
+                <div v-for="customer in customers" :key="customer.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
+                    <div class="mb-3">
+                        <div class="text-base font-bold text-slate-900 mb-1">{{ customer.full_name || '-' }}</div>
+                        <div class="text-sm text-slate-600 mb-1">{{ customer.phone || '-' }}</div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div>
+                                <div class="text-xs text-slate-500">訂單數</div>
+                                <div class="text-sm font-semibold text-slate-900">{{ customer.order_count || 0 }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500">總消費</div>
+                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</div>
+                            </div>
                         </div>
                     </div>
-                    <button @click="navigateTo('detail', customer.id)" class="btn btn-primary btn-block">
+                    <button @click="navigateTo('detail', customer.id)" class="w-full buygo-btn buygo-btn-primary">
                         查看詳情
                     </button>
                 </div>
             </div> <!-- End mobile cards -->
 
             <!-- 統一分頁樣式 -->
-            <div v-if="totalCustomers > 0" class="pagination-container">
-                <div class="pagination-info">
+            <div v-if="totalCustomers > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
+                <div class="text-sm text-slate-700 text-center sm:text-left">
                     顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalCustomers : Math.min(currentPage * perPage, totalCustomers) }}</span> 筆，共 <span class="font-medium">{{ totalCustomers }}</span> 筆
                 </div>
-                <div class="pagination-controls">
-                    <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
+                <div class="flex items-center gap-3">
+                    <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                         <option :value="5">5 筆</option>
                         <option :value="10">10 筆</option>
                         <option :value="20">20 筆</option>
                         <option :value="50">50 筆</option>
                     </select>
-                    <nav class="pagination-nav">
-                        <button @click="previousPage" :disabled="currentPage === 1" class="pagination-button first">
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="sr-only">上一頁</span>
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['pagination-button page', p === currentPage ? 'active' : '']">
+                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
                             {{ p }}
                         </button>
-                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button last">
+                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="sr-only">下一頁</span>
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                         </button>
                     </nav>
                 </div>
             </div> <!-- End pagination -->
         </div> <!-- End customer list content -->
-    </div>
-    <!-- 結束：列表檢視 -->
+    </div> <!-- End list view -->
 
-    <!-- 詳情檢視 -->
+    <!-- 客戶詳情子頁面（URL 驅動） -->
     <div v-show="currentView === 'detail'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
         <!-- 子頁面 Header -->
         <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
@@ -428,19 +437,555 @@ $customers_component_template = <<<'HTML'
             <span class="font-medium">{{ toastMessage.message }}</span>
         </div>
     </div>
-
+</main>
 HTML;
 ?>
 
-
-<!-- Customers Page Template -->
-<script type="text/x-template" id="customers-page-template">
-    <?php echo $customers_component_template; ?>
-</script>
-
-<!-- Customers Page Component -->
 <script>
-window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
-</script>
-<script src="<?php echo esc_url(plugins_url('js/components/CustomersPage.js', dirname(__FILE__))); ?>"></script>
+const CustomersPageComponent = {
+    name: 'CustomersPage',
+    components: {
+        'smart-search-box': BuyGoSmartSearchBox
+    },
+    template: `<?php echo $customers_component_template; ?>`,
+    setup() {
+        const { ref, computed, onMounted } = Vue;
 
+        // WordPress REST API nonce（用於 API 認證）
+        const wpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+
+        // 使用 useCurrency Composable 處理幣別邏輯
+        const {
+            formatPrice: formatCurrency,
+            formatPriceWithConversion,
+            systemCurrency,
+            currencySymbols,
+            exchangeRates
+        } = useCurrency();
+
+        // 狀態變數
+        const customers = ref([]);
+        const loading = ref(false);
+        const error = ref(null);
+
+        // 分頁狀態
+        const currentPage = ref(1);
+        const perPage = ref(5);
+        const totalCustomers = ref(0);
+
+        // 搜尋篩選狀態
+        const searchFilter = ref(null);
+        const searchFilterName = ref('');
+
+        // ========== 路由狀態（新增）==========
+        const currentView = ref('list');  // 'list' | 'detail'
+        const currentCustomerId = ref(null);
+        const selectedCustomer = ref(null);
+        const detailLoading = ref(false);
+
+        // UI 狀態（新增）
+        const showMobileSearch = ref(false);
+        const globalSearchQuery = ref('');
+
+        // 幣別切換狀態
+        const displayCurrency = ref(systemCurrency.value);
+        const currentCurrency = ref(systemCurrency.value);
+
+        // 訂單搜尋（子頁面內用）
+        const orderSearchQuery = ref('');
+
+        // Tab 分頁狀態
+        const activeTab = ref('orders');
+
+        // 備註狀態
+        const customerNote = ref('');
+        const noteSaving = ref(false);
+        const noteSaved = ref(false);
+
+        // 訂單展開狀態
+        const expandedOrderId = ref(null);
+        const orderItems = ref({});
+        const loadingOrderItems = ref(false);
+
+        // 批次操作
+        const selectedItems = ref([]);
+
+        // Toast 通知狀態
+        const toastMessage = ref({
+            show: false,
+            message: '',
+            type: 'success'
+        });
+        
+        // 顯示 Toast 訊息
+        const showToast = (message, type = 'success') => {
+            toastMessage.value = { show: true, message, type };
+            setTimeout(() => {
+                toastMessage.value.show = false;
+            }, 3000);
+        };
+        
+        // 載入客戶列表
+        const loadCustomers = async () => {
+            loading.value = true;
+            error.value = null;
+            
+            try {
+                let url = `/wp-json/buygo-plus-one/v1/customers?page=${currentPage.value}&per_page=${perPage.value}`;
+                
+                if (searchFilter.value) {
+                    url += `&search=${encodeURIComponent(searchFilter.value)}`;
+                }
+                
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    customers.value = result.data;
+                    totalCustomers.value = result.total || result.data.length;
+                } else {
+                    throw new Error(result.message || '載入客戶列表失敗');
+                }
+            } catch (err) {
+                console.error('載入客戶錯誤:', err);
+                error.value = err.message;
+                customers.value = [];
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        // ========== 路由邏輯（新增）==========
+
+        // 檢查 URL 參數
+        const checkUrlParams = () => {
+            const params = window.BuyGoRouter.checkUrlParams();
+            const { view, id } = params;
+
+            if (view === 'detail' && id) {
+                currentView.value = 'detail';
+                currentCustomerId.value = id;
+                loadCustomerDetail(id);
+            } else {
+                currentView.value = 'list';
+                currentCustomerId.value = null;
+                selectedCustomer.value = null;
+            }
+        };
+
+        // 導航函數
+        const navigateTo = (view, customerId = null, updateUrl = true) => {
+            currentView.value = view;
+
+            if (view === 'detail' && customerId) {
+                currentCustomerId.value = customerId;
+                loadCustomerDetail(customerId);
+
+                if (updateUrl) {
+                    window.BuyGoRouter.navigateTo('detail', customerId);
+                }
+            } else {
+                // 返回列表
+                currentCustomerId.value = null;
+                selectedCustomer.value = null;
+                activeTab.value = 'orders';
+                orderSearchQuery.value = '';
+                expandedOrderId.value = null;
+                orderItems.value = {};
+
+                if (updateUrl) {
+                    window.BuyGoRouter.goToList();
+                }
+            }
+        };
+
+        // 載入客戶詳情
+        const loadCustomerDetail = async (customerId) => {
+            detailLoading.value = true;
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/customers/${customerId}`, {
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    selectedCustomer.value = result.data;
+                    customerNote.value = result.data.note || '';
+                    noteSaved.value = false;
+
+                    // 設定幣別（從客戶第一筆訂單讀取）
+                    if (result.data.orders && result.data.orders.length > 0) {
+                        displayCurrency.value = result.data.orders[0].currency || 'JPY';
+                    }
+                } else {
+                    showToast('載入客戶詳情失敗', 'error');
+                    navigateTo('list');
+                }
+            } catch (err) {
+                console.error('載入客戶詳情錯誤:', err);
+                showToast('載入客戶詳情失敗', 'error');
+                navigateTo('list');
+            } finally {
+                detailLoading.value = false;
+            }
+        };
+
+        // 全域搜尋處理
+        const handleGlobalSearch = (event) => {
+            // 可以在這裡實作全域搜尋邏輯
+            // TODO: 實作全域搜尋功能
+        };
+
+        // 幣別切換
+        const toggleCurrency = () => {
+            // 在系統幣別和台幣之間切換
+            if (currentCurrency.value === 'TWD') {
+                currentCurrency.value = systemCurrency.value;
+                displayCurrency.value = systemCurrency.value;
+                showToast(`已切換為 ${currencySymbols[systemCurrency.value]} ${systemCurrency.value}`);
+            } else {
+                currentCurrency.value = 'TWD';
+                displayCurrency.value = 'TWD';
+                showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
+            }
+        };
+
+        // 跳轉到訂單管理頁面（更新：使用 Deep Link）
+        const navigateToOrder = (orderId) => {
+            window.location.href = `/buygo-portal/orders/?view=detail&id=${orderId}`;
+        };
+
+        // 格式化金額（amount 單位為分，除以 100 顯示；currency 可選，缺則用 currentCurrency）
+        const formatPrice = (amount, currency = null) => {
+            if (amount !== 0 && !amount) return '-';
+
+            const value = amount / 100;
+
+            // 如果有原始幣別且與當前顯示幣別不同，需要做匯率轉換
+            if (currency && currency !== currentCurrency.value) {
+                return formatPriceWithConversion(value, currency, currentCurrency.value);
+            }
+
+            // 否則直接格式化（不轉換）
+            return formatCurrency(value, currentCurrency.value);
+        };
+
+        // 格式化日期
+        const formatDate = (dateString) => {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-TW');
+        };
+        
+        // 格式化短日期（月/日）
+        const formatShortDate = (dateString) => {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}/${day}`;
+        };
+
+        // 儲存備註
+        const saveNote = async () => {
+            if (!selectedCustomer.value) return;
+            
+            noteSaving.value = true;
+            noteSaved.value = false;
+            
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/customers/${selectedCustomer.value.id}/note`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ note: customerNote.value })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    noteSaved.value = true;
+                    showToast('備註已儲存', 'success');
+                    setTimeout(() => {
+                        noteSaved.value = false;
+                    }, 2000);
+                } else {
+                    showToast('儲存備註失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('儲存備註錯誤:', err);
+                showToast('儲存備註失敗', 'error');
+            } finally {
+                noteSaving.value = false;
+            }
+        };
+        
+        // 取得訂單狀態樣式
+        const getOrderStatusClass = (status) => {
+            const statusClasses = {
+                'pending': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                'processing': 'bg-blue-100 text-blue-800 border border-blue-200',
+                'shipped': 'bg-purple-100 text-purple-800 border border-purple-200',
+                'completed': 'bg-green-100 text-green-800 border border-green-200',
+                'cancelled': 'bg-red-100 text-red-800 border border-red-200'
+            };
+            return statusClasses[status] || 'bg-slate-100 text-slate-800';
+        };
+        
+        // 取得訂單狀態文字
+        const getOrderStatusText = (status) => {
+            const statusTexts = {
+                'pending': '待處理',
+                'processing': '處理中',
+                'shipped': '已出貨',
+                'completed': '已完成',
+                'cancelled': '已取消'
+            };
+            return statusTexts[status] || status;
+        };
+        
+        // 過濾訂單列表
+        const filteredOrders = computed(() => {
+            if (!selectedCustomer.value || !selectedCustomer.value.orders) {
+                return [];
+            }
+
+            const query = orderSearchQuery.value.toLowerCase().trim();
+            if (!query) {
+                return selectedCustomer.value.orders;
+            }
+
+            return selectedCustomer.value.orders.filter(order => {
+                const orderNumber = (order.order_number || order.id || '').toString().toLowerCase();
+                const orderStatus = (order.order_status || '').toLowerCase();
+                const statusText = getOrderStatusText(order.order_status).toLowerCase();
+
+                return orderNumber.includes(query) ||
+                       orderStatus.includes(query) ||
+                       statusText.includes(query);
+            });
+        });
+        
+        // 切換訂單展開
+        const toggleOrderExpand = async (orderId) => {
+            if (expandedOrderId.value === orderId) {
+                expandedOrderId.value = null;
+                return;
+            }
+            expandedOrderId.value = orderId;
+            if (!orderItems.value[orderId]) {
+                await loadOrderItems(orderId);
+            }
+        };
+
+        // 載入訂單商品（GET /orders/{id} 的 data.items，price/total 已為元）
+        const loadOrderItems = async (orderId) => {
+            loadingOrderItems.value = true;
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderId}`, {
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
+                });
+                if (!response.ok) throw new Error('Failed to load order items');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    orderItems.value[orderId] = result.data.items || [];
+                } else {
+                    orderItems.value[orderId] = [];
+                }
+            } catch (e) {
+                console.error('Failed to load order items:', e);
+                orderItems.value[orderId] = [];
+            } finally {
+                loadingOrderItems.value = false;
+            }
+        };
+
+        
+        // 搜尋處理
+        const handleSearchSelect = async (item) => {
+            searchFilter.value = item.full_name || item.phone || item.email;
+            searchFilterName.value = item.full_name || item.phone || item.email;
+            currentPage.value = 1;
+            await loadCustomers();
+        };
+        
+        const handleSearchInput = (query) => {
+            // 搜尋輸入處理（目前無額外邏輯）
+        };
+        
+        const handleSearchClear = () => {
+            searchFilter.value = null;
+            searchFilterName.value = '';
+            currentPage.value = 1;
+            loadCustomers();
+        };
+        
+        // 分頁
+        const totalPages = computed(() => {
+            if (perPage.value === -1) return 1;
+            return Math.ceil(totalCustomers.value / perPage.value);
+        });
+        
+        // 可見的頁碼（最多顯示 5 頁）
+        const visiblePages = computed(() => {
+            const pages = [];
+            const total = totalPages.value;
+            const current = currentPage.value;
+            
+            if (total <= 5) {
+                for (let i = 1; i <= total; i++) {
+                    pages.push(i);
+                }
+            } else {
+                if (current <= 3) {
+                    pages.push(1, 2, 3, 4, 5);
+                } else if (current >= total - 2) {
+                    for (let i = total - 4; i <= total; i++) {
+                        pages.push(i);
+                    }
+                } else {
+                    for (let i = current - 2; i <= current + 2; i++) {
+                        pages.push(i);
+                    }
+                }
+            }
+            
+            return pages;
+        });
+        
+        const previousPage = () => {
+            if (currentPage.value > 1) {
+                currentPage.value--;
+                loadCustomers();
+            }
+        };
+        
+        const nextPage = () => {
+            if (currentPage.value < totalPages.value) {
+                currentPage.value++;
+                loadCustomers();
+            }
+        };
+        
+        const goToPage = (page) => {
+            currentPage.value = page;
+            loadCustomers();
+        };
+        
+        const changePerPage = () => {
+            currentPage.value = 1;
+            loadCustomers();
+        };
+
+        // 全選/取消全選
+        const toggleSelectAll = (event) => {
+            if (event.target.checked) {
+                selectedItems.value = customers.value.map(c => c.id);
+            } else {
+                selectedItems.value = [];
+            }
+        };
+
+        // 檢查是否全選
+        const isAllSelected = computed(() => {
+            return customers.value.length > 0 && selectedItems.value.length === customers.value.length;
+        });
+
+        // 處理客戶選擇（從 smart-search-box 選擇客戶）
+        const handleCustomerSelect = (customer) => {
+            if (customer && customer.id) {
+                navigateTo('detail', customer.id);
+            }
+        };
+
+        // 初始化
+        onMounted(() => {
+            loadCustomers();
+
+            // 檢查 URL 參數並設置監聽
+            checkUrlParams();
+            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+
+            // 從 localStorage 讀取使用者幣別偏好
+            const savedCurrency = localStorage.getItem('buygo_display_currency');
+            if (savedCurrency) {
+                displayCurrency.value = savedCurrency;
+            }
+        });
+        
+        return {
+            customers,
+            loading,
+            error,
+            currentPage,
+            perPage,
+            totalCustomers,
+            totalPages,
+            visiblePages,
+            previousPage,
+            nextPage,
+            goToPage,
+            changePerPage,
+            formatPrice,
+            formatDate,
+            formatShortDate,
+            activeTab,
+            filteredOrders,
+            customerNote,
+            noteSaving,
+            noteSaved,
+            saveNote,
+            getOrderStatusClass,
+            getOrderStatusText,
+            expandedOrderId,
+            orderItems,
+            loadingOrderItems,
+            toggleOrderExpand,
+            systemCurrency,
+            currentCurrency,
+            handleSearchSelect,
+            handleSearchInput,
+            handleSearchClear,
+            handleCustomerSelect,
+            searchFilter,
+            searchFilterName,
+            loadCustomers,
+            toastMessage,
+            showToast,
+            selectedItems,
+            toggleSelectAll,
+            isAllSelected,
+            // 新增路由相關
+            currentView,
+            currentCustomerId,
+            selectedCustomer,
+            detailLoading,
+            showMobileSearch,
+            globalSearchQuery,
+            displayCurrency,
+            orderSearchQuery,
+            // 新增方法
+            navigateTo,
+            checkUrlParams,
+            loadCustomerDetail,
+            handleGlobalSearch,
+            toggleCurrency,
+            navigateToOrder
+        };
+    }
+};
+</script>
