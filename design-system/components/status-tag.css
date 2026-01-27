@@ -1,0 +1,42 @@
+/**
+ * Status Tag Component
+ * 狀態標籤組件樣式
+ */
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.5rem;  /* py-0.5 px-2 */
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  pointer-events: none;  /* 不可點擊 */
+}
+
+/* Status Colors */
+.status-tag-success {
+  background-color: var(--color-success-50);
+  color: var(--color-success-700);
+}
+
+.status-tag-error {
+  background-color: var(--color-error-50);
+  color: var(--color-error-600);
+}
+
+.status-tag-warning {
+  background-color: var(--color-warning-50);
+  color: var(--color-warning);
+}
+
+.status-tag-info {
+  background-color: var(--color-info-50);
+  color: var(--color-primary);
+}
+
+.status-tag-neutral {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-700);
+}

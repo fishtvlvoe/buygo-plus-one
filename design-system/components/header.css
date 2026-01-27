@@ -1,0 +1,142 @@
+/**
+ * Header Component
+ * 頁首組件樣式
+ */
+
+.page-header {
+  height: var(--spacing-header-height);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  flex-shrink: 0;
+  z-index: 10;
+  position: sticky;
+  top: 0;
+}
+
+@media (min-width: 768px) {
+  .page-header {
+    padding-left: 1.5rem;  /* px-6 */
+    padding-right: 1.5rem;  /* px-6 */
+    position: static;
+    position: relative;
+  }
+}
+
+.page-header-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: var(--line-height-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-header-breadcrumb {
+  display: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  gap: 0.25rem;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .page-header-breadcrumb {
+    display: flex;
+  }
+}
+
+.page-header-breadcrumb a {
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.page-header-breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+.page-header-breadcrumb .active {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Global Search */
+.global-search {
+  position: relative;
+  display: none;
+  width: 8rem;  /* w-32 */
+  transition: all var(--transition-slow);
+}
+
+@media (min-width: 640px) {
+  .global-search {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .global-search {
+    width: 12rem;  /* w-48 */
+  }
+}
+
+@media (min-width: 1024px) {
+  .global-search {
+    width: 16rem;  /* w-64 */
+  }
+}
+
+.global-search input {
+  padding-left: 2.25rem;  /* pl-9 */
+  padding-right: 1rem;  /* pr-4 */
+  padding-top: 0.5rem;  /* py-2 */
+  padding-bottom: 0.5rem;  /* py-2 */
+  background-color: var(--color-slate-100);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  width: 100%;
+  transition: all var(--transition-base);
+}
+
+.global-search input:focus {
+  box-shadow: 0 0 0 2px var(--color-primary);
+  outline: none;
+}
+
+.global-search svg {
+  position: absolute;
+  left: 0.75rem;  /* left-3 */
+  top: 0.625rem;  /* top-2.5 */
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+  color: var(--color-slate-400);
+}
+
+/* Notification Bell */
+.notification-bell {
+  padding: 0.5rem;  /* p-2 */
+  color: var(--color-slate-400);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+  position: relative;
+  cursor: pointer;
+}
+
+.notification-bell:hover {
+  color: var(--color-slate-600);
+  background-color: var(--color-slate-100);
+}
+
+.notification-bell svg {
+  width: 1.5rem;  /* w-6 */
+  height: 1.5rem;  /* h-6 */
+}

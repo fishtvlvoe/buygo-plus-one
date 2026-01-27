@@ -1,0 +1,117 @@
+/**
+ * BuyGo Plus One Design System
+ * 統一設計系統入口檔案
+ *
+ * 此檔案統一載入所有 design tokens 和組件樣式
+ * 使用方式：在 WordPress 後台全域載入此檔案
+ */
+
+/* ========================================
+   Design Tokens
+   ======================================== */
+
+/* 顏色系統 */
+@import './tokens/colors.css';
+
+/* 間距系統（包含響應式隔離） */
+@import './tokens/spacing.css';
+
+/* 字體系統 */
+@import './tokens/typography.css';
+
+/* 視覺效果（陰影、圓角、過渡） */
+@import './tokens/effects.css';
+
+/* ========================================
+   Component Styles
+   ======================================== */
+
+/* Header 區域 */
+@import './components/header.css';
+
+/* 搜尋框 */
+@import './components/smart-search-box.css';
+
+/* 表格（桌面版） */
+@import './components/table.css';
+
+/* 卡片（手機版） */
+@import './components/card.css';
+
+/* 按鈕 */
+@import './components/button.css';
+
+/* 表單元素 */
+@import './components/form.css';
+
+/* 狀態標籤 */
+@import './components/status-tag.css';
+
+/* 分頁器 */
+@import './components/pagination.css';
+
+/* ========================================
+   Global Resets
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Responsive utilities */
+.hidden-mobile {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
+    display: block;
+  }
+}
+
+.hidden-desktop {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .hidden-desktop {
+    display: none;
+  }
+}

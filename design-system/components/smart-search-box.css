@@ -1,0 +1,112 @@
+/**
+ * Smart Search Box Component
+ * 智慧搜尋框組件樣式
+ */
+
+.smart-search-box {
+  margin-bottom: 1.5rem;  /* mb-6 */
+}
+
+.smart-search-wrapper {
+  position: relative;
+}
+
+.smart-search-input-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.smart-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;  /* pl-4 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.smart-search-icon svg {
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+  color: var(--color-slate-400);
+}
+
+.smart-search-input {
+  display: block;
+  width: 100%;
+  padding-left: 2.75rem;  /* pl-11 */
+  padding-right: 2.5rem;  /* pr-10 */
+  padding-top: 0.75rem;  /* py-3 */
+  padding-bottom: 0.75rem;  /* py-3 */
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  transition: all var(--transition-base);
+}
+
+.smart-search-input:focus {
+  box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-sm);
+  border-color: transparent;
+}
+
+.smart-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Currency Toggle (optional) */
+.smart-search-currency {
+  position: absolute;
+  top: 50%;
+  right: 1rem;  /* pr-4 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Suggestions Dropdown */
+.smart-search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin-top: 0.5rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.smart-search-suggestion-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.smart-search-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.smart-search-suggestion-item:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.smart-search-suggestion-item.active {
+  background-color: var(--color-primary-50);
+}
+
+.smart-search-no-results {
+  padding: 1rem;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
