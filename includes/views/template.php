@@ -36,8 +36,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Design System CSS (基於 UI/UX Pro Max 建議 + Demo 設計稿) -->
-    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/assets/design-system.css'); ?>">
+    <!-- Design System CSS (統一設計系統 - 2026-01-27) -->
+    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'design-system/index.css'); ?>">
 
     <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
