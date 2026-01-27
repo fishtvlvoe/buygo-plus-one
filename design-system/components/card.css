@@ -1,0 +1,74 @@
+/**
+ * Card Component (Mobile)
+ * 手機版卡片樣式
+ */
+
+/* ========================================
+   Card List Container
+   ======================================== */
+
+.card-list {
+  display: block;
+  gap: 1rem; /* space-y-4 */
+}
+
+@media (min-width: 768px) {
+  .card-list {
+    display: none; /* 桌面版隱藏 */
+  }
+}
+
+/* ========================================
+   Card
+   ======================================== */
+
+.card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--border-radius-xl); /* rounded-xl */
+  padding: 1rem; /* p-4 */
+  margin-bottom: 0.75rem; /* mb-3 */
+}
+
+/* Card Title */
+.card-title {
+  font-size: var(--font-size-base); /* text-base */
+  font-weight: var(--font-weight-bold);
+  color: var(--color-slate-900);
+  margin-bottom: 0.25rem; /* mb-1 */
+}
+
+/* Card Subtitle */
+.card-subtitle {
+  font-size: var(--font-size-sm); /* text-sm */
+  color: var(--color-slate-600);
+  margin-bottom: 0.25rem; /* mb-1 */
+}
+
+/* ========================================
+   Card Meta (Key-Value Pairs)
+   ======================================== */
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem; /* mt-2 */
+  margin-bottom: 0.75rem; /* mb-3 */
+}
+
+.card-meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-meta-label {
+  font-size: var(--font-size-xs); /* text-xs */
+  color: var(--color-slate-500);
+}
+
+.card-meta-value {
+  font-size: var(--font-size-sm); /* text-sm */
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-slate-900);
+}

@@ -69,7 +69,7 @@ $customers_component_template = <<<'HTML'
     <!-- 列表檢視 -->
     <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
-        <!-- Smart Search Box -->
+        <!-- Smart Search Box (使用設計系統 smart-search-box classes) -->
         <smart-search-box
             api-endpoint="/wp-json/buygo-plus-one/v1/customers"
             :search-fields="['full_name', 'phone', 'email']"
@@ -96,92 +96,88 @@ $customers_component_template = <<<'HTML'
         <!-- Content -->
         <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">客戶</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">訂單數</th>
-                                <th class="px-2 py-4 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">總消費</th>
-                                <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-100">
-                            <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
-                                <td class="px-4 py-4">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <img :src="customer.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="customer.full_name" class="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200 object-cover">
-                                        <div class="min-w-0">
-                                            <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
-                                                {{ customer.full_name || '-' }}
-                                            </div>
-                                            <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
-                                            <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 3rem;"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="form-checkbox"></th>
+                            <th class="text-left" style="width: 25%;">客戶</th>
+                            <th class="text-center">訂單數</th>
+                            <th class="text-right">總消費</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="customer in customers" :key="customer.id">
+                            <td class="text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="form-checkbox"></td>
+                            <td>
+                                <div class="customer-info">
+                                    <img :src="customer.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="customer.full_name" class="customer-avatar">
+                                    <div class="customer-details">
+                                        <div class="customer-name" @click="navigateTo('detail', customer.id)">
+                                            {{ customer.full_name || '-' }}
                                         </div>
+                                        <div class="customer-phone">{{ customer.phone || '-' }}</div>
+                                        <div class="customer-email">{{ customer.email || '-' }}</div>
                                     </div>
-                                </td>
-                                <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
-                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
-                                <td class="px-2 py-4 text-center">
-                                    <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition whitespace-nowrap">
-                                        查看詳情
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ customer.order_count || 0 }}</td>
+                            <td class="text-right">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
+                            <td class="text-center">
+                                <button @click="navigateTo('detail', customer.id)" class="btn btn-primary btn-sm">
+                                    查看詳情
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div> <!-- End desktop table -->
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4 md:space-y-6">
-                <div v-for="customer in customers" :key="customer.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
-                    <div class="mb-3">
-                        <div class="text-base font-bold text-slate-900 mb-1">{{ customer.full_name || '-' }}</div>
-                        <div class="text-sm text-slate-600 mb-1">{{ customer.phone || '-' }}</div>
-                        <div class="flex items-center justify-between mt-2">
-                            <div>
-                                <div class="text-xs text-slate-500">訂單數</div>
-                                <div class="text-sm font-semibold text-slate-900">{{ customer.order_count || 0 }}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-slate-500">總消費</div>
-                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</div>
-                            </div>
+            <div class="card-list">
+                <div v-for="customer in customers" :key="customer.id" class="card">
+                    <div class="card-title">{{ customer.full_name || '-' }}</div>
+                    <div class="card-subtitle">{{ customer.phone || '-' }}</div>
+                    <div class="card-meta">
+                        <div class="card-meta-item">
+                            <span class="card-meta-label">訂單數</span>
+                            <span class="card-meta-value">{{ customer.order_count || 0 }}</span>
+                        </div>
+                        <div class="card-meta-item">
+                            <span class="card-meta-label">總消費</span>
+                            <span class="card-meta-value">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</span>
                         </div>
                     </div>
-                    <button @click="navigateTo('detail', customer.id)" class="w-full buygo-btn buygo-btn-primary">
+                    <button @click="navigateTo('detail', customer.id)" class="btn btn-primary btn-block">
                         查看詳情
                     </button>
                 </div>
             </div> <!-- End mobile cards -->
 
             <!-- 統一分頁樣式 -->
-            <div v-if="totalCustomers > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
-                <div class="text-sm text-slate-700 text-center sm:text-left">
+            <div v-if="totalCustomers > 0" class="pagination-container">
+                <div class="pagination-info">
                     顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalCustomers : Math.min(currentPage * perPage, totalCustomers) }}</span> 筆，共 <span class="font-medium">{{ totalCustomers }}</span> 筆
                 </div>
-                <div class="flex items-center gap-3">
-                    <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                <div class="pagination-controls">
+                    <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
                         <option :value="5">5 筆</option>
                         <option :value="10">10 筆</option>
                         <option :value="20">20 筆</option>
                         <option :value="50">50 筆</option>
                     </select>
-                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <nav class="pagination-nav">
+                        <button @click="previousPage" :disabled="currentPage === 1" class="pagination-button first">
                             <span class="sr-only">上一頁</span>
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['pagination-button page', p === currentPage ? 'active' : '']">
                             {{ p }}
                         </button>
-                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button last">
                             <span class="sr-only">下一頁</span>
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                         </button>
                     </nav>
                 </div>
