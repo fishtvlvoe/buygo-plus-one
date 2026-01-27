@@ -54,9 +54,7 @@ body {
 /* ===== 4. Utility Classes (工具類別) ===== */
 
 /* 顯示 / 隱藏 */
-.hidden {
-  display: none !important;
-}
+/* Note: .hidden 由 Tailwind 提供，不在此覆蓋以保持響應式功能正常 */
 
 .visible {
   visibility: visible;

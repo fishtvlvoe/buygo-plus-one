@@ -53,25 +53,13 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     </style>
 </head>
 <body class="bg-slate-50">
-    <div id="buygo-app">
-        <!-- 載入新版側邊欄組件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
+    <div id="buygo-app"></div>
 
-        <!-- 載入智慧搜尋框元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
-
-        <!-- 載入 PageHeader 元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
-
-        <!-- 載入分頁元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
-
-        <!-- 主內容區 -->
-        <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
-            <!-- 頁面內容容器（由 Vue 動態渲染） -->
-            <div id="page-content"></div>
-        </div>
-    </div>
+    <!-- 載入組件定義 -->
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
