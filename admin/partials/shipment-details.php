@@ -68,11 +68,11 @@ $shipment_details_template = <<<'HTML'
 
             <!-- 分頁 Tabs -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="flex gap-8 px-6 border-b border-slate-200">
+                <div class="flex gap-2 md:gap-8 px-3 md:px-6 border-b border-slate-200">
                     <button
                         @click="activeTab = 'ready_to_ship'"
                         :class="activeTab === 'ready_to_ship' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                        class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
                     >
                         待出貨
                         <span v-if="stats.ready_to_ship > 0" class="ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs">
@@ -82,7 +82,7 @@ $shipment_details_template = <<<'HTML'
                     <button
                         @click="activeTab = 'shipped'"
                         :class="activeTab === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                        class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
                     >
                         已出貨
                         <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
@@ -92,7 +92,7 @@ $shipment_details_template = <<<'HTML'
                     <button
                         @click="activeTab = 'archived'"
                         :class="activeTab === 'archived' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                        class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
                     >
                         存檔區
                         <span v-if="stats.archived > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
@@ -122,7 +122,7 @@ $shipment_details_template = <<<'HTML'
                             <button
                                 v-if="activeTab === 'ready_to_ship'"
                                 @click="batchMarkShipped"
-                                class="buygo-btn buygo-btn-accent"
+                                class="btn btn-primary"
                             >
                                 批次標記已出貨（{{ selectedShipments.length }}）
                             </button>
@@ -131,7 +131,7 @@ $shipment_details_template = <<<'HTML'
                             <button
                                 v-if="activeTab === 'shipped'"
                                 @click="batchArchive"
-                                class="buygo-btn buygo-btn-secondary"
+                                class="btn btn-secondary"
                             >
                                 批次移至存檔（{{ selectedShipments.length }}）
                             </button>
@@ -168,7 +168,7 @@ $shipment_details_template = <<<'HTML'
                             <button
                                 v-if="activeTab === 'ready_to_ship'"
                                 @click="batchMarkShipped"
-                                class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium active:bg-blue-600"
+                                class="btn btn-primary flex-1"
                             >
                                 <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -180,7 +180,7 @@ $shipment_details_template = <<<'HTML'
                             <button
                                 v-if="activeTab === 'shipped'"
                                 @click="batchArchive"
-                                class="flex-1 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium active:bg-slate-700"
+                                class="btn btn-secondary flex-1"
                             >
                                 <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
