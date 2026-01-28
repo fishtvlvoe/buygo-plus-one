@@ -153,11 +153,6 @@
     margin-bottom: var(--spacing-4);
 }
 
-.activities-list h3 {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-4);
-}
 
 /* 活動項目 */
 .activity-item {
@@ -235,13 +230,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     padding: var(--spacing-4);
-    margin-bottom: var(--spacing-6);
-}
-
-.products-overview h3 {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-4);
 }
 
 .stats-row {
