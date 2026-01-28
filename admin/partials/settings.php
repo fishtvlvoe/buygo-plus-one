@@ -15,14 +15,14 @@
 $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
     <!-- Header（與其他頁面一致） -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+    <header class="page-header">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">設定</h1>
-                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
-                    <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
+                <h1 class="page-header-title">設定</h1>
+                <nav class="page-header-breadcrumb">
+                    <a href="/buygo-portal/dashboard">首頁</a>
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    <span class="text-slate-900 font-medium">設定</span>
+                    <span class="active">設定</span>
                 </nav>
             </div>
         </div>
