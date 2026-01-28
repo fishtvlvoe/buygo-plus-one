@@ -318,22 +318,46 @@ const BuyGoSmartSearchBox = {
 
         formatStatus(status) {
             const statusMap = {
+                // 商品狀態
                 'published': '已上架',
                 'private': '已下架',
                 'publish': '已上架',
                 'draft': '草稿',
-                'pending': '待審核'
+                // 訂單狀態
+                'pending': '待付款',
+                'processing': '處理中',
+                'on-hold': '未出貨',
+                'completed': '已完成',
+                'cancelled': '已取消',
+                'refunded': '已退款',
+                'failed': '失敗',
+                // 出貨狀態
+                'ready_to_ship': '待出貨',
+                'shipped': '已出貨',
+                'delivered': '已送達'
             };
             return statusMap[status] || status;
         },
 
         getStatusClass(status) {
             const classMap = {
+                // 商品狀態
                 'published': 'bg-green-50 text-green-700 border-green-200',
                 'private': 'bg-gray-50 text-gray-700 border-gray-200',
                 'publish': 'bg-green-50 text-green-700 border-green-200',
                 'draft': 'bg-orange-50 text-orange-700 border-orange-200',
-                'pending': 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                // 訂單狀態
+                'pending': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                'processing': 'bg-blue-50 text-blue-700 border-blue-200',
+                'on-hold': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                'completed': 'bg-green-50 text-green-700 border-green-200',
+                'cancelled': 'bg-red-50 text-red-700 border-red-200',
+                'refunded': 'bg-purple-50 text-purple-700 border-purple-200',
+                'failed': 'bg-red-50 text-red-700 border-red-200',
+                // 出貨狀態
+                'ready_to_ship': 'bg-blue-50 text-blue-700 border-blue-200',
+                'shipped': 'bg-green-50 text-green-700 border-green-200',
+                'delivered': 'bg-emerald-50 text-emerald-700 border-emerald-200'
             };
             return classMap[status] || 'bg-gray-50 text-gray-700 border-gray-200';
         },
