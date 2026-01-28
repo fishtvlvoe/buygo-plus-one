@@ -183,8 +183,6 @@ $dashboard_component_template = preg_replace('/\n\s+/', "\n", $dashboard_compone
 ?>
 
 <script>
-const { createApp } = Vue;
-
 const DashboardPageComponent = {
     template: `<?php echo $dashboard_component_template; ?>`,
 
@@ -393,30 +391,4 @@ const DashboardPageComponent = {
         }
     }
 };
-
-// 建立 Vue 應用
-const app = createApp({
-    components: {
-        'dashboard-page': DashboardPageComponent,
-        'new-sidebar': NewSidebarComponent,
-        'smart-search-box': SmartSearchBoxComponent,
-        'page-header': PageHeaderComponent,
-        'pagination-controls': PaginationComponent,
-    },
-    template: `
-        <div class="flex min-h-screen bg-slate-50">
-            <new-sidebar current-page="dashboard"></new-sidebar>
-            <div class="flex-1">
-                <dashboard-page></dashboard-page>
-            </div>
-        </div>
-    `
-});
-
-app.mount('#buygo-app');
-</script>
-
-<!-- Set WordPress REST API Nonce -->
-<script>
-window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
