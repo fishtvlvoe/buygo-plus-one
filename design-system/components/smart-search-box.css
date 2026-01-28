@@ -93,8 +93,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  max-height: 20rem;
-  overflow-y: auto;
+  /* 移除 max-height 和 overflow-y，因為預設只顯示 3 筆，不需要滾動 */
 }
 
 .smart-search-suggestion-item {
