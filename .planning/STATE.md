@@ -8,13 +8,13 @@
 ## 當前位置
 
 **Phase:** 21 - Dashboard 實作
-**Plan:** 01 完成 / 預計 04 個計畫
+**Plan:** 04 完成 / 預計 05 個計畫
 **Status:** 進行中
-**Last activity:** 2026-01-29 - 完成 21-01-PLAN.md (DashboardService)
+**Last activity:** 2026-01-29 - 完成 21-04-PLAN.md (Dashboard CSS)
 
 **Progress:**
 ```
-Phase 21: █░░░ 25% (1/4 plans)
+Phase 21: ████ 80% (4/5 plans)
 ```
 
 ---
@@ -27,6 +27,9 @@ Phase 21: █░░░ 25% (1/4 plans)
 | D21-02 | 使用 COALESCE 避免 NULL 值 | 所有聚合查詢使用 COALESCE(SUM(...), 0) | 2026-01-29 | 21-01 |
 | D21-03 | 營收趨勢填補缺失日期 | PHP 迴圈產生完整日期序列,未找到填 0 | 2026-01-29 | 21-01 |
 | D21-04 | 最近活動限制 7 天 | WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) | 2026-01-29 | 21-01 |
+| D21-05 | 統計卡片使用 auto-fit Grid | grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) | 2026-01-29 | 21-04 |
+| D21-06 | 圖表容器固定高度 | 桌面 300px, 手機 250px, 配合 Chart.js maintainAspectRatio: false | 2026-01-29 | 21-04 |
+| D21-07 | 響應式斷點統一 | 768px (手機/桌面), 1024px (平板/桌面) | 2026-01-29 | 21-04 |
 
 ---
 
@@ -65,9 +68,9 @@ Phase 21: █░░░ 25% (1/4 plans)
 
 ## 會話連續性
 
-**Last session:** 2026-01-29 06:31 UTC
-**Stopped at:** 完成 21-01-PLAN.md (DashboardService 實作)
+**Last session:** 2026-01-29 06:40 UTC
+**Stopped at:** 完成 21-04-PLAN.md (Dashboard CSS 樣式)
 **Resume file:** 無（計畫已完成）
 
 **下次繼續:**
-執行 Phase 21 Plan 02 - Dashboard API 實作
+執行 Phase 21 Plan 05 - Dashboard JavaScript 邏輯
