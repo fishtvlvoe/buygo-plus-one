@@ -184,30 +184,19 @@ $dashboard_component_template = preg_replace('/\n\s+/', "\n", $dashboard_compone
 
 <script>
 const { createApp } = Vue;
-const { useCurrency } = window;
 
 const DashboardPageComponent = {
     template: `<?php echo $dashboard_component_template; ?>`,
-
-    setup() {
-        const {
-            displayCurrency,
-            toggleCurrency,
-            formatCurrency: currencyFormatter
-        } = useCurrency();
-
-        return {
-            displayCurrency,
-            toggleCurrency,
-            currencyFormatter
-        };
-    },
 
     data() {
         return {
             loading: true,
             error: null,
             globalSearchQuery: '',
+
+            // 幣別設定
+            currentCurrency: 'TWD',
+            displayCurrency: 'TWD',
 
             // 統計數據
             stats: {
@@ -272,7 +261,7 @@ const DashboardPageComponent = {
         },
 
         async loadRevenue() {
-            const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/revenue?period=30&currency=TWD', {
+            const response = await fetch(`/wp-json/buygo-plus-one/v1/dashboard/revenue?period=30&currency=${this.currentCurrency}`, {
                 headers: { 'X-WP-Nonce': window.buygoWpNonce }
             });
 
@@ -389,6 +378,18 @@ const DashboardPageComponent = {
         handleGlobalSearch() {
             // 全域搜尋功能（未來實作）
             console.log('全域搜尋:', this.globalSearchQuery);
+        },
+
+        toggleCurrency() {
+            // 幣別切換功能（未來可擴展支援多幣別）
+            const currencies = ['TWD', 'USD', 'CNY'];
+            const currentIndex = currencies.indexOf(this.currentCurrency);
+            const nextIndex = (currentIndex + 1) % currencies.length;
+            this.currentCurrency = currencies[nextIndex];
+            this.displayCurrency = currencies[nextIndex];
+
+            // 重新載入營收資料（使用新幣別）
+            this.loadRevenue();
         }
     }
 };
