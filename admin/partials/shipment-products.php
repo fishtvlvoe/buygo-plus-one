@@ -12,11 +12,11 @@ $shipment_products_component_template = <<<'HTML'
     <!-- ============================================ -->
     <!-- 頁首部分 -->
     <!-- ============================================ -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
+    <header class="page-header">
         <!-- 左側：標題 -->
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">備貨</h1>
+                <h1 class="page-header-title">備貨</h1>
             </div>
         </div>
 
