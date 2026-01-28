@@ -136,6 +136,83 @@ class DashboardService
     }
 
     /**
+     * 取得營收趨勢資料（過去 N 天）
+     *
+     * @param int $days 天數 (預設 30，支援 7, 30, 90)
+     * @param string $currency 幣別 (預設 TWD，支援 USD, CNY)
+     * @return array Chart.js 格式的資料
+     */
+    public function getRevenueTrend(int $days = 30, string $currency = 'TWD'): array
+    {
+        $this->debugService->log('DashboardService', '取得營收趨勢', [
+            'days' => $days,
+            'currency' => $currency
+        ]);
+
+        try {
+            $start_date = date('Y-m-d 00:00:00', strtotime("-{$days} days"));
+
+            $results = $this->wpdb->get_results($this->wpdb->prepare(
+                "SELECT
+                    DATE(created_at) as date,
+                    COALESCE(SUM(total_amount), 0) as daily_revenue
+                 FROM {$this->table_orders}
+                 WHERE created_at >= %s
+                     AND payment_status = 'paid'
+                     AND currency = %s
+                     AND mode = 'live'
+                 GROUP BY DATE(created_at)
+                 ORDER BY date ASC",
+                $start_date,
+                $currency
+            ), ARRAY_A);
+
+            // 建立日期對營收的映射
+            $revenue_map = [];
+            foreach ($results as $row) {
+                $revenue_map[$row['date']] = (int)$row['daily_revenue'];
+            }
+
+            // 填補缺失日期 (沒有訂單的日期顯示 0)
+            $labels = [];
+            $data = [];
+
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-{$i} days"));
+                $labels[] = date('m/d', strtotime($date));
+
+                // 從映射中取得該日期的營收，如果不存在則為 0
+                $data[] = $revenue_map[$date] ?? 0;
+            }
+
+            $this->debugService->log('DashboardService', '營收趨勢查詢完成', [
+                'data_points' => count($data)
+            ]);
+
+            return [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => '營收',
+                        'data' => $data,
+                        'borderColor' => '#3b82f6',
+                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                        'tension' => 0.4
+                    ]
+                ],
+                'currency' => $currency
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('DashboardService', '營收趨勢查詢失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            throw new \Exception('無法取得營收趨勢：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 計算變化百分比
      *
      * @param int $current 當前值
