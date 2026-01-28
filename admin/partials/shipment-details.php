@@ -265,16 +265,16 @@ $shipment_details_template = <<<'HTML'
                                 <div class="flex justify-end gap-2">
                                     <button
                                         @click="viewDetail(shipment.id)"
-                                        class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
+                                        class="btn btn-secondary btn-sm"
                                     >
                                         查看
                                     </button>
-                                    <!-- 待出貨頁面：出貨按鈕 (iOS 風格) -->
+                                    <!-- 待出貨頁面：出貨按鈕 -->
                                     <button
                                         v-if="activeTab === 'ready_to_ship'"
                                         @click="showMarkShippedConfirm(shipment)"
                                         :title="'點擊標記為已出貨'"
-                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 hover:shadow-md transition-all duration-200 font-medium text-sm active:scale-95"
+                                        class="btn btn-primary btn-sm"
                                     >
                                         出貨
                                     </button>
@@ -335,16 +335,16 @@ $shipment_details_template = <<<'HTML'
                     <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200" style="margin: 1rem -1rem -1rem -1rem;">
                         <button
                             @click="viewDetail(shipment.id)"
-                            class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"
+                            class="btn btn-secondary py-3 flex items-center justify-center gap-1.5"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             <span class="text-xs font-bold">查看</span>
                         </button>
-                        <!-- 待出貨頁面：出貨按鈕 (iOS 風格) -->
+                        <!-- 待出貨頁面：出貨按鈕 -->
                         <button
                             v-if="activeTab === 'ready_to_ship'"
                             @click="showMarkShippedConfirm(shipment)"
-                            class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 bg-white transition active:bg-blue-100"
+                            class="btn btn-primary py-3 flex items-center justify-center gap-1.5"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             <span class="text-xs font-bold">出貨</span>
@@ -435,11 +435,11 @@ $shipment_details_template = <<<'HTML'
                 </button>
                 <button
                     @click="printDetail"
-                    class="px-3 py-1.5 md:px-4 md:py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-xs md:text-sm font-medium"
+                    class="btn btn-primary btn-sm md:btn"
                 >
                     列印
                 </button>
-                <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition text-xs md:text-sm font-medium">
+                <button @click="navigateTo('list')" class="btn btn-secondary btn-sm md:btn">
                     關閉
                 </button>
             </div>
@@ -543,13 +543,13 @@ $shipment_details_template = <<<'HTML'
                 <div class="flex justify-end gap-3">
                     <button
                         @click="closeConfirmModal"
-                        class="buygo-btn buygo-btn-secondary"
+                        class="btn btn-secondary"
                     >
                         取消
                     </button>
                     <button
                         @click="handleConfirm"
-                        class="buygo-btn buygo-btn-accent"
+                        class="btn btn-primary"
                     >
                         確認
                     </button>
