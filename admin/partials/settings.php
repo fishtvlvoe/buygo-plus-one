@@ -302,7 +302,7 @@ $settings_component_template = <<<'HTML'
                             <div class="mb-4 flex justify-end">
                                 <button
                                     @click="showAddKeywordModal = true"
-                                    class="buygo-btn buygo-btn-primary">
+                                    class="btn btn-primary">
                                     + 新增關鍵字
                                 </button>
                             </div>
@@ -426,12 +426,12 @@ $settings_component_template = <<<'HTML'
                                                     <div class="flex justify-end gap-2">
                                                         <button
                                                             @click="cancelKeywordEdit(keyword.id)"
-                                                            class="buygo-btn buygo-btn-secondary">
+                                                            class="btn btn-secondary">
                                                             取消
                                                         </button>
                                                         <button
                                                             @click="saveKeyword(keyword.id)"
-                                                            class="buygo-btn buygo-btn-primary">
+                                                            class="btn btn-primary">
                                                             儲存
                                                         </button>
                                                     </div>
@@ -611,7 +611,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="saveTemplates"
                     :disabled="savingTemplates"
-                    class="buygo-btn buygo-btn-primary">
+                    class="btn btn-primary">
                     <span v-if="savingTemplates">儲存中...</span>
                     <span v-else>儲存</span>
                 </button>
@@ -631,7 +631,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="memberView = 'add'"
                     v-if="memberView === 'list'"
-                    class="buygo-btn buygo-btn-primary flex items-center">
+                    class="btn btn-primary flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
@@ -642,7 +642,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="memberView = 'list'; userSearchQuery = ''; userSearchResults = []; showRecentUsers = false"
                     v-if="memberView === 'add'"
-                    class="buygo-btn buygo-btn-secondary flex items-center">
+                    class="btn btn-secondary flex items-center">
                     <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
@@ -755,7 +755,7 @@ $settings_component_template = <<<'HTML'
                         <button
                             @click="searchUsers"
                             :disabled="!userSearchQuery"
-                            class="buygo-btn buygo-btn-primary px-4">
+                            class="btn btn-primary">
                             搜尋
                         </button>
                     </div>
@@ -894,12 +894,12 @@ $settings_component_template = <<<'HTML'
             <div class="p-6 border-t border-slate-200 flex justify-end gap-2">
                 <button
                     @click="showAddKeywordModal = false"
-                    class="buygo-btn buygo-btn-secondary">
+                    class="btn btn-secondary">
                     取消
                 </button>
                 <button
                     @click="addKeywordFromModal"
-                    class="buygo-btn buygo-btn-primary">
+                    class="btn btn-primary">
                     新增
                 </button>
             </div>
