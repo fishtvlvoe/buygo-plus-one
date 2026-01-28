@@ -166,7 +166,7 @@ $dashboard_component_template = <<<'HTML'
                         <div class="activity-content">
                             <div class="activity-title">訂單 {{ activity.order_id }}</div>
                             <div class="activity-description">
-                                {{ activity.customer_name }} · NT$ {{ activity.amount.toLocaleString() }}
+                                {{ activity.customer_name }} · NT$ {{ Math.round(activity.amount).toLocaleString() }}
                             </div>
                         </div>
                         <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>
@@ -248,7 +248,8 @@ const DashboardPageComponent = {
         },
 
         async loadStats() {
-            const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/stats', {
+            // 使用 FluentCart 官方 Dashboard API
+            const response = await fetch('/wp-json/fluent-cart/v2/dashboard/stats', {
                 headers: { 'X-WP-Nonce': window.buygoWpNonce }
             });
 
@@ -257,7 +258,45 @@ const DashboardPageComponent = {
             }
 
             const result = await response.json();
-            this.stats = result.data;
+
+            // FluentCart API 回傳格式：{ stats: [ {...}, {...} ] }
+            // 需要轉換為我們的資料格式
+            if (result.stats && Array.isArray(result.stats)) {
+                this.parseFluentCartStats(result.stats);
+            }
+        },
+
+        parseFluentCartStats(statsArray) {
+            // 解析 FluentCart stats 陣列，映射到我們的 stats 物件
+            statsArray.forEach(stat => {
+                const value = parseInt(stat.current_count) || 0;
+
+                // 根據 title 判斷是哪個統計項目
+                if (stat.title.includes('Revenue') || stat.title.includes('營收')) {
+                    this.stats.total_revenue = {
+                        value: stat.has_currency ? value : value * 100, // 如果有幣別標記，可能已是分為單位
+                        change_percent: 0 // FluentCart API 可能不提供變化百分比
+                    };
+                } else if (stat.title.includes('Orders') || stat.title.includes('訂單')) {
+                    this.stats.total_orders = {
+                        value: value,
+                        change_percent: 0
+                    };
+                } else if (stat.title.includes('Customers') || stat.title.includes('客戶')) {
+                    this.stats.total_customers = {
+                        value: value,
+                        change_percent: 0
+                    };
+                }
+            });
+
+            // 計算平均訂單金額（如果 FluentCart 沒提供）
+            if (this.stats.total_orders.value > 0) {
+                this.stats.avg_order_value = {
+                    value: Math.round(this.stats.total_revenue.value / this.stats.total_orders.value),
+                    change_percent: 0
+                };
+            }
         },
 
         async loadRevenue() {
@@ -345,7 +384,7 @@ const DashboardPageComponent = {
         },
 
         formatCurrency(cents) {
-            const amount = cents / 100; // 分 → 元
+            const amount = Math.round(cents / 100); // 分 → 元，移除小數點
             return `NT$ ${amount.toLocaleString()}`;
         },
 
