@@ -17,11 +17,11 @@ $shipment_details_template = <<<'HTML'
     <!-- ============================================ -->
     <!-- 頁首部分（在 v-show 外面，列表時顯示） -->
     <!-- ============================================ -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
+    <header class="page-header">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">出貨</h1>
-                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
+                <h1 class="page-header-title">出貨</h1>
+                <nav class="page-header-breadcrumb">
                     首頁 <span class="text-slate-300">/</span> 出貨管理
                 </nav>
             </div>
