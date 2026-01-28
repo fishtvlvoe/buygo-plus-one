@@ -85,8 +85,9 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
 
-        // 載入 Services（15 個服務）
+        // 載入 Services（16 個服務）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
@@ -119,9 +120,10 @@ class Plugin {
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
 
-        // 載入 API（10 個 API）
+        // 載入 API（11 個 API）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-customers-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-dashboard-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-global-search-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
