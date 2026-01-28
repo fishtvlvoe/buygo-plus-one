@@ -63,7 +63,7 @@ $products_component_template = <<<'HTML'
                 <!-- Batch Actions -->
                 <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
                     <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
-                    <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
+                    <button @click="batchDelete" class="btn btn-danger btn-sm">批次刪除</button>
                 </div>
 
                 <!-- Desktop Search -->
@@ -168,7 +168,7 @@ $products_component_template = <<<'HTML'
                                         <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
                                     </td>
                                     <td class="text-center">
-                                         <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2.5 py-1 text-xs font-semibold rounded-full border hover:opacity-80 transition cursor-pointer">{{ product.status === 'published' ? '已上架' : '已下架' }}</button>
+                                         <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'status-tag-success' : 'status-tag-neutral'" class="status-tag cursor-pointer hover:opacity-80 transition" style="pointer-events: auto;">{{ product.status === 'published' ? '已上架' : '已下架' }}</button>
                                     </td>
                                     <td class="text-center">
                                         <button @click="navigateTo('buyers', product)" class="text-base font-bold text-green-600 hover:text-green-700 hover:underline decoration-green-300 underline-offset-2 transition">{{ product.ordered || 0 }}</button>
@@ -290,7 +290,7 @@ $products_component_template = <<<'HTML'
                                         <div>
                                             <div class="flex justify-between items-start gap-2">
                                                 <h3 class="text-sm font-bold text-slate-900 leading-tight cursor-pointer hover:text-primary transition-colors" @click="navigateTo('edit', product)">{{ product.name }}</h3>
-                                                <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-slate-100 text-slate-800 border-slate-200'" class="px-2 py-0.5 text-[10px] font-medium rounded-full border shrink-0 whitespace-nowrap">{{ product.status === 'published' ? '上架' : '下架' }}</button>
+                                                <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'status-tag-success' : 'status-tag-neutral'" class="status-tag cursor-pointer hover:opacity-80 transition shrink-0 whitespace-nowrap" style="pointer-events: auto; font-size: 10px;">{{ product.status === 'published' ? '上架' : '下架' }}</button>
                                             </div>
                                             <div class="mt-1">
                                                 <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
@@ -327,9 +327,9 @@ $products_component_template = <<<'HTML'
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
-                                    <button @click="navigateTo('allocation', product)" class="py-3 flex items-center justify-center gap-1.5 text-blue-600 hover:bg-blue-50 bg-white transition active:bg-blue-100"><span class="text-xs font-bold">分配</span></button>
-                                    <button @click="navigateTo('edit', product)" class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"><span class="text-xs font-bold">編輯</span></button>
-                                    <button @click="deleteProduct(product.id)" class="py-3 flex items-center justify-center gap-1.5 text-red-500 hover:bg-red-50 bg-white transition active:bg-red-100"><span class="text-xs font-bold">刪除</span></button>
+                                    <button @click="navigateTo('allocation', product)" class="btn btn-primary flex-1 py-3"><span class="text-xs font-bold">分配</span></button>
+                                    <button @click="navigateTo('edit', product)" class="btn btn-secondary flex-1 py-3"><span class="text-xs font-bold">編輯</span></button>
+                                    <button @click="deleteProduct(product.id)" class="btn btn-danger flex-1 py-3"><span class="text-xs font-bold">刪除</span></button>
                                 </div>
                             </div>
                         </div>
@@ -452,8 +452,8 @@ $products_component_template = <<<'HTML'
                             <div class="truncate"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
                         </div>
                         <div class="flex gap-2 shrink-0">
-                            <button @click="navigateTo('list')" class="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition text-xs md:text-sm font-medium">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
-                            <button v-if="currentView !== 'buyers'" @click="handleSubPageSave" class="px-3 py-1.5 md:px-6 md:py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition text-xs md:text-sm font-medium shadow-lg shadow-blue-200">{{ currentView === 'allocation' ? '確認' : '儲存' }}</button>
+                            <button @click="navigateTo('list')" class="btn btn-secondary">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
+                            <button v-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary">{{ currentView === 'allocation' ? '確認' : '儲存' }}</button>
                         </div>
                     </div>
 
