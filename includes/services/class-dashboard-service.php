@@ -213,6 +213,122 @@ class DashboardService
     }
 
     /**
+     * 取得商品概覽統計
+     *
+     * @return array 商品統計陣列
+     */
+    public function getProductOverview(): array
+    {
+        $this->debugService->log('DashboardService', '取得商品概覽', []);
+
+        try {
+            $result = $this->wpdb->get_row(
+                "SELECT
+                    COUNT(*) as total_products,
+                    SUM(CASE WHEN post_status = 'publish' THEN 1 ELSE 0 END) as published,
+                    SUM(CASE WHEN post_status = 'draft' THEN 1 ELSE 0 END) as draft
+                 FROM {$this->wpdb->posts}
+                 WHERE post_type = 'fluent-products'",
+                ARRAY_A
+            );
+
+            $this->debugService->log('DashboardService', '商品概覽查詢完成', [
+                'total' => $result['total_products']
+            ]);
+
+            return [
+                'total_products' => (int)$result['total_products'],
+                'published' => (int)$result['published'],
+                'draft' => (int)$result['draft']
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('DashboardService', '商品概覽查詢失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            throw new \Exception('無法取得商品概覽：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 取得最近活動（訂單 + 客戶註冊）
+     *
+     * @param int $limit 活動數量限制 (預設 10)
+     * @return array 活動列表
+     */
+    public function getRecentActivities(int $limit = 10): array
+    {
+        $this->debugService->log('DashboardService', '取得最近活動', [
+            'limit' => $limit
+        ]);
+
+        try {
+            // 查詢最近的訂單和客戶註冊，使用 UNION ALL 合併
+            $query = $this->wpdb->prepare(
+                "(SELECT
+                    'order' as type,
+                    CONCAT('新訂單 #', id) as title,
+                    CONCAT('客戶下單 ', ROUND(total_amount / 100, 0), ' 元') as description,
+                    created_at as timestamp,
+                    id
+                FROM {$this->table_orders}
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    AND mode = 'live'
+                ORDER BY created_at DESC
+                LIMIT 5)
+
+                UNION ALL
+
+                (SELECT
+                    'customer' as type,
+                    '新客戶註冊' as title,
+                    CONCAT(first_name, ' ', last_name) as description,
+                    created_at as timestamp,
+                    id
+                FROM {$this->table_customers}
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                ORDER BY created_at DESC
+                LIMIT 5)
+
+                ORDER BY timestamp DESC
+                LIMIT %d",
+                $limit
+            );
+
+            $results = $this->wpdb->get_results($query, ARRAY_A);
+
+            // 格式化活動資料
+            $activities = [];
+            foreach ($results as $row) {
+                $activities[] = [
+                    'type' => $row['type'],
+                    'title' => $row['title'],
+                    'description' => $row['description'],
+                    'timestamp' => $row['timestamp'],
+                    'icon' => $row['type'] === 'order' ? 'shopping-cart' : 'user-plus',
+                    'url' => $row['type'] === 'order'
+                        ? '/buygo-portal/orders/?id=' . $row['id']
+                        : '/buygo-portal/customers/?id=' . $row['id']
+                ];
+            }
+
+            $this->debugService->log('DashboardService', '最近活動查詢完成', [
+                'count' => count($activities)
+            ]);
+
+            return $activities;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('DashboardService', '最近活動查詢失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            throw new \Exception('無法取得最近活動：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 計算變化百分比
      *
      * @param int $current 當前值
