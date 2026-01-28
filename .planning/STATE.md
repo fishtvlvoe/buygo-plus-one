@@ -8,13 +8,13 @@
 ## 當前位置
 
 **Phase:** 21 - Dashboard 實作
-**Plan:** 04 完成 / 預計 05 個計畫
+**Plan:** 03 完成 / 預計 05 個計畫
 **Status:** 進行中
-**Last activity:** 2026-01-29 - 完成 21-04-PLAN.md (Dashboard CSS)
+**Last activity:** 2026-01-29 - 完成 21-03-PLAN.md (Dashboard 前端頁面)
 
 **Progress:**
 ```
-Phase 21: ████ 80% (4/5 plans)
+Phase 21: ███░░ 60% (3/5 plans)
 ```
 
 ---
@@ -27,9 +27,11 @@ Phase 21: ████ 80% (4/5 plans)
 | D21-02 | 使用 COALESCE 避免 NULL 值 | 所有聚合查詢使用 COALESCE(SUM(...), 0) | 2026-01-29 | 21-01 |
 | D21-03 | 營收趨勢填補缺失日期 | PHP 迴圈產生完整日期序列,未找到填 0 | 2026-01-29 | 21-01 |
 | D21-04 | 最近活動限制 7 天 | WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) | 2026-01-29 | 21-01 |
-| D21-05 | 統計卡片使用 auto-fit Grid | grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) | 2026-01-29 | 21-04 |
-| D21-06 | 圖表容器固定高度 | 桌面 300px, 手機 250px, 配合 Chart.js maintainAspectRatio: false | 2026-01-29 | 21-04 |
-| D21-07 | 響應式斷點統一 | 768px (手機/桌面), 1024px (平板/桌面) | 2026-01-29 | 21-04 |
+| D21-05 | Promise.all 平行載入 API | 同時載入 4 個端點減少等待時間 | 2026-01-29 | 21-03 |
+| D21-06 | Chart.js 使用 $nextTick | 確保 canvas 元素已渲染再繪製圖表 | 2026-01-29 | 21-03 |
+| D21-07 | 金額統一格式化 | cents / 100 + toLocaleString() 顯示千分位 | 2026-01-29 | 21-03 |
+| D21-08 | 時間顯示相對格式 | 實作 formatTimeAgo() 顯示「X 分鐘前」 | 2026-01-29 | 21-03 |
+| D21-09 | 底部區域 Grid 佈局 | 1fr 2fr (商品:活動), 手機版單欄 | 2026-01-29 | 21-03 |
 
 ---
 
@@ -42,6 +44,7 @@ Phase 21: ████ 80% (4/5 plans)
 | B21-01 | 缺少快取機制 | 中 | Dashboard API 效能 | 2026-01-29 |
 | B21-02 | 未測試大量資料效能 | 中 | 查詢效能 | 2026-01-29 |
 | B21-03 | 缺少多賣家隔離機制 | 低 | 多賣家場景 | 2026-01-29 |
+| B21-04 | Rewrite rules 未 flush | 高 | Dashboard 頁面無法訪問 | 2026-01-29 |
 
 ### 已解決
 
@@ -68,9 +71,10 @@ Phase 21: ████ 80% (4/5 plans)
 
 ## 會話連續性
 
-**Last session:** 2026-01-29 06:40 UTC
-**Stopped at:** 完成 21-04-PLAN.md (Dashboard CSS 樣式)
+**Last session:** 2026-01-29 06:53 UTC
+**Stopped at:** 完成 21-03-PLAN.md (Dashboard 前端頁面)
 **Resume file:** 無（計畫已完成）
 
 **下次繼續:**
-執行 Phase 21 Plan 05 - Dashboard JavaScript 邏輯
+1. 使用者需手動 flush rewrite rules（後台 → 設定 → 永久連結 → 儲存）
+2. 執行 Phase 21 Plan 04 - Dashboard 整合測試
