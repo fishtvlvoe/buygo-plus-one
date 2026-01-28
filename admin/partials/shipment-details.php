@@ -332,10 +332,10 @@ $shipment_details_template = <<<'HTML'
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200" style="margin: 1rem -1rem -1rem -1rem;">
+                    <div class="flex gap-2 border-t border-slate-200 p-2" style="margin: 1rem -1rem -1rem -1rem;">
                         <button
                             @click="viewDetail(shipment.id)"
-                            class="btn btn-secondary py-3 flex items-center justify-center gap-1.5"
+                            class="btn btn-secondary flex-1 py-3 flex items-center justify-center gap-1.5"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             <span class="text-xs font-bold">查看</span>
@@ -344,7 +344,7 @@ $shipment_details_template = <<<'HTML'
                         <button
                             v-if="activeTab === 'ready_to_ship'"
                             @click="showMarkShippedConfirm(shipment)"
-                            class="btn btn-primary py-3 flex items-center justify-center gap-1.5"
+                            class="btn btn-primary flex-1 py-3 flex items-center justify-center gap-1.5"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             <span class="text-xs font-bold">出貨</span>
@@ -353,7 +353,7 @@ $shipment_details_template = <<<'HTML'
                         <button
                             v-if="activeTab === 'shipped'"
                             disabled
-                            class="py-3 flex items-center justify-center gap-1.5 text-green-600 bg-green-50 cursor-default opacity-80"
+                            class="flex-1 py-3 flex items-center justify-center gap-1.5 text-green-600 bg-green-50 cursor-default opacity-80"
                         >
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                             <span class="text-xs font-bold">已出貨 ✓</span>
@@ -362,7 +362,7 @@ $shipment_details_template = <<<'HTML'
                         <button
                             v-if="activeTab === 'archived'"
                             disabled
-                            class="py-3 flex items-center justify-center gap-1.5 text-slate-400 bg-slate-50 cursor-default opacity-60"
+                            class="flex-1 py-3 flex items-center justify-center gap-1.5 text-slate-400 bg-slate-50 cursor-default opacity-60"
                         >
                             <span class="text-xs font-bold">已存檔</span>
                         </button>
