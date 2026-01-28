@@ -125,30 +125,30 @@ $orders_component_template = <<<'HTML'
                 <!-- Content -->
                 <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-slate-50 border-b border-slate-200">
+            <div class="data-table">
+                <table>
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            <th>
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">編號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">項目</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">總金額</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">運送狀態</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">下單日期</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+                            <th>編號</th>
+                            <th>客戶</th>
+                            <th>項目</th>
+                            <th>總金額</th>
+                            <th>運送狀態</th>
+                            <th>下單日期</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
+                    <tbody>
                         <!-- 父訂單行 -->
                         <template v-for="order in orders" :key="order.id">
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-3">
+                        <tr>
+                            <td>
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <button
                                         v-if="order.children && order.children.length > 0"
@@ -171,8 +171,8 @@ $orders_component_template = <<<'HTML'
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">
+                            <td>{{ order.customer_name }}</td>
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <span 
                                         @click="toggleOrderExpand(order.id)"
@@ -221,8 +221,8 @@ $orders_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ formatPrice(order.total_amount, order.currency) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatPrice(order.total_amount, order.currency) }}</td>
+                            <td>
                                 <div class="relative inline-block">
                                     <button
                                         @click.stop="toggleStatusDropdown(order.id)"
@@ -256,8 +256,8 @@ $orders_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(order.created_at) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatDate(order.created_at) }}</td>
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -298,10 +298,10 @@ $orders_component_template = <<<'HTML'
                             :key="'child-' + childOrder.id"
                             class="bg-blue-50/30 hover:bg-blue-50/50 transition border-l-4 border-blue-400"
                         >
-                            <td class="px-4 py-3">
+                            <td>
                                 <!-- 子訂單不可勾選 -->
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-blue-700">
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -310,8 +310,8 @@ $orders_component_template = <<<'HTML'
                                     <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">
+                            <td>{{ order.customer_name }}</td>
+                            <td>
                                 <!-- 子訂單商品資訊 -->
                                 <div class="text-xs text-slate-600">
                                     <template v-if="childOrder.items && childOrder.items.length > 0">
@@ -322,8 +322,8 @@ $orders_component_template = <<<'HTML'
                                     <span v-else class="text-blue-700">拆單商品</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-700">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
+                            <td>
                                 <span
                                     :class="getStatusClass(childOrder.shipping_status || 'unshipped')"
                                     class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
@@ -331,8 +331,8 @@ $orders_component_template = <<<'HTML'
                                     {{ getStatusText(childOrder.shipping_status || 'unshipped') }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(childOrder.created_at) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatDate(childOrder.created_at) }}</td>
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -371,12 +371,12 @@ $orders_component_template = <<<'HTML'
             </div>
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4">
-                <div v-for="order in orders" :key="order.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
+            <div class="card-list">
+                <div v-for="order in orders" :key="order.id" class="card">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <div class="text-sm font-bold text-slate-900 mb-1">#{{ order.invoice_no || order.id }}</div>
-                            <div class="text-xs text-slate-500">{{ order.customer_name }}</div>
+                            <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
+                            <p class="card-subtitle">{{ order.customer_name }}</p>
                         </div>
                         <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                     </div>
