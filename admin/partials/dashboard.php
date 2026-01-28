@@ -414,3 +414,8 @@ const app = createApp({
 
 app.mount('#buygo-app');
 </script>
+
+<!-- Set WordPress REST API Nonce -->
+<script>
+window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+</script>
