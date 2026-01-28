@@ -96,4 +96,60 @@ class Dashboard_API {
             ]
         ]);
     }
+
+    /**
+     * 取得總覽統計
+     *
+     * 回傳 4 個統計數據:
+     * - total_revenue: 總營收
+     * - total_orders: 訂單數
+     * - total_customers: 客戶數
+     * - avg_order_value: 平均訂單金額
+     *
+     * 使用快取機制（5 分鐘）
+     *
+     * @param \WP_REST_Request $request REST API 請求
+     * @return \WP_REST_Response
+     */
+    public function get_stats($request) {
+        try {
+            // 定義快取鍵
+            $cache_key = 'buygo_dashboard_stats';
+
+            // 嘗試從 transient 讀取快取
+            $cached = get_transient($cache_key);
+
+            if ($cached !== false) {
+                // 快取存在，回傳快取資料
+                $cached_time = get_transient($cache_key . '_time');
+
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'data' => $cached,
+                    'cached_at' => $cached_time ?: current_time('mysql')
+                ], 200);
+            }
+
+            // 快取不存在，調用 DashboardService 計算統計
+            $stats = $this->dashboardService->calculateStats();
+
+            // 快取 5 分鐘
+            set_transient($cache_key, $stats, 5 * MINUTE_IN_SECONDS);
+            set_transient($cache_key . '_time', current_time('mysql'), 5 * MINUTE_IN_SECONDS);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $stats,
+                'cached_at' => current_time('mysql')
+            ], 200);
+
+        } catch (\Exception $e) {
+            error_log('BuyGo Dashboard API Error (get_stats): ' . $e->getMessage());
+
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '取得統計資料失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
