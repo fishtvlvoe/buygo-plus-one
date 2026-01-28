@@ -86,30 +86,30 @@ $dashboard_component_template = <<<'HTML'
                 <!-- 訂單數 -->
                 <div class="stat-card">
                     <div class="stat-card-label">本月訂單數</div>
-                    <div class="stat-card-value">{{ stats.orders_count.value.toLocaleString() }}</div>
-                    <div class="stat-card-change" :class="getChangeClass(stats.orders_count.change_percent)">
-                        <span>{{ stats.orders_count.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.orders_count.change_percent).toFixed(1) }}% 較上月</span>
+                    <div class="stat-card-value">{{ stats.total_orders.value.toLocaleString() }}</div>
+                    <div class="stat-card-change" :class="getChangeClass(stats.total_orders.change_percent)">
+                        <span>{{ stats.total_orders.change_percent >= 0 ? '↑' : '↓' }}</span>
+                        <span>{{ Math.abs(stats.total_orders.change_percent).toFixed(1) }}% 較上月</span>
                     </div>
                 </div>
 
                 <!-- 客戶數 -->
                 <div class="stat-card">
                     <div class="stat-card-label">新增客戶數</div>
-                    <div class="stat-card-value">{{ stats.customers_count.value.toLocaleString() }}</div>
-                    <div class="stat-card-change" :class="getChangeClass(stats.customers_count.change_percent)">
-                        <span>{{ stats.customers_count.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.customers_count.change_percent).toFixed(1) }}% 較上月</span>
+                    <div class="stat-card-value">{{ stats.total_customers.value.toLocaleString() }}</div>
+                    <div class="stat-card-change" :class="getChangeClass(stats.total_customers.change_percent)">
+                        <span>{{ stats.total_customers.change_percent >= 0 ? '↑' : '↓' }}</span>
+                        <span>{{ Math.abs(stats.total_customers.change_percent).toFixed(1) }}% 較上月</span>
                     </div>
                 </div>
 
                 <!-- 平均訂單金額 -->
                 <div class="stat-card">
                     <div class="stat-card-label">平均訂單金額</div>
-                    <div class="stat-card-value">{{ formatCurrency(stats.average_order_value.value) }}</div>
-                    <div class="stat-card-change" :class="getChangeClass(stats.average_order_value.change_percent)">
-                        <span>{{ stats.average_order_value.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.average_order_value.change_percent).toFixed(1) }}% 較上月</span>
+                    <div class="stat-card-value">{{ formatCurrency(stats.avg_order_value.value) }}</div>
+                    <div class="stat-card-change" :class="getChangeClass(stats.avg_order_value.change_percent)">
+                        <span>{{ stats.avg_order_value.change_percent >= 0 ? '↑' : '↓' }}</span>
+                        <span>{{ Math.abs(stats.avg_order_value.change_percent).toFixed(1) }}% 較上月</span>
                     </div>
                 </div>
             </section>
@@ -199,9 +199,9 @@ const DashboardPageComponent = {
             // 統計數據
             stats: {
                 total_revenue: { value: 0, change_percent: 0 },
-                orders_count: { value: 0, change_percent: 0 },
-                customers_count: { value: 0, change_percent: 0 },
-                average_order_value: { value: 0, change_percent: 0 }
+                total_orders: { value: 0, change_percent: 0 },
+                total_customers: { value: 0, change_percent: 0 },
+                avg_order_value: { value: 0, change_percent: 0 }
             },
 
             // 營收趨勢資料
