@@ -326,7 +326,7 @@ $products_component_template = <<<'HTML'
                                         <div class="font-bold text-orange-600 text-base">{{ Math.max(0, (product.allocated || 0) - (product.shipped || 0)) }}</div>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
+                                <div class="flex gap-2 border-t border-slate-200 p-2">
                                     <button @click="navigateTo('allocation', product)" class="btn btn-primary flex-1 py-3"><span class="text-xs font-bold">分配</span></button>
                                     <button @click="navigateTo('edit', product)" class="btn btn-secondary flex-1 py-3"><span class="text-xs font-bold">編輯</span></button>
                                     <button @click="deleteProduct(product.id)" class="btn btn-danger flex-1 py-3"><span class="text-xs font-bold">刪除</span></button>
