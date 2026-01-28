@@ -220,11 +220,11 @@ $shipment_details_template = <<<'HTML'
 
         <template v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block buygo-card overflow-hidden">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50 border-b border-slate-200">
+            <div class="data-table">
+                <table>
+                    <thead>
                         <tr>
-                            <th class="px-6 py-3 text-left">
+                            <th>
                                 <input
                                     type="checkbox"
                                     @change="toggleSelectAll"
@@ -232,16 +232,16 @@ $shipment_details_template = <<<'HTML'
                                     class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
                                 >
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">出貨單號</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">日期</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">客戶</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">商品數量</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
+                            <th>出貨單號</th>
+                            <th>日期</th>
+                            <th>客戶</th>
+                            <th>商品數量</th>
+                            <th class="text-right">操作</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-100">
-                        <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 whitespace-nowrap">
+                    <tbody>
+                        <tr v-for="shipment in shipments" :key="shipment.id">
+                            <td>
                                 <input
                                     type="checkbox"
                                     :value="shipment.id"
@@ -249,19 +249,19 @@ $shipment_details_template = <<<'HTML'
                                     class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
                                 >
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                            <td>
                                 {{ shipment.shipment_number }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td>
                                 {{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td>
                                 {{ shipment.customer_name }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            <td>
                                 {{ shipment.total_quantity }} 件
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td class="text-right">
                                 <div class="flex justify-end gap-2">
                                     <button
                                         @click="viewDetail(shipment.id)"
@@ -302,39 +302,37 @@ $shipment_details_template = <<<'HTML'
             </div>
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4">
-                <div v-for="shipment in shipments" :key="shipment.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4">
-                        <div class="flex items-start gap-3">
-                            <input
-                                type="checkbox"
-                                :value="shipment.id"
-                                v-model="selectedShipments"
-                                class="mt-1 w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
-                            >
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h3 class="text-sm font-bold text-slate-900">{{ shipment.shipment_number }}</h3>
-                                        <p class="text-xs text-slate-500 mt-0.5">{{ shipment.customer_name }}</p>
-                                    </div>
-                                    <span :class="[
-                                        'px-2 py-0.5 text-xs font-medium rounded-full',
-                                        activeTab === 'ready_to_ship' ? 'bg-orange-100 text-orange-600' :
-                                        activeTab === 'shipped' ? 'bg-green-100 text-green-600' :
-                                        'bg-slate-100 text-slate-600'
-                                    ]">
-                                        {{ activeTab === 'ready_to_ship' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
-                                    </span>
+            <div class="card-list">
+                <div v-for="shipment in shipments" :key="shipment.id" class="card">
+                    <div class="flex items-start gap-3">
+                        <input
+                            type="checkbox"
+                            :value="shipment.id"
+                            v-model="selectedShipments"
+                            class="mt-1 w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
+                        >
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="card-title">{{ shipment.shipment_number }}</h3>
+                                    <p class="card-subtitle">{{ shipment.customer_name }}</p>
                                 </div>
-                                <div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
-                                    <span>{{ shipment.total_quantity }} 件</span>
-                                    <span>{{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}</span>
-                                </div>
+                                <span :class="[
+                                    'px-2 py-0.5 text-xs font-medium rounded-full',
+                                    activeTab === 'ready_to_ship' ? 'bg-orange-100 text-orange-600' :
+                                    activeTab === 'shipped' ? 'bg-green-100 text-green-600' :
+                                    'bg-slate-100 text-slate-600'
+                                ]">
+                                    {{ activeTab === 'ready_to_ship' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
+                                </span>
+                            </div>
+                            <div class="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                                <span>{{ shipment.total_quantity }} 件</span>
+                                <span>{{ formatDate(activeTab === 'ready_to_ship' ? shipment.created_at : shipment.shipped_at) }}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200">
+                    <div class="grid grid-cols-2 border-t border-slate-200 divide-x divide-slate-200" style="margin: 1rem -1rem -1rem -1rem;">
                         <button
                             @click="viewDetail(shipment.id)"
                             class="py-3 flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-50 bg-white transition active:bg-slate-100"
