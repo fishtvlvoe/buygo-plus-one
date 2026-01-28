@@ -50,6 +50,16 @@
   background-color: var(--color-slate-50);
 }
 
+/* Danger Button */
+.btn-danger {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-error-600);
+}
+
 /* Small Button */
 .btn-sm {
   padding: 0.375rem 0.75rem;  /* py-1.5 px-3 */
