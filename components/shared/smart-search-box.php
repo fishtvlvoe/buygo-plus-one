@@ -69,7 +69,7 @@ const BuyGoSmartSearchBox = {
         // 最多顯示幾筆建議
         maxSuggestions: {
             type: Number,
-            default: 5
+            default: 3
         },
         // 是否顯示幣別切換
         showCurrencyToggle: {
