@@ -258,44 +258,68 @@ const DashboardPageComponent = {
             }
 
             const result = await response.json();
+            console.log('FluentCart API 回傳:', result);
 
             // FluentCart API 回傳格式：{ stats: [ {...}, {...} ] }
             // 需要轉換為我們的資料格式
             if (result.stats && Array.isArray(result.stats)) {
+                console.log('解析 stats 陣列:', result.stats);
                 this.parseFluentCartStats(result.stats);
+                console.log('解析後的 stats:', this.stats);
+            } else {
+                console.error('FluentCart API 回傳格式不正確:', result);
             }
         },
 
         parseFluentCartStats(statsArray) {
             // 解析 FluentCart stats 陣列，映射到我們的 stats 物件
             statsArray.forEach(stat => {
-                const value = parseInt(stat.current_count) || 0;
+                // FluentCart 金額以元為單位，帶小數點（例如：180.0000）
+                // 我們需要轉換為分（乘以 100）
+                const value = parseFloat(stat.current_count) || 0;
 
-                // 根據 title 判斷是哪個統計項目
-                if (stat.title.includes('Revenue') || stat.title.includes('營收')) {
+                // 根據 title 判斷是哪個統計項目（FluentCart 使用繁體中文）
+                if (stat.title === '收入') {
                     this.stats.total_revenue = {
-                        value: stat.has_currency ? value : value * 100, // 如果有幣別標記，可能已是分為單位
-                        change_percent: 0 // FluentCart API 可能不提供變化百分比
-                    };
-                } else if (stat.title.includes('Orders') || stat.title.includes('訂單')) {
-                    this.stats.total_orders = {
-                        value: value,
+                        value: Math.round(value * 100), // 元 → 分
                         change_percent: 0
                     };
-                } else if (stat.title.includes('Customers') || stat.title.includes('客戶')) {
-                    this.stats.total_customers = {
+                } else if (stat.title === '訂單') {
+                    this.stats.total_orders = {
                         value: value,
                         change_percent: 0
                     };
                 }
             });
 
-            // 計算平均訂單金額（如果 FluentCart 沒提供）
+            // FluentCart API 沒有提供客戶數，使用我們自己的 API
+            this.loadCustomersCount();
+
+            // 計算平均訂單金額
             if (this.stats.total_orders.value > 0) {
                 this.stats.avg_order_value = {
                     value: Math.round(this.stats.total_revenue.value / this.stats.total_orders.value),
                     change_percent: 0
                 };
+            }
+        },
+
+        async loadCustomersCount() {
+            // FluentCart Dashboard API 沒有客戶數統計，使用我們自己的 API
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/stats', {
+                    headers: { 'X-WP-Nonce': window.buygoWpNonce }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.data && result.data.total_customers) {
+                        this.stats.total_customers = result.data.total_customers;
+                    }
+                }
+            } catch (err) {
+                console.warn('無法載入客戶數統計:', err);
+                // 客戶數載入失敗不影響其他統計
             }
         },
 
