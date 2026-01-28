@@ -222,8 +222,15 @@ const DashboardPageComponent = {
         };
     },
 
-    mounted() {
-        this.loadAllData();
+    async mounted() {
+        await this.loadAllData();
+
+        // 等待所有資料載入完成後，再渲染圖表
+        this.$nextTick(() => {
+            if (this.revenueData && this.$refs.revenueChart) {
+                this.renderRevenueChart();
+            }
+        });
     },
 
     methods: {
@@ -258,14 +265,11 @@ const DashboardPageComponent = {
             }
 
             const result = await response.json();
-            console.log('FluentCart API 回傳:', result);
 
             // FluentCart API 回傳格式：{ stats: [ {...}, {...} ] }
             // 需要轉換為我們的資料格式
             if (result.stats && Array.isArray(result.stats)) {
-                console.log('解析 stats 陣列:', result.stats);
                 this.parseFluentCartStats(result.stats);
-                console.log('解析後的 stats:', this.stats);
             } else {
                 console.error('FluentCart API 回傳格式不正確:', result);
             }
@@ -334,11 +338,6 @@ const DashboardPageComponent = {
 
             const result = await response.json();
             this.revenueData = result.data;
-
-            // 使用 $nextTick 確保 DOM 渲染完成
-            this.$nextTick(() => {
-                this.renderRevenueChart();
-            });
         },
 
         async loadProducts() {
