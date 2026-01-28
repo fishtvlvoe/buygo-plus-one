@@ -270,14 +270,14 @@ $products_component_template = <<<'HTML'
                     <!-- Mobile Views -->
                     <div class="md:hidden">
                         <!-- Mobile List View (原始 Card View) -->
-                        <div v-show="viewMode === 'table'" class="space-y-3">
+                        <div v-show="viewMode === 'table'" class="card-list">
                             <div class="flex items-center gap-3 px-1 mb-2">
                                 <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
                                     <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
                                     全選
                                 </label>
                             </div>
-                            <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div v-for="product in products" :key="product.id" class="card">
                                 <div class="p-3 flex gap-3 relative">
                                     <div class="absolute top-3 left-3 z-10 w-6 h-6 flex items-center justify-center">
                                         <input type="checkbox" :value="product.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 bg-white shadow-sm">
