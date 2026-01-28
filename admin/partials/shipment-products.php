@@ -1,6 +1,8 @@
 <?php
 // 出貨管理頁面元件
 
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
+
 ?>
 <!-- Shipment Products Page Styles -->
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/shipment-products.css', __FILE__)); ?>" />
