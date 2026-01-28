@@ -375,26 +375,26 @@ $shipment_details_template = <<<'HTML'
 
     <!-- 分頁控制 -->
     <div v-if="totalShipments > 0" class="px-4 md:px-6 pb-6">
-        <div class="flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
-            <div class="text-sm text-slate-700 text-center sm:text-left">
+        <div class="pagination-container">
+            <div class="pagination-info">
                 顯示 <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * perPage, totalShipments) }}</span> 筆，共 <span class="font-medium">{{ totalShipments }}</span> 筆
             </div>
-            <div class="flex items-center gap-3">
-                <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+            <div class="pagination-controls">
+                <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
                     <option :value="5">5 筆</option>
                     <option :value="10">10 筆</option>
                     <option :value="20">20 筆</option>
                     <option :value="50">50 筆</option>
                 </select>
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <nav class="pagination-nav" aria-label="Pagination">
+                    <button @click="previousPage" :disabled="currentPage === 1" class="pagination-button first">
                         <span class="sr-only">上一頁</span>
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                    <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['pagination-button page', { 'active': p === currentPage }]">
                         {{ p }}
                     </button>
-                    <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button last">
                         <span class="sr-only">下一頁</span>
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                     </button>
