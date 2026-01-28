@@ -124,31 +124,30 @@ $shipment_products_component_template = <<<'HTML'
             </div>
             
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th class="px-4 py-3 w-12 text-center">
-                                    <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">出貨單號</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">客戶</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">商品清單</th>
-                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">總數量</th>
-                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">狀態</th>
-                                <th class="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">操作</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">建立日期</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-100">
-                            <tr v-for="shipment in shipments" :key="shipment.id" class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 text-center">
-                                    <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
-                                </td>
-                                <td class="px-4 py-3 text-sm font-medium text-slate-900 whitespace-nowrap">{{ shipment.shipment_number }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{{ shipment.customer_name || '未知客戶' }}</td>
-                                <td class="px-4 py-3">
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="w-12 text-center">
+                                <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                            </th>
+                            <th>出貨單號</th>
+                            <th>客戶</th>
+                            <th>商品清單</th>
+                            <th class="text-center">總數量</th>
+                            <th class="text-center">狀態</th>
+                            <th class="text-center">操作</th>
+                            <th>建立日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="shipment in shipments" :key="shipment.id">
+                            <td class="text-center">
+                                <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer">
+                            </td>
+                            <td>{{ shipment.shipment_number }}</td>
+                            <td>{{ shipment.customer_name || '未知客戶' }}</td>
+                            <td>
                                     <!-- 商品清單（移除外部圖片） -->
                                     <div class="flex items-center gap-2">
                                         <span
@@ -207,8 +206,8 @@ $shipment_products_component_template = <<<'HTML'
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-2 py-3 text-center text-sm font-semibold text-slate-900 whitespace-nowrap">{{ shipment.total_quantity || 0 }}</td>
-                                <td class="px-2 py-3 text-center">
+                                <td class="text-center">{{ shipment.total_quantity || 0 }}</td>
+                                <td class="text-center">
                                     <span
                                         class="inline-block px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
                                         :class="{
@@ -219,7 +218,7 @@ $shipment_products_component_template = <<<'HTML'
                                         {{ getStatusText(shipment.status) }}
                                     </span>
                                 </td>
-                                <td class="px-2 py-3 text-center">
+                                <td class="text-center">
                                     <!-- 操作按鈕（僅待出貨狀態顯示） -->
                                     <button
                                         v-if="shipment.status === 'pending' || shipment.status === '備貨中'"
@@ -228,15 +227,14 @@ $shipment_products_component_template = <<<'HTML'
                                         轉出貨
                                     </button>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{{ formatDate(shipment.created_at) }}</td>
+                                <td>{{ formatDate(shipment.created_at) }}</td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
             </div>
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4">
+            <div class="card-list">
                 <!-- 手機版全選區域 -->
                 <div class="flex items-center gap-3 px-1 mb-4">
                     <input
@@ -253,11 +251,11 @@ $shipment_products_component_template = <<<'HTML'
                     </span>
                 </div>
 
-                <div v-for="shipment in shipments" :key="shipment.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
+                <div v-for="shipment in shipments" :key="shipment.id" class="card">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <div class="text-sm font-bold text-slate-900 mb-1">{{ shipment.shipment_number }}</div>
-                            <div class="text-xs text-slate-500">{{ shipment.customer_name || '未知客戶' }}</div>
+                            <h3 class="card-title">{{ shipment.shipment_number }}</h3>
+                            <p class="card-subtitle">{{ shipment.customer_name || '未知客戶' }}</p>
                         </div>
                         <input type="checkbox" :value="shipment.id" v-model="selectedShipments" class="rounded border-slate-300">
                     </div>
