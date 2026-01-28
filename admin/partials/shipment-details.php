@@ -318,10 +318,10 @@ $shipment_details_template = <<<'HTML'
                                     <p class="card-subtitle">{{ shipment.customer_name }}</p>
                                 </div>
                                 <span :class="[
-                                    'px-2 py-0.5 text-xs font-medium rounded-full',
-                                    activeTab === 'ready_to_ship' ? 'bg-orange-100 text-orange-600' :
-                                    activeTab === 'shipped' ? 'bg-green-100 text-green-600' :
-                                    'bg-slate-100 text-slate-600'
+                                    'status-tag',
+                                    activeTab === 'ready_to_ship' ? 'status-tag-warning' :
+                                    activeTab === 'shipped' ? 'status-tag-success' :
+                                    'status-tag-neutral'
                                 ]">
                                     {{ activeTab === 'ready_to_ship' ? '待出貨' : activeTab === 'shipped' ? '已出貨' : '已存檔' }}
                                 </span>
