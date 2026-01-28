@@ -84,35 +84,35 @@ const BuyGoSmartSearchBox = {
     },
 
     template: `
-        <div class="mb-6">
-            <div class="buygo-smart-search relative">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="smart-search-box">
+            <div class="smart-search-wrapper">
+                <div class="smart-search-icon">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     v-model="searchQuery"
                     @input="handleInput"
                     @focus="handleFocus"
                     @blur="handleBlur"
-                    :class="showCurrencyToggle ? 'block w-full pl-11 pr-32 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm shadow-sm outline-none' : 'block w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm shadow-sm outline-none'" 
+                    :class="['smart-search-input', showCurrencyToggle ? 'smart-search-input--with-currency' : '']"
                     :placeholder="placeholder">
                 
                 <!-- Clear Button -->
-                <button 
+                <button
                     v-if="searchQuery"
                     @click="clearSearch"
-                    :class="showCurrencyToggle ? 'absolute inset-y-0 right-24 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition' : 'absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition'">
-                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    :class="['smart-search-clear', showCurrencyToggle ? 'smart-search-clear--with-currency' : '']">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                     </svg>
                 </button>
-                
+
                 <!-- 幣別切換（右側） -->
-                <div v-if="showCurrencyToggle" class="absolute inset-y-0 right-2 flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-700">{{ currentCurrency === 'JPY' ? '日幣' : '台幣' }}</span>
+                <div v-if="showCurrencyToggle" class="smart-search-currency">
+                    <span class="smart-search-currency-label">{{ currentCurrency === 'JPY' ? '日幣' : '台幣' }}</span>
                     <label class="toggle-switch transform scale-90">
                         <input type="checkbox" v-model="isJPY" @change="handleCurrencyChange">
                         <span class="toggle-slider"></span>
@@ -120,25 +120,25 @@ const BuyGoSmartSearchBox = {
                 </div>
 
             <!-- Suggestions Dropdown -->
-            <div 
+            <div
                 v-show="showSuggestions && suggestions.length > 0"
-                class="absolute z-10 mt-2 w-full bg-white shadow-xl max-h-60 rounded-xl py-1 text-base ring-1 ring-slate-200 overflow-auto focus:outline-none sm:text-sm">
-                
+                class="smart-search-suggestions">
+
                 <!-- Title -->
-                <div class="px-4 py-3 bg-slate-50/50 border-b border-slate-100">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <div class="smart-search-suggestions-header">
+                    <span class="smart-search-suggestions-title">
                         {{ searchQuery ? '搜尋結果' : '最近項目' }}
                     </span>
                 </div>
-                
+
                 <!-- Suggestions List -->
-                <ul class="divide-y divide-gray-100">
-                    <li 
+                <ul class="smart-search-suggestions-list">
+                    <li
                         v-for="item in suggestions"
                         :key="'search-' + item.id"
                         @mousedown="selectItem(item)"
-                        class="cursor-pointer hover:bg-blue-50 px-4 py-2 flex justify-between items-center group transition">
-                        <div class="flex items-center gap-2">
+                        class="smart-search-suggestion-item">
+                        <div class="smart-search-item-content">
                             <!-- Type Badge -->
                             <span
                                 v-if="item.type_label"
@@ -151,14 +151,14 @@ const BuyGoSmartSearchBox = {
                             <img
                                 v-if="showImage && item[imageField]"
                                 :src="item[imageField]"
-                                class="h-8 w-8 rounded object-cover">
+                                class="smart-search-item-image">
 
                             <!-- Text -->
                             <div>
-                                <div class="font-medium text-slate-900 group-hover:text-primary">
+                                <div class="smart-search-item-text">
                                     {{ item[displayField] || item.display_field || '未命名' }}
                                 </div>
-                                <div v-if="(displaySubField && item[displaySubField]) || item.display_sub_field" class="text-xs text-slate-500">
+                                <div v-if="(displaySubField && item[displaySubField]) || item.display_sub_field" class="smart-search-item-subtext">
                                     {{ item[displaySubField] || item.display_sub_field }}
                                 </div>
                             </div>
@@ -350,47 +350,3 @@ const BuyGoSmartSearchBox = {
     }
 };
 </script>
-<style>
-/* iOS Toggle Switch */
-.buygo-smart-search .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 26px;
-}
-.buygo-smart-search .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-}
-.buygo-smart-search .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #CBD5E1;
-    transition: .4s;
-    border-radius: 34px;
-}
-.buygo-smart-search .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-.buygo-smart-search input:checked + .toggle-slider {
-    background-color: #10B981;
-}
-.buygo-smart-search input:checked + .toggle-slider:before {
-    transform: translateX(24px);
-}
-</style>
