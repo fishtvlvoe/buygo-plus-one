@@ -8,6 +8,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
+
 // HTML Template
 $shipment_details_template = <<<'HTML'
 <div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
