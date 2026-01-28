@@ -54,10 +54,10 @@ $orders_component_template = <<<'HTML'
                 <!-- Batch Actions -->
                 <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
                     <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
-                    <button @click="batchPrepare" :disabled="batchProcessing" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 border border-orange-200 transition disabled:opacity-50">
+                    <button @click="batchPrepare" :disabled="batchProcessing" class="btn btn-primary btn-sm">
                         {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
                     </button>
-                    <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
+                    <button @click="batchDelete" class="btn btn-danger btn-sm">批次刪除</button>
                 </div>
 
                 <!-- Desktop Search -->
@@ -266,24 +266,24 @@ $orders_component_template = <<<'HTML'
                                     <button
                                         v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                                         @click="shipOrder(order)"
-                                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        class="btn btn-primary btn-sm">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="order.shipping_status === 'preparing'"
-                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
-                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'shipped'"
-                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -341,24 +341,24 @@ $orders_component_template = <<<'HTML'
                                     <button
                                         v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
                                         @click="shipChildOrder(childOrder, order)"
-                                        class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        class="btn btn-primary btn-sm">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'preparing'"
-                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
-                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'shipped'"
-                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -478,7 +478,7 @@ $orders_component_template = <<<'HTML'
                     </div>
                     
                     <div class="flex gap-2">
-                        <button @click="openOrderDetail(order.id)" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                        <button @click="openOrderDetail(order.id)" class="btn btn-primary flex-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             查看詳情
                         </button>
@@ -486,24 +486,24 @@ $orders_component_template = <<<'HTML'
                         <button
                             v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                             @click="shipOrder(order)"
-                            class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                            class="btn btn-primary flex-1">
                             轉備貨
                         </button>
                         <span
                             v-else-if="order.shipping_status === 'preparing'"
-                            class="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-warning flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             備貨中
                         </span>
                         <span
                             v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
-                            class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-info flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             待出貨
                         </span>
                         <span
                             v-else-if="order.shipping_status === 'shipped'"
-                            class="flex-1 px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-success flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             已出貨
                         </span>
