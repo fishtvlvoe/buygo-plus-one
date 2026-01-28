@@ -16,7 +16,7 @@ $dashboard_component_template = <<<'HTML'
     <header class="page-header">
         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
             <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
-                <h1 class="page-header-title">營運概覽</h1>
+                <h1 class="page-header-title">儀表板</h1>
                 <nav class="page-header-breadcrumb">
                     <a href="/buygo-portal/dashboard" class="active">首頁</a>
                 </nav>
@@ -164,8 +164,10 @@ $dashboard_component_template = <<<'HTML'
                             </svg>
                         </div>
                         <div class="activity-content">
-                            <div class="activity-title">{{ activity.title }}</div>
-                            <div class="activity-description">{{ activity.description }}</div>
+                            <div class="activity-title">訂單 {{ activity.order_id }}</div>
+                            <div class="activity-description">
+                                {{ activity.customer_name }} · NT$ {{ activity.amount.toLocaleString() }}
+                            </div>
                         </div>
                         <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>
                     </div>

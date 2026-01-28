@@ -264,34 +264,20 @@ class DashboardService
         ]);
 
         try {
-            // 查詢最近的訂單和客戶註冊，使用 UNION ALL 合併
+            // 查詢最近的訂單（包含客戶名稱和金額）
             $query = $this->wpdb->prepare(
-                "(SELECT
-                    'order' as type,
-                    CONCAT('新訂單 #', id) as title,
-                    CONCAT('客戶下單 ', ROUND(total_amount / 100, 0), ' 元') as description,
-                    created_at as timestamp,
-                    id
-                FROM {$this->table_orders}
-                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                    AND mode = 'live'
-                ORDER BY created_at DESC
-                LIMIT 5)
-
-                UNION ALL
-
-                (SELECT
-                    'customer' as type,
-                    '新客戶註冊' as title,
-                    CONCAT(first_name, ' ', last_name) as description,
-                    created_at as timestamp,
-                    id
-                FROM {$this->table_customers}
-                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                ORDER BY created_at DESC
-                LIMIT 5)
-
-                ORDER BY timestamp DESC
+                "SELECT
+                    o.id,
+                    o.total_amount,
+                    o.created_at,
+                    c.first_name,
+                    c.last_name,
+                    c.email
+                FROM {$this->table_orders} o
+                LEFT JOIN {$this->table_customers} c ON o.customer_id = c.id
+                WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    AND o.mode = 'live'
+                ORDER BY o.created_at DESC
                 LIMIT %d",
                 $limit
             );
@@ -301,15 +287,21 @@ class DashboardService
             // 格式化活動資料
             $activities = [];
             foreach ($results as $row) {
+                $customer_name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+                if (empty($customer_name)) {
+                    $customer_name = $row['email'] ?? '訪客';
+                }
+
+                $amount = round($row['total_amount'] / 100, 0);
+
                 $activities[] = [
-                    'type' => $row['type'],
-                    'title' => $row['title'],
-                    'description' => $row['description'],
-                    'timestamp' => $row['timestamp'],
-                    'icon' => $row['type'] === 'order' ? 'shopping-cart' : 'user-plus',
-                    'url' => $row['type'] === 'order'
-                        ? '/buygo-portal/orders/?id=' . $row['id']
-                        : '/buygo-portal/customers/?id=' . $row['id']
+                    'type' => 'order',
+                    'order_id' => '#' . $row['id'],
+                    'customer_name' => $customer_name,
+                    'amount' => $amount,
+                    'timestamp' => $row['created_at'],
+                    'icon' => 'shopping-cart',
+                    'url' => '/buygo-portal/orders/?id=' . $row['id']
                 ];
             }
 
