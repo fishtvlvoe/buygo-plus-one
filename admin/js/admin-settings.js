@@ -233,4 +233,57 @@ jQuery(document).ready(function($) {
             }
         });
     });
+
+    // 賣家類型切換
+    $('.seller-type-select').on('change', function() {
+        const select = $(this);
+        const userId = select.data('user-id');
+        const sellerType = select.val();
+        const originalValue = select.data('original-value') || select.val();
+
+        // 儲存原始值（第一次變更時）
+        if (!select.data('original-value')) {
+            select.data('original-value', originalValue);
+        }
+
+        select.prop('disabled', true);
+
+        $.ajax({
+            url: buygoSettings.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'buygo_update_seller_type',
+                user_id: userId,
+                seller_type: sellerType,
+                nonce: buygoSettings.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    // 更新成功,顯示提示
+                    const message = $('<div class="notice notice-success" style="padding: 8px 12px; margin: 10px 0;"><p>✅ 賣家類型已更新為：' +
+                        (sellerType === 'test' ? '測試賣家 (2商品/2圖)' : '真實賣家 (無限制)') +
+                        '</p></div>');
+                    select.closest('tr').find('td:first').append(message);
+                    setTimeout(function() {
+                        message.fadeOut(function() { $(this).remove(); });
+                    }, 3000);
+
+                    // 更新原始值
+                    select.data('original-value', sellerType);
+                } else {
+                    alert('更新失敗：' + (response.data || '未知錯誤'));
+                    // 恢復原始值
+                    select.val(originalValue);
+                }
+            },
+            error: function(xhr) {
+                alert('更新失敗：請檢查網路連線');
+                // 恢復原始值
+                select.val(originalValue);
+            },
+            complete: function() {
+                select.prop('disabled', false);
+            }
+        });
+    });
 });
