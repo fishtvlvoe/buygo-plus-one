@@ -161,7 +161,15 @@ $dashboard_component_template = <<<'HTML'
                         <p>尚無活動記錄</p>
                     </div>
                     <div v-else class="activities-container">
-                        <div class="activity-item" v-for="activity in activities" :key="activity.id">
+                        <div
+                            class="activity-item"
+                            v-for="activity in activities"
+                            :key="activity.id"
+                            @click="handleActivityClick(activity)"
+                            role="button"
+                            tabindex="0"
+                            @keydown.enter="handleActivityClick(activity)"
+                        >
                             <div class="activity-icon" :class="activity.type">
                                 <svg v-if="activity.type === 'order'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
@@ -468,6 +476,20 @@ const DashboardPageComponent = {
 
             // 重新載入營收資料(使用新幣別)
             this.loadRevenue();
+        },
+
+        handleActivityClick(activity) {
+            // 活動項目點擊處理（未來實作：跳轉到訂單詳情或客戶頁面）
+            console.log('Activity clicked:', activity);
+
+            if (activity.type === 'order' && activity.order_id) {
+                // 未來：跳轉到訂單詳情頁面
+                // window.location.href = `/buygo-portal/orders?id=${activity.order_id}`;
+                alert(`訂單 ${activity.order_id} 詳情（功能開發中）`);
+            } else if (activity.type === 'customer' && activity.customer_name) {
+                // 未來：跳轉到客戶頁面
+                alert(`客戶 ${activity.customer_name} 詳情（功能開發中）`);
+            }
         }
     }
 };
