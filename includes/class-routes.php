@@ -16,7 +16,7 @@ class Routes {
         // 註冊首頁路由（重定向到 dashboard）
         add_rewrite_rule('^buygo-portal/?$', 'index.php?buygo_page=portal_home', 'top');
 
-        // 註冊 7 個子頁面路由
+        // 註冊 8 個子頁面路由
         add_rewrite_rule('^buygo-portal/dashboard/?$', 'index.php?buygo_page=dashboard', 'top');
         add_rewrite_rule('^buygo-portal/products/?$', 'index.php?buygo_page=products', 'top');
         add_rewrite_rule('^buygo-portal/orders/?$', 'index.php?buygo_page=orders', 'top');
@@ -24,6 +24,7 @@ class Routes {
         add_rewrite_rule('^buygo-portal/shipment-details/?$', 'index.php?buygo_page=shipment-details', 'top');
         add_rewrite_rule('^buygo-portal/customers/?$', 'index.php?buygo_page=customers', 'top');
         add_rewrite_rule('^buygo-portal/settings/?$', 'index.php?buygo_page=settings', 'top');
+        add_rewrite_rule('^buygo-portal/search/?$', 'index.php?buygo_page=search', 'top');
     }
     
     public function add_query_vars($vars) {
