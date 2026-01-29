@@ -398,9 +398,17 @@ const ProductsPageComponent = {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    products.value = data.data;
+                    // 初始化 Variation 顯示邏輯
+                    products.value = data.data.map(product => {
+                        // 如果是多樣式商品，設定預設選中的 variation
+                        if (product.has_variations && product.default_variation) {
+                            product.selected_variation_id = product.default_variation.id;
+                            product.selected_variation = product.default_variation;
+                        }
+                        return product;
+                    });
                     totalProducts.value = data.total || data.data.length;
-                    await checkUrlParams(); 
+                    await checkUrlParams();
                 } else {
                     products.value = [];
                     totalProducts.value = 0;
@@ -740,6 +748,56 @@ const ProductsPageComponent = {
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
 
+        // Variation 相關方法
+        const getDisplayTitle = (product) => {
+            if (product.has_variations && product.selected_variation) {
+                return product.selected_variation.variation_title || product.name;
+            }
+            return product.variation_title || product.name;
+        };
+
+        const getDisplayPrice = (product) => {
+            if (product.has_variations && product.selected_variation) {
+                return product.selected_variation.price;
+            }
+            return product.price;
+        };
+
+        const onVariationChange = async (product) => {
+            if (!product.has_variations || !product.selected_variation_id) return;
+
+            // 找到選中的 variation
+            const variation = product.variations.find(v => v.id === product.selected_variation_id);
+            if (!variation) return;
+
+            product.selected_variation = variation;
+
+            // 取得該 variation 的統計資料
+            try {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/variations/${variation.id}/stats?_t=${Date.now()}`, {
+                    cache: 'no-store',
+                    credentials: 'include',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // 更新商品的統計資料
+                    product.ordered = data.data.ordered || 0;
+                    product.allocated = data.data.allocated || 0;
+                    product.shipped = data.data.shipped || 0;
+                    product.purchased = data.data.purchased || 0;
+                    product.pending = data.data.pending || 0;
+                    product.reserved = data.data.reserved || 0;
+                }
+            } catch (e) {
+                console.error('載入 Variation 統計失敗:', e);
+            }
+        };
+
         // Smart Search Box 處理函數
         const handleProductSelect = (product) => {
             if (product && product.id) {
@@ -806,7 +864,11 @@ const ProductsPageComponent = {
             handleProductSelect,
             handleProductSearch,
             handleProductSearchClear,
-             fileInput,
+            // Variation 方法
+            getDisplayTitle,
+            getDisplayPrice,
+            onVariationChange,
+            fileInput,
              handleTabClick: (id) => {
                  currentTab.value = id;
                  if (id === 'products') navigateTo('list');
