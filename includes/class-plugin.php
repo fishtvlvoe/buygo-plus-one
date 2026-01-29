@@ -85,7 +85,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
 
-        // 載入 Services（17 個服務）
+        // 載入 Services（18 個服務）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
@@ -95,6 +95,7 @@ class Plugin {
         // class-image-uploader.php 已遷移到 buygo-line-notify，透過 Facade 使用
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-flex-templates.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-notifier.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-webhook-handler.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
@@ -181,6 +182,9 @@ class Plugin {
 
         // 初始化 LINE 訂單通知（下單成功 / 已出貨）
         new \BuyGoPlus\Services\LineOrderNotifier();
+
+        // 初始化 LINE Webhook Handler（商品上架流程）
+        new \BuyGoPlus\Services\LineWebhookHandler();
 
         // FluentCart 收據頁：顯示 LINE 綁定碼
         new \BuyGoPlus\Services\LineBindingReceipt();
