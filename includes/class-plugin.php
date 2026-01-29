@@ -108,9 +108,14 @@ class Plugin {
         // 載入核心服務
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
 
+        // 載入監控工具
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/monitoring/class-slow-query-monitor.php';
+
         // 載入診斷工具（WP-CLI 命令）
         if (defined('WP_CLI') && WP_CLI) {
             require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/diagnostics/class-diagnostics-command.php';
+            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/database/class-dashboard-indexes.php';
+            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/cli/class-dashboard-cli.php';
         }
 
         // 載入 Admin Pages
@@ -202,6 +207,11 @@ class Plugin {
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
             new FluentCommunity();
+        }
+
+        // 註冊 WP-CLI 指令
+        if (defined('WP_CLI') && WP_CLI) {
+            \WP_CLI::add_command('buygo dashboard', 'BuyGoPlus\\CLI\\DashboardCLI');
         }
 
         // 阻擋 Cloudflare Beacon 以修復效能問題

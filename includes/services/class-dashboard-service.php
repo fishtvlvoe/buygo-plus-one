@@ -2,6 +2,8 @@
 
 namespace BuyGoPlus\Services;
 
+use BuyGoPlus\Monitoring\SlowQueryMonitor;
+
 /**
  * Dashboard Service - 儀表板統計服務
  *
@@ -14,6 +16,7 @@ class DashboardService
 {
     private $wpdb;
     private $debugService;
+    private $slowQueryMonitor;
     private $table_orders;
     private $table_customers;
     private $table_order_items;
@@ -23,6 +26,7 @@ class DashboardService
         global $wpdb;
         $this->wpdb = $wpdb;
         $this->debugService = DebugService::get_instance();
+        $this->slowQueryMonitor = new SlowQueryMonitor(500); // 500ms 閾值
         $this->table_orders = $wpdb->prefix . 'fct_orders';
         $this->table_customers = $wpdb->prefix . 'fct_customers';
         $this->table_order_items = $wpdb->prefix . 'fct_order_items';
