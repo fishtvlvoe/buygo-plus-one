@@ -21,7 +21,7 @@ const CustomersPageComponent = {
     },
     template: '#customers-page-template',
     setup() {
-        const { ref, computed, onMounted } = Vue;
+        const { ref, computed, onMounted, watch } = Vue;
 
         // WordPress REST API nonce（用於 API 認證）
         const wpNonce = window.buygoWpNonce || '';
@@ -62,6 +62,13 @@ const CustomersPageComponent = {
         // 幣別切換狀態
         const displayCurrency = ref(systemCurrency.value);
         const currentCurrency = ref(systemCurrency.value);
+
+        // 監聽全域幣別變化
+        watch(systemCurrency, (newCurrency) => {
+            console.log('[CustomersPage] 偵測到幣別變化:', newCurrency);
+            displayCurrency.value = newCurrency;
+            currentCurrency.value = newCurrency;
+        });
 
         // 訂單搜尋（子頁面內用）
         const orderSearchQuery = ref('');

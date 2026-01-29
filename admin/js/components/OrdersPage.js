@@ -62,8 +62,14 @@ const OrdersPageComponent = {
         const searchQuery = ref('');
 
         // 幣別設定 - 使用 composable 的系統幣別
-        const systemCurrency = ref(systemCurrencyFromComposable.value);
+        const systemCurrency = systemCurrencyFromComposable; // 直接使用全域 ref
         const currentCurrency = ref(systemCurrencyFromComposable.value);
+
+        // 監聽全域幣別變化
+        watch(systemCurrency, (newCurrency) => {
+            console.log('[OrdersPage] 偵測到幣別變化:', newCurrency);
+            currentCurrency.value = newCurrency;
+        });
 
         // 批次轉備貨
         const batchPrepare = async () => {

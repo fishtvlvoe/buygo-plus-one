@@ -92,7 +92,7 @@ $customers_component_template .= <<<'HTML'
                                     </div>
                                 </td>
                                 <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
-                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
+                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, 'JPY') }}</td>
                                 <td class="px-2 py-4 text-center">
                                     <button @click="navigateTo('detail', customer.id)" class="btn btn-primary">
                                         查看
@@ -117,7 +117,7 @@ $customers_component_template .= <<<'HTML'
                             </div>
                             <div>
                                 <div class="text-xs text-slate-500">總消費</div>
-                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</div>
+                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, 'JPY') }}</div>
                             </div>
                         </div>
                     </div>
@@ -346,7 +346,7 @@ $customers_component_template .= <<<'HTML'
                                     </div>
                                     <div class="bg-green-50 rounded-lg p-4 text-center">
                                         <span class="text-xs text-green-600 block mb-1">總消費</span>
-                                        <div class="text-2xl font-bold text-green-700">{{ formatPrice(selectedCustomer.total_spent || 0, displayCurrency) }}</div>
+                                        <div class="text-2xl font-bold text-green-700">{{ formatPrice(selectedCustomer.total_spent || 0, 'JPY') }}</div>
                                     </div>
                                 </div>
                             </div>
