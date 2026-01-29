@@ -85,12 +85,13 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
 
-        // 載入 Services（16 個服務）
+        // 載入 Services（17 個服務）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-search-service.php';
         // class-image-uploader.php 已遷移到 buygo-line-notify，透過 Facade 使用
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
