@@ -139,13 +139,24 @@
     height: 280px;
 }
 
+/* 手機版：圖表變成獨立網格 */
 @media (max-width: 768px) {
+    .chart-card-merged {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
     .chart-container-merged {
-        height: 200px;
+        height: 160px;
     }
 
     .section-title-merged {
         font-size: var(--font-size-sm);
+        margin-bottom: var(--spacing-2);
+        padding-bottom: var(--spacing-1);
     }
 }
 
@@ -178,11 +189,25 @@
     }
 }
 
-/* 手機版：減少內距 */
+/* 手機版：每個區塊變成獨立網格 */
 @media (max-width: 768px) {
+    .dashboard-main-grid {
+        display: block;
+        gap: 0;
+    }
+
     .dashboard-left-column,
     .dashboard-right-column {
-        padding: var(--spacing-4);
+        padding: 0;
+        margin-bottom: var(--spacing-3);
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .dashboard-left-column:last-child,
+    .dashboard-right-column:last-child {
+        margin-bottom: 0;
     }
 }
 
@@ -231,8 +256,17 @@
     color: var(--color-warning);
 }
 
-/* 手機版：緊湊顯示 */
+/* 手機版：產品管理變成獨立網格 */
 @media (max-width: 768px) {
+    .products-section {
+        margin-top: 0;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
     .products-stats {
         padding: var(--spacing-3);
         gap: var(--spacing-2);
@@ -255,6 +289,7 @@
     flex: 1;
     overflow-y: auto;
     max-height: 520px;
+    overflow-x: hidden;
 }
 
 .empty-activities {
@@ -333,15 +368,26 @@
     flex-shrink: 0;
 }
 
-/* 手機版：更緊湊的活動列表 */
+/* 手機版：活動列表變成獨立網格（放在圖表下方） */
 @media (max-width: 768px) {
+    .dashboard-right-column {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+    }
+
     .activities-container {
-        max-height: 400px;
+        max-height: 300px;
+        overflow-x: hidden;
+        width: 100%;
     }
 
     .activity-item {
         gap: var(--spacing-2);
         padding: var(--spacing-2);
+        margin: 0;
+        width: 100%;
     }
 
     .activity-icon {
@@ -356,11 +402,20 @@
 
     .activity-title {
         font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .activity-description,
     .activity-time {
         font-size: 11px;
+    }
+
+    .activity-content {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
     }
 }
 
