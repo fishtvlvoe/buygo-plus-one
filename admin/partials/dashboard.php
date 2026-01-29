@@ -1,8 +1,8 @@
 <?php
 // Dashboard 頁面元件
 ?>
-<!-- Dashboard Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/dashboard.css', __FILE__)); ?>" />
+<!-- Dashboard Page Styles (Redesigned) -->
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/dashboard-redesign.css', __FILE__)); ?>" />
 <!-- Chart.js CDN (4.x) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
@@ -25,7 +25,7 @@ $dashboard_component_template = <<<'HTML'
 
         <!-- 右側操作區 -->
         <div class="flex items-center gap-2 md:gap-3 shrink-0">
-            <!-- 全域搜尋框 -->
+            <!-- 桌面版全域搜尋框 -->
             <div class="global-search">
                 <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -35,14 +35,9 @@ $dashboard_component_template = <<<'HTML'
             <button class="notification-bell">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </button>
-
-            <!-- 幣別切換 -->
-            <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
-                {{ displayCurrency }}
-            </button>
         </div>
     </header>
-    <!-- 結束：頁首部分 -->
+    <!-- 結束:頁首部分 -->
 
     <!-- ============================================ -->
     <!-- 內容區域 -->
