@@ -7,6 +7,24 @@
  */
 
 /* ============================================ */
+/* Fira 字體樣式（數據可讀性優化） */
+/* ============================================ */
+
+/* Dashboard 主體使用 Fira Sans */
+.buygo-plus-one-dashboard {
+    font-family: var(--font-fira-sans, -apple-system, BlinkMacSystemFont, sans-serif);
+}
+
+/* 統計數值使用 Fira Code 等寬字體 */
+.stat-card-value,
+.product-value,
+.stat-value {
+    font-family: var(--font-fira-code, monospace);
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============================================ */
 /* 統計卡片網格（精簡版） */
 /* ============================================ */
 
