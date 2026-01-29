@@ -868,20 +868,37 @@ class ProductService
             ];
         }
 
+        // 取得自訂的商品限制數量 (0 = 無限制)
+        $product_limit = get_user_meta($user_id, 'buygo_product_limit', true);
+        if ($product_limit === '') {
+            $product_limit = self::MAX_PRODUCTS_PER_SELLER; // 預設為 2
+        }
+        $product_limit = intval($product_limit);
+
+        // 如果限制為 0,表示無限制
+        if ($product_limit === 0) {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '測試賣家（無商品數量限制）'
+            ];
+        }
+
         // 測試賣家：查詢現有商品數量
         $count = Product::where('post_author', $user_id)
             ->where('post_status', '!=', 'trash')
             ->count();
 
-        $can_add = $count < self::MAX_PRODUCTS_PER_SELLER;
+        $can_add = $count < $product_limit;
 
         return [
             'can_add' => $can_add,
             'current' => $count,
-            'limit' => self::MAX_PRODUCTS_PER_SELLER,
+            'limit' => $product_limit,
             'message' => $can_add
-                ? sprintf('還可新增 %d 個商品', self::MAX_PRODUCTS_PER_SELLER - $count)
-                : sprintf('已達商品數量上限（%d/%d）', $count, self::MAX_PRODUCTS_PER_SELLER)
+                ? sprintf('還可新增 %d 個商品', $product_limit - $count)
+                : sprintf('已達商品數量上限（%d/%d）', $count, $product_limit)
         ];
     }
 

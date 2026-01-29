@@ -23,6 +23,7 @@ class SettingsPage
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
         add_action('wp_ajax_buygo_update_seller_type', [$this, 'ajax_update_seller_type']);
+        add_action('wp_ajax_buygo_update_product_limit', [$this, 'ajax_update_product_limit']);
     }
 
     /**
@@ -100,7 +101,8 @@ class SettingsPage
         wp_localize_script('buygo-settings-admin', 'buygoSettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('buygo-plus-one/v1'),
-            'nonce' => wp_create_nonce('wp_rest') // REST API 使用 wp_rest nonce
+            'nonce' => wp_create_nonce('buygo-settings'), // AJAX 和 REST API 共用
+            'restNonce' => wp_create_nonce('wp_rest') // REST API 專用
         ]);
 
         // 阻擋 Cloudflare Beacon 以修復效能問題
@@ -647,6 +649,12 @@ class SettingsPage
                 $seller_type = 'test'; // 預設為測試賣家
             }
 
+            // 取得商品限制數量 (0 = 無限制)
+            $product_limit = get_user_meta($user->ID, 'buygo_product_limit', true);
+            if ($product_limit === '') {
+                $product_limit = 2; // 預設為 2 個商品
+            }
+
             $all_users[] = [
                 'id' => $user->ID,
                 'name' => $user->display_name,
@@ -658,7 +666,8 @@ class SettingsPage
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
                 'is_in_helpers_list' => $is_in_helpers_list,
-                'seller_type' => $seller_type
+                'seller_type' => $seller_type,
+                'product_limit' => intval($product_limit)
             ];
         }
         
@@ -686,6 +695,7 @@ class SettingsPage
                             <th>LINE ID</th>
                             <th>角色</th>
                             <th>賣家類型</th>
+                            <th>商品限制</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -706,9 +716,26 @@ class SettingsPage
                                 <td><?php echo esc_html($user['role']); ?></td>
                                 <td>
                                     <select class="seller-type-select" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px;">
-                                        <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家 (2商品/2圖)</option>
-                                        <option value="real" <?php selected($user['seller_type'], 'real'); ?>>真實賣家 (無限制)</option>
+                                        <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家</option>
+                                        <option value="real" <?php selected($user['seller_type'], 'real'); ?>>真實賣家</option>
                                     </select>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <input
+                                            type="number"
+                                            class="product-limit-input"
+                                            data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                            value="<?php echo esc_attr($user['product_limit']); ?>"
+                                            min="0"
+                                            step="1"
+                                            style="width: 60px; font-size: 12px;"
+                                            <?php echo ($user['seller_type'] === 'real') ? 'disabled' : ''; ?>
+                                        />
+                                        <span style="font-size: 11px; color: #666;">
+                                            <?php echo ($user['seller_type'] === 'real') ? '(無限制)' : '個商品'; ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
@@ -2563,6 +2590,52 @@ LIMIT 10`,
                 'message' => '賣家類型已更新',
                 'user_id' => $user_id,
                 'seller_type' => $seller_type
+            ]);
+        } else {
+            wp_send_json_error('更新失敗');
+        }
+    }
+
+    /**
+     * AJAX: 更新商品限制數量
+     */
+    public function ajax_update_product_limit(): void
+    {
+        // 驗證 nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'buygo-settings')) {
+            wp_send_json_error('無效的請求');
+            return;
+        }
+
+        // 權限檢查
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('權限不足');
+            return;
+        }
+
+        // 取得參數
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $product_limit = isset($_POST['product_limit']) ? intval($_POST['product_limit']) : 0;
+
+        // 驗證參數
+        if ($user_id <= 0) {
+            wp_send_json_error('無效的使用者 ID');
+            return;
+        }
+
+        if ($product_limit < 0) {
+            wp_send_json_error('商品限制數量不能為負數');
+            return;
+        }
+
+        // 更新 user meta
+        $result = update_user_meta($user_id, 'buygo_product_limit', $product_limit);
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => '商品限制已更新',
+                'user_id' => $user_id,
+                'product_limit' => $product_limit
             ]);
         } else {
             wp_send_json_error('更新失敗');
