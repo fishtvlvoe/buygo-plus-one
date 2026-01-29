@@ -261,7 +261,7 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     // 更新成功,顯示提示
                     const message = $('<div class="notice notice-success" style="padding: 8px 12px; margin: 10px 0;"><p>✅ 賣家類型已更新為：' +
-                        (sellerType === 'test' ? '測試賣家 (2商品/2圖)' : '真實賣家 (無限制)') +
+                        (sellerType === 'test' ? '測試賣家' : '真實賣家') +
                         '</p></div>');
                     select.closest('tr').find('td:first').append(message);
                     setTimeout(function() {
@@ -270,6 +270,17 @@ jQuery(document).ready(function($) {
 
                     // 更新原始值
                     select.data('original-value', sellerType);
+
+                    // 啟用/禁用商品限制輸入框
+                    const limitInput = select.closest('tr').find('.product-limit-input');
+                    const limitHint = limitInput.next('span');
+                    if (sellerType === 'real') {
+                        limitInput.prop('disabled', true);
+                        limitHint.text('(無限制)');
+                    } else {
+                        limitInput.prop('disabled', false);
+                        limitHint.text('個商品');
+                    }
                 } else {
                     alert('更新失敗：' + (response.data || '未知錯誤'));
                     // 恢復原始值
@@ -285,5 +296,49 @@ jQuery(document).ready(function($) {
                 select.prop('disabled', false);
             }
         });
+    });
+
+    // 商品限制數量變更
+    let limitUpdateTimeout;
+    $('.product-limit-input').on('input', function() {
+        const input = $(this);
+        const userId = input.data('user-id');
+        const productLimit = parseInt(input.val()) || 0;
+
+        // 清除之前的 timeout
+        if (limitUpdateTimeout) {
+            clearTimeout(limitUpdateTimeout);
+        }
+
+        // 延遲 1 秒後才儲存 (避免每次輸入都送請求)
+        limitUpdateTimeout = setTimeout(function() {
+            $.ajax({
+                url: buygoSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'buygo_update_product_limit',
+                    user_id: userId,
+                    product_limit: productLimit,
+                    nonce: buygoSettings.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // 顯示提示
+                        const message = $('<div class="notice notice-success" style="padding: 8px 12px; margin: 10px 0;"><p>✅ 商品限制已更新為：' +
+                            (productLimit === 0 ? '無限制' : productLimit + ' 個商品') +
+                            '</p></div>');
+                        input.closest('tr').find('td:first').append(message);
+                        setTimeout(function() {
+                            message.fadeOut(function() { $(this).remove(); });
+                        }, 3000);
+                    } else {
+                        alert('更新失敗：' + (response.data || '未知錯誤'));
+                    }
+                },
+                error: function(xhr) {
+                    alert('更新失敗：請檢查網路連線');
+                }
+            });
+        }, 1000);
     });
 });
