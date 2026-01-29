@@ -28,24 +28,30 @@ $shipment_products_component_template .= $header_html;
 $shipment_products_component_template .= <<<'HTML'
 
     <!-- ============================================ -->
-    <!-- 內容區域（此頁面無子頁面切換） -->
+    <!-- 內容區域（標準化佈局，對齊 Orders 頁面） -->
     <!-- ============================================ -->
-    <div class="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
-        <smart-search-box
-            api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
-            :search-fields="['shipment_number', 'customer_name', 'product_name']"
-            placeholder="搜尋出貨單號、客戶或商品"
-            display-field="shipment_number"
-            display-sub-field="customer_name"
-            :show-currency-toggle="false"
-            @select="handleSearchSelect"
-            @search="handleSearchInput"
-            @clear="handleSearchClear"
-        />
-    </div>
+    <div class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
-     <!-- 出貨單列表容器 -->
-    <div class="p-6">
+        <!-- Toolbar: Search -->
+        <div class="flex items-center">
+            <div class="flex-1 flex items-center">
+                <smart-search-box
+                    api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+                    :search-fields="['shipment_number', 'customer_name', 'product_name']"
+                    placeholder="搜尋出貨單號、客戶或商品"
+                    display-field="shipment_number"
+                    display-sub-field="customer_name"
+                    :show-currency-toggle="false"
+                    @select="handleSearchSelect"
+                    @search="handleSearchInput"
+                    @clear="handleSearchClear"
+                    class="w-full"
+                />
+            </div>
+        </div>
+
+     <!-- 出貨單列表 -->
+    <div>
         <!-- 載入狀態 -->
         <div v-if="loading" class="buygo-loading">
             <div class="buygo-loading-spinner"></div>

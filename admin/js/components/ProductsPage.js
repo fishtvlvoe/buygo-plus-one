@@ -269,8 +269,14 @@ const ProductsPageComponent = {
         const perPage = ref(5);
         const totalProducts = ref(0);
 
-        // 當前顯示幣別
+        // 當前顯示幣別（監聽全域幣別變化）
         const currentCurrency = ref(systemCurrency.value);
+
+        // 監聽全域幣別變化
+        watch(systemCurrency, (newCurrency) => {
+            console.log('[ProductsPage] 偵測到幣別變化:', newCurrency);
+            currentCurrency.value = newCurrency;
+        });
 
         // --- Router Logic (使用 BuyGoRouter 核心模組) ---
         const checkUrlParams = async () => {

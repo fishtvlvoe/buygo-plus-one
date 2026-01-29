@@ -67,13 +67,14 @@ $products_component_template .= <<<'HTML'
                 
                 <!-- Toolbar: Search + View Toggle -->
                 <div class="flex items-center gap-2 md:gap-3">
-                    <div class="flex-1">
+                    <div class="flex-1 flex items-center">
                         <smart-search-box
                             api-endpoint="/wp-json/buygo-plus-one/v1/products"
                             :search-fields="['name', 'sku']"
                             @select="handleProductSelect"
                             @search="handleProductSearch"
                             @clear="handleProductSearchClear"
+                            class="w-full"
                         ></smart-search-box>
                     </div>
                     <!-- View Mode Toggle (支援手機版和桌面版) -->
