@@ -18,6 +18,10 @@ class ProductService
 {
     private $debugService;
 
+    // 測試版限制（Phase 19）
+    const MAX_PRODUCTS_PER_SELLER = 2;  // 每個賣家最多 2 個商品
+    const MAX_IMAGES_PER_PRODUCT = 2;   // 每個商品最多 2 張圖片
+
     public function __construct()
     {
         $this->debugService = DebugService::get_instance();
@@ -49,16 +53,15 @@ class ProductService
                 ->with(['product', 'product_detail'])
                 ->where('item_status', 'active');
 
-            // 權限篩選 (暫時移除 post_author 過濾，因為 REST API 的登入狀態不穩定)
-            // 未來可以改用其他方式驗證權限
-            // if ($viewMode === 'frontend') {
-            //     if (!$isAdmin) {
-            //         // 一般賣家：只顯示自己的商品
-            //         $query->whereHas('product', function($q) use ($user) {
-            //             $q->where('post_author', $user->ID);
-            //         });
-            //     }
-            // }
+            // 權限篩選：賣家只能看到自己的商品（Phase 19）
+            if ($viewMode === 'frontend') {
+                if (!$isAdmin) {
+                    // 一般賣家：只顯示自己的商品
+                    $query->whereHas('product', function($q) use ($user) {
+                        $q->where('post_author', $user->ID);
+                    });
+                }
+            }
 
             // 狀態篩選
             if (isset($filters['status']) && $filters['status'] !== 'all') {
@@ -843,5 +846,91 @@ class ProductService
 
             return false;
         }
+    }
+
+    /**
+     * 檢查賣家是否可以新增商品（Phase 19）
+     *
+     * @param int $user_id 賣家 ID
+     * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
+     */
+    public function canAddProduct($user_id) {
+        // 檢查賣家類型
+        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
+
+        // 真實賣家沒有限制
+        if ($seller_type === 'real') {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '真實賣家無商品數量限制'
+            ];
+        }
+
+        // 測試賣家：查詢現有商品數量
+        $count = Product::where('post_author', $user_id)
+            ->where('post_status', '!=', 'trash')
+            ->count();
+
+        $can_add = $count < self::MAX_PRODUCTS_PER_SELLER;
+
+        return [
+            'can_add' => $can_add,
+            'current' => $count,
+            'limit' => self::MAX_PRODUCTS_PER_SELLER,
+            'message' => $can_add
+                ? sprintf('還可新增 %d 個商品', self::MAX_PRODUCTS_PER_SELLER - $count)
+                : sprintf('已達商品數量上限（%d/%d）', $count, self::MAX_PRODUCTS_PER_SELLER)
+        ];
+    }
+
+    /**
+     * 檢查商品是否可以新增圖片（Phase 19）
+     *
+     * @param int $product_id 商品 ID (wp_posts.ID)
+     * @param int $user_id 賣家 ID
+     * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
+     */
+    public function canAddImage($product_id, $user_id) {
+        // 檢查賣家類型
+        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
+
+        // 真實賣家沒有限制
+        if ($seller_type === 'real') {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '真實賣家無圖片數量限制'
+            ];
+        }
+
+        // 測試賣家：計算現有圖片數量
+        $image_count = 0;
+
+        // 1. 縮圖
+        $thumbnail_id = get_post_thumbnail_id($product_id);
+        if ($thumbnail_id) {
+            $image_count++;
+        }
+
+        // 2. Gallery 圖片
+        $gallery = get_post_meta($product_id, '_product_image_gallery', true);
+        if (!empty($gallery)) {
+            $gallery_ids = explode(',', $gallery);
+            $image_count += count($gallery_ids);
+        }
+
+        $can_add = $image_count < self::MAX_IMAGES_PER_PRODUCT;
+
+        return [
+            'can_add' => $can_add,
+            'current' => $image_count,
+            'limit' => self::MAX_IMAGES_PER_PRODUCT,
+            'message' => $can_add
+                ? sprintf('還可新增 %d 張圖片', self::MAX_IMAGES_PER_PRODUCT - $image_count)
+                : sprintf('已達圖片數量上限（%d/%d）', $image_count, self::MAX_IMAGES_PER_PRODUCT)
+        ];
     }
 }

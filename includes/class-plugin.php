@@ -123,6 +123,7 @@ class Plugin {
         // 載入 Admin Pages
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-type-field.php';
 
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
@@ -170,6 +171,7 @@ class Plugin {
 
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
+        new \BuyGoPlus\Admin\SellerTypeField();
         
         // 初始化 Routes
         new Routes();
