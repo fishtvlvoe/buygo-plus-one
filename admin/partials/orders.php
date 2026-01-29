@@ -10,86 +10,30 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.ph
 <!-- Orders Page Styles -->
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/orders.css', __FILE__)); ?>" />
 <?php
+// 設定 Header 參數
+$header_title = '訂單';
+$header_breadcrumb = '首頁 <span class="text-slate-300">/</span> 訂單列表
+<span v-if="currentView === \'detail\'" class="text-slate-300">/</span>
+<span v-if="currentView === \'detail\'" class="text-primary font-medium truncate">詳情 #{{ currentOrderId }}</span>';
+$show_currency_toggle = true;
+
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
+
 $orders_component_template = <<<'HTML'
 <!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->
 <div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
 
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
+HTML;
 
-        <!-- ============================================ -->
-        <!-- 頁首部分 -->
-        <!-- ============================================ -->
-        <header class="page-header">
-            <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                    <h1 class="page-header-title">訂單</h1>
-                    <nav class="page-header-breadcrumb">
-                        首頁 <span class="text-slate-300">/</span> 訂單列表
-                        <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
-                        <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentOrderId }}</span>
-                    </nav>
-                    
-                    <!-- 篩選提示 -->
-                    <div v-if="searchFilter" class="hidden md:flex items-center gap-2 mt-1">
-                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                            篩選：{{ searchFilterName }}
-                        </span>
-                        <button 
-                            @click="handleSearchClear"
-                            class="text-xs text-slate-500 hover:text-slate-700 underline">
-                            清除篩選
-                        </button>
-                    </div>
-                </div>
-            </div>
+// 將 Header 加入模板
+$orders_component_template .= $header_html;
 
-            <!-- Right Actions -->
-            <div class="flex items-center gap-2 md:gap-3 shrink-0">
-                <button @click="showMobileSearch = !showMobileSearch"
-                    class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
-
-                <!-- Batch Actions -->
-                <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
-                    <button @click="batchPrepare" :disabled="batchProcessing" class="btn btn-primary btn-sm">
-                        {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
-                    </button>
-                    <button @click="batchDelete" class="btn btn-danger btn-sm">批次刪除</button>
-                </div>
-
-                <!-- Desktop Search -->
-                <div class="global-search">
-                    <input type="text" placeholder="全域搜尋..." v-model="searchQuery" @input="handleSearchInput">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-
-                <!-- Notification -->
-                <button class="notification-bell">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                </button>
-                
-                <!-- Currency Toggle -->
-                <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
-                    {{ systemCurrency }}
-                </button>
-            </div>
-
-            <!-- Mobile Search Overlay -->
-            <transition name="search-slide">
-                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
-                    <div class="relative flex-1">
-                        <input type="text" placeholder="全域搜尋..." v-model="searchQuery" @input="handleSearchInput"
-                            class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary auto-focus">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
-                </div>
-            </transition>
-        </header>
-        <!-- 結束：頁首部分 -->
+$orders_component_template .= <<<'HTML'
 
         <!-- ============================================ -->
         <!-- 內容區域 -->

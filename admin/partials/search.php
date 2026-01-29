@@ -5,33 +5,26 @@
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/search.css', __FILE__)); ?>?v=<?php echo time(); ?>" />
 
 <?php
+// 設定 Header 參數
+$header_title = '搜尋結果';
+$header_breadcrumb = '<a href="/buygo-portal/dashboard" class="">首頁</a>
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+<span class="active">搜尋</span>';
+$show_currency_toggle = false;
+
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
+
 $search_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
+HTML;
 
-    <!-- ============================================ -->
-    <!-- 頁首部分 -->
-    <!-- ============================================ -->
-    <header class="page-header">
-        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0">
-                <h1 class="page-header-title">搜尋結果</h1>
-                <nav class="page-header-breadcrumb">
-                    <a href="/buygo-portal/dashboard" class="">首頁</a>
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    <span class="active">搜尋</span>
-                </nav>
-            </div>
-        </div>
+// 將 Header 加入模板
+$search_component_template .= $header_html;
 
-        <!-- 右側操作區 -->
-        <div class="flex items-center gap-2 md:gap-3 shrink-0">
-            <!-- 通知鈴鐺 -->
-            <button class="notification-bell" title="通知">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            </button>
-        </div>
-    </header>
-    <!-- 結束：頁首部分 -->
+$search_component_template .= <<<'HTML'
 
     <!-- ============================================ -->
     <!-- 內容區域 -->
