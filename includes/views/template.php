@@ -101,7 +101,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             'shipment-details' => 'ShipmentDetailsPageComponent',
             'customers' => 'CustomersPageComponent',
             'settings' => 'SettingsPageComponent',
-            'dashboard' => 'DashboardPageComponent'
+            'dashboard' => 'DashboardPageComponent',
+            'search' => 'SearchPageComponent'
         ];
         $page_component_name = $component_map[$current_page] ?? null;
     }
