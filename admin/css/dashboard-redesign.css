@@ -7,36 +7,44 @@
  */
 
 /* ============================================ */
-/* 統計卡片網格 */
+/* 統計卡片網格（精簡版） */
 /* ============================================ */
 
-.stats-grid {
+.stats-grid-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: var(--spacing-4);
-    margin-bottom: var(--spacing-6);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-4);
 }
 
-/* 響應式：手機版垂直排列 */
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-3);
+/* 平板：2欄 */
+@media (max-width: 1024px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* 統計卡片 - 使用 Design System 顏色 */
-.stat-card {
+/* 手機版：精簡版 2x2 grid，減小尺寸 */
+@media (max-width: 768px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-2);
+        margin-bottom: var(--spacing-3);
+    }
+}
+
+/* 統計卡片 - 精簡緊湊版 */
+.stat-card-compact {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-5);
+    padding: var(--spacing-4);
     transition: all var(--transition-base);
     position: relative;
     overflow: hidden;
 }
 
-.stat-card::before {
+.stat-card-compact::before {
     content: '';
     position: absolute;
     top: 0;
@@ -48,43 +56,54 @@
     transition: opacity var(--transition-base);
 }
 
-.stat-card:hover {
+.stat-card-compact:hover {
     border-color: var(--color-hover-border);
     box-shadow: var(--shadow-md);
     transform: translateY(-2px);
 }
 
-.stat-card:hover::before {
+.stat-card-compact:hover::before {
     opacity: 1;
 }
 
-/* 統計卡片內容 */
-.stat-card-label {
-    font-size: var(--font-size-sm);
+/* 統計卡片內容 - 更緊湊 */
+.stat-card-compact .stat-card-label {
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-1);
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
-.stat-card-value {
-    font-size: var(--font-size-3xl);
+.stat-card-compact .stat-card-value {
+    font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-1);
     line-height: var(--line-height-tight);
 }
 
-.stat-card-change {
-    font-size: var(--font-size-sm);
+.stat-card-compact .stat-card-change {
+    font-size: var(--font-size-xs);
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-1);
+    gap: 2px;
     font-weight: var(--font-weight-medium);
-    padding: var(--spacing-1) var(--spacing-2);
+    padding: 2px var(--spacing-2);
     border-radius: var(--radius-full);
     background: var(--color-slate-100);
+}
+
+/* 手機版卡片更小 */
+@media (max-width: 768px) {
+    .stat-card-compact {
+        padding: var(--spacing-3);
+    }
+
+    .stat-card-compact .stat-card-value {
+        font-size: var(--font-size-xl);
+    }
 }
 
 /* 變化百分比顏色 */
@@ -99,155 +118,168 @@
 }
 
 /* ============================================ */
-/* 圖表卡片 */
+/* 合併版圖表和區塊標題 */
 /* ============================================ */
 
-.charts-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-4);
-    margin-bottom: var(--spacing-6);
-}
-
-.chart-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-5);
-    box-shadow: var(--shadow-sm);
-}
-
-.chart-title {
-    font-size: var(--font-size-lg);
+.section-title-merged {
+    font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text);
-    margin-bottom: var(--spacing-4);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    margin-bottom: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border-light);
 }
 
-.chart-container {
+.chart-card-merged {
+    margin-bottom: var(--spacing-4);
+}
+
+.chart-container-merged {
     position: relative;
-    height: 320px;
+    height: 280px;
 }
 
 @media (max-width: 768px) {
-    .chart-container {
-        height: 240px;
+    .chart-container-merged {
+        height: 200px;
+    }
+
+    .section-title-merged {
+        font-size: var(--font-size-sm);
     }
 }
 
 /* ============================================ */
-/* 底部區域網格 */
+/* 兩欄式主要內容區 */
 /* ============================================ */
 
-.dashboard-bottom-grid {
+.dashboard-main-grid {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 1fr;
     gap: var(--spacing-4);
     margin-bottom: var(--spacing-6);
 }
 
+.dashboard-left-column,
+.dashboard-right-column {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-5);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 平板和手機版：單欄 */
 @media (max-width: 1024px) {
-    .dashboard-bottom-grid {
+    .dashboard-main-grid {
         grid-template-columns: 1fr;
     }
 }
 
-/* ============================================ */
-/* 商品概覽 */
-/* ============================================ */
-
-.products-overview {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-5);
-    box-shadow: var(--shadow-sm);
+/* 手機版：減少內距 */
+@media (max-width: 768px) {
+    .dashboard-left-column,
+    .dashboard-right-column {
+        padding: var(--spacing-4);
+    }
 }
 
-.section-title {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text);
-    margin-bottom: var(--spacing-4);
+/* ============================================ */
+/* 產品管理區塊 */
+/* ============================================ */
+
+.products-section {
+    margin-top: auto; /* 置底 */
 }
 
-.stats-row {
+.products-stats {
     display: flex;
-    justify-content: space-around;
-    gap: var(--spacing-4);
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    background: var(--color-slate-50);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-md);
 }
 
-.stat-item {
-    text-align: center;
+.product-stat-item {
     flex: 1;
+    text-align: center;
 }
 
-.stat-item .label {
+.product-label {
     display: block;
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-1);
     font-weight: var(--font-weight-medium);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
-.stat-item .value {
+.product-value {
     display: block;
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
+    color: var(--color-text);
 }
 
+.product-value-success {
+    color: var(--color-success-600);
+}
+
+.product-value-warning {
+    color: var(--color-warning);
+}
+
+/* 手機版：緊湊顯示 */
 @media (max-width: 768px) {
-    .stats-row {
-        flex-direction: column;
-        gap: var(--spacing-3);
+    .products-stats {
+        padding: var(--spacing-3);
+        gap: var(--spacing-2);
     }
 
-    .stat-item {
-        text-align: left;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-3) 0;
-        border-bottom: 1px solid var(--color-border-light);
+    .product-value {
+        font-size: var(--font-size-lg);
     }
 
-    .stat-item:last-child {
-        border-bottom: none;
+    .product-label {
+        font-size: 10px;
     }
 }
 
 /* ============================================ */
-/* 活動列表 */
+/* 活動列表（右欄） */
 /* ============================================ */
 
-.activities-list {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-5);
-    max-height: 500px;
+.activities-container {
+    flex: 1;
     overflow-y: auto;
-    box-shadow: var(--shadow-sm);
+    max-height: 520px;
+}
+
+.empty-activities {
+    text-align: center;
+    padding: var(--spacing-12) var(--spacing-4);
+    color: var(--color-text-secondary);
+}
+
+.empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--spacing-4);
+    color: var(--color-slate-300);
 }
 
 .activity-item {
     display: flex;
     align-items: center;
     gap: var(--spacing-3);
-    padding: var(--spacing-3) 0;
+    padding: var(--spacing-3);
     border-bottom: 1px solid var(--color-border-light);
     transition: background var(--transition-fast);
     cursor: pointer;
     border-radius: var(--radius-md);
     margin: 0 calc(var(--spacing-3) * -1);
-    padding-left: var(--spacing-3);
-    padding-right: var(--spacing-3);
 }
 
 .activity-item:hover {
@@ -259,14 +291,13 @@
 }
 
 .activity-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: var(--font-size-lg);
 }
 
 .activity-icon.order {
@@ -288,7 +319,7 @@
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
-    margin-bottom: var(--spacing-1);
+    margin-bottom: 2px;
 }
 
 .activity-description {
@@ -302,15 +333,34 @@
     flex-shrink: 0;
 }
 
+/* 手機版：更緊湊的活動列表 */
 @media (max-width: 768px) {
-    .activity-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-2);
+    .activities-container {
+        max-height: 400px;
     }
 
+    .activity-item {
+        gap: var(--spacing-2);
+        padding: var(--spacing-2);
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .activity-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .activity-title {
+        font-size: 12px;
+    }
+
+    .activity-description,
     .activity-time {
-        align-self: flex-end;
+        font-size: 11px;
     }
 }
 

@@ -66,105 +66,104 @@ $dashboard_component_template = <<<'HTML'
 
         <!-- 主要內容 -->
         <div v-else>
-            <!-- 統計卡片區 -->
-            <section class="stats-grid">
-                <!-- 總營收 -->
-                <div class="stat-card">
-                    <div class="stat-card-label">本月總營收</div>
+            <!-- 統計卡片區（精簡版） -->
+            <section class="stats-grid-compact">
+                <div class="stat-card-compact">
+                    <div class="stat-card-label">營收</div>
                     <div class="stat-card-value">{{ formatCurrency(stats.total_revenue.value) }}</div>
                     <div class="stat-card-change" :class="getChangeClass(stats.total_revenue.change_percent)">
                         <span>{{ stats.total_revenue.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.total_revenue.change_percent).toFixed(1) }}% 較上月</span>
+                        <span>{{ Math.abs(stats.total_revenue.change_percent).toFixed(1) }}%</span>
                     </div>
                 </div>
 
-                <!-- 訂單數 -->
-                <div class="stat-card">
-                    <div class="stat-card-label">本月訂單數</div>
+                <div class="stat-card-compact">
+                    <div class="stat-card-label">訂單</div>
                     <div class="stat-card-value">{{ stats.total_orders.value.toLocaleString() }}</div>
                     <div class="stat-card-change" :class="getChangeClass(stats.total_orders.change_percent)">
                         <span>{{ stats.total_orders.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.total_orders.change_percent).toFixed(1) }}% 較上月</span>
+                        <span>{{ Math.abs(stats.total_orders.change_percent).toFixed(1) }}%</span>
                     </div>
                 </div>
 
-                <!-- 客戶數 -->
-                <div class="stat-card">
-                    <div class="stat-card-label">新增客戶數</div>
+                <div class="stat-card-compact">
+                    <div class="stat-card-label">客戶</div>
                     <div class="stat-card-value">{{ stats.total_customers.value.toLocaleString() }}</div>
                     <div class="stat-card-change" :class="getChangeClass(stats.total_customers.change_percent)">
                         <span>{{ stats.total_customers.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.total_customers.change_percent).toFixed(1) }}% 較上月</span>
+                        <span>{{ Math.abs(stats.total_customers.change_percent).toFixed(1) }}%</span>
                     </div>
                 </div>
 
-                <!-- 平均訂單金額 -->
-                <div class="stat-card">
-                    <div class="stat-card-label">平均訂單金額</div>
+                <div class="stat-card-compact">
+                    <div class="stat-card-label">客單價</div>
                     <div class="stat-card-value">{{ formatCurrency(stats.avg_order_value.value) }}</div>
                     <div class="stat-card-change" :class="getChangeClass(stats.avg_order_value.change_percent)">
                         <span>{{ stats.avg_order_value.change_percent >= 0 ? '↑' : '↓' }}</span>
-                        <span>{{ Math.abs(stats.avg_order_value.change_percent).toFixed(1) }}% 較上月</span>
+                        <span>{{ Math.abs(stats.avg_order_value.change_percent).toFixed(1) }}%</span>
                     </div>
                 </div>
             </section>
 
-            <!-- 圖表區 -->
-            <section class="charts-grid">
-                <div class="chart-card">
-                    <h3 class="chart-title">營收趨勢（過去 30 天）</h3>
-                    <div class="chart-container">
-                        <canvas ref="revenueChart"></canvas>
+            <!-- 兩欄式主要內容區 -->
+            <div class="dashboard-main-grid">
+                <!-- 左欄：營收趨勢 + 產品管理 -->
+                <section class="dashboard-left-column">
+                    <!-- 營收趨勢圖 -->
+                    <div class="chart-card-merged">
+                        <h3 class="section-title-merged">營收趨勢（過去 30 天）</h3>
+                        <div class="chart-container-merged">
+                            <canvas ref="revenueChart"></canvas>
+                        </div>
                     </div>
-                </div>
-            </section>
 
-            <!-- 底部區域：商品概覽 + 最近活動 -->
-            <div class="dashboard-bottom-grid">
-                <!-- 商品概覽 -->
-                <section class="products-overview">
-                    <h3 class="section-title">商品概覽</h3>
-                    <div class="stats-row">
-                        <div class="stat-item">
-                            <span class="label">總商品數</span>
-                            <span class="value">{{ productsData.total_products }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">已上架</span>
-                            <span class="value text-green-600">{{ productsData.published }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">待上架</span>
-                            <span class="value text-amber-600">{{ productsData.draft }}</span>
+                    <!-- 產品管理 -->
+                    <div class="products-section">
+                        <h3 class="section-title-merged">產品管理</h3>
+                        <div class="products-stats">
+                            <div class="product-stat-item">
+                                <span class="product-label">總數</span>
+                                <span class="product-value">{{ productsData.total_products }}</span>
+                            </div>
+                            <div class="product-stat-item">
+                                <span class="product-label">已上架</span>
+                                <span class="product-value product-value-success">{{ productsData.published }}</span>
+                            </div>
+                            <div class="product-stat-item">
+                                <span class="product-label">待上架</span>
+                                <span class="product-value product-value-warning">{{ productsData.draft }}</span>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- 最近活動 -->
-                <section class="activities-list">
-                    <h3 class="section-title">最近活動</h3>
-                    <div v-if="activities.length === 0" class="text-center py-8 text-slate-500">
-                        <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- 右欄：最近活動 -->
+                <section class="dashboard-right-column">
+                    <h3 class="section-title-merged">最近活動</h3>
+                    <div v-if="activities.length === 0" class="empty-activities">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         <p>尚無活動記錄</p>
                     </div>
-                    <div v-else class="activity-item" v-for="activity in activities" :key="activity.id">
-                        <div class="activity-icon" :class="activity.type">
-                            <svg v-if="activity.type === 'order'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                            </svg>
-                            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">訂單 {{ activity.order_id }}</div>
-                            <div class="activity-description">
-                                {{ activity.customer_name }} · NT$ {{ Math.round(activity.amount).toLocaleString() }}
+                    <div v-else class="activities-container">
+                        <div class="activity-item" v-for="activity in activities" :key="activity.id">
+                            <div class="activity-icon" :class="activity.type">
+                                <svg v-if="activity.type === 'order'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                </svg>
+                                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
                             </div>
+                            <div class="activity-content">
+                                <div class="activity-title">訂單 {{ activity.order_id }}</div>
+                                <div class="activity-description">
+                                    {{ activity.customer_name }} · NT$ {{ Math.round(activity.amount).toLocaleString() }}
+                                </div>
+                            </div>
+                            <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>
                         </div>
-                        <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>
                     </div>
                 </section>
             </div>
