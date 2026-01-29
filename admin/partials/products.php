@@ -368,10 +368,9 @@ $products_component_template .= <<<'HTML'
                         </div>
                     </div>
                 </div>
-            </div> <!-- End List View Container -->
 
-            <!-- Pagination -->
-            <div v-if="currentView === 'list' && totalProducts > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
+                <!-- Pagination -->
+                <div v-if="totalProducts > 0" class="flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
                 <div class="text-sm text-slate-700 text-center sm:text-left">
                     顯示 <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * perPage, totalProducts) }}</span> 筆，共 <span class="font-medium">{{ totalProducts }}</span> 筆
                 </div>
@@ -399,6 +398,8 @@ $products_component_template .= <<<'HTML'
                     </nav>
                 </div>
             </div>
+
+            </div> <!-- End List View Container -->
             <!-- 結束：列表檢視 -->
 
             <!-- 子頁面（編輯、分配、下單名單等） -->
