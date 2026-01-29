@@ -53,6 +53,8 @@ class LineWebhookHandler {
 
 		// 註冊 Hook：監聽 buygo-line-notify 的 webhook 訊息事件
 		add_action( 'buygo_line_notify/webhook_message_image', array( $this, 'handleImageUpload' ), 10, 4 );
+		add_action( 'buygo_line_notify/webhook_message', array( $this, 'handleProductInfo' ), 10, 3 );
+		add_action( 'buygo_line_notify/webhook_postback', array( $this, 'handlePostback' ), 10, 3 );
 	}
 
 	/**
@@ -117,6 +119,191 @@ class LineWebhookHandler {
 		}
 
 		return false;
+	}
+
+	/**
+	 * 處理 Postback 事件（商品類型選擇）
+	 *
+	 * 當使用者點擊 Flex Message 選單選擇商品類型時觸發
+	 *
+	 * @param array  $event    Event data
+	 * @param string $line_uid LINE user ID
+	 * @param int    $user_id  WordPress user ID
+	 * @return void
+	 */
+	public function handlePostback( $event, $line_uid, $user_id ) {
+		// 解析 postback data
+		$postback_data = $event['postback']['data'] ?? '';
+		parse_str( $postback_data, $params );
+
+		$this->logger->log( 'postback_received', array(
+			'action' => $params['action'] ?? '',
+			'value'  => $params['value'] ?? '',
+		), $user_id, $line_uid );
+
+		// 處理商品類型選擇
+		if ( isset( $params['action'] ) && $params['action'] === 'product_type' ) {
+			$product_type = $params['value'] ?? 'simple';
+
+			// 記錄使用者選擇的商品類型
+			update_user_meta( $user_id, 'pending_product_type', $product_type );
+
+			// 發送輸入格式提示訊息
+			$message = $this->getInputFormatMessage( $product_type );
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+
+			$this->logger->log( 'product_type_selected', array(
+				'type' => $product_type,
+			), $user_id, $line_uid );
+		}
+	}
+
+	/**
+	 * 處理商品資訊文字訊息
+	 *
+	 * 當使用者發送商品資訊文字時：
+	 * 1. 檢查是否有待處理的商品圖片
+	 * 2. 解析商品資訊
+	 * 3. 呼叫 FluentCartService 建立商品
+	 * 4. 清除待處理狀態
+	 *
+	 * @param array  $event    Event data
+	 * @param string $line_uid LINE user ID
+	 * @param int    $user_id  WordPress user ID
+	 * @return void
+	 */
+	public function handleProductInfo( $event, $line_uid, $user_id ) {
+		// 檢查是否為文字訊息
+		if ( ! isset( $event['message']['type'] ) || $event['message']['type'] !== 'text' ) {
+			return;
+		}
+
+		// 檢查是否有待處理的商品圖片
+		$image_id = get_user_meta( $user_id, 'pending_product_image', true );
+		$product_type = get_user_meta( $user_id, 'pending_product_type', true );
+
+		if ( empty( $image_id ) || empty( $product_type ) ) {
+			// 沒有待處理商品，可能是其他對話
+			return;
+		}
+
+		// 檢查是否超時 (30 分鐘)
+		$timestamp = get_user_meta( $user_id, 'pending_product_timestamp', true );
+		if ( $timestamp && ( time() - $timestamp ) > 1800 ) {
+			// 超時，清除待處理狀態
+			delete_user_meta( $user_id, 'pending_product_image' );
+			delete_user_meta( $user_id, 'pending_product_type' );
+			delete_user_meta( $user_id, 'pending_product_timestamp' );
+
+			$this->logger->log( 'product_creation_timeout', array(
+				'elapsed' => time() - $timestamp,
+			), $user_id, $line_uid );
+
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', '商品建立已超時，請重新上傳圖片。', $line_uid );
+			return;
+		}
+
+		// 解析文字訊息
+		$text = $event['message']['text'] ?? '';
+		$parsed = $this->product_data_parser->parse( $text );
+
+		if ( is_wp_error( $parsed ) ) {
+			$this->logger->log( 'product_parse_failed', array(
+				'error' => $parsed->get_error_message(),
+			), $user_id, $line_uid );
+
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', '商品資訊解析失敗：' . $parsed->get_error_message(), $line_uid );
+			return;
+		}
+
+		// 驗證解析結果與使用者選擇的類型是否匹配
+		$parsed_type = $parsed['type'] ?? 'simple';
+		if ( $parsed_type !== $product_type ) {
+			$this->logger->log( 'product_type_mismatch', array(
+				'expected' => $product_type,
+				'parsed'   => $parsed_type,
+			), $user_id, $line_uid );
+
+			// 類型不匹配，但繼續建立（使用解析出的類型）
+		}
+
+		// 呼叫 FluentCartService 建立商品
+		$service = new FluentCartService();
+		// 準備 product_data (符合 create_product 方法的參數格式)
+		$product_data = array_merge( $parsed, array(
+			'image_attachment_id' => $image_id,
+			'user_id'             => $user_id,
+			'line_uid'            => $line_uid,
+		) );
+		$product_id = $service->create_product( $product_data, array( $image_id ) );
+
+		// 轉換回 handleProductInfo 期望的格式
+		if ( is_wp_error( $product_id ) ) {
+			$result = array(
+				'success' => false,
+				'error'   => $product_id->get_error_message(),
+			);
+		} else {
+			$result = array(
+				'success'    => true,
+				'product_id' => $product_id,
+				'type'       => $parsed['type'] ?? 'simple',
+			);
+		}
+
+		// 清除待處理狀態
+		delete_user_meta( $user_id, 'pending_product_image' );
+		delete_user_meta( $user_id, 'pending_product_type' );
+		delete_user_meta( $user_id, 'pending_product_timestamp' );
+
+		// 發送結果訊息
+		if ( ! empty( $result['success'] ) ) {
+			$product_id = $result['product_id'];
+			$product_url = home_url( "/item/{$product_id}" );
+
+			$message = "✅ 商品建立成功！\n\n";
+			$message .= "商品名稱：{$parsed['name']}\n";
+			$message .= "類型：" . ( $result['type'] === 'variable' ? '多樣式商品' : '單一商品' ) . "\n";
+			$message .= "查看商品：{$product_url}";
+
+			$this->logger->log( 'product_created', array(
+				'product_id' => $product_id,
+				'type'       => $result['type'],
+			), $user_id, $line_uid );
+		} else {
+			$message = "❌ 商品建立失敗：" . ( $result['error'] ?? '未知錯誤' );
+
+			$this->logger->log( 'product_creation_failed', array(
+				'error' => $result['error'] ?? 'unknown',
+			), $user_id, $line_uid );
+		}
+
+		$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+	}
+
+	/**
+	 * 取得輸入格式說明訊息
+	 *
+	 * @param string $type 商品類型 (simple/variable)
+	 * @return string 格式說明訊息
+	 */
+	private function getInputFormatMessage( $type ) {
+		if ( $type === 'variable' ) {
+			return "請發送多樣式商品資訊，格式：\n\n"
+				. "商品名稱\n"
+				. "分類：A款/B款/C款\n"
+				. "價格：100/150/200\n"
+				. "數量：10/5/8\n"
+				. "原價：150/200/250（可選）\n"
+				. "描述：商品說明（可選）";
+		} else {
+			return "請發送單一商品資訊，格式：\n\n"
+				. "商品名稱\n"
+				. "價格：100\n"
+				. "數量：10\n"
+				. "原價：150（可選）\n"
+				. "描述：商品說明（可選）";
+		}
 	}
 
 	/**
