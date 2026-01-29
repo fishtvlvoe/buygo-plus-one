@@ -57,6 +57,7 @@
 .page-header-breadcrumb a {
   color: var(--color-text-secondary);
   transition: color var(--transition-fast);
+  text-decoration: none;
 }
 
 .page-header-breadcrumb a:hover {
@@ -64,7 +65,7 @@
 }
 
 .page-header-breadcrumb .active {
-  color: var(--color-text);
+  color: var(--color-primary);
   font-weight: var(--font-weight-medium);
 }
 
