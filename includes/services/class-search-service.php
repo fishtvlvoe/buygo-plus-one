@@ -140,7 +140,7 @@ class SearchService
         $search_term = '%' . $this->wpdb->esc_like($query) . '%';
 
         $where_clauses = [
-            "p.post_type = 'product'",
+            "p.post_type = 'fluent-products'",
             $this->wpdb->prepare(
                 "(
                     p.post_title LIKE %s OR
