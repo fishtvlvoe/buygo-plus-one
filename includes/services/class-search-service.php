@@ -27,6 +27,7 @@ class SearchService
         $this->table_orders = $wpdb->prefix . 'fct_orders';
         $this->table_customers = $wpdb->prefix . 'fct_customers';
         $this->table_shipments = $wpdb->prefix . 'buygo_shipments';
+        $this->table_order_items = $wpdb->prefix . 'fct_order_items';
     }
 
     /**
@@ -78,6 +79,10 @@ class SearchService
             if ($type === 'all' || $type === 'order') {
                 $orders = $this->search_orders($query, $filters, 1000, 0);
                 $all_results = array_merge($all_results, $orders);
+
+                // 也搜尋訂單項目 (透過商品名稱找訂單)
+                $order_items = $this->search_order_items($query, $filters, 1000, 0);
+                $all_results = array_merge($all_results, $order_items);
             }
 
             if ($type === 'all' || $type === 'customer') {
@@ -536,6 +541,109 @@ class SearchService
                 // Header 元件需要的欄位
                 'title' => "出貨單 #{$shipment_number}",
                 'meta' => $tracking_number ? "追蹤: {$tracking_number}" : '無追蹤號碼',
+                'relevance_score' => 0 // 將由 calculate_relevance 計算
+            ];
+        }, $results ?: []);
+    }
+
+    /**
+     * 搜尋訂單項目 (透過商品名稱找訂單)
+     *
+     * @param string $query 搜尋關鍵字
+     * @param array $filters 過濾條件
+     * @param int $limit 限制筆數
+     * @param int $offset 偏移量
+     * @return array 訂單陣列
+     */
+    private function search_order_items($query, $filters, $limit, $offset)
+    {
+        $search_term = '%' . $this->wpdb->esc_like($query) . '%';
+
+        $where_clauses = [
+            $this->wpdb->prepare(
+                "(
+                    p.post_title LIKE %s OR
+                    p.ID = %d
+                )",
+                $search_term,
+                intval($query)
+            )
+        ];
+
+        // 狀態過濾
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $where_clauses[] = $this->wpdb->prepare(
+                "o.payment_status = %s",
+                $filters['status']
+            );
+        }
+
+        // 日期過濾
+        if (!empty($filters['date_from'])) {
+            $where_clauses[] = $this->wpdb->prepare(
+                "o.created_at >= %s",
+                $filters['date_from'] . ' 00:00:00'
+            );
+        }
+        if (!empty($filters['date_to'])) {
+            $where_clauses[] = $this->wpdb->prepare(
+                "o.created_at <= %s",
+                $filters['date_to'] . ' 23:59:59'
+            );
+        }
+
+        $where = implode(' AND ', $where_clauses);
+
+        $sql = "
+            SELECT DISTINCT
+                o.id,
+                COALESCE(o.invoice_no, '') as invoice_no,
+                CONCAT('訂單 #', COALESCE(o.invoice_no, o.id), ' (包含: ', p.post_title, ')') as name,
+                p.post_title as product_name,
+                oi.quantity,
+                COALESCE(o.total_amount, 0) as total_amount,
+                COALESCE(o.payment_status, 'pending') as status,
+                o.created_at,
+                'order' as type,
+                '訂單' as type_label,
+                CONCAT('/wp-admin/admin.php?page=buygo-orders&id=', o.id) as url,
+                CONCAT('訂單 #', COALESCE(o.invoice_no, o.id)) as display_field,
+                CONCAT(p.post_title, ' x', oi.quantity) as display_sub_field
+            FROM {$this->table_order_items} oi
+            INNER JOIN {$this->table_orders} o ON oi.order_id = o.id
+            INNER JOIN {$this->wpdb->posts} p ON oi.post_id = p.ID
+            WHERE {$where}
+            ORDER BY o.created_at DESC
+            LIMIT %d OFFSET %d
+        ";
+
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare($sql, $limit, $offset),
+            ARRAY_A
+        );
+
+        return array_map(function($order) {
+            $invoice_no = $order['invoice_no'] ?? '';
+            $product_name = $order['product_name'] ?? '';
+            $quantity = $order['quantity'] ?? 0;
+
+            return [
+                'id' => $order['id'],
+                'invoice_no' => $invoice_no,
+                'name' => $order['name'],
+                'type' => $order['type'],
+                'type_label' => $order['type_label'],
+                'status' => $order['status'],
+                'url' => $order['url'],
+                'display_field' => $order['display_field'],
+                'display_sub_field' => $order['display_sub_field'],
+                'created_at' => $order['created_at'],
+                'product_name' => $product_name,
+                'quantity' => $quantity,
+                'total_amount' => $order['total_amount'],
+                // Header 元件需要的欄位
+                'title' => "訂單 #{$invoice_no}",
+                'meta' => "{$product_name} x{$quantity}",
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
