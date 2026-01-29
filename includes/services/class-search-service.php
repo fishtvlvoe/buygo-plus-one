@@ -355,13 +355,30 @@ class SearchService
      */
     private function search_customers($query, $filters, $limit, $offset)
     {
+        $search_term = '%' . $this->wpdb->esc_like($query) . '%';
+
         $where_clauses = [
             $this->wpdb->prepare(
-                "(c.full_name LIKE %s OR c.email LIKE %s OR c.phone LIKE %s OR c.id = %d)",
-                '%' . $this->wpdb->esc_like($query) . '%',
-                '%' . $this->wpdb->esc_like($query) . '%',
-                '%' . $this->wpdb->esc_like($query) . '%',
-                intval($query)
+                "(
+                    c.full_name LIKE %s OR
+                    c.first_name LIKE %s OR
+                    c.last_name LIKE %s OR
+                    c.email LIKE %s OR
+                    c.phone LIKE %s OR
+                    c.notes LIKE %s OR
+                    c.city LIKE %s OR
+                    c.state LIKE %s OR
+                    c.postcode LIKE %s OR
+                    c.country LIKE %s OR
+                    c.id = %d OR
+                    ca.address_1 LIKE %s OR
+                    ca.address_2 LIKE %s OR
+                    cm.meta_value LIKE %s
+                )",
+                $search_term, $search_term, $search_term, $search_term, $search_term,
+                $search_term, $search_term, $search_term, $search_term, $search_term,
+                intval($query),
+                $search_term, $search_term, $search_term
             )
         ];
 
@@ -387,11 +404,18 @@ class SearchService
         $where = implode(' AND ', $where_clauses);
 
         $sql = "
-            SELECT
+            SELECT DISTINCT
                 c.id,
                 c.full_name as name,
+                c.first_name,
+                c.last_name,
                 c.email,
                 c.phone,
+                c.notes,
+                c.city,
+                c.state,
+                c.postcode,
+                c.country,
                 c.created_at,
                 'customer' as type,
                 '客戶' as type_label,
@@ -399,7 +423,10 @@ class SearchService
                 c.full_name as display_field,
                 c.email as display_sub_field
             FROM {$this->table_customers} c
+            LEFT JOIN {$this->wpdb->prefix}fct_customer_addresses ca ON c.id = ca.customer_id
+            LEFT JOIN {$this->wpdb->prefix}fct_customer_meta cm ON c.id = cm.customer_id
             WHERE {$where}
+            GROUP BY c.id
             ORDER BY c.created_at DESC
             LIMIT %d OFFSET %d
         ";
@@ -413,6 +440,8 @@ class SearchService
             return [
                 'id' => $customer['id'],
                 'name' => $customer['name'],
+                'first_name' => $customer['first_name'] ?? '',
+                'last_name' => $customer['last_name'] ?? '',
                 'type' => $customer['type'],
                 'type_label' => $customer['type_label'],
                 'url' => $customer['url'],
@@ -421,6 +450,11 @@ class SearchService
                 'created_at' => $customer['created_at'],
                 'email' => $customer['email'],
                 'phone' => $customer['phone'],
+                'notes' => $customer['notes'] ?? '',
+                'city' => $customer['city'] ?? '',
+                'state' => $customer['state'] ?? '',
+                'postcode' => $customer['postcode'] ?? '',
+                'country' => $customer['country'] ?? '',
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
@@ -437,11 +471,19 @@ class SearchService
      */
     private function search_shipments($query, $filters, $limit, $offset)
     {
+        $search_term = '%' . $this->wpdb->esc_like($query) . '%';
+
         $where_clauses = [
             $this->wpdb->prepare(
-                "(s.shipment_number LIKE %s OR s.customer_name LIKE %s OR s.id = %d)",
-                '%' . $this->wpdb->esc_like($query) . '%',
-                '%' . $this->wpdb->esc_like($query) . '%',
+                "(
+                    s.shipment_number LIKE %s OR
+                    s.customer_name LIKE %s OR
+                    s.tracking_number LIKE %s OR
+                    s.id = %d
+                )",
+                $search_term,
+                $search_term,
+                $search_term,
                 intval($query)
             )
         ];
@@ -476,6 +518,7 @@ class SearchService
                 s.shipment_number,
                 CONCAT('出貨單 #', s.shipment_number) as name,
                 s.customer_name,
+                s.tracking_number,
                 s.status,
                 s.created_at,
                 'shipment' as type,
@@ -506,6 +549,7 @@ class SearchService
                 'display_sub_field' => $shipment['display_sub_field'],
                 'created_at' => $shipment['created_at'],
                 'customer_name' => $shipment['customer_name'],
+                'tracking_number' => $shipment['tracking_number'] ?? '',
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
