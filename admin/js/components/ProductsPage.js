@@ -51,6 +51,9 @@ const ProductsPageComponent = {
         const loading = ref(true);
         const error = ref(null);
         const globalSearchQuery = ref('');
+
+        // --- Seller Limit State (Phase 19) ---
+        const sellerLimit = ref({ can_add: true, current: 0, limit: 0, message: '' });
         
         // --- Sub-page Data ---
         const editingProduct = ref({ id: '', name: '', price: 0, status: 'published', purchased: 0 }); // Initialize with defaults
@@ -378,6 +381,24 @@ const ProductsPageComponent = {
             return texts[status] || '未知';
         };
 
+        // --- Seller Limit Check (Phase 19) ---
+        const checkSellerLimit = async () => {
+            try {
+                const res = await fetch('/wp-json/buygo-plus-one/v1/products/limit-check', {
+                    credentials: 'include',
+                    headers: {
+                        'X-WP-Nonce': wpNonce
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    sellerLimit.value = data.data;
+                }
+            } catch (e) {
+                console.error('檢查賣家限制失敗:', e);
+            }
+        };
+
         // --- API Methods ---
         const loadProducts = async () => {
             loading.value = true;
@@ -409,6 +430,8 @@ const ProductsPageComponent = {
                     });
                     totalProducts.value = data.total || data.data.length;
                     await checkUrlParams();
+                    // Phase 19: 檢查賣家商品數量限制
+                    await checkSellerLimit();
                 } else {
                     products.value = [];
                     totalProducts.value = 0;
@@ -844,7 +867,7 @@ const ProductsPageComponent = {
         return {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
-            products, selectedItems, loading, error, globalSearchQuery,
+            products, selectedItems, loading, error, globalSearchQuery, sellerLimit,
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,

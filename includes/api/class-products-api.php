@@ -207,6 +207,13 @@ class Products_API {
                 ]
             ]
         ]);
+
+        // GET /products/limit-check - 檢查賣家商品數量限制 (Phase 19)
+        register_rest_route($this->namespace, '/products/limit-check', [
+            'methods' => 'GET',
+            'callback' => [$this, 'check_seller_limit'],
+            'permission_callback' => [API::class, 'check_permission'],
+        ]);
     }
     
     /**
@@ -1184,6 +1191,37 @@ class Products_API {
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $stats
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 檢查賣家商品數量限制 (Phase 19)
+     *
+     * GET /wp-json/buygo-plus-one/v1/products/limit-check
+     */
+    public function check_seller_limit() {
+        try {
+            $user_id = get_current_user_id();
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '未登入'
+                ], 401);
+            }
+
+            $product_service = new ProductService();
+            $limit_status = $product_service->canAddProduct($user_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $limit_status
             ], 200);
 
         } catch (\Exception $e) {
