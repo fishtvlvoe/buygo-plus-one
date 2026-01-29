@@ -14,16 +14,14 @@
   padding-right: 1rem;
   flex-shrink: 0;
   z-index: 10;
-  position: sticky;
-  top: 0;
+  /* 移除 sticky 定位，讓 Header 跟著頁面捲動 */
+  position: relative;
 }
 
 @media (min-width: 768px) {
   .page-header {
     padding-left: 1.5rem;  /* px-6 */
     padding-right: 1.5rem;  /* px-6 */
-    position: static;
-    position: relative;
   }
 }
 
