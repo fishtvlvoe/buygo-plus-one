@@ -85,6 +85,17 @@ $products_component_template .= <<<'HTML'
                     </div>
                 </div>
 
+                <!-- Seller Limit Warning (Phase 19) -->
+                <div v-if="!sellerLimit.can_add && !loading" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <div class="font-bold text-yellow-800 text-sm">已達商品數量限制</div>
+                        <div class="text-yellow-700 text-sm mt-1">{{ sellerLimit.message }} (目前: {{ sellerLimit.current }} / {{ sellerLimit.limit }})</div>
+                    </div>
+                </div>
+
                 <!-- Loading -->
                 <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
                 
