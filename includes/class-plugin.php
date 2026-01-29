@@ -184,7 +184,11 @@ class Plugin {
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
-        
+
+        // 初始化 Dashboard API
+        $dashboard_api = new \BuyGoPlus\Api\Dashboard_API();
+        add_action('rest_api_init', array($dashboard_api, 'register_routes'));
+
         // 初始化 Webhook API
         $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
         add_action('rest_api_init', array($webhook_api, 'register_routes'));
