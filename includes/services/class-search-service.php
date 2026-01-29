@@ -26,7 +26,7 @@ class SearchService
         $this->debugService = DebugService::get_instance();
         $this->table_orders = $wpdb->prefix . 'fct_orders';
         $this->table_customers = $wpdb->prefix . 'fct_customers';
-        $this->table_shipments = $wpdb->prefix . 'fct_shipments';
+        $this->table_shipments = $wpdb->prefix . 'buygo_shipments';
     }
 
     /**
@@ -256,25 +256,11 @@ class SearchService
         $where_clauses = [
             $this->wpdb->prepare(
                 "(
-                    o.invoice_no LIKE %s OR
-                    o.customer_name LIKE %s OR
-                    o.note LIKE %s OR
-                    o.id = %d OR
-                    oa.address_1 LIKE %s OR
-                    oa.address_2 LIKE %s OR
-                    oa.city LIKE %s OR
-                    oa.state LIKE %s OR
-                    om.meta_value LIKE %s
+                    COALESCE(o.invoice_no, '') LIKE %s OR
+                    o.id = %d
                 )",
                 $search_term,
-                $search_term,
-                $search_term,
-                intval($query),
-                $search_term,
-                $search_term,
-                $search_term,
-                $search_term,
-                $search_term
+                intval($query)
             )
         ];
 
@@ -305,21 +291,17 @@ class SearchService
         $sql = "
             SELECT DISTINCT
                 o.id,
-                o.invoice_no,
-                CONCAT('訂單 #', o.invoice_no) as name,
-                o.customer_name,
-                o.note,
-                o.total_amount,
-                o.payment_status as status,
+                COALESCE(o.invoice_no, '') as invoice_no,
+                CONCAT('訂單 #', COALESCE(o.invoice_no, o.id)) as name,
+                COALESCE(o.total_amount, 0) as total_amount,
+                COALESCE(o.payment_status, 'pending') as status,
                 o.created_at,
                 'order' as type,
                 '訂單' as type_label,
                 CONCAT('/wp-admin/admin.php?page=buygo-orders&id=', o.id) as url,
-                CONCAT('訂單 #', o.invoice_no) as display_field,
-                o.customer_name as display_sub_field
+                CONCAT('訂單 #', COALESCE(o.invoice_no, o.id)) as display_field,
+                CONCAT('金額: ¥', FORMAT(COALESCE(o.total_amount, 0) / 100, 0)) as display_sub_field
             FROM {$this->table_orders} o
-            LEFT JOIN {$this->wpdb->prefix}fct_order_addresses oa ON o.id = oa.order_id
-            LEFT JOIN {$this->wpdb->prefix}fct_order_meta om ON o.id = om.order_id
             WHERE {$where}
             GROUP BY o.id
             ORDER BY o.created_at DESC
@@ -478,12 +460,10 @@ class SearchService
         $where_clauses = [
             $this->wpdb->prepare(
                 "(
-                    s.shipment_number LIKE %s OR
-                    s.customer_name LIKE %s OR
-                    s.tracking_number LIKE %s OR
+                    COALESCE(s.shipment_number, '') LIKE %s OR
+                    COALESCE(s.tracking_number, '') LIKE %s OR
                     s.id = %d
                 )",
-                $search_term,
                 $search_term,
                 $search_term,
                 intval($query)
@@ -517,17 +497,16 @@ class SearchService
         $sql = "
             SELECT
                 s.id,
-                s.shipment_number,
-                CONCAT('出貨單 #', s.shipment_number) as name,
-                s.customer_name,
-                s.tracking_number,
-                s.status,
+                COALESCE(s.shipment_number, '') as shipment_number,
+                CONCAT('出貨單 #', COALESCE(s.shipment_number, s.id)) as name,
+                COALESCE(s.tracking_number, '') as tracking_number,
+                COALESCE(s.status, 'pending') as status,
                 s.created_at,
                 'shipment' as type,
                 '出貨單' as type_label,
                 CONCAT('/wp-admin/admin.php?page=buygo-shipment-details&id=', s.id) as url,
-                CONCAT('出貨單 #', s.shipment_number) as display_field,
-                s.customer_name as display_sub_field
+                CONCAT('出貨單 #', COALESCE(s.shipment_number, s.id)) as display_field,
+                COALESCE(s.tracking_number, '無追蹤號碼') as display_sub_field
             FROM {$this->table_shipments} s
             WHERE {$where}
             ORDER BY s.created_at DESC
@@ -541,7 +520,6 @@ class SearchService
 
         return array_map(function($shipment) {
             $shipment_number = $shipment['shipment_number'] ?? '';
-            $customer_name = $shipment['customer_name'] ?? '';
             $tracking_number = $shipment['tracking_number'] ?? '';
 
             return [
@@ -554,11 +532,10 @@ class SearchService
                 'display_field' => $shipment['display_field'],
                 'display_sub_field' => $shipment['display_sub_field'],
                 'created_at' => $shipment['created_at'],
-                'customer_name' => $customer_name,
                 'tracking_number' => $tracking_number,
                 // Header 元件需要的欄位
                 'title' => "出貨單 #{$shipment_number}",
-                'meta' => $customer_name . ($tracking_number ? " · 追蹤: {$tracking_number}" : ''),
+                'meta' => $tracking_number ? "追蹤: {$tracking_number}" : '無追蹤號碼',
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
