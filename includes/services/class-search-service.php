@@ -244,12 +244,30 @@ class SearchService
      */
     private function search_orders($query, $filters, $limit, $offset)
     {
+        $search_term = '%' . $this->wpdb->esc_like($query) . '%';
+
         $where_clauses = [
             $this->wpdb->prepare(
-                "(o.invoice_no LIKE %s OR o.customer_name LIKE %s OR o.id = %d)",
-                '%' . $this->wpdb->esc_like($query) . '%',
-                '%' . $this->wpdb->esc_like($query) . '%',
-                intval($query)
+                "(
+                    o.invoice_no LIKE %s OR
+                    o.customer_name LIKE %s OR
+                    o.note LIKE %s OR
+                    o.id = %d OR
+                    oa.address_1 LIKE %s OR
+                    oa.address_2 LIKE %s OR
+                    oa.city LIKE %s OR
+                    oa.state LIKE %s OR
+                    om.meta_value LIKE %s
+                )",
+                $search_term,
+                $search_term,
+                $search_term,
+                intval($query),
+                $search_term,
+                $search_term,
+                $search_term,
+                $search_term,
+                $search_term
             )
         ];
 
@@ -278,11 +296,12 @@ class SearchService
         $where = implode(' AND ', $where_clauses);
 
         $sql = "
-            SELECT
+            SELECT DISTINCT
                 o.id,
                 o.invoice_no,
                 CONCAT('訂單 #', o.invoice_no) as name,
                 o.customer_name,
+                o.note,
                 o.total_amount,
                 o.payment_status as status,
                 o.created_at,
@@ -292,7 +311,10 @@ class SearchService
                 CONCAT('訂單 #', o.invoice_no) as display_field,
                 o.customer_name as display_sub_field
             FROM {$this->table_orders} o
+            LEFT JOIN {$this->wpdb->prefix}fct_order_addresses oa ON o.id = oa.order_id
+            LEFT JOIN {$this->wpdb->prefix}fct_order_meta om ON o.id = om.order_id
             WHERE {$where}
+            GROUP BY o.id
             ORDER BY o.created_at DESC
             LIMIT %d OFFSET %d
         ";
@@ -315,6 +337,7 @@ class SearchService
                 'display_sub_field' => $order['display_sub_field'],
                 'created_at' => $order['created_at'],
                 'customer_name' => $order['customer_name'],
+                'note' => $order['note'] ?? '',
                 'total_amount' => $order['total_amount'],
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
