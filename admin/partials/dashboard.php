@@ -7,19 +7,15 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
 <?php
-// 設定 Header 參數
-$header_title = '儀表板';
-$header_breadcrumb = '<a href="/buygo-portal/dashboard" class="active">首頁</a>';
-$show_currency_toggle = true; // Dashboard 需要幣別切換
-
-// 載入共用 Header
-ob_start();
-include __DIR__ . '/header-component.php';
-$header_html = ob_get_clean();
-
-$dashboard_component_template = <<<HTML
+$dashboard_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    {$header_html}
+    <!-- Header 元件 -->
+    <page-header-component
+        title="儀表板"
+        breadcrumb='<a href="/buygo-portal/dashboard" class="active">首頁</a>'
+        :show-currency-toggle="true"
+        @currency-changed="onCurrencyChange"
+    ></page-header-component>
 
     <!-- ============================================ -->
     <!-- 內容區域 -->
@@ -176,12 +172,6 @@ const DashboardPageComponent = {
         return {
             loading: true,
             error: null,
-            globalSearchQuery: '',
-            showMobileSearch: false,
-
-            // 幣別設定
-            currentCurrency: 'TWD',
-            displayCurrency: 'TWD',
 
             // 統計數據
             stats: {
@@ -422,27 +412,9 @@ const DashboardPageComponent = {
             return date.toLocaleDateString('zh-TW');
         },
 
-        handleGlobalSearch() {
-            // 全域搜尋功能(未來實作)
-            console.log('全域搜尋:', this.globalSearchQuery);
-        },
-
-        toggleMobileSearch() {
-            // 切換手機版搜尋顯示(未來實作:彈出搜尋面板)
-            this.showMobileSearch = !this.showMobileSearch;
-            console.log('手機版搜尋:', this.showMobileSearch);
-            // TODO: 顯示全螢幕搜尋面板
-        },
-
-        cycleCurrency() {
-            // 幣別切換功能(循環切換 TWD → USD → CNY)
-            const currencies = ['TWD', 'USD', 'CNY'];
-            const currentIndex = currencies.indexOf(this.currentCurrency);
-            const nextIndex = (currentIndex + 1) % currencies.length;
-            this.currentCurrency = currencies[nextIndex];
-            this.displayCurrency = currencies[nextIndex];
-
-            // 重新載入營收資料(使用新幣別)
+        // 覆寫 HeaderMixin 的 cycleCurrency，加上 Dashboard 特定邏輯
+        onCurrencyChange(newCurrency) {
+            // 當幣別切換時，重新載入營收資料
             this.loadRevenue();
         },
 

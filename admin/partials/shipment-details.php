@@ -40,18 +40,23 @@ $shipment_details_template .= <<<'HTML'
         <!-- 列表檢視 -->
         <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
 
-            <!-- Smart Search Box（頁面搜尋框） -->
-            <smart-search-box
-                api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
-                :search-fields="['product_name', 'customer_name']"
-                placeholder="搜尋商品或客戶"
-                display-field="product_name"
-                display-sub-field="customer_name"
-                :show-currency-toggle="false"
-                @select="handleSearchSelect"
-                @search="handleSearchInput"
-                @clear="handleSearchClear"
-            />
+            <!-- Toolbar: Search -->
+            <div class="flex items-center">
+                <div class="flex-1 flex items-center">
+                    <smart-search-box
+                        api-endpoint="/wp-json/buygo-plus-one/v1/shipments"
+                        :search-fields="['product_name', 'customer_name']"
+                        placeholder="搜尋商品或客戶"
+                        display-field="product_name"
+                        display-sub-field="customer_name"
+                        :show-currency-toggle="false"
+                        @select="handleSearchSelect"
+                        @search="handleSearchInput"
+                        @clear="handleSearchClear"
+                        class="w-full"
+                    />
+                </div>
+            </div>
 
             <!-- 分頁 Tabs -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -361,7 +366,7 @@ $shipment_details_template .= <<<'HTML'
             </div><!-- Tabs 卡片結束 -->
 
     <!-- 分頁控制 -->
-    <div v-if="totalShipments > 0" class="px-4 md:px-6 pb-6">
+    <div v-if="totalShipments > 0" class="mt-6">
         <div class="pagination-container">
             <div class="pagination-info">
                 顯示 <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * perPage, totalShipments) }}</span> 筆，共 <span class="font-medium">{{ totalShipments }}</span> 筆
