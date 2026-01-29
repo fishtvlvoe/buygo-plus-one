@@ -558,11 +558,13 @@ class SearchService
     /**
      * 計算相關性分數
      *
-     * 分數計算規則：
+     * 分數計算規則（Phase 22.1 全文檢索版本）：
      * 1. 類型基礎分數：order=10, product=8, customer=6, shipment=5
-     * 2. 完全匹配加分：+20
-     * 3. ID 精確匹配：+15
-     * 4. 位置加分：(100 - position) / 10（越前面的匹配分數越高）
+     * 2. ID 精確匹配：+50
+     * 3. 主要欄位完全匹配（name, sku, invoice_no, shipment_number）：+30
+     * 4. 次要欄位完全匹配（email, phone）：+15
+     * 5. 主要欄位位置加分：開頭 +10，其他 (100-pos)/10
+     * 6. 內容欄位匹配（description, notes）：+3
      *
      * @param array $item 搜尋結果項目
      * @param string $query 搜尋關鍵字
@@ -582,36 +584,73 @@ class SearchService
         ];
         $score += $base_scores[$type] ?? 0;
 
-        // 2. 完全匹配加分
-        $searchable_fields = [
+        // 2. ID 精確匹配（優先級最高）
+        if (isset($item['id']) && intval($item['id']) === intval($query)) {
+            $score += 50;
+        }
+
+        // 3. 主要欄位完全匹配
+        $primary_fields = [
             $item['name'] ?? '',
             $item['display_field'] ?? '',
-            $item['display_sub_field'] ?? ''
+            $item['invoice_no'] ?? '',
+            $item['shipment_number'] ?? '',
+            $item['sku'] ?? '',
         ];
 
-        foreach ($searchable_fields as $field) {
-            if (strcasecmp(trim($field), trim($query)) === 0) {
-                $score += 20;
+        foreach ($primary_fields as $field) {
+            if (!empty($field) && strcasecmp(trim($field), trim($query)) === 0) {
+                $score += 30;
                 break;
             }
         }
 
-        // 3. ID 精確匹配
-        if (isset($item['id']) && intval($item['id']) === intval($query)) {
-            $score += 15;
+        // 4. 次要欄位完全匹配
+        $secondary_fields = [
+            $item['display_sub_field'] ?? '',
+            $item['email'] ?? '',
+            $item['phone'] ?? '',
+        ];
+
+        foreach ($secondary_fields as $field) {
+            if (!empty($field) && strcasecmp(trim($field), trim($query)) === 0) {
+                $score += 15;
+                break;
+            }
         }
 
-        // 4. 位置加分（檢查關鍵字在文字中的位置）
-        foreach ($searchable_fields as $field) {
+        // 5. 主要欄位位置加分
+        foreach ($primary_fields as $field) {
+            if (empty($field)) continue;
             $field_lower = mb_strtolower($field, 'UTF-8');
             $query_lower = mb_strtolower($query, 'UTF-8');
             $position = mb_strpos($field_lower, $query_lower, 0, 'UTF-8');
 
             if ($position !== false) {
-                // 越前面的匹配分數越高
-                $position_score = (100 - min(100, $position)) / 10;
-                $score += $position_score;
+                if ($position === 0) {
+                    $score += 10; // 開頭匹配
+                } else {
+                    $score += max(1, (100 - $position) / 10);
+                }
                 break;
+            }
+        }
+
+        // 6. 內容欄位匹配（較低權重）
+        $content_fields = [
+            $item['description'] ?? '',
+            $item['short_description'] ?? '',
+            $item['notes'] ?? '',
+            $item['note'] ?? '',
+        ];
+
+        foreach ($content_fields as $field) {
+            if (empty($field)) continue;
+            $field_lower = mb_strtolower($field, 'UTF-8');
+            $query_lower = mb_strtolower($query, 'UTF-8');
+            if (mb_strpos($field_lower, $query_lower, 0, 'UTF-8') !== false) {
+                $score += 3;
+                break; // 只加一次
             }
         }
 
