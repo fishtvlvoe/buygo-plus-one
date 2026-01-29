@@ -136,12 +136,23 @@ class SearchService
      */
     private function search_products($query, $filters, $limit, $offset)
     {
+        $search_term = '%' . $this->wpdb->esc_like($query) . '%';
+
         $where_clauses = [
             "p.post_type = 'product'",
             $this->wpdb->prepare(
-                "(p.post_title LIKE %s OR p.ID = %d)",
-                '%' . $this->wpdb->esc_like($query) . '%',
-                intval($query)
+                "(
+                    p.post_title LIKE %s OR
+                    p.post_content LIKE %s OR
+                    p.post_excerpt LIKE %s OR
+                    p.ID = %d OR
+                    pm.meta_value LIKE %s
+                )",
+                $search_term,
+                $search_term,
+                $search_term,
+                intval($query),
+                $search_term
             )
         ];
 
@@ -173,20 +184,26 @@ class SearchService
         $where = implode(' AND ', $where_clauses);
 
         $sql = "
-            SELECT
+            SELECT DISTINCT
                 p.ID as id,
                 p.post_title as name,
+                p.post_content as description,
+                p.post_excerpt as short_description,
                 p.post_status as status,
-                pm.meta_value as price,
+                pm_price.meta_value as price,
+                pm_sku.meta_value as sku,
                 p.post_date as created_at,
                 'product' as type,
                 '商品' as type_label,
                 CONCAT('/wp-admin/admin.php?page=buygo-products&id=', p.ID) as url,
                 p.post_title as display_field,
-                '' as display_sub_field
+                p.post_excerpt as display_sub_field
             FROM {$this->wpdb->posts} p
-            LEFT JOIN {$this->wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_price'
+            LEFT JOIN {$this->wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key IN ('_sku', '_stock_status')
+            LEFT JOIN {$this->wpdb->postmeta} pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
+            LEFT JOIN {$this->wpdb->postmeta} pm_sku ON p.ID = pm_sku.post_id AND pm_sku.meta_key = '_sku'
             WHERE {$where}
+            GROUP BY p.ID
             ORDER BY p.post_date DESC
             LIMIT %d OFFSET %d
         ";
@@ -200,6 +217,9 @@ class SearchService
             return [
                 'id' => $product['id'],
                 'name' => $product['name'],
+                'description' => $product['description'] ?? '',
+                'short_description' => $product['short_description'] ?? '',
+                'sku' => $product['sku'] ?? '',
                 'type' => $product['type'],
                 'type_label' => $product['type_label'],
                 'status' => $product['status'],
