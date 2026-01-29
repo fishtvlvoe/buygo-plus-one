@@ -2,7 +2,7 @@
 // Dashboard 頁面元件
 ?>
 <!-- Dashboard Page Styles (Redesigned) -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/dashboard-redesign.css', __FILE__)); ?>" />
+<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/dashboard-redesign.css', __FILE__)); ?>?v=<?php echo time(); ?>" />
 <!-- Chart.js CDN (4.x) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
@@ -25,14 +25,28 @@ $dashboard_component_template = <<<'HTML'
 
         <!-- 右側操作區 -->
         <div class="flex items-center gap-2 md:gap-3 shrink-0">
-            <!-- 桌面版全域搜尋框 -->
+            <!-- 手機版搜尋 icon (640px以下顯示) -->
+            <button class="notification-bell sm:hidden" @click="toggleMobileSearch" title="搜尋">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </button>
+
+            <!-- 桌面版全域搜尋框 (640px以上顯示) -->
             <div class="global-search">
                 <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
 
+            <!-- 幣別轉換 icon -->
+            <button class="notification-bell" @click="cycleCurrency" :title="'切換幣別 (目前: ' + displayCurrency + ')'">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </button>
+
             <!-- 通知鈴鐺 -->
-            <button class="notification-bell">
+            <button class="notification-bell" title="通知">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </button>
         </div>
@@ -187,6 +201,7 @@ const DashboardPageComponent = {
             loading: true,
             error: null,
             globalSearchQuery: '',
+            showMobileSearch: false,
 
             // 幣別設定
             currentCurrency: 'TWD',
@@ -432,19 +447,26 @@ const DashboardPageComponent = {
         },
 
         handleGlobalSearch() {
-            // 全域搜尋功能（未來實作）
+            // 全域搜尋功能(未來實作)
             console.log('全域搜尋:', this.globalSearchQuery);
         },
 
-        toggleCurrency() {
-            // 幣別切換功能（未來可擴展支援多幣別）
+        toggleMobileSearch() {
+            // 切換手機版搜尋顯示(未來實作:彈出搜尋面板)
+            this.showMobileSearch = !this.showMobileSearch;
+            console.log('手機版搜尋:', this.showMobileSearch);
+            // TODO: 顯示全螢幕搜尋面板
+        },
+
+        cycleCurrency() {
+            // 幣別切換功能(循環切換 TWD → USD → CNY)
             const currencies = ['TWD', 'USD', 'CNY'];
             const currentIndex = currencies.indexOf(this.currentCurrency);
             const nextIndex = (currentIndex + 1) % currencies.length;
             this.currentCurrency = currencies[nextIndex];
             this.displayCurrency = currencies[nextIndex];
 
-            // 重新載入營收資料（使用新幣別）
+            // 重新載入營收資料(使用新幣別)
             this.loadRevenue();
         }
     }
