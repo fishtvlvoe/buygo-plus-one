@@ -275,9 +275,37 @@
             },
 
             /**
+             * 處理搜尋框 focus 事件
+             */
+            handleGlobalSearchFocus() {
+                // 如果有搜尋文字或有搜尋歷史,顯示建議框
+                if (this.globalSearchQuery || this.searchHistory.length > 0) {
+                    this.showSuggestions = true;
+                }
+            },
+
+            /**
              * 鍵盤導航（上下鍵選擇建議）
              */
             handleKeydown(event) {
+                // Enter 鍵和 Escape 鍵在任何情況下都要處理
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (this.showSuggestions && this.selectedSuggestionIndex >= 0 && this.searchSuggestions.length > 0) {
+                        this.selectSuggestion(this.searchSuggestions[this.selectedSuggestionIndex]);
+                    } else {
+                        this.goToSearchPage();
+                    }
+                    return;
+                }
+
+                if (event.key === 'Escape') {
+                    this.showSuggestions = false;
+                    this.selectedSuggestionIndex = -1;
+                    return;
+                }
+
+                // 上下鍵導航只在有建議時才處理
                 if (!this.showSuggestions || this.searchSuggestions.length === 0) {
                     return;
                 }
@@ -294,18 +322,6 @@
                             this.selectedSuggestionIndex <= 0
                                 ? this.searchSuggestions.length - 1
                                 : this.selectedSuggestionIndex - 1;
-                        break;
-                    case 'Enter':
-                        event.preventDefault();
-                        if (this.selectedSuggestionIndex >= 0) {
-                            this.selectSuggestion(this.searchSuggestions[this.selectedSuggestionIndex]);
-                        } else {
-                            this.goToSearchPage();
-                        }
-                        break;
-                    case 'Escape':
-                        this.showSuggestions = false;
-                        this.selectedSuggestionIndex = -1;
                         break;
                 }
             },
@@ -379,7 +395,7 @@
                    v-model="globalSearchQuery"
                    @input="handleGlobalSearch"
                    @keydown="handleKeydown"
-                   @focus="globalSearchQuery && (showSuggestions = true)">
+                   @focus="handleGlobalSearchFocus">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
