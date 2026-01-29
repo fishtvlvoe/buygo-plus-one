@@ -50,6 +50,9 @@ class LineWebhookHandler {
 	public function __construct() {
 		$this->product_data_parser = new ProductDataParser();
 		$this->logger = WebhookLogger::get_instance();
+
+		// 註冊 Hook：監聽 buygo-line-notify 的 webhook 訊息事件
+		add_action( 'buygo_line_notify/webhook_message_image', array( $this, 'handleImageUpload' ), 10, 4 );
 	}
 
 	/**
@@ -114,6 +117,133 @@ class LineWebhookHandler {
 		}
 
 		return false;
+	}
+
+	/**
+	 * 處理圖片上傳（監聽 buygo_line_notify/webhook_message_image Hook）
+	 *
+	 * 當賣家在 LINE 上傳圖片時：
+	 * 1. 檢查賣家權限
+	 * 2. 下載圖片到 Media Library
+	 * 3. 儲存待處理狀態到 user_meta
+	 * 4. 發送商品類型選單 Flex Message
+	 *
+	 * @param array  $event      Event data
+	 * @param string $line_uid   LINE user ID
+	 * @param int    $user_id    WordPress user ID (may be 0 if not bound)
+	 * @param string $message_id LINE message ID
+	 * @return void
+	 */
+	public function handleImageUpload( $event, $line_uid, $user_id, $message_id ) {
+		// 檢查是否為圖片訊息（雙重確認）
+		if ( isset( $event['message']['type'] ) && $event['message']['type'] !== 'image' ) {
+			return;
+		}
+
+		// 檢查 buygo-line-notify 是否啟用
+		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+			$this->logger->log( 'error', array(
+				'message' => 'BuyGo Line Notify plugin is not active',
+				'line_uid' => $line_uid,
+				'step' => 'plugin_check',
+			), $user_id, $line_uid );
+			return;
+		}
+
+		// 取得 WordPress 用戶（如果 Hook 沒有提供 user_id，則查詢）
+		if ( ! $user_id || $user_id === 0 ) {
+			$user = \BuyGoPlus\Core\BuyGoPlus_Core::line()->get_user_by_line_uid( $line_uid );
+			if ( ! $user ) {
+				// 用戶未綁定
+				$this->logger->log( 'error', array(
+					'message' => 'User not bound',
+					'line_uid' => $line_uid,
+					'step' => 'user_lookup',
+				), null, $line_uid );
+
+				$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_account_not_bound', [] );
+				$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '請先使用 LINE Login 綁定您的帳號。';
+				$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+				return;
+			}
+			$user_id = $user->ID;
+		} else {
+			$user = get_userdata( $user_id );
+		}
+
+		// 檢查賣家權限
+		if ( ! $this->can_upload_product( $user ) ) {
+			$this->logger->log( 'permission_denied', array(
+				'message' => 'User does not have permission to upload products',
+				'user_id' => $user->ID,
+				'user_login' => $user->user_login,
+				'roles' => $user->roles ?? [],
+				'display_name' => $user->display_name,
+			), $user->ID, $line_uid );
+
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
+				'display_name' => $user->display_name ?: $user->user_login,
+			) );
+			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+			return;
+		}
+
+		// 下載圖片到 Media Library
+		$this->logger->log( 'image_download_start', array(
+			'message_id' => $message_id,
+			'user_id' => $user->ID,
+			'line_uid' => $line_uid,
+			'step' => 'download_image',
+		), $user->ID, $line_uid );
+
+		$imageService = \BuygoLineNotify\BuygoLineNotify::images();
+		$attachment_id = $imageService->downloadToMediaLibrary( $message_id, $user->ID );
+
+		if ( is_wp_error( $attachment_id ) ) {
+			$this->logger->log( 'error', array(
+				'message' => 'Image upload failed',
+				'error' => $attachment_id->get_error_message(),
+			), $user->ID, $line_uid );
+
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_image_upload_failed', array(
+				'display_name' => $user->display_name ?: $user->user_login,
+			) );
+			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '圖片上傳失敗，請稍後再試。';
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+			return;
+		}
+
+		$this->logger->log( 'image_uploaded_success', array(
+			'attachment_id' => $attachment_id,
+			'user_id' => $user->ID,
+			'step' => 'image_uploaded',
+		), $user->ID, $line_uid );
+
+		// 儲存上傳狀態到 user_meta
+		update_user_meta( $user->ID, 'pending_product_image', $attachment_id );
+		update_user_meta( $user->ID, 'pending_product_timestamp', time() );
+
+		// 發送商品類型選單 Flex Message
+		$this->logger->log( 'sending_product_type_menu', array(
+			'user_id' => $user->ID,
+			'step' => 'send_reply',
+		), $user->ID, $line_uid );
+
+		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+		$flexContents = LineFlexTemplates::getProductTypeMenu();
+		$result = $messaging->replyFlex( $event['replyToken'] ?? '', $flexContents );
+
+		if ( is_wp_error( $result ) ) {
+			$this->logger->log( 'error', array(
+				'message' => 'Failed to send product type menu',
+				'error' => $result->get_error_message(),
+			), $user->ID, $line_uid );
+		} else {
+			$this->logger->log( 'product_type_menu_sent', array(
+				'user_id' => $user->ID,
+			), $user->ID, $line_uid );
+		}
 	}
 
 	/**
