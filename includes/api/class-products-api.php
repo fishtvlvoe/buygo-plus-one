@@ -177,6 +177,36 @@ class Products_API {
                 ]
             ]
         ]);
+
+        // GET /products/{id}/variations - 取得商品的 Variation 列表
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/variations', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_product_variations'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
+        // GET /variations/{id}/stats - 取得 Variation 統計資料
+        register_rest_route($this->namespace, '/variations/(?P<id>\\d+)/stats', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_variation_stats'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -213,9 +243,23 @@ class Products_API {
                     $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
                 }
                 
+                // 檢查是否為多樣式商品
+                $hasVariations = false;
+                $variations = [];
+                $defaultVariation = null;
+
+                if (isset($product['post_id'])) {
+                    $hasVariations = $productService->isVariableProduct($product['post_id']);
+                    if ($hasVariations) {
+                        $variations = $productService->getVariations($product['post_id']);
+                        $defaultVariation = !empty($variations) ? $variations[0] : null;
+                    }
+                }
+
                 $formattedProduct = [
                     'id' => $product['id'],
                     'name' => $product['name'],
+                    'variation_title' => $product['variation_title'] ?? null,
                     'image' => $product['image'],
                     'price' => $product['price'],
                     'currency' => $product['currency'],
@@ -223,7 +267,11 @@ class Products_API {
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $product['purchased'] ?? 0,
                     'allocated' => $allocated,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated)
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated),
+                    'has_variations' => $hasVariations,
+                    'variations' => $variations,
+                    'default_variation' => $defaultVariation,
+                    'post_id' => $product['post_id'] ?? null
                 ];
                 
                 return new \WP_REST_Response([
@@ -263,9 +311,23 @@ class Products_API {
                     $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
                 }
                 
+                // 檢查是否為多樣式商品，並加入 variations 資料
+                $hasVariations = false;
+                $variations = [];
+                $defaultVariation = null;
+
+                if (isset($product['post_id'])) {
+                    $hasVariations = $productService->isVariableProduct($product['post_id']);
+                    if ($hasVariations) {
+                        $variations = $productService->getVariations($product['post_id']);
+                        $defaultVariation = !empty($variations) ? $variations[0] : null;
+                    }
+                }
+
                 $formattedProducts[] = [
                     'id' => $product['id'],
                     'name' => $product['name'],
+                    'variation_title' => $product['variation_title'] ?? null,
                     'image' => $product['image'],
                     'price' => $product['price'], // ProductService 已經轉換為元
                     'currency' => $product['currency'],
@@ -275,7 +337,11 @@ class Products_API {
                     'allocated' => $allocated,
                     'shipped' => $product['shipped'] ?? 0,
                     'pending' => $product['pending'] ?? 0,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0))
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0)),
+                    'has_variations' => $hasVariations,
+                    'variations' => $variations,
+                    'default_variation' => $defaultVariation,
+                    'post_id' => $product['post_id'] ?? null
                 ];
             }
             
@@ -1061,6 +1127,70 @@ class Products_API {
         $product = \FluentCart\App\Models\ProductVariation::find($product_id);
         if ($product && $product->post_id) {
             update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
+        }
+    }
+
+    /**
+     * 取得商品的 Variation 列表
+     */
+    public function get_product_variations($request) {
+        try {
+            $product_id = (int)$request->get_param('id');
+
+            // 檢查商品是否存在
+            $product = \FluentCart\App\Models\Product::find($product_id);
+            if (!$product) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+
+            $productService = new ProductService();
+            $variations = $productService->getVariations($product_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $variations
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 取得 Variation 統計資料
+     */
+    public function get_variation_stats($request) {
+        try {
+            $variation_id = (int)$request->get_param('id');
+
+            // 檢查 variation 是否存在
+            $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
+            if (!$variation) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'Variation 不存在'
+                ], 404);
+            }
+
+            $productService = new ProductService();
+            $stats = $productService->getVariationStats($variation_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $stats
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

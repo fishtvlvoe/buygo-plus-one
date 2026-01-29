@@ -722,4 +722,126 @@ class ProductService
         $user = get_userdata($userId);
         return $user ? ($user->display_name ?: $user->user_login) : '';
     }
+
+    /**
+     * 取得商品的 Variation 列表
+     *
+     * @param int $productId WordPress Post ID (不是 variation ID)
+     * @return array Variation 列表
+     */
+    public function getVariations(int $productId): array
+    {
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'fct_product_variations';
+
+            $variations = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, variation_title, item_price, total_stock, available, stock_status
+                 FROM {$table}
+                 WHERE post_id = %d AND item_status = 'active'
+                 ORDER BY id ASC",
+                $productId
+            ), ARRAY_A);
+
+            // 轉換價格單位（分 → 元）
+            foreach ($variations as &$v) {
+                $v['price'] = $v['item_price'] / 100;
+                unset($v['item_price']);
+            }
+
+            return $variations;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得 Variations 失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [];
+        }
+    }
+
+    /**
+     * 取得 Variation 的統計資料
+     *
+     * @param int $variationId ProductVariation ID
+     * @return array 統計資料
+     */
+    public function getVariationStats(int $variationId): array
+    {
+        try {
+            // 計算下單數量（只計算父訂單）
+            $orderCounts = $this->calculateOrderCounts([$variationId]);
+            $ordered = $orderCounts[$variationId] ?? 0;
+
+            // 計算已分配數量（從子訂單計算）
+            $allocatedCounts = $this->calculateAllocatedToChildOrders([$variationId]);
+            $allocated = $allocatedCounts[$variationId] ?? 0;
+
+            // 計算已出貨數量
+            $shippedCounts = $this->calculateShippedCounts([$variationId]);
+            $shipped = $shippedCounts[$variationId] ?? 0;
+
+            // 取得已採購數量（從 post_meta）
+            $variation = ProductVariation::find($variationId);
+            $purchased = 0;
+            if ($variation && $variation->post_id) {
+                $purchased = (int) get_post_meta($variation->post_id, '_buygo_purchased', true);
+            }
+
+            return [
+                'ordered' => $ordered,
+                'allocated' => $allocated,
+                'shipped' => $shipped,
+                'purchased' => $purchased,
+                'pending' => max(0, $allocated - $shipped),
+                'reserved' => max(0, $ordered - $purchased)
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得 Variation 統計失敗', [
+                'variation_id' => $variationId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [
+                'ordered' => 0,
+                'allocated' => 0,
+                'shipped' => 0,
+                'purchased' => 0,
+                'pending' => 0,
+                'reserved' => 0
+            ];
+        }
+    }
+
+    /**
+     * 檢查商品是否為多樣式商品
+     *
+     * @param int $productId WordPress Post ID
+     * @return bool
+     */
+    public function isVariableProduct(int $productId): bool
+    {
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'fct_product_variations';
+
+            $count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table}
+                 WHERE post_id = %d AND item_status = 'active'",
+                $productId
+            ));
+
+            return (int)$count > 1;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '檢查 Variable Product 失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return false;
+        }
+    }
 }

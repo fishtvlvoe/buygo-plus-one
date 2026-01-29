@@ -40,11 +40,8 @@ HTML;
 
 // 設定 Header 參數
 $header_title = '商品';
-$header_breadcrumb = '首頁 <span class="text-slate-300">/</span> 商品列表
-<span v-if="currentView !== \'list\'" class="text-slate-300">/</span>
-<span v-if="currentView === \'edit\'" class="text-primary font-medium truncate">編輯 #{{ currentId }}</span>
-<span v-if="currentView === \'allocation\'" class="text-primary font-medium truncate">分配 #{{ currentId }}</span>
-<span v-if="currentView === \'buyers\'" class="text-primary font-medium truncate">下單名單 #{{ currentId }}</span>';
+// 移除 Vue 語法,改用純 HTML (動態部分由 Vue 元件內處理)
+$header_breadcrumb = '首頁 <span class="text-slate-300">/</span> 商品列表';
 $show_currency_toggle = true;
 
 // 載入共用 Header
@@ -119,14 +116,24 @@ $products_component_template .= <<<'HTML'
                                                 <img v-if="product.image" :src="product.image" class="w-full h-full object-cover rounded-lg">
                                                 <svg v-else class="w-8 h-8 group-hover:text-primary transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                             </div>
-                                            <div class="min-w-0 cursor-pointer" @click="navigateTo('edit', product)">
-                                                <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors line-clamp-2 leading-snug">{{ product.name }}</div>
-                                                <div class="text-[10px] text-slate-400 font-mono mt-1">ID: {{ product.id }} <span class="lg:hidden ml-2 font-bold text-slate-600">{{ formatPriceDisplay(product.price, product.currency) }}</span></div>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors line-clamp-2 leading-snug cursor-pointer" @click="navigateTo('edit', product)">{{ getDisplayTitle(product) }}</div>
+                                                <div class="text-[10px] text-slate-400 font-mono mt-1">
+                                                    ID: {{ product.id }}
+                                                    <span class="lg:hidden ml-2 font-bold text-slate-600">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
+                                                </div>
+                                                <!-- Variation 下拉選單 -->
+                                                <div v-if="product.has_variations" class="mt-1">
+                                                    <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="text-[10px] px-1.5 py-0.5 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
+                                                        <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                                    </select>
+                                                </div>
+                                                <div v-else class="mt-1 text-[10px] text-slate-400">單一</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="text-right font-mono text-sm font-medium hidden lg:table-cell">
-                                        <span>{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                        <span>{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                     </td>
                                     <td class="text-center">
                                          <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'status-tag-success' : 'status-tag-neutral'" class="status-tag cursor-pointer hover:opacity-80 transition" style="pointer-events: auto;">{{ product.status === 'published' ? '已上架' : '已下架' }}</button>
@@ -201,13 +208,25 @@ $products_component_template .= <<<'HTML'
                                 </div>
                                 <!-- Product Info -->
                                 <div class="p-3">
-                                    <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-tight mb-1 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                    <h3 class="text-sm font-bold text-slate-900 line-clamp-2 leading-tight mb-1 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ getDisplayTitle(product) }}</h3>
                                     <div class="flex items-center justify-between mt-2">
-                                        <span class="text-sm font-bold text-primary">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                        <span class="text-sm font-bold text-primary">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                         <span class="text-[10px] text-slate-400 font-mono">ID: {{ product.id }}</span>
                                     </div>
+                                    <!-- Variation 下拉選單 -->
+                                    <div class="mt-2 pt-2 border-t border-slate-100">
+                                        <div v-if="product.has_variations" class="mb-2">
+                                            <span class="text-[10px] text-slate-500 block mb-1">樣式</span>
+                                            <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="w-full text-xs px-2 py-1 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
+                                                <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                            </select>
+                                        </div>
+                                        <div v-else class="mb-2">
+                                            <span class="text-[10px] text-slate-400">單一商品</span>
+                                        </div>
+                                    </div>
                                     <!-- Purchased Input -->
-                                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                                         <span class="text-[10px] text-slate-500">採購數量</span>
                                         <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" @click.stop class="w-16 px-2 py-1 text-right text-xs font-bold border rounded bg-slate-50 focus:bg-white focus:border-primary focus:outline-none">
                                     </div>
@@ -250,12 +269,19 @@ $products_component_template .= <<<'HTML'
                                     <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
                                         <div>
                                             <div class="flex justify-between items-start gap-2">
-                                                <h3 class="text-sm font-bold text-slate-900 leading-tight cursor-pointer hover:text-primary transition-colors" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                                <h3 class="text-sm font-bold text-slate-900 leading-tight cursor-pointer hover:text-primary transition-colors" @click="navigateTo('edit', product)">{{ getDisplayTitle(product) }}</h3>
                                                 <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'status-tag-success' : 'status-tag-neutral'" class="status-tag cursor-pointer hover:opacity-80 transition shrink-0 whitespace-nowrap" style="pointer-events: auto; font-size: 10px;">{{ product.status === 'published' ? '上架' : '下架' }}</button>
                                             </div>
                                             <div class="mt-1">
-                                                <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                                <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                             </div>
+                                            <!-- Variation 下拉選單 -->
+                                            <div v-if="product.has_variations" class="mt-1">
+                                                <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="text-[10px] px-1.5 py-0.5 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
+                                                    <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                                </select>
+                                            </div>
+                                            <div v-else class="mt-1 text-[10px] text-slate-400">單一</div>
                                         </div>
                                         <div class="flex items-center justify-end gap-2 mt-2">
                                             <span class="text-[10px] text-slate-400">採購</span>
@@ -342,11 +368,19 @@ $products_component_template .= <<<'HTML'
                                     </div>
                                     <!-- Product Info -->
                                     <div class="p-3">
-                                        <h3 class="text-base font-bold text-slate-900 leading-tight mb-2 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ product.name }}</h3>
+                                        <h3 class="text-base font-bold text-slate-900 leading-tight mb-2 cursor-pointer hover:text-primary transition" @click="navigateTo('edit', product)">{{ getDisplayTitle(product) }}</h3>
                                         <div class="flex items-center justify-between">
-                                            <span class="text-lg font-bold text-primary">{{ formatPriceDisplay(product.price, product.currency) }}</span>
+                                            <span class="text-lg font-bold text-primary">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                             <span class="text-xs text-slate-400 font-mono">ID: {{ product.id }}</span>
                                         </div>
+                                        <!-- Variation 下拉選單 -->
+                                        <div v-if="product.has_variations" class="mt-2">
+                                            <span class="text-xs text-slate-500 block mb-1">樣式</span>
+                                            <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="w-full text-sm px-2 py-1.5 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
+                                                <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                            </select>
+                                        </div>
+                                        <div v-else class="mt-2 text-xs text-slate-400">單一商品</div>
                                     </div>
                                     <!-- Action Buttons -->
                                     <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
