@@ -94,7 +94,7 @@
 }
 
 .global-search input {
-  padding-left: 2.25rem;  /* pl-9 */
+  padding-left: 1rem;  /* 移除左側 padding,不再需要放大鏡圖示的空間 */
   padding-right: 1rem;  /* pr-4 */
   padding-top: 0.5rem;  /* py-2 */
   padding-bottom: 0.5rem;  /* py-2 */
@@ -102,23 +102,26 @@
   border: none;
   border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
+  color: var(--color-text);  /* 確保輸入文字顏色清晰 */
+  font-weight: 400;  /* 正常字重,避免模糊 */
   width: 100%;
   transition: all var(--transition-base);
+}
+
+.global-search input::placeholder {
+  color: var(--color-text-muted);  /* placeholder 顏色 */
+  opacity: 0.6;  /* 稍微透明 */
 }
 
 .global-search input:focus {
   box-shadow: 0 0 0 2px var(--color-primary);
   outline: none;
+  background-color: white;  /* focus 時改為白色背景 */
 }
 
 .global-search .search-icon {
-  position: absolute;
-  left: 0.75rem;  /* left-3 */
-  top: 0.625rem;  /* top-2.5 */
-  width: 1rem;  /* w-4 */
-  height: 1rem;  /* h-4 */
-  color: var(--color-slate-400);
-  pointer-events: none;
+  /* 隱藏放大鏡圖示 */
+  display: none;
 }
 
 /* Search Suggestions Dropdown */

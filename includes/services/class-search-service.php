@@ -215,12 +215,15 @@ class SearchService
         );
 
         return array_map(function($product) {
+            $sku = $product['sku'] ?? '';
+            $price = $product['price'] ?? 0;
+
             return [
                 'id' => $product['id'],
                 'name' => $product['name'],
                 'description' => $product['description'] ?? '',
                 'short_description' => $product['short_description'] ?? '',
-                'sku' => $product['sku'] ?? '',
+                'sku' => $sku,
                 'type' => $product['type'],
                 'type_label' => $product['type_label'],
                 'status' => $product['status'],
@@ -228,7 +231,10 @@ class SearchService
                 'display_field' => $product['display_field'],
                 'display_sub_field' => $product['display_sub_field'],
                 'created_at' => $product['created_at'],
-                'price' => $product['price'],
+                'price' => $price,
+                // Header 元件需要的欄位
+                'title' => $product['name'],
+                'meta' => $sku ? "SKU: {$sku}" : ($price ? "¥{$price}" : ''),
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
@@ -326,9 +332,13 @@ class SearchService
         );
 
         return array_map(function($order) {
+            $invoice_no = $order['invoice_no'] ?? '';
+            $customer_name = $order['customer_name'] ?? '';
+            $total_amount = $order['total_amount'] ?? 0;
+
             return [
                 'id' => $order['id'],
-                'invoice_no' => $order['invoice_no'],
+                'invoice_no' => $invoice_no,
                 'name' => $order['name'],
                 'type' => $order['type'],
                 'type_label' => $order['type_label'],
@@ -337,9 +347,12 @@ class SearchService
                 'display_field' => $order['display_field'],
                 'display_sub_field' => $order['display_sub_field'],
                 'created_at' => $order['created_at'],
-                'customer_name' => $order['customer_name'],
+                'customer_name' => $customer_name,
                 'note' => $order['note'] ?? '',
-                'total_amount' => $order['total_amount'],
+                'total_amount' => $total_amount,
+                // Header 元件需要的欄位
+                'title' => $invoice_no ? "訂單 #{$invoice_no}" : "訂單 #{$order['id']}",
+                'meta' => $customer_name . ($total_amount ? " · ¥" . number_format($total_amount) : ''),
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
@@ -438,9 +451,13 @@ class SearchService
         );
 
         return array_map(function($customer) {
+            $name = $customer['name'] ?? '';
+            $email = $customer['email'] ?? '';
+            $phone = $customer['phone'] ?? '';
+
             return [
                 'id' => $customer['id'],
-                'name' => $customer['name'],
+                'name' => $name,
                 'first_name' => $customer['first_name'] ?? '',
                 'last_name' => $customer['last_name'] ?? '',
                 'type' => $customer['type'],
@@ -449,11 +466,14 @@ class SearchService
                 'display_field' => $customer['display_field'],
                 'display_sub_field' => $customer['display_sub_field'],
                 'created_at' => $customer['created_at'],
-                'email' => $customer['email'],
-                'phone' => $customer['phone'],
+                'email' => $email,
+                'phone' => $phone,
                 'notes' => $customer['notes'] ?? '',
                 'city' => $customer['city'] ?? '',
                 'state' => $customer['state'] ?? '',
+                // Header 元件需要的欄位
+                'title' => $name,
+                'meta' => $email . ($phone ? " · {$phone}" : ''),
                 'postcode' => $customer['postcode'] ?? '',
                 'country' => $customer['country'] ?? '',
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
@@ -539,6 +559,10 @@ class SearchService
         );
 
         return array_map(function($shipment) {
+            $shipment_number = $shipment['shipment_number'] ?? '';
+            $customer_name = $shipment['customer_name'] ?? '';
+            $tracking_number = $shipment['tracking_number'] ?? '';
+
             return [
                 'id' => $shipment['id'],
                 'name' => $shipment['name'],
@@ -549,8 +573,11 @@ class SearchService
                 'display_field' => $shipment['display_field'],
                 'display_sub_field' => $shipment['display_sub_field'],
                 'created_at' => $shipment['created_at'],
-                'customer_name' => $shipment['customer_name'],
-                'tracking_number' => $shipment['tracking_number'] ?? '',
+                'customer_name' => $customer_name,
+                'tracking_number' => $tracking_number,
+                // Header 元件需要的欄位
+                'title' => "出貨單 #{$shipment_number}",
+                'meta' => $customer_name . ($tracking_number ? " · 追蹤: {$tracking_number}" : ''),
                 'relevance_score' => 0 // 將由 calculate_relevance 計算
             ];
         }, $results ?: []);
