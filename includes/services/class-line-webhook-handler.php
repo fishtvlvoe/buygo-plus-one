@@ -259,12 +259,32 @@ class LineWebhookHandler {
 		// 發送結果訊息
 		if ( ! empty( $result['success'] ) ) {
 			$product_id = $result['product_id'];
-			$product_url = home_url( "/item/{$product_id}" );
+			$product_url = $this->getProductUrl( $product_id );
 
-			$message = "✅ 商品建立成功！\n\n";
-			$message .= "商品名稱：{$parsed['name']}\n";
-			$message .= "類型：" . ( $result['type'] === 'variable' ? '多樣式商品' : '單一商品' ) . "\n";
-			$message .= "查看商品：{$product_url}";
+			// 取得圖片 URL
+			$image_url = wp_get_attachment_url( $image_id );
+
+			// 組裝確認訊息資料
+			$confirm_data = array(
+				'name'      => $parsed['name'],
+				'url'       => $product_url,
+				'image_url' => $image_url ?: '',
+			);
+
+			if ( $result['type'] === 'simple' ) {
+				$confirm_data['price']          = $parsed['price'];
+				$confirm_data['original_price'] = $parsed['original_price'] ?? null;
+				$confirm_data['quantity']       = $parsed['quantity'];
+			} else {
+				// 多樣式商品：從 FluentCart 資料庫取得 variations
+				$variations = $this->getProductVariations( $product_id );
+				$confirm_data['variations'] = $variations;
+			}
+
+			// 發送確認訊息 Flex Message
+			$flex_contents = LineFlexTemplates::getProductConfirmation( $confirm_data, $result['type'] );
+			$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+			$messaging->replyFlex( $event['replyToken'] ?? '', $flex_contents );
 
 			$this->logger->log( 'product_created', array(
 				'product_id' => $product_id,
@@ -276,9 +296,54 @@ class LineWebhookHandler {
 			$this->logger->log( 'product_creation_failed', array(
 				'error' => $result['error'] ?? 'unknown',
 			), $user_id, $line_uid );
+
+			$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+		}
+	}
+
+	/**
+	 * 取得商品 URL
+	 *
+	 * @param int $product_id 商品 ID
+	 * @return string 商品 URL
+	 */
+	private function getProductUrl( $product_id ) {
+		// 使用短連結格式 /item/{product_id}
+		return home_url( "/item/{$product_id}" );
+	}
+
+	/**
+	 * 取得商品樣式列表（從 FluentCart 資料庫）
+	 *
+	 * @param int $product_id 商品 ID
+	 * @return array 樣式列表
+	 */
+	private function getProductVariations( $product_id ) {
+		global $wpdb;
+
+		$variations = $wpdb->get_results( $wpdb->prepare(
+			"SELECT variation_title, item_price, total_stock
+			FROM {$wpdb->prefix}fct_product_variations
+			WHERE post_id = %d
+			ORDER BY id ASC",
+			$product_id
+		), ARRAY_A );
+
+		if ( empty( $variations ) ) {
+			return array();
 		}
 
-		$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
+		// 轉換格式：price 從分轉為元
+		$result = array();
+		foreach ( $variations as $variation ) {
+			$result[] = array(
+				'variation_title' => $variation['variation_title'],
+				'price'           => intval( $variation['item_price'] ) / 100,
+				'quantity'        => intval( $variation['total_stock'] ),
+			);
+		}
+
+		return $result;
 	}
 
 	/**
