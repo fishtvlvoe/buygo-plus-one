@@ -374,25 +374,14 @@ class SearchService
         $where_clauses = [
             $this->wpdb->prepare(
                 "(
-                    c.full_name LIKE %s OR
+                    CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) LIKE %s OR
                     c.first_name LIKE %s OR
                     c.last_name LIKE %s OR
                     c.email LIKE %s OR
-                    c.phone LIKE %s OR
-                    c.notes LIKE %s OR
-                    c.city LIKE %s OR
-                    c.state LIKE %s OR
-                    c.postcode LIKE %s OR
-                    c.country LIKE %s OR
-                    c.id = %d OR
-                    ca.address_1 LIKE %s OR
-                    ca.address_2 LIKE %s OR
-                    cm.meta_value LIKE %s
+                    c.id = %d
                 )",
-                $search_term, $search_term, $search_term, $search_term, $search_term,
-                $search_term, $search_term, $search_term, $search_term, $search_term,
-                intval($query),
-                $search_term, $search_term, $search_term
+                $search_term, $search_term, $search_term, $search_term,
+                intval($query)
             )
         ];
 
@@ -420,25 +409,17 @@ class SearchService
         $sql = "
             SELECT DISTINCT
                 c.id,
-                c.full_name as name,
+                CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as name,
                 c.first_name,
                 c.last_name,
                 c.email,
-                c.phone,
-                c.notes,
-                c.city,
-                c.state,
-                c.postcode,
-                c.country,
                 c.created_at,
                 'customer' as type,
                 '客戶' as type_label,
                 CONCAT('/wp-admin/admin.php?page=buygo-customers&id=', c.id) as url,
-                c.full_name as display_field,
+                CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as display_field,
                 c.email as display_sub_field
             FROM {$this->table_customers} c
-            LEFT JOIN {$this->wpdb->prefix}fct_customer_addresses ca ON c.id = ca.customer_id
-            LEFT JOIN {$this->wpdb->prefix}fct_customer_meta cm ON c.id = cm.customer_id
             WHERE {$where}
             GROUP BY c.id
             ORDER BY c.created_at DESC
