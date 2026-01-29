@@ -22,6 +22,7 @@ class SettingsPage
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
+        add_action('wp_ajax_buygo_update_seller_type', [$this, 'ajax_update_seller_type']);
     }
 
     /**
@@ -640,6 +641,12 @@ class SettingsPage
                 continue;
             }
             
+            // 取得賣家類型
+            $seller_type = get_user_meta($user->ID, 'buygo_seller_type', true);
+            if (empty($seller_type)) {
+                $seller_type = 'test'; // 預設為測試賣家
+            }
+
             $all_users[] = [
                 'id' => $user->ID,
                 'name' => $user->display_name,
@@ -650,7 +657,8 @@ class SettingsPage
                 'is_wp_admin' => $is_wp_admin,
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
-                'is_in_helpers_list' => $is_in_helpers_list
+                'is_in_helpers_list' => $is_in_helpers_list,
+                'seller_type' => $seller_type
             ];
         }
         
@@ -677,6 +685,7 @@ class SettingsPage
                             <th>Email</th>
                             <th>LINE ID</th>
                             <th>角色</th>
+                            <th>賣家類型</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -695,6 +704,12 @@ class SettingsPage
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html($user['role']); ?></td>
+                                <td>
+                                    <select class="seller-type-select" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px;">
+                                        <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家 (2商品/2圖)</option>
+                                        <option value="real" <?php selected($user['seller_type'], 'real'); ?>>真實賣家 (無限制)</option>
+                                    </select>
+                                </td>
                                 <td>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                         <?php if (!$user['is_bound']): ?>
@@ -2500,11 +2515,57 @@ LIMIT 10`,
         
         $token = isset($_POST['token']) ? sanitize_text_field($_POST['token']) : null;
         $result = SettingsService::test_line_connection($token);
-        
+
         if ($result['success']) {
             wp_send_json_success($result);
         } else {
             wp_send_json_error($result);
+        }
+    }
+
+    /**
+     * AJAX: 更新賣家類型
+     */
+    public function ajax_update_seller_type(): void
+    {
+        // 驗證 nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'buygo-settings')) {
+            wp_send_json_error('無效的請求');
+            return;
+        }
+
+        // 權限檢查
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('權限不足');
+            return;
+        }
+
+        // 取得參數
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $seller_type = isset($_POST['seller_type']) ? sanitize_text_field($_POST['seller_type']) : '';
+
+        // 驗證參數
+        if ($user_id <= 0) {
+            wp_send_json_error('無效的使用者 ID');
+            return;
+        }
+
+        if (!in_array($seller_type, ['test', 'real'], true)) {
+            wp_send_json_error('無效的賣家類型');
+            return;
+        }
+
+        // 更新 user meta
+        $result = update_user_meta($user_id, 'buygo_seller_type', $seller_type);
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => '賣家類型已更新',
+                'user_id' => $user_id,
+                'seller_type' => $seller_type
+            ]);
+        } else {
+            wp_send_json_error('更新失敗');
         }
     }
 }

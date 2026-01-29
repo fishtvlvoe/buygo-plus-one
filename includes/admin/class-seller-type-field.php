@@ -15,15 +15,14 @@ class SellerTypeField {
 
     /**
      * 初始化 hooks
+     *
+     * 註: UI 已整合到 BuyGo 設定頁面的「角色權限設定」tab
+     * 不需要在 WordPress 使用者 profile 頁面顯示
      */
     public function __construct() {
-        // 在使用者 profile 頁面顯示欄位
-        add_action('show_user_profile', [$this, 'render_seller_type_field']);
-        add_action('edit_user_profile', [$this, 'render_seller_type_field']);
-
-        // 儲存欄位值
-        add_action('personal_options_update', [$this, 'save_seller_type_field']);
-        add_action('edit_user_profile_update', [$this, 'save_seller_type_field']);
+        // WordPress 使用者 profile 欄位已停用
+        // UI 改為整合在 BuyGo 設定頁面 → 角色權限設定 tab
+        // (class-settings-page.php 的 render_roles_tab 方法)
     }
 
     /**
@@ -41,6 +40,9 @@ class SellerTypeField {
         if (empty($seller_type)) {
             $seller_type = 'test'; // 預設為測試賣家
         }
+
+        // 產生 nonce
+        wp_nonce_field('buygo_seller_type_update', 'buygo_seller_type_nonce');
 
         ?>
         <h3>BuyGo 賣家設定</h3>
@@ -68,6 +70,11 @@ class SellerTypeField {
      * @param int $user_id 使用者 ID
      */
     public function save_seller_type_field($user_id) {
+        // Nonce 驗證
+        if (!isset($_POST['buygo_seller_type_nonce']) || !wp_verify_nonce($_POST['buygo_seller_type_nonce'], 'buygo_seller_type_update')) {
+            return false;
+        }
+
         // 權限檢查
         if (!current_user_can('edit_user', $user_id)) {
             return false;
