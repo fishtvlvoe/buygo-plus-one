@@ -36,66 +36,26 @@ $products_component_template = <<<'HTML'
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
 
-        <!-- ============================================ -->
-        <!-- 頁首部分 -->
-        <!-- ============================================ -->
-        <header class="page-header">
-            <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                    <h1 class="page-header-title">商品</h1>
-                    <nav class="page-header-breadcrumb">
-                        首頁 <span class="text-slate-300">/</span> 商品列表
-                        <span v-if="currentView !== 'list'" class="text-slate-300">/</span>
-                        <span v-if="currentView === 'edit'" class="text-primary font-medium truncate">編輯 #{{ currentId }}</span>
-                        <span v-if="currentView === 'allocation'" class="text-primary font-medium truncate">分配 #{{ currentId }}</span>
-                        <span v-if="currentView === 'buyers'" class="text-primary font-medium truncate">下單名單 #{{ currentId }}</span>
-                    </nav>
-                </div>
-            </div>
+HTML;
 
-            <!-- Right Actions -->
-            <div class="flex items-center gap-2 md:gap-3 shrink-0">
-                <button @click="showMobileSearch = !showMobileSearch"
-                    class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
+// 設定 Header 參數
+$header_title = '商品';
+$header_breadcrumb = '首頁 <span class="text-slate-300">/</span> 商品列表
+<span v-if="currentView !== \'list\'" class="text-slate-300">/</span>
+<span v-if="currentView === \'edit\'" class="text-primary font-medium truncate">編輯 #{{ currentId }}</span>
+<span v-if="currentView === \'allocation\'" class="text-primary font-medium truncate">分配 #{{ currentId }}</span>
+<span v-if="currentView === \'buyers\'" class="text-primary font-medium truncate">下單名單 #{{ currentId }}</span>';
+$show_currency_toggle = true;
 
-                <!-- Batch Actions -->
-                <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
-                    <button @click="batchDelete" class="btn btn-danger btn-sm">批次刪除</button>
-                </div>
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
 
-                <!-- Desktop Search -->
-                <div class="global-search">
-                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleSearchInput">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
+// 將 Header 加入模板
+$products_component_template .= $header_html;
 
-                <!-- Notification -->
-                <button class="notification-bell">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                </button>
-                
-                <!-- Currency Toggle -->
-                <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold hover:border-primary hover:text-primary transition shadow-sm" :class="currentCurrency === 'TWD' ? 'text-green-600 border-green-200' : 'text-slate-600'">
-                    <span>{{ currencySymbols[currentCurrency] || currentCurrency }}</span>
-                </button>
-            </div>
-
-            <!-- Mobile Search Overlay -->
-            <transition name="search-slide">
-                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
-                    <div class="relative flex-1">
-                        <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleSearchInput"
-                            class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary auto-focus">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
-                </div>
-            </transition>
-        </header>
-        <!-- 結束：頁首部分 -->
+$products_component_template .= <<<'HTML'
 
         <!-- ============================================ -->
         <!-- 內容區域 -->
