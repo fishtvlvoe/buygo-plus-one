@@ -6,9 +6,10 @@ namespace BuyGoPlus\Services;
  * SearchService - 全域搜尋服務
  *
  * 負責跨資料來源的搜尋、過濾、相關性排序和分頁
+ * v1.1.0: 支援全文檢索（描述、備註、地址、meta 欄位）
  *
  * @package BuyGoPlus\Services
- * @version 1.0.0
+ * @version 1.1.0
  */
 class SearchService
 {
