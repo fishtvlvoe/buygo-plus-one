@@ -80,6 +80,26 @@ const BuyGoSmartSearchBox = {
         defaultCurrency: {
             type: String,
             default: 'JPY'
+        },
+        // 是否啟用全域搜尋模式
+        globalSearch: {
+            type: Boolean,
+            default: false
+        },
+        // 搜尋結果頁面 URL
+        searchPageUrl: {
+            type: String,
+            default: '/buygo-portal/search/'
+        },
+        // 是否啟用搜尋歷史
+        enableHistory: {
+            type: Boolean,
+            default: false
+        },
+        // 搜尋歷史最大筆數
+        maxHistory: {
+            type: Number,
+            default: 5
         }
     },
 
@@ -97,6 +117,7 @@ const BuyGoSmartSearchBox = {
                     @input="handleInput"
                     @focus="handleFocus"
                     @blur="handleBlur"
+                    @keydown.enter="navigateToSearchPage"
                     :class="['smart-search-input', showCurrencyToggle ? 'smart-search-input--with-currency' : '']"
                     :placeholder="placeholder">
                 
@@ -121,58 +142,82 @@ const BuyGoSmartSearchBox = {
 
             <!-- Suggestions Dropdown -->
             <div
-                v-show="showSuggestions && suggestions.length > 0"
+                v-show="showSuggestions && (suggestions.length > 0 || searchHistory.length > 0)"
                 class="smart-search-suggestions">
 
-                <!-- Title -->
-                <div class="smart-search-suggestions-header">
-                    <span class="smart-search-suggestions-title">
-                        {{ searchQuery ? '搜尋結果' : '最近項目' }}
-                    </span>
+                <!-- Search History (show when no query and has history) -->
+                <div v-if="enableHistory && !searchQuery && searchHistory.length > 0">
+                    <div class="smart-search-suggestions-header">
+                        <span class="smart-search-suggestions-title">最近搜尋</span>
+                        <button
+                            @mousedown.prevent="clearSearchHistory"
+                            class="text-xs text-gray-500 hover:text-gray-700">
+                            清除
+                        </button>
+                    </div>
+                    <ul class="smart-search-suggestions-list">
+                        <li
+                            v-for="(query, index) in searchHistory"
+                            :key="'history-' + index"
+                            @mousedown="selectHistoryItem(query)"
+                            class="smart-search-suggestion-item cursor-pointer hover:bg-gray-50">
+                            <div class="smart-search-item-content">
+                                <span class="text-lg mr-2">🕐</span>
+                                <div class="smart-search-item-text">{{ query }}</div>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- Suggestions List -->
-                <ul class="smart-search-suggestions-list">
-                    <li
-                        v-for="item in suggestions"
-                        :key="'search-' + item.id"
-                        @mousedown="selectItem(item)"
-                        class="smart-search-suggestion-item">
-                        <div class="smart-search-item-content">
-                            <!-- Type Badge -->
-                            <span
-                                v-if="item.type_label"
-                                :class="getTypeClass(item.type)"
-                                class="text-xs px-2 py-0.5 rounded-full font-medium">
-                                {{ item.type_label }}
-                            </span>
+                <div v-if="suggestions.length > 0">
+                    <div class="smart-search-suggestions-header">
+                        <span class="smart-search-suggestions-title">
+                            {{ searchQuery ? '搜尋結果' : '最近項目' }}
+                        </span>
+                    </div>
+                    <ul class="smart-search-suggestions-list">
+                        <li
+                            v-for="item in suggestions"
+                            :key="'search-' + item.id"
+                            @mousedown="selectItem(item)"
+                            class="smart-search-suggestion-item">
+                            <div class="smart-search-item-content">
+                                <!-- Type Badge -->
+                                <span
+                                    v-if="item.type_label"
+                                    :class="getTypeClass(item.type)"
+                                    class="text-xs px-2 py-0.5 rounded-full font-medium">
+                                    {{ item.type_label }}
+                                </span>
 
-                            <!-- Image -->
-                            <img
-                                v-if="showImage && item[imageField]"
-                                :src="item[imageField]"
-                                class="smart-search-item-image">
+                                <!-- Image -->
+                                <img
+                                    v-if="showImage && item[imageField]"
+                                    :src="item[imageField]"
+                                    class="smart-search-item-image">
 
-                            <!-- Text -->
-                            <div>
-                                <div class="smart-search-item-text">
-                                    {{ item[displayField] || item.display_field || '未命名' }}
-                                </div>
-                                <div v-if="(displaySubField && item[displaySubField]) || item.display_sub_field" class="smart-search-item-subtext">
-                                    {{ item[displaySubField] || item.display_sub_field }}
+                                <!-- Text -->
+                                <div>
+                                    <div class="smart-search-item-text">
+                                        {{ item[displayField] || item.display_field || '未命名' }}
+                                    </div>
+                                    <div v-if="(displaySubField && item[displaySubField]) || item.display_sub_field" class="smart-search-item-subtext">
+                                        {{ item[displaySubField] || item.display_sub_field }}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Status -->
-                        <span
-                            v-if="showStatus && item[statusField]"
-                            :class="getStatusClass(item[statusField])"
-                            class="text-xs px-2 py-0.5 rounded-full border">
-                            {{ formatStatus(item[statusField]) }}
-                        </span>
-                    </li>
-                </ul>
+                            <!-- Status -->
+                            <span
+                                v-if="showStatus && item[statusField]"
+                                :class="getStatusClass(item[statusField])"
+                                class="text-xs px-2 py-0.5 rounded-full border">
+                                {{ formatStatus(item[statusField]) }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
             </div>
             </div>
         </div>
@@ -186,8 +231,13 @@ const BuyGoSmartSearchBox = {
             searchLoading: false,
             suggestions: [],
             currentCurrency: this.defaultCurrency,
-            isJPY: this.defaultCurrency === 'JPY'
+            isJPY: this.defaultCurrency === 'JPY',
+            searchHistory: []
         };
+    },
+
+    mounted() {
+        this.loadSearchHistory();
     },
 
     methods: {
@@ -215,7 +265,12 @@ const BuyGoSmartSearchBox = {
             if (this.searchQuery.length > 0) {
                 this.loadSuggestions();
             } else {
-                this.loadRecentItems();
+                // 如果有搜尋歷史，顯示歷史；否則載入最近項目
+                if (this.enableHistory && this.searchHistory.length > 0) {
+                    // 只顯示歷史，不載入最近項目
+                } else {
+                    this.loadRecentItems();
+                }
             }
         },
 
@@ -370,6 +425,74 @@ const BuyGoSmartSearchBox = {
                 'shipment': 'bg-orange-50 text-orange-700 border-orange-200'
             };
             return classMap[type] || 'bg-gray-50 text-gray-700 border-gray-200';
+        },
+
+        // ========== 搜尋歷史功能 ==========
+
+        // 載入搜尋歷史
+        loadSearchHistory() {
+            if (!this.enableHistory) return;
+
+            const HISTORY_KEY = 'buygo_search_history';
+            try {
+                this.searchHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            } catch (e) {
+                console.warn('Failed to load search history:', e);
+                this.searchHistory = [];
+            }
+        },
+
+        // 儲存搜尋歷史到 localStorage
+        saveSearchHistory(query) {
+            if (!this.enableHistory || !query || query.trim().length === 0) return;
+
+            const HISTORY_KEY = 'buygo_search_history';
+            try {
+                let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                // 移除重複
+                history = history.filter(item => item !== query);
+                // 新項目加到最前面
+                history.unshift(query);
+                // 限制數量
+                history = history.slice(0, this.maxHistory);
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                this.searchHistory = history;
+            } catch (e) {
+                console.warn('Failed to save search history:', e);
+            }
+        },
+
+        // 清除搜尋歷史
+        clearSearchHistory() {
+            const HISTORY_KEY = 'buygo_search_history';
+            localStorage.removeItem(HISTORY_KEY);
+            this.searchHistory = [];
+        },
+
+        // 選擇歷史項目
+        selectHistoryItem(query) {
+            this.searchQuery = query;
+            this.showSuggestions = false;
+
+            // 如果是全域搜尋模式，導向搜尋頁面
+            if (this.globalSearch) {
+                this.navigateToSearchPage();
+            } else {
+                // 否則觸發搜尋
+                this.loadSuggestions();
+                this.$emit('search', query);
+            }
+        },
+
+        // 導向搜尋頁面（全域搜尋模式）
+        navigateToSearchPage() {
+            if (!this.globalSearch || !this.searchQuery) return;
+
+            // 儲存歷史
+            this.saveSearchHistory(this.searchQuery);
+
+            // 導向搜尋頁面
+            window.location.href = `${this.searchPageUrl}?q=${encodeURIComponent(this.searchQuery)}`;
         }
     }
 };
