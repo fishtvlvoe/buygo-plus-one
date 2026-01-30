@@ -447,6 +447,10 @@ $shipment_details_template .= <<<'HTML'
                         <span class="text-sm text-slate-600 w-20 shrink-0">姓名</span>
                         <span class="text-sm text-slate-900 font-medium">{{ detailModal.shipment?.customer_name || '-' }}</span>
                     </div>
+                    <div class="flex" v-if="detailModal.shipment?.line_display_name">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">LINE 名稱</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.line_display_name }}</span>
+                    </div>
                     <div class="flex">
                         <span class="text-sm text-slate-600 w-20 shrink-0">電話</span>
                         <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_phone || '-' }}</span>
