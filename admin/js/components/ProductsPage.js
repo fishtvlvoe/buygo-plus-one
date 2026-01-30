@@ -420,15 +420,17 @@ const ProductsPageComponent = {
                 const data = await res.json();
                 if (data.success) {
                     // 初始化 Variation 顯示邏輯
-                    products.value = data.data.map(product => {
-                        // 如果是多樣式商品，設定預設選中的 variation
-                        if (product.has_variations && product.default_variation) {
-                            product.selected_variation_id = product.default_variation.id;
-                            product.selected_variation = product.default_variation;
-                        }
-                        return product;
-                    });
-                    totalProducts.value = data.data.length;
+                    products.value = data.data
+                        .filter(product => product !== null && product !== undefined)
+                        .map(product => {
+                            // 如果是多樣式商品，設定預設選中的 variation
+                            if (product.has_variations && product.default_variation) {
+                                product.selected_variation_id = product.default_variation.id;
+                                product.selected_variation = product.default_variation;
+                            }
+                            return product;
+                        });
+                    totalProducts.value = products.value.length;
                     // 並行執行 URL 參數檢查和賣家限制檢查，減少載入時間
                     await Promise.all([
                         checkUrlParams(),
@@ -786,6 +788,7 @@ const ProductsPageComponent = {
 
         // Variation 相關方法
         const getDisplayTitle = (product) => {
+            if (!product) return '';
             if (product.has_variations && product.selected_variation) {
                 return product.selected_variation.variation_title || product.name;
             }
@@ -793,6 +796,7 @@ const ProductsPageComponent = {
         };
 
         const getDisplayPrice = (product) => {
+            if (!product) return 0;
             if (product.has_variations && product.selected_variation) {
                 return product.selected_variation.price;
             }
@@ -801,6 +805,7 @@ const ProductsPageComponent = {
 
         // 取得顯示用的圖片 URL（優先顯示已選變體的圖片）
         const getDisplayImage = (product) => {
+            if (!product) return null;
             if (product.has_variations && product.selected_variation && product.selected_variation.image) {
                 return product.selected_variation.image;
             }
