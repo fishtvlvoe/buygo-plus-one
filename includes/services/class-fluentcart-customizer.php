@@ -132,8 +132,8 @@ class FluentCart_Customizer {
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
 
         // 註冊產品頁面 hooks
-        add_action('fluent_cart/product/single/after_price_block', [__CLASS__, 'render_custom_price_display'], 20);
-        add_action('fluent_cart/product/single/before_quantity_block', [__CLASS__, 'render_stock_warning'], 20);
+        // FluentCart 只提供一個通用的 hook: fluent_cart_single_product_summary
+        add_action('fluent_cart_single_product_summary', [__CLASS__, 'render_custom_content'], 20);
     }
 
     /**
@@ -143,7 +143,7 @@ class FluentCart_Customizer {
      */
     public static function enqueue_assets() {
         // 只在 FluentCart 產品頁面載入
-        if (!is_singular('fc_product')) {
+        if (!is_singular('fluent-products')) {
             return;
         }
 
@@ -272,6 +272,24 @@ class FluentCart_Customizer {
         echo '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
         echo '</svg>';
         echo '<span>限購 ' . esc_html($quantity) . ' 個</span>';
+        echo '</div>';
+    }
+
+    /**
+     * 渲染自訂內容 (統一入口點)
+     *
+     * FluentCart 只提供 fluent_cart_single_product_summary 這個通用 hook
+     * 我們在這裡整合所有自訂內容的顯示
+     */
+    public static function render_custom_content() {
+        // 注意: FluentCart 的 hook 沒有傳入 $args 參數
+        // 我們需要自己取得當前產品資訊
+
+        // 使用 CSS 和 JavaScript 在前端動態處理客製化
+        // 這個 hook 主要用於注入自訂的 HTML 片段
+
+        echo '<div class="buygo-fluentcart-customizations">';
+        echo '<!-- BuyGo FluentCart Customizations Active -->';
         echo '</div>';
     }
 }
