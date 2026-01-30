@@ -11,17 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 檢查 buygo-line-notify 外掛是否啟用
-if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
-	// 如果外掛未啟用，記錄錯誤但不中斷執行（向後相容）
-	if ( function_exists( 'add_action' ) ) {
+// 檢查 buygo-line-notify 外掛是否啟用（在 admin_init 時檢查，確保所有外掛已載入）
+add_action( 'admin_init', function() {
+	if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
 		add_action( 'admin_notices', function() {
 			echo '<div class="notice notice-error"><p>';
 			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 訂單通知功能。';
 			echo '</p></div>';
 		} );
 	}
-}
+} );
  
 use FluentCart\App\Models\Order;
  

@@ -11,17 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 檢查 buygo-line-notify 外掛是否啟用
-if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
-	// 如果外掛未啟用，記錄錯誤但不中斷執行（向後相容）
-	if ( function_exists( 'add_action' ) ) {
+// 檢查 buygo-line-notify 外掛是否啟用（在 admin_init 時檢查，確保所有外掛已載入）
+add_action( 'admin_init', function() {
+	if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
 		add_action( 'admin_notices', function() {
 			echo '<div class="notice notice-error"><p>';
 			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 相關功能。';
 			echo '</p></div>';
 		} );
 	}
-}
+} );
 
 /**
  * Class LineWebhookHandler
@@ -449,8 +448,8 @@ class LineWebhookHandler {
 			'step' => 'download_image',
 		), $user->ID, $line_uid );
 
-		$imageService = \BuygoLineNotify\BuygoLineNotify::images();
-		$attachment_id = $imageService->downloadToMediaLibrary( $message_id, $user->ID );
+		$imageService = \BuygoLineNotify\BuygoLineNotify::image_uploader();
+		$attachment_id = $imageService->download_and_upload( $message_id, $user->ID );
 
 		if ( is_wp_error( $attachment_id ) ) {
 			$this->logger->log( 'error', array(
