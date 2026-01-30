@@ -712,8 +712,8 @@ $products_component_template .= <<<'HTML'
                                     </svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-bold text-slate-900 truncate text-base md:text-lg">{{ selectedProduct?.name }}</h3>
-                                    <p class="text-sm text-slate-500 mt-0.5">{{ formatPriceDisplay(selectedProduct?.price) }} <span class="text-xs text-slate-400 ml-1">ID: {{ selectedProduct?.id }}</span></p>
+                                    <h3 class="font-bold text-slate-900 truncate text-base md:text-lg">{{ getDisplayTitle(selectedProduct) }}</h3>
+                                    <p class="text-sm text-slate-500 mt-0.5">{{ formatPriceDisplay(getDisplayPrice(selectedProduct)) }} <span class="text-xs text-slate-400 ml-1">ID: {{ selectedProduct?.id }}</span></p>
                                     <div class="mt-3 grid grid-cols-4 gap-2 text-center">
                                         <div class="bg-green-50 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-green-600">已下單</div>
