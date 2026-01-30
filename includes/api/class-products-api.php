@@ -299,10 +299,24 @@ class Products_API {
             $viewMode = 'frontend'; // BuyGo+1 固定使用 frontend 模式
             
             $products = $productService->getProductsWithOrderCount($filters, $viewMode);
-            
+
+            // 去重：同一個商品（post_id）只保留一個，避免多樣式商品重複顯示
+            $uniqueProducts = [];
+            $seenPostIds = [];
+            foreach ($products as $product) {
+                $postId = $product['post_id'] ?? null;
+                if ($postId && !isset($seenPostIds[$postId])) {
+                    $uniqueProducts[] = $product;
+                    $seenPostIds[$postId] = true;
+                } elseif (!$postId) {
+                    // 沒有 post_id 的商品直接加入（不應該發生，但保險起見）
+                    $uniqueProducts[] = $product;
+                }
+            }
+
             // 轉換資料格式以符合前端需求
             $formattedProducts = [];
-            foreach ($products as $product) {
+            foreach ($uniqueProducts as $product) {
                 // 轉換 status：WordPress 使用 'publish'，前端需要 'published'
                 $status = 'private';
                 if ($product['status'] === 'publish') {

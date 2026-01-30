@@ -107,7 +107,8 @@ $products_component_template .= <<<'HTML'
                             <thead>
                                 <tr>
                                     <th class="w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
-                                    <th class="w-[35%]">商品</th>
+                                    <th class="w-[30%]">商品</th>
+                                    <th class="text-center whitespace-nowrap">類型</th>
                                     <th class="text-right whitespace-nowrap hidden lg:table-cell">價格</th>
                                     <th class="text-center whitespace-nowrap">狀態</th>
                                     <th class="text-center whitespace-nowrap">下單</th>
@@ -124,7 +125,7 @@ $products_component_template .= <<<'HTML'
                                     <td>
                                         <div class="flex items-center gap-4">
                                             <div class="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 cursor-pointer group hover:border-primary transition" @click="openImageModal(product)">
-                                                <img v-if="product.image" :src="product.image" class="w-full h-full object-cover rounded-lg">
+                                                <img v-if="getDisplayImage(product)" :src="getDisplayImage(product)" class="w-full h-full object-cover rounded-lg">
                                                 <svg v-else class="w-8 h-8 group-hover:text-primary transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                             </div>
                                             <div class="min-w-0">
@@ -133,15 +134,17 @@ $products_component_template .= <<<'HTML'
                                                     ID: {{ product.id }}
                                                     <span class="lg:hidden ml-2 font-bold text-slate-600">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                                 </div>
-                                                <!-- Variation 下拉選單 -->
-                                                <div v-if="product.has_variations" class="mt-1">
-                                                    <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="text-[10px] px-1.5 py-0.5 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
-                                                        <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
-                                                    </select>
-                                                </div>
-                                                <div v-else class="mt-1 text-[10px] text-slate-400">單一</div>
                                             </div>
                                         </div>
+                                    </td>
+                                    <!-- 類型欄位 -->
+                                    <td class="text-center">
+                                        <div v-if="product.has_variations">
+                                            <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="text-xs px-2 py-1 border border-slate-300 rounded-md bg-white hover:border-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer min-w-[100px] truncate">
+                                                <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                            </select>
+                                        </div>
+                                        <span v-else class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-primary rounded-md">單一商品</span>
                                     </td>
                                     <td class="text-right font-mono text-sm font-medium hidden lg:table-cell">
                                         <span>{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
@@ -233,7 +236,7 @@ $products_component_template .= <<<'HTML'
                                             </select>
                                         </div>
                                         <div v-else class="mb-2">
-                                            <span class="text-[10px] text-slate-400">單一商品</span>
+                                            <span class="inline-flex items-center px-2 py-1 text-[10px] font-medium text-white bg-primary rounded-md">單一商品</span>
                                         </div>
                                     </div>
                                     <!-- Purchased Input -->
@@ -273,10 +276,14 @@ $products_component_template .= <<<'HTML'
                                     <div class="absolute top-3 left-3 z-10 w-6 h-6 flex items-center justify-center">
                                         <input type="checkbox" :value="product.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 bg-white shadow-sm">
                                     </div>
-                                    <div class="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 ml-6 cursor-pointer hover:border-primary transition relative group" @click="openImageModal(product)">
-                                        <img v-if="product.image" :src="product.image" class="w-full h-full object-cover rounded-lg">
-                                        <svg v-else class="w-8 h-8 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <!-- 左側：圖片 -->
+                                    <div class="shrink-0 ml-6">
+                                        <div class="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 border border-slate-200 cursor-pointer hover:border-primary transition relative group" @click="openImageModal(product)">
+                                            <img v-if="getDisplayImage(product)" :src="getDisplayImage(product)" class="w-full h-full object-cover rounded-lg">
+                                            <svg v-else class="w-8 h-8 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </div>
                                     </div>
+                                    <!-- 右側：商品資訊 -->
                                     <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
                                         <div>
                                             <div class="flex justify-between items-start gap-2">
@@ -284,19 +291,28 @@ $products_component_template .= <<<'HTML'
                                                 <button @click="toggleStatus(product)" :class="product.status === 'published' ? 'status-tag-success' : 'status-tag-neutral'" class="status-tag cursor-pointer hover:opacity-80 transition shrink-0 whitespace-nowrap" style="pointer-events: auto; font-size: 10px;">{{ product.status === 'published' ? '上架' : '下架' }}</button>
                                             </div>
                                             <div class="mt-1">
-                                                <span class="text-xs font-bold text-slate-500">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
+                                                <span class="text-sm font-bold text-slate-600">{{ formatPriceDisplay(getDisplayPrice(product), product.currency) }}</span>
                                             </div>
-                                            <!-- Variation 下拉選單 -->
-                                            <div v-if="product.has_variations" class="mt-1">
-                                                <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="text-[10px] px-1.5 py-0.5 border border-slate-300 rounded bg-slate-50 focus:border-primary focus:outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 類型選擇器 + 採購輸入（圖片下方，同一排，對齊） -->
+                                <div class="px-3 pb-3">
+                                    <div class="flex items-center gap-2">
+                                        <!-- 左側類型選擇器（對齊圖片位置） -->
+                                        <div class="flex-1 ml-6">
+                                            <div v-if="product.has_variations">
+                                                <select v-model="product.selected_variation_id" @change="onVariationChange(product)" @click.stop class="w-full text-xs px-3 py-2 border border-slate-300 rounded-md bg-white hover:border-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer text-slate-900">
                                                     <option v-for="v in product.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
                                                 </select>
                                             </div>
-                                            <div v-else class="mt-1 text-[10px] text-slate-400">單一</div>
+                                            <div v-else>
+                                                <span class="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-medium text-white bg-primary rounded-md">單一產品</span>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center justify-end gap-2 mt-2">
-                                            <span class="text-[10px] text-slate-400">採購</span>
-                                            <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" class="w-20 px-2 py-1 text-right text-sm font-bold border rounded bg-slate-50 focus:bg-white focus:border-primary focus:outline-none">
+                                        <!-- 右側採購輸入（外觀像按鈕，實際是輸入框） -->
+                                        <div class="flex-1">
+                                            <input type="number" :value="product.purchased || ''" @input="product.purchased = $event.target.value === '' ? 0 : parseInt($event.target.value)" @blur="savePurchased(product)" placeholder="採購" class="w-full px-3 py-2 text-xs text-center text-slate-900 placeholder-slate-400 border border-slate-300 rounded-md bg-white hover:border-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         </div>
                                     </div>
                                 </div>
@@ -347,7 +363,7 @@ $products_component_template .= <<<'HTML'
                                 <div v-for="product in products" :key="product.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                                     <!-- 大圖區域 -->
                                     <div class="relative aspect-[4/3] bg-slate-100 cursor-pointer" @click="openImageModal(product)">
-                                        <img v-if="product.image" :src="product.image" class="w-full h-full object-cover">
+                                        <img v-if="getDisplayImage(product)" :src="getDisplayImage(product)" class="w-full h-full object-cover">
                                         <div v-else class="w-full h-full flex items-center justify-center text-slate-300">
                                             <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                         </div>
