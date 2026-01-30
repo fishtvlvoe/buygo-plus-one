@@ -2,41 +2,158 @@
  * BuyGo FluentCart Product Page Customization
  *
  * FluentCart 產品頁面客製化樣式
- * - 價格顯示（原價/特價）
- * - 特價標籤
- * - 限量提示
- * - 數量按鈕
+ * 使用純 CSS 客製化 FluentCart 現有元素
+ *
+ * FluentCart 實際 HTML 結構：
+ * - .fct-product-price - 價格區域
+ * - .fct-product-quantity-container - 數量區塊外層容器
+ * - .fct-product-quantity - 數量選擇器容器（包含按鈕和輸入框）
+ * - .fct-quantity-decrease-button - 減少按鈕
+ * - .fct-quantity-increase-button - 增加按鈕
+ * - .fct-quantity-input - 數量輸入框 (type="text")
+ * - .fct-instant-checkout-button - 立即購買按鈕
+ * - .fct-add-to-cart-button - 加入購物車按鈕
  *
  * @package BuyGoPlus
- * @version 0.0.4
+ * @version 0.0.5
  */
 
 /* ========================================
-   價格顯示區塊
+   FluentCart 價格區域客製化
    ======================================== */
 
-.buygo-price-display {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin: 16px 0;
-    flex-wrap: wrap;
+/* 價格容器 */
+.fct-product-price {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: var(--buygo-sale-color, #e63946) !important;
+    margin: 16px 0 !important;
 }
 
-/* 原價（刪除線） */
-.buygo-price-display .original-price {
-    text-decoration: line-through;
-    color: #94a3b8;
-    font-size: 1rem;
-    font-weight: 400;
+/* 特價時的原價（刪除線） - 如果 FluentCart 有此 class */
+.fct-product-price .fct-regular-price,
+.fct-product-price del,
+.fct-product-price s {
+    text-decoration: line-through !important;
+    color: #94a3b8 !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
+    margin-right: 8px !important;
 }
 
-/* 特價（醒目） */
-.buygo-price-display .sale-price {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--buygo-sale-color, #e63946);
+/* 特價（醒目顏色） */
+.fct-product-price .fct-sale-price,
+.fct-product-price ins {
+    color: var(--buygo-sale-color, #e63946) !important;
+    text-decoration: none !important;
+    font-weight: 700 !important;
 }
+
+/* ========================================
+   FluentCart 數量選擇器客製化
+   ======================================== */
+
+/* 數量選擇器容器 - 使用更高優先級的選擇器 */
+.fct-product-quantity-container .fct-product-quantity {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background: white !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 數量按鈕共用樣式 */
+.fct-quantity-decrease-button,
+.fct-quantity-increase-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    background: #f8fafc !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.fct-quantity-decrease-button:hover,
+.fct-quantity-increase-button:hover {
+    background: #e2e8f0 !important;
+}
+
+.fct-quantity-decrease-button:active,
+.fct-quantity-increase-button:active {
+    background: #cbd5e1 !important;
+    transform: scale(0.95) !important;
+}
+
+/* 按鈕內的 SVG 圖示 */
+.fct-quantity-decrease-button svg,
+.fct-quantity-increase-button svg {
+    width: 20px !important;
+    height: 20px !important;
+    color: #475569 !important;
+}
+
+.fct-quantity-decrease-button:hover svg,
+.fct-quantity-increase-button:hover svg {
+    color: #1e293b !important;
+}
+
+/* 數量輸入框 */
+.fct-quantity-input {
+    width: 60px !important;
+    height: 44px !important;
+    text-align: center !important;
+    border: none !important;
+    border-left: 1px solid #e2e8f0 !important;
+    border-right: 1px solid #e2e8f0 !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    background: white !important;
+    outline: none !important;
+}
+
+.fct-quantity-input:focus {
+    background: #f8fafc !important;
+}
+
+/* ========================================
+   FluentCart 購買按鈕（保持預設樣式）
+   ======================================== */
+
+/*
+ * 注意：根據 Phase 19.1 的需求，
+ * 立即購買和加入購物車按鈕使用 FluentCart 預設樣式
+ * 以下僅做輕微調整以確保一致性
+ */
+
+.fct-instant-checkout-button,
+.fct-add-to-cart-button {
+    /* 保持 FluentCart 預設樣式 */
+    transition: all 0.15s ease !important;
+}
+
+.fct-instant-checkout-button:hover,
+.fct-add-to-cart-button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ========================================
+   BuyGo 自訂元素（透過 hook 注入）
+   ======================================== */
+
+/* 自訂內容容器（隱藏，僅作為標記） */
+.buygo-fluentcart-customizations {
+    display: none;
+}
+
+/* 如果未來需要注入自訂 HTML，可使用以下 classes */
 
 /* 特價標籤 */
 .buygo-sale-badge {
@@ -53,10 +170,7 @@
     box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
 
-/* ========================================
-   限量提示
-   ======================================== */
-
+/* 限量提示 */
 .buygo-stock-warning {
     display: flex;
     align-items: center;
@@ -78,117 +192,34 @@
 }
 
 /* ========================================
-   數量按鈕包裝
-   ======================================== */
-
-.buygo-quantity-wrapper {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-    background: white;
-}
-
-.buygo-quantity-wrapper.rounded .buygo-quantity-btn {
-    border-radius: 50%;
-    margin: 4px;
-}
-
-/* 數量按鈕 */
-.buygo-quantity-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    background: #f8fafc;
-    border: none;
-    cursor: pointer;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #475569;
-    transition: all 0.15s ease;
-    user-select: none;
-}
-
-.buygo-quantity-btn:hover:not(:disabled) {
-    background: #e2e8f0;
-    color: #1e293b;
-}
-
-.buygo-quantity-btn:active:not(:disabled) {
-    background: #cbd5e1;
-    transform: scale(0.95);
-}
-
-.buygo-quantity-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* 數量輸入框 */
-.buygo-quantity-wrapper input[type="number"] {
-    width: 60px;
-    height: 44px;
-    text-align: center;
-    border: none;
-    border-left: 1px solid #e2e8f0;
-    border-right: 1px solid #e2e8f0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1e293b;
-    background: white;
-    outline: none;
-    -moz-appearance: textfield;
-}
-
-.buygo-quantity-wrapper input[type="number"]:focus {
-    background: #f8fafc;
-}
-
-/* 移除數字輸入框的 spinner */
-.buygo-quantity-wrapper input[type="number"]::-webkit-outer-spin-button,
-.buygo-quantity-wrapper input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* ========================================
    手機版調整
    ======================================== */
 
 @media (max-width: 640px) {
-    /* 價格顯示 */
-    .buygo-price-display {
-        flex-direction: column;
-        gap: 4px;
-        align-items: flex-start;
+    /* FluentCart 價格 */
+    .fct-product-price {
+        font-size: 1.25rem !important;
     }
 
-    .buygo-price-display .sale-price {
-        font-size: 1.25rem;
+    /* FluentCart 數量按鈕（增大觸控目標） */
+    .fct-quantity-decrease-button,
+    .fct-quantity-increase-button {
+        width: 48px !important;
+        height: 48px !important;
     }
 
+    .fct-quantity-input {
+        width: 70px !important;
+        height: 48px !important;
+        font-size: 1.125rem !important;
+    }
+
+    /* BuyGo 自訂元素 */
     .buygo-sale-badge {
         margin-left: 0;
         margin-top: 4px;
     }
 
-    /* 數量按鈕（增大觸控目標） */
-    .buygo-quantity-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 1.5rem;
-    }
-
-    .buygo-quantity-wrapper input[type="number"] {
-        width: 70px;
-        height: 48px;
-        font-size: 1.125rem;
-    }
-
-    /* 限量提示 */
     .buygo-stock-warning {
         font-size: 0.8125rem;
         padding: 10px 14px;
@@ -200,8 +231,8 @@
    ======================================== */
 
 @media (min-width: 641px) and (max-width: 1024px) {
-    .buygo-price-display .sale-price {
-        font-size: 1.375rem;
+    .fct-product-price {
+        font-size: 1.375rem !important;
     }
 }
 
@@ -210,12 +241,8 @@
    ======================================== */
 
 @media (prefers-contrast: high) {
-    .buygo-price-display .original-price {
-        color: #64748b;
-    }
-
-    .buygo-quantity-wrapper {
-        border-width: 2px;
+    .fct-product-quantity {
+        border-width: 3px !important;
     }
 
     .buygo-stock-warning {
@@ -228,33 +255,34 @@
    ======================================== */
 
 @media (prefers-color-scheme: dark) {
-    .buygo-price-display .original-price {
-        color: #64748b;
+    .fct-product-quantity {
+        background: #1e293b !important;
+        border-color: #334155 !important;
     }
 
-    .buygo-quantity-wrapper {
-        background: #1e293b;
-        border-color: #334155;
+    .fct-quantity-decrease-button,
+    .fct-quantity-increase-button {
+        background: #334155 !important;
     }
 
-    .buygo-quantity-btn {
-        background: #334155;
-        color: #cbd5e1;
+    .fct-quantity-decrease-button svg,
+    .fct-quantity-increase-button svg {
+        color: #cbd5e1 !important;
     }
 
-    .buygo-quantity-btn:hover:not(:disabled) {
-        background: #475569;
-        color: #f1f5f9;
+    .fct-quantity-decrease-button:hover,
+    .fct-quantity-increase-button:hover {
+        background: #475569 !important;
     }
 
-    .buygo-quantity-wrapper input[type="number"] {
-        background: #1e293b;
-        border-color: #334155;
-        color: #f1f5f9;
+    .fct-quantity-input {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
     }
 
-    .buygo-quantity-wrapper input[type="number"]:focus {
-        background: #334155;
+    .fct-quantity-input:focus {
+        background: #334155 !important;
     }
 
     .buygo-stock-warning {
@@ -269,24 +297,31 @@
    ======================================== */
 
 /* Focus visible 樣式 */
-.buygo-quantity-btn:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
+.fct-quantity-decrease-button:focus-visible,
+.fct-quantity-increase-button:focus-visible {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px !important;
 }
 
-.buygo-quantity-wrapper input[type="number"]:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: -2px;
+.fct-quantity-input:focus-visible {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: -2px !important;
 }
 
 /* 減少動畫（針對偏好減少動作的使用者） */
 @media (prefers-reduced-motion: reduce) {
-    .buygo-quantity-btn,
+    .fct-quantity-decrease-button,
+    .fct-quantity-increase-button,
+    .fct-instant-checkout-button,
+    .fct-add-to-cart-button,
     .buygo-sale-badge {
-        transition: none;
+        transition: none !important;
     }
 
-    .buygo-quantity-btn:active:not(:disabled) {
-        transform: none;
+    .fct-quantity-decrease-button:active,
+    .fct-quantity-increase-button:active,
+    .fct-instant-checkout-button:hover,
+    .fct-add-to-cart-button:hover {
+        transform: none !important;
     }
 }

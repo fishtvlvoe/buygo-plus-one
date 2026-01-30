@@ -87,6 +87,8 @@ class Plugin {
 
         // 載入 Services（19 個服務）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-checkout-customization-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-taiwan-id-validator.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
@@ -190,6 +192,9 @@ class Plugin {
 
         // 初始化 FluentCart 產品頁面客製化
         \BuyGoPlus\Services\FluentCart_Customizer::init();
+
+        // 初始化 FluentCart 結帳頁面客製化
+        \BuyGoPlus\Services\CheckoutCustomizationService::init();
 
         // 初始化 LINE 訂單通知（下單成功 / 已出貨）
         new \BuyGoPlus\Services\LineOrderNotifier();
