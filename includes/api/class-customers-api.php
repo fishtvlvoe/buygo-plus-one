@@ -156,16 +156,23 @@ class Customers_API {
                 $customers = [];
             }
 
-            // 為每個客戶添加頭像 URL（從 FluentCart 的 LINE 登入儲存）
+            // 為每個客戶添加頭像 URL 和 LINE 名稱
             if (is_array($customers)) {
                 foreach ($customers as &$customer) {
-                    if (!empty($customer['user_id'])) {
+                    // 取得 WordPress user_id（從 fct_customers 表）
+                    $wp_user_id = $this->get_wp_user_id_by_customer_id($customer['id']);
+
+                    if ($wp_user_id) {
                         // 優先使用 FluentCart 儲存的客戶照片（來自 LINE 登入）
-                        $avatar_url = get_user_meta($customer['user_id'], 'fc_customer_photo_url', true);
+                        $avatar_url = get_user_meta($wp_user_id, 'fc_customer_photo_url', true);
                         $customer['avatar'] = !empty($avatar_url) ? esc_url($avatar_url) : get_avatar_url($customer['email'], ['size' => 100]);
+
+                        // 取得 LINE 名稱
+                        $customer['line_display_name'] = get_user_meta($wp_user_id, 'buygo_line_display_name', true) ?: '';
                     } else {
                         // 沒有 user_id 則使用 Gravatar
                         $customer['avatar'] = get_avatar_url($customer['email'], ['size' => 100]);
+                        $customer['line_display_name'] = '';
                     }
                 }
                 unset($customer); // 解除參考
@@ -268,7 +275,14 @@ class Customers_API {
             }
 
             $customer['orders'] = $orders ?: [];
-            
+
+            // 取得 LINE 名稱（從 wp_usermeta）
+            if (!empty($customer['user_id'])) {
+                $customer['line_display_name'] = get_user_meta($customer['user_id'], 'buygo_line_display_name', true) ?: '';
+            } else {
+                $customer['line_display_name'] = '';
+            }
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $customer
@@ -351,6 +365,22 @@ class Customers_API {
         }
     }
     
+    /**
+     * 根據 FluentCart customer_id 取得 WordPress user_id
+     *
+     * @param int $customer_id FluentCart 客戶 ID
+     * @return int|null WordPress user_id 或 null
+     */
+    private function get_wp_user_id_by_customer_id($customer_id) {
+        global $wpdb;
+        $table_customers = $wpdb->prefix . 'fct_customers';
+
+        return $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM {$table_customers} WHERE id = %d",
+            $customer_id
+        ));
+    }
+
     /**
      * 權限檢查
      */
