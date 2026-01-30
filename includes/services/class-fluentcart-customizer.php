@@ -131,9 +131,9 @@ class FluentCart_Customizer {
         // 註冊 enqueue hooks
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
 
-        // 註冊產品頁面 hooks（待實作）
-        // add_action('fluent_cart/product/single/after_price_block', [__CLASS__, 'render_custom_price_display'], 20);
-        // add_action('fluent_cart/product/single/before_quantity_block', [__CLASS__, 'render_stock_warning'], 20);
+        // 註冊產品頁面 hooks
+        add_action('fluent_cart/product/single/after_price_block', [__CLASS__, 'render_custom_price_display'], 20);
+        add_action('fluent_cart/product/single/before_quantity_block', [__CLASS__, 'render_stock_warning'], 20);
     }
 
     /**
@@ -149,32 +149,129 @@ class FluentCart_Customizer {
 
         $options = self::get_options();
 
-        // 載入 CSS（待實作）
-        // wp_enqueue_style(
-        //     'buygo-fluentcart-product',
-        //     BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/css/fluentcart-product-page.css',
-        //     [],
-        //     BUYGO_PLUS_ONE_VERSION
-        // );
+        // 載入 CSS
+        wp_enqueue_style(
+            'buygo-fluentcart-product',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/css/fluentcart-product-page.css',
+            [],
+            BUYGO_PLUS_ONE_VERSION
+        );
 
         // 注入動態 CSS 變數
-        // $custom_css = ':root { --buygo-sale-color: ' . esc_attr($options['price_color']) . '; }';
-        // wp_add_inline_style('buygo-fluentcart-product', $custom_css);
+        $custom_css = ':root { --buygo-sale-color: ' . esc_attr($options['price_color']) . '; }';
+        wp_add_inline_style('buygo-fluentcart-product', $custom_css);
 
         // 載入數量按鈕 JavaScript（如果設定為 plus-minus）
-        // if ($options['quantity_style'] === 'plus-minus') {
-        //     wp_enqueue_script(
-        //         'buygo-quantity-buttons',
-        //         BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/js/quantity-buttons.js',
-        //         [],
-        //         BUYGO_PLUS_ONE_VERSION,
-        //         true
-        //     );
-        //
-        //     wp_localize_script('buygo-quantity-buttons', 'buygoQuantityConfig', [
-        //         'style'       => $options['quantity_style'],
-        //         'buttonStyle' => $options['button_style']
-        //     ]);
-        // }
+        if ($options['quantity_style'] === 'plus-minus') {
+            wp_enqueue_script(
+                'buygo-quantity-buttons',
+                BUYGO_PLUS_ONE_PLUGIN_URL . 'assets/js/quantity-buttons.js',
+                [],
+                BUYGO_PLUS_ONE_VERSION,
+                true // 在 footer 載入
+            );
+
+            // 傳遞設定到 JavaScript
+            wp_localize_script('buygo-quantity-buttons', 'buygoQuantityConfig', [
+                'style'       => $options['quantity_style'],
+                'buttonStyle' => $options['button_style']
+            ]);
+        }
+    }
+
+    /**
+     * 渲染客製化價格顯示
+     *
+     * 在 FluentCart 產品頁面顯示原價和特價
+     *
+     * @param array $args Hook 傳入的參數
+     */
+    public static function render_custom_price_display($args) {
+        $options = self::get_options();
+
+        // 取得產品資訊
+        $product = $args['product'] ?? null;
+        if (!$product || !isset($product->detail)) {
+            return;
+        }
+
+        $detail = $product->detail;
+
+        // 檢查是否有價格變化
+        $has_variation = method_exists($detail, 'hasPriceVariation') && $detail->hasPriceVariation();
+
+        // 只有當有價格變動且設定啟用時才顯示
+        if (!$has_variation || !$options['show_regular_price']) {
+            return;
+        }
+
+        echo '<div class="buygo-price-display">';
+
+        // 原價（刪除線）
+        $max_price = $detail->formatted_max_price ?? '';
+        if ($max_price) {
+            echo '<span class="original-price">' . esc_html($max_price) . '</span>';
+        }
+
+        // 特價（醒目顏色）
+        $min_price = $detail->formatted_min_price ?? '';
+        if ($min_price) {
+            echo '<span class="sale-price">' . esc_html($min_price) . '</span>';
+        }
+
+        // 特價標籤
+        if ($options['show_sale_badge']) {
+            echo '<span class="buygo-sale-badge">特價</span>';
+        }
+
+        echo '</div>';
+    }
+
+    /**
+     * 渲染庫存警告提示
+     *
+     * 當庫存低於門檻時顯示限量提示
+     *
+     * @param array $args Hook 傳入的參數
+     */
+    public static function render_stock_warning($args) {
+        $options = self::get_options();
+
+        // 檢查是否啟用庫存資訊顯示
+        if (!$options['show_stock_info']) {
+            return;
+        }
+
+        $product = $args['product'] ?? null;
+        if (!$product || !isset($product->detail)) {
+            return;
+        }
+
+        $detail = $product->detail;
+
+        // 檢查庫存資訊
+        $stock_info = method_exists($detail, 'getStockAvailability')
+            ? $detail->getStockAvailability()
+            : ['manage_stock' => false];
+
+        if (!$stock_info['manage_stock']) {
+            return;
+        }
+
+        $quantity = $stock_info['available_quantity'] ?? 0;
+        $threshold = $options['stock_threshold'];
+
+        // 只有庫存低於門檻且大於 0 時顯示
+        if ($quantity <= 0 || $quantity > $threshold) {
+            return;
+        }
+
+        echo '<div class="buygo-stock-warning">';
+        // Warning icon (SVG)
+        echo '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+        echo '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+        echo '</svg>';
+        echo '<span>限購 ' . esc_html($quantity) . ' 個</span>';
+        echo '</div>';
     }
 }
