@@ -483,7 +483,15 @@ class LineWebhookHandler {
 
 		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
 		$flexContents = LineFlexTemplates::getProductTypeMenu();
-		$result = $messaging->replyFlex( $event['replyToken'] ?? '', $flexContents );
+
+		// 包裝成 Flex Message 格式
+		$flexMessage = array(
+			'type' => 'flex',
+			'altText' => '請選擇商品類型',
+			'contents' => $flexContents,
+		);
+
+		$result = $messaging->send_reply( $event['replyToken'] ?? '', $flexMessage, $line_uid );
 
 		if ( is_wp_error( $result ) ) {
 			$this->logger->log( 'error', array(
