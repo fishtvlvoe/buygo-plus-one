@@ -428,10 +428,12 @@ const ProductsPageComponent = {
                         }
                         return product;
                     });
-                    totalProducts.value = data.total || data.data.length;
-                    await checkUrlParams();
-                    // Phase 19: 檢查賣家商品數量限制
-                    await checkSellerLimit();
+                    totalProducts.value = data.data.length;
+                    // 並行執行 URL 參數檢查和賣家限制檢查，減少載入時間
+                    await Promise.all([
+                        checkUrlParams(),
+                        checkSellerLimit()
+                    ]);
                 } else {
                     products.value = [];
                     totalProducts.value = 0;
@@ -786,6 +788,14 @@ const ProductsPageComponent = {
             return product.price;
         };
 
+        // 取得顯示用的圖片 URL（優先顯示已選變體的圖片）
+        const getDisplayImage = (product) => {
+            if (product.has_variations && product.selected_variation && product.selected_variation.image) {
+                return product.selected_variation.image;
+            }
+            return product.image;
+        };
+
         const onVariationChange = async (product) => {
             if (!product.has_variations || !product.selected_variation_id) return;
 
@@ -890,6 +900,7 @@ const ProductsPageComponent = {
             // Variation 方法
             getDisplayTitle,
             getDisplayPrice,
+            getDisplayImage,
             onVariationChange,
             fileInput,
              handleTabClick: (id) => {
