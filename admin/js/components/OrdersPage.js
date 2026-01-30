@@ -61,6 +61,15 @@ const OrdersPageComponent = {
         const searchFilterName = ref('');
         const searchQuery = ref('');
 
+        // 狀態篩選（新增）
+        const filterStatus = ref(null); // null (全部) | 'unshipped' | 'preparing' | 'shipped'
+        const stats = ref({
+            total: 0,
+            unshipped: 0,
+            preparing: 0,
+            shipped: 0
+        });
+
         // 幣別設定 - 使用 composable 的系統幣別
         const systemCurrency = systemCurrencyFromComposable; // 直接使用全域 ref
         const currentCurrency = ref(systemCurrencyFromComposable.value);
@@ -358,6 +367,28 @@ const OrdersPageComponent = {
         };
 
         // 載入訂單
+        // 計算統計資料
+        const calculateStats = () => {
+            const allOrders = orders.value || [];
+            stats.value = {
+                total: allOrders.length,
+                unshipped: allOrders.filter(o => !o.shipping_status || o.shipping_status === 'unshipped').length,
+                preparing: allOrders.filter(o => o.shipping_status === 'preparing').length,
+                shipped: allOrders.filter(o => o.shipping_status === 'shipped').length
+            };
+        };
+
+        // 篩選後的訂單（根據狀態分類）
+        const filteredOrders = computed(() => {
+            if (!filterStatus.value) {
+                return orders.value; // 顯示全部
+            }
+            return orders.value.filter(order => {
+                const status = order.shipping_status || 'unshipped';
+                return status === filterStatus.value;
+            });
+        });
+
         const loadOrders = async () => {
             loading.value = true;
             error.value = null;
@@ -404,6 +435,9 @@ const OrdersPageComponent = {
                         items: order.items || []
                     }));
                     totalOrders.value = result.total || result.data.length;
+
+                    // 計算統計資料
+                    calculateStats();
 
                     // 預設折疊所有有子訂單的訂單
                     orders.value.forEach(order => {
@@ -1090,6 +1124,10 @@ const OrdersPageComponent = {
             isStatusDropdownOpen,
             updateShippingStatus,
             openStatusDropdown,
+            // 狀態篩選相關
+            filterStatus,
+            stats,
+            filteredOrders,
             // API 認證
             wpNonce
         };
