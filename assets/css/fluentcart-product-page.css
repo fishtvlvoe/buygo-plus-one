@@ -1,0 +1,292 @@
+/**
+ * BuyGo FluentCart Product Page Customization
+ *
+ * FluentCart 產品頁面客製化樣式
+ * - 價格顯示（原價/特價）
+ * - 特價標籤
+ * - 限量提示
+ * - 數量按鈕
+ *
+ * @package BuyGoPlus
+ * @version 0.0.4
+ */
+
+/* ========================================
+   價格顯示區塊
+   ======================================== */
+
+.buygo-price-display {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+}
+
+/* 原價（刪除線） */
+.buygo-price-display .original-price {
+    text-decoration: line-through;
+    color: #94a3b8;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+/* 特價（醒目） */
+.buygo-price-display .sale-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--buygo-sale-color, #e63946);
+}
+
+/* 特價標籤 */
+.buygo-sale-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+/* ========================================
+   限量提示
+   ======================================== */
+
+.buygo-stock-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    color: #92400e;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 16px 0;
+}
+
+.buygo-stock-warning svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+/* ========================================
+   數量按鈕包裝
+   ======================================== */
+
+.buygo-quantity-wrapper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.buygo-quantity-wrapper.rounded .buygo-quantity-btn {
+    border-radius: 50%;
+    margin: 4px;
+}
+
+/* 數量按鈕 */
+.buygo-quantity-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: #f8fafc;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.buygo-quantity-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.buygo-quantity-btn:active:not(:disabled) {
+    background: #cbd5e1;
+    transform: scale(0.95);
+}
+
+.buygo-quantity-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 數量輸入框 */
+.buygo-quantity-wrapper input[type="number"] {
+    width: 60px;
+    height: 44px;
+    text-align: center;
+    border: none;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    background: white;
+    outline: none;
+    -moz-appearance: textfield;
+}
+
+.buygo-quantity-wrapper input[type="number"]:focus {
+    background: #f8fafc;
+}
+
+/* 移除數字輸入框的 spinner */
+.buygo-quantity-wrapper input[type="number"]::-webkit-outer-spin-button,
+.buygo-quantity-wrapper input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ========================================
+   手機版調整
+   ======================================== */
+
+@media (max-width: 640px) {
+    /* 價格顯示 */
+    .buygo-price-display {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+
+    .buygo-price-display .sale-price {
+        font-size: 1.25rem;
+    }
+
+    .buygo-sale-badge {
+        margin-left: 0;
+        margin-top: 4px;
+    }
+
+    /* 數量按鈕（增大觸控目標） */
+    .buygo-quantity-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+
+    .buygo-quantity-wrapper input[type="number"] {
+        width: 70px;
+        height: 48px;
+        font-size: 1.125rem;
+    }
+
+    /* 限量提示 */
+    .buygo-stock-warning {
+        font-size: 0.8125rem;
+        padding: 10px 14px;
+    }
+}
+
+/* ========================================
+   平板版調整
+   ======================================== */
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    .buygo-price-display .sale-price {
+        font-size: 1.375rem;
+    }
+}
+
+/* ========================================
+   高對比度模式支援
+   ======================================== */
+
+@media (prefers-contrast: high) {
+    .buygo-price-display .original-price {
+        color: #64748b;
+    }
+
+    .buygo-quantity-wrapper {
+        border-width: 2px;
+    }
+
+    .buygo-stock-warning {
+        border-width: 2px;
+    }
+}
+
+/* ========================================
+   深色模式支援（如果 FluentCart 有提供）
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    .buygo-price-display .original-price {
+        color: #64748b;
+    }
+
+    .buygo-quantity-wrapper {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    .buygo-quantity-btn {
+        background: #334155;
+        color: #cbd5e1;
+    }
+
+    .buygo-quantity-btn:hover:not(:disabled) {
+        background: #475569;
+        color: #f1f5f9;
+    }
+
+    .buygo-quantity-wrapper input[type="number"] {
+        background: #1e293b;
+        border-color: #334155;
+        color: #f1f5f9;
+    }
+
+    .buygo-quantity-wrapper input[type="number"]:focus {
+        background: #334155;
+    }
+
+    .buygo-stock-warning {
+        background: #422006;
+        border-color: #92400e;
+        color: #fcd34d;
+    }
+}
+
+/* ========================================
+   無障礙功能支援
+   ======================================== */
+
+/* Focus visible 樣式 */
+.buygo-quantity-btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.buygo-quantity-wrapper input[type="number"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+}
+
+/* 減少動畫（針對偏好減少動作的使用者） */
+@media (prefers-reduced-motion: reduce) {
+    .buygo-quantity-btn,
+    .buygo-sale-badge {
+        transition: none;
+    }
+
+    .buygo-quantity-btn:active:not(:disabled) {
+        transform: none;
+    }
+}
