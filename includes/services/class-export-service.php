@@ -62,9 +62,11 @@ class ExportService
         $csv_data[] = [
             '出貨單號',
             '客戶姓名',
+            'LINE 名稱',
             '客戶電話',
             '客戶地址',
             'Email',
+            '身分證字號',
             '商品名稱',
             '數量',
             '單價',
@@ -75,15 +77,19 @@ class ExportService
             '狀態'
         ];
 
+        // 定義 FluentCart 訂單 meta 表
+        $table_order_meta = $wpdb->prefix . 'fct_order_meta';
+
         // 查詢每個出貨單
         foreach ($shipment_ids as $shipment_id) {
-            // 取得出貨單基本資訊
+            // 取得出貨單基本資訊（包含客戶的 WordPress user_id 以查詢 LINE 名稱）
             $shipment = $wpdb->get_row($wpdb->prepare(
                 "SELECT s.*,
                         CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name,
                         c.phone as customer_phone,
                         c.address as customer_address,
-                        c.email as customer_email
+                        c.email as customer_email,
+                        c.user_id as wp_user_id
                  FROM {$table_shipments} s
                  LEFT JOIN {$table_customers} c ON s.customer_id = c.id
                  WHERE s.id = %d",
@@ -94,25 +100,43 @@ class ExportService
                 continue;
             }
 
-            // 取得出貨單商品項目
+            // 取得 LINE 名稱（從 wp_usermeta 的 buygo_line_display_name）
+            $line_display_name = '';
+            if (!empty($shipment['wp_user_id'])) {
+                $line_display_name = get_user_meta($shipment['wp_user_id'], 'buygo_line_display_name', true);
+            }
+
+            // 取得出貨單商品項目（包含 order_id 以查詢身分證字號）
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT si.*,
                         oi.title as product_name,
-                        oi.price
+                        oi.price,
+                        oi.order_id
                  FROM {$table_shipment_items} si
                  LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
                  WHERE si.shipment_id = %d",
                 $shipment_id
             ), ARRAY_A);
 
+            // 取得身分證字號（從第一個訂單項目的訂單 meta）
+            $taiwan_id_number = '';
+            if (!empty($items) && !empty($items[0]['order_id'])) {
+                $taiwan_id_number = $wpdb->get_var($wpdb->prepare(
+                    "SELECT meta_value FROM {$table_order_meta} WHERE order_id = %d AND meta_key = 'taiwan_id_number'",
+                    $items[0]['order_id']
+                ));
+            }
+
             // 如果沒有商品，至少輸出一行出貨單資訊
             if (empty($items)) {
                 $csv_data[] = [
                     $shipment['shipment_number'] ?? '',
                     trim($shipment['customer_name'] ?? ''),
+                    $line_display_name,
                     $shipment['customer_phone'] ?? '',
                     $shipment['customer_address'] ?? '',
                     $shipment['customer_email'] ?? '',
+                    $taiwan_id_number,
                     '',
                     '',
                     '',
@@ -134,9 +158,11 @@ class ExportService
                         $csv_data[] = [
                             $shipment['shipment_number'] ?? '',
                             trim($shipment['customer_name'] ?? ''),
+                            $line_display_name,
                             $shipment['customer_phone'] ?? '',
                             $shipment['customer_address'] ?? '',
                             $shipment['customer_email'] ?? '',
+                            $taiwan_id_number,
                             $item['product_name'] ?? '未知商品',
                             $quantity,
                             $price,
@@ -150,9 +176,11 @@ class ExportService
                         $csv_data[] = [
                             '', // 出貨單號 (空白，避免重複)
                             '', // 客戶姓名
+                            '', // LINE 名稱
                             '', // 客戶電話
                             '', // 客戶地址
                             '', // Email
+                            '', // 身分證字號
                             $item['product_name'] ?? '未知商品',
                             $quantity,
                             $price,
@@ -166,8 +194,8 @@ class ExportService
                 }
             }
 
-                // 每個出貨單後加一個空行
-                $csv_data[] = ['', '', '', '', '', '', '', '', '', '', '', '', ''];
+                // 每個出貨單後加一個空行（15 欄位）
+                $csv_data[] = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
             }
 
             // 生成 CSV 檔案

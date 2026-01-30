@@ -232,8 +232,69 @@ class CheckoutCustomizationService
             error_log("[BuyGo Checkout] Invalid Taiwan ID: $id_number for order $order_id");
         }
 
-        // 儲存到訂單 meta
-        update_post_meta($order_id, '_taiwan_id_number', $id_number);
+        // 儲存到 FluentCart 訂單 meta 表 (fct_order_meta)
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'fct_order_meta';
+
+        // 檢查是否已存在
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table_name} WHERE order_id = %d AND meta_key = %s",
+            $order_id,
+            'taiwan_id_number'
+        ));
+
+        if ($existing) {
+            // 更新現有記錄
+            $wpdb->update(
+                $table_name,
+                [
+                    'meta_value' => $id_number,
+                    'updated_at' => current_time('mysql')
+                ],
+                [
+                    'order_id' => $order_id,
+                    'meta_key' => 'taiwan_id_number'
+                ],
+                ['%s', '%s'],
+                ['%d', '%s']
+            );
+        } else {
+            // 新增記錄
+            $wpdb->insert(
+                $table_name,
+                [
+                    'order_id' => $order_id,
+                    'meta_key' => 'taiwan_id_number',
+                    'meta_value' => $id_number,
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
+                ],
+                ['%d', '%s', '%s', '%s', '%s']
+            );
+        }
+
+        // 記錄儲存成功
+        error_log("[BuyGo Checkout] Taiwan ID saved: $id_number for order $order_id");
+    }
+
+    /**
+     * 從訂單取得身分證字號
+     *
+     * @param int $order_id 訂單 ID
+     * @return string|null 身分證字號或 null
+     */
+    public static function get_id_number_from_order(int $order_id): ?string
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'fct_order_meta';
+
+        $id_number = $wpdb->get_var($wpdb->prepare(
+            "SELECT meta_value FROM {$table_name} WHERE order_id = %d AND meta_key = %s",
+            $order_id,
+            'taiwan_id_number'
+        ));
+
+        return $id_number ?: null;
     }
 
     /**
