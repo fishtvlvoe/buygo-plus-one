@@ -561,12 +561,23 @@ const ProductsPageComponent = {
         const savePurchased = async (product) => {
              // Reuse logic from saveProduct or dedicated endpoint
              try {
-                await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
-                    credentials: 'include',
-                    body: JSON.stringify({ purchased: product.purchased })
-                });
+                // 如果是多樣式商品，更新選中的 variation 的採購數量
+                if (product.has_variations && product.selected_variation_id) {
+                    await fetch(`/wp-json/buygo-plus-one/v1/variations/${product.selected_variation_id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                        credentials: 'include',
+                        body: JSON.stringify({ purchased: product.purchased })
+                    });
+                } else {
+                    // 單一商品，更新商品本身的採購數量
+                    await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                        credentials: 'include',
+                        body: JSON.stringify({ purchased: product.purchased })
+                    });
+                }
                 showToast('已更新採購數量');
              } catch(e) { console.error(e); }
         };

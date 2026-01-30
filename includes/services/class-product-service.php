@@ -739,17 +739,25 @@ class ProductService
             $table = $wpdb->prefix . 'fct_product_variations';
 
             $variations = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, variation_title, item_price, total_stock, available, stock_status
+                "SELECT id, variation_title, item_price, total_stock, available, stock_status, media_id
                  FROM {$table}
                  WHERE post_id = %d AND item_status = 'active'
                  ORDER BY id ASC",
                 $productId
             ), ARRAY_A);
 
-            // 轉換價格單位（分 → 元）
+            // 轉換價格單位（分 → 元）並取得圖片 URL
             foreach ($variations as &$v) {
                 $v['price'] = $v['item_price'] / 100;
                 unset($v['item_price']);
+
+                // 取得 variation 的圖片 URL
+                $v['image'] = null;
+                if (!empty($v['media_id'])) {
+                    $imageUrl = wp_get_attachment_image_url((int)$v['media_id'], 'medium');
+                    $v['image'] = $imageUrl ?: null;
+                }
+                unset($v['media_id']); // 移除 media_id，只保留 image URL
             }
 
             return $variations;
@@ -785,11 +793,12 @@ class ProductService
             $shippedCounts = $this->calculateShippedCounts([$variationId]);
             $shipped = $shippedCounts[$variationId] ?? 0;
 
-            // 取得已採購數量（從 post_meta）
+            // 取得已採購數量（從 variation meta）
             $variation = ProductVariation::find($variationId);
             $purchased = 0;
-            if ($variation && $variation->post_id) {
-                $purchased = (int) get_post_meta($variation->post_id, '_buygo_purchased', true);
+            if ($variation) {
+                // 從 variation meta 讀取（而不是 post meta）
+                $purchased = (int) get_metadata('fluent_cart_variation', $variationId, '_buygo_purchased', true);
             }
 
             return [
