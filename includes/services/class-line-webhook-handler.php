@@ -491,11 +491,30 @@ class LineWebhookHandler {
 			'contents' => $flexContents,
 		);
 
-		$result = $messaging->send_reply( $event['replyToken'] ?? '', $flexMessage, $line_uid );
+		// 先嘗試 Reply（如果 Token 有效）
+		$reply_token = $event['replyToken'] ?? '';
+		$result = false;
+
+		if ( ! empty( $reply_token ) ) {
+			$result = $messaging->send_reply( $reply_token, $flexMessage, $line_uid );
+		}
+
+		// 如果 Reply 失敗（Token 無效或為空），改用 Push Message
+		if ( is_wp_error( $result ) || empty( $reply_token ) ) {
+			if ( is_wp_error( $result ) ) {
+				$this->logger->log( 'reply_failed_fallback_to_push', array(
+					'error' => $result->get_error_message(),
+					'fallback' => 'push_message',
+				), $user->ID, $line_uid );
+			}
+
+			// 使用 Push Message 發送
+			$result = $messaging->push_message( $line_uid, $flexMessage );
+		}
 
 		if ( is_wp_error( $result ) ) {
 			$this->logger->log( 'error', array(
-				'message' => 'Failed to send product type menu',
+				'message' => 'Failed to send product type menu (both reply and push failed)',
 				'error' => $result->get_error_message(),
 			), $user->ID, $line_uid );
 		} else {
