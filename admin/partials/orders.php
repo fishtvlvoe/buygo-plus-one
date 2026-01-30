@@ -57,6 +57,52 @@ $orders_component_template .= <<<'HTML'
                     @clear="handleOrderSearchClear"
                 ></smart-search-box>
 
+                <!-- 狀態分類按鈕 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="flex gap-2 md:gap-8 px-3 md:px-6 border-b border-slate-200">
+                        <button
+                            @click="filterStatus = null"
+                            :class="filterStatus === null ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                        >
+                            全部
+                            <span v-if="stats.total > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+                                {{ stats.total }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'unshipped'"
+                            :class="filterStatus === 'unshipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                        >
+                            轉備貨
+                            <span v-if="stats.unshipped > 0" class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                {{ stats.unshipped }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'preparing'"
+                            :class="filterStatus === 'preparing' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                        >
+                            備貨中
+                            <span v-if="stats.preparing > 0" class="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
+                                {{ stats.preparing }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'shipped'"
+                            :class="filterStatus === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                        >
+                            已出貨
+                            <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
+                                {{ stats.shipped }}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Loading -->
                 <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
 
@@ -87,7 +133,7 @@ $orders_component_template .= <<<'HTML'
                     </thead>
                     <tbody>
                         <!-- 父訂單行 -->
-                        <template v-for="order in orders" :key="order.id">
+                        <template v-for="order in filteredOrders" :key="order.id">
                         <tr>
                             <td>
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
@@ -316,7 +362,7 @@ $orders_component_template .= <<<'HTML'
 
             <!-- 手機版卡片 -->
             <div class="card-list">
-                <div v-for="order in orders" :key="order.id" class="card">
+                <div v-for="order in filteredOrders" :key="order.id" class="card">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
                             <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
