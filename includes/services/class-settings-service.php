@@ -637,8 +637,9 @@ class SettingsService
     public static function get_user_line_id(int $user_id): ?string
     {
         // 方式 1：從 wp_usermeta 查詢（優先）
-        // _mygo_line_uid 是目前系統實際使用的 meta key（來自 Nextend Social Login 或舊系統）
-        $meta_keys = ['_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
+        // line_uid 是 buygo-line-notify 使用的 meta key（最優先）
+        // _mygo_line_uid 是舊系統使用的 meta key（向後相容）
+        $meta_keys = ['line_uid', '_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
         
         foreach ($meta_keys as $meta_key) {
             $line_id = get_user_meta($user_id, $meta_key, true);
@@ -674,8 +675,11 @@ class SettingsService
     }
     
     /**
-     * 發送 LINE 綁定連結
-     * 
+     * 發送賣家設定通知
+     *
+     * 優先透過 LINE 發送訊息（如果已綁定）
+     * 如果未綁定則透過 Email 發送綁定連結
+     *
      * @param int $user_id WordPress 使用者 ID
      * @return array 包含 success 和 message
      */
@@ -688,44 +692,69 @@ class SettingsService
                 'message' => '使用者不存在'
             ];
         }
-        
-        // 檢查是否已綁定
-        $line_id = self::get_user_line_id($user_id);
-        if (!empty($line_id)) {
-            return [
-                'success' => false,
-                'message' => '該使用者已綁定 LINE'
-            ];
+
+        // 檢查是否已綁定 LINE
+        $line_uid = self::get_user_line_id($user_id);
+
+        // 情況 1: 已綁定 LINE → 直接發送 LINE 訊息通知賣家設定完成
+        if (!empty($line_uid)) {
+            // 檢查 buygo-line-notify 外掛是否啟用
+            if (!class_exists('\\BuygoLineNotify\\BuygoLineNotify')) {
+                return [
+                    'success' => false,
+                    'message' => '請先啟用 BuyGo LINE Notify 外掛'
+                ];
+            }
+
+            // 發送 LINE 訊息
+            $message = "🎉 您已成為 BuyGo 賣家！\n\n";
+            $message .= "您現在可以透過 LINE 上架商品：\n";
+            $message .= "1️⃣ 直接上傳商品圖片\n";
+            $message .= "2️⃣ 輸入商品資訊（名稱/價格/描述）\n";
+            $message .= "3️⃣ 系統自動上架到商城\n\n";
+            $message .= "立即上傳第一張商品圖片試試看吧！";
+
+            try {
+                $messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+                $messaging->pushText($line_uid, $message);
+
+                return [
+                    'success' => true,
+                    'message' => '賣家設定完成通知已透過 LINE 發送'
+                ];
+            } catch (\Exception $e) {
+                error_log('[Settings] LINE 訊息發送失敗: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'LINE 訊息發送失敗：' . $e->getMessage()
+                ];
+            }
         }
-        
-        // 取得 LINE 設定
+
+        // 情況 2: 未綁定 LINE → 透過 Email 發送綁定連結
         $line_settings = self::get_line_settings();
         $channel_access_token = $line_settings['channel_access_token'] ?? '';
-        
+
         if (empty($channel_access_token)) {
             return [
                 'success' => false,
                 'message' => 'LINE Channel Access Token 未設定'
             ];
         }
-        
-        // 產生綁定連結（使用 Nextend Social Login 的 LINE Login URL）
+
+        // 產生綁定連結
         $binding_url = wp_login_url() . '?action=line&redirect_to=' . urlencode(admin_url('admin.php?page=buygo-settings&tab=roles'));
-        
-        // 設計模式：優先透過 Email 發送綁定連結
-        // 原因：使用者尚未綁定 LINE，無法透過 LINE 發送訊息
-        // 流程：Email 發送 → 使用者點擊連結 → LINE Login → 完成綁定
-        
+
         if (!empty($user->user_email)) {
             $subject = 'BuyGo+1 LINE 帳號綁定連結';
-            $email_message = "親愛的 {$user->display_name}，\n\n請點擊下方連結完成 LINE 帳號綁定：\n{$binding_url}\n\n此連結將在 24 小時後失效。\n\n如果無法點擊連結，請複製以下網址到瀏覽器：\n{$binding_url}";
-            
+            $email_message = "親愛的 {$user->display_name}，\n\n您已成為 BuyGo 賣家，請先完成 LINE 帳號綁定：\n{$binding_url}\n\n綁定後即可透過 LINE 上架商品。\n\n如果無法點擊連結，請複製以下網址到瀏覽器：\n{$binding_url}";
+
             $email_sent = wp_mail($user->user_email, $subject, $email_message);
-            
+
             if ($email_sent) {
                 return [
                     'success' => true,
-                    'message' => '綁定連結已透過 Email 發送給 ' . $user->user_email
+                    'message' => 'LINE 綁定連結已透過 Email 發送給 ' . $user->user_email
                 ];
             } else {
                 return [
