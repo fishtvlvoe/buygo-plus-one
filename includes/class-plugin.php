@@ -149,6 +149,11 @@ class Plugin {
         // 載入 FluentCart/FluentCommunity 整合
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
+
+        // 載入 LINE Product Upload Bridge (整合 buygo-line-notify)
+        if (file_exists(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-line-product-upload-bridge.php')) {
+            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-line-product-upload-bridge.php';
+        }
     }
     
     /**
@@ -187,6 +192,11 @@ class Plugin {
 
         // 初始化 LINE Webhook Handler（商品上架流程）
         new \BuyGoPlus\Services\LineWebhookHandler();
+
+        // 初始化 LINE Product Upload Bridge (整合 buygo-line-notify)
+        if (class_exists('\\BuyGoPlus\\Integrations\\LineProductUploadBridge')) {
+            \BuyGoPlus\Integrations\LineProductUploadBridge::init();
+        }
 
         // FluentCart 收據頁：顯示 LINE 綁定碼
         new \BuyGoPlus\Services\LineBindingReceipt();

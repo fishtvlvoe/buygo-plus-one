@@ -14,7 +14,7 @@ jQuery(document).ready(function($) {
             url: buygoSettings.restUrl + '/settings/line/test-connection',
             type: 'POST',
             headers: {
-                'X-WP-Nonce': buygoSettings.nonce,
+                'X-WP-Nonce': buygoSettings.restNonce,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
@@ -78,7 +78,7 @@ jQuery(document).ready(function($) {
             url: buygoSettings.restUrl + '/settings/helpers',
             type: 'POST',
             headers: {
-                'X-WP-Nonce': buygoSettings.nonce,
+                'X-WP-Nonce': buygoSettings.restNonce,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
@@ -122,7 +122,7 @@ jQuery(document).ready(function($) {
             url: buygoSettings.restUrl + '/settings/helpers/' + userId,
             type: 'DELETE',
             headers: {
-                'X-WP-Nonce': buygoSettings.nonce
+                'X-WP-Nonce': buygoSettings.restNonce
             },
             success: function(response) {
                 if (response.success) {
@@ -161,7 +161,7 @@ jQuery(document).ready(function($) {
             url: buygoSettings.restUrl + '/settings/binding/send',
             type: 'POST',
             headers: {
-                'X-WP-Nonce': buygoSettings.nonce,
+                'X-WP-Nonce': buygoSettings.restNonce,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
@@ -206,7 +206,7 @@ jQuery(document).ready(function($) {
             url: buygoSettings.restUrl + '/settings/roles/remove',
             type: 'POST',
             headers: {
-                'X-WP-Nonce': buygoSettings.nonce,
+                'X-WP-Nonce': buygoSettings.restNonce,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
