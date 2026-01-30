@@ -208,6 +208,21 @@ class Products_API {
             ]
         ]);
 
+        // PUT /variations/{id} - 更新 Variation（用於更新採購數量）
+        register_rest_route($this->namespace, '/variations/(?P<id>\\d+)', [
+            'methods' => 'PUT',
+            'callback' => [$this, 'update_variation'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
         // GET /products/limit-check - 檢查賣家商品數量限制 (Phase 19)
         register_rest_route($this->namespace, '/products/limit-check', [
             'methods' => 'GET',
@@ -1205,6 +1220,45 @@ class Products_API {
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $stats
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 更新 Variation（用於更新採購數量）
+     *
+     * PUT /wp-json/buygo-plus-one/v1/variations/{id}
+     */
+    public function update_variation($request) {
+        try {
+            $variation_id = (int)$request->get_param('id');
+            $data = $request->get_json_params();
+
+            // 檢查 variation 是否存在
+            $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
+            if (!$variation) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'Variation 不存在'
+                ], 404);
+            }
+
+            // 更新採購數量（儲存到 variation meta）
+            if (isset($data['purchased'])) {
+                $purchased = (int)$data['purchased'];
+                // 使用 variation meta 而不是 post meta
+                update_metadata('fluent_cart_variation', $variation_id, '_buygo_purchased', $purchased);
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '已更新 Variation'
             ], 200);
 
         } catch (\Exception $e) {
