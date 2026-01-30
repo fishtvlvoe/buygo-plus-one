@@ -85,11 +85,12 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
 
-        // 載入 Services（18 個服務）
+        // 載入 Services（19 個服務）
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-customizer.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-search-service.php';
         // class-image-uploader.php 已遷移到 buygo-line-notify，透過 Facade 使用
@@ -187,6 +188,9 @@ class Plugin {
         // 初始化 FluentCart 產品頁面自訂
         FluentCartProductPage::instance();
 
+        // 初始化 FluentCart 產品頁面客製化
+        \BuyGoPlus\Services\FluentCart_Customizer::init();
+
         // 初始化 LINE 訂單通知（下單成功 / 已出貨）
         new \BuyGoPlus\Services\LineOrderNotifier();
 
@@ -211,15 +215,10 @@ class Plugin {
         $dashboard_api = new \BuyGoPlus\Api\Dashboard_API();
         add_action('rest_api_init', array($dashboard_api, 'register_routes'));
 
-        // 初始化 Webhook API
-        $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
-        add_action('rest_api_init', array($webhook_api, 'register_routes'));
-
-        // 註冊 WordPress Cron 處理 LINE webhook 事件（用於非 FastCGI 環境）
-        add_action('buygo_process_line_webhook', function($events) {
-            $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
-            $webhook_handler->process_events($events, false);
-        });
+        // LINE Webhook API 已移除
+        // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
+        // BuyGo Plus One 透過 hook 機制接收事件，不直接處理 webhook
+        // 參考：.planning/debug/line-webhook-integration-failure.md 外掛架構定位
 
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
