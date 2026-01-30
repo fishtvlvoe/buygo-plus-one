@@ -96,7 +96,8 @@ register_deactivation_hook(__FILE__, function () {
 /**
  * Initialize Plugin - 載入外掛
  *
- * 優先級設為 20，確保在其他外掛（如 FluentCRM）載入後才初始化
+ * 優先級設為 10，確保在 buygo-line-notify (優先級 20) 之前初始化
+ * 這樣 LineWebhookHandler 才能在 buygo-line-notify 註冊 webhook endpoint 之前註冊好 hook 監聽器
  */
 add_action('plugins_loaded', function () {
     // 運行時兼容性檢查 - 偵測舊外掛是否被啟用
@@ -104,4 +105,4 @@ add_action('plugins_loaded', function () {
     \BuyGoPlus\PluginCompatibility::runtime_check();
 
     \BuyGoPlus\Plugin::instance()->init();
-}, 20);
+}, 10);

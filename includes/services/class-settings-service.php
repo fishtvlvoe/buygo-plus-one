@@ -648,10 +648,30 @@ class SettingsService
             }
         }
         
-        // 方式 2：從 wp_social_users 表查詢（備用）
+        // 方式 2：從 wp_buygo_line_users 表查詢（buygo-line-notify 外掛專用）
+        global $wpdb;
+        $buygo_line_users_table = $wpdb->prefix . 'buygo_line_users';
+
+        // 檢查 buygo-line-notify 資料表是否存在
+        $buygo_table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $buygo_line_users_table
+        ));
+
+        if ($buygo_table_exists) {
+            $line_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT identifier FROM {$buygo_line_users_table} WHERE user_id = %d AND type = 'line' LIMIT 1",
+                $user_id
+            ));
+
+            if (!empty($line_id)) {
+                return $line_id;
+            }
+        }
+
+        // 方式 3：從 wp_social_users 表查詢（備用）
         // 某些社交登入外掛（如 Super Socializer）會將 UID 儲存在此表
         // 注意：此表的 User ID 欄位名稱是 ID（大寫），不是 user_id
-        global $wpdb;
         $social_users_table = $wpdb->prefix . 'social_users';
         
         // 檢查資料表是否存在
