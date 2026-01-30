@@ -706,11 +706,18 @@ class SettingsPage
                                 <td><?php echo esc_html($user['email']); ?></td>
                                 <td>
                                     <?php if ($user['is_bound']): ?>
-                                        <span style="color: #00a32a;">✅ 已綁定</span>
-                                        <br>
-                                        <code style="font-size: 11px; color: #666;"><?php echo esc_html($user['line_id']); ?></code>
+                                        <div style="display: flex; align-items: flex-start; gap: 4px; max-width: 140px;">
+                                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="已綁定" style="flex-shrink: 0; margin-top: 2px;">
+                                                <circle cx="8" cy="8" r="8" fill="#00a32a"/>
+                                                <path d="M5 8L7 10L11 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            <code style="font-size: 9px; color: #666; line-height: 1.3; word-break: break-all; display: block;"><?php echo esc_html($user['line_id']); ?></code>
+                                        </div>
                                     <?php else: ?>
-                                        <span style="color: #d63638;">❌ 未綁定</span>
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="未綁定">
+                                            <circle cx="8" cy="8" r="8" fill="#d63638"/>
+                                            <path d="M5 5L11 11M11 5L5 11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html($user['role']); ?></td>
@@ -741,7 +748,7 @@ class SettingsPage
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                         <?php if (!$user['is_bound']): ?>
                                             <button type="button" class="button button-secondary send-binding-link" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4;">
-                                                📧 發送綁定連結
+                                                發送綁定連結
                                             </button>
                                         <?php endif; ?>
                                         <?php if (!$user['is_wp_admin']): ?>
