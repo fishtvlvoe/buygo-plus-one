@@ -858,6 +858,17 @@ class Shipments_API
                     $shipment['customer_address'] = '';
                     $shipment['customer_email'] = '';
                 }
+
+                // 取得 LINE 名稱（從 wp_usermeta）
+                $wp_user_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT user_id FROM {$table_customers} WHERE id = %d",
+                    $shipment['customer_id']
+                ));
+                if ($wp_user_id) {
+                    $shipment['line_display_name'] = get_user_meta($wp_user_id, 'buygo_line_display_name', true) ?: '';
+                } else {
+                    $shipment['line_display_name'] = '';
+                }
             }
 
             if (!$shipment) {
