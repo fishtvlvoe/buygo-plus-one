@@ -449,7 +449,8 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		$imageService = \BuygoLineNotify\BuygoLineNotify::image_uploader();
-		$attachment_id = $imageService->download_and_upload( $message_id, $user->ID );
+		// 跳過縮圖生成以加速處理，避免 Reply Token 過期（主機會自動處理縮圖）
+		$attachment_id = $imageService->download_and_upload( $message_id, $user->ID, true );
 
 		if ( is_wp_error( $attachment_id ) ) {
 			$this->logger->log( 'error', array(
