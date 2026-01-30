@@ -50,9 +50,12 @@ class LineWebhookHandler {
 		$this->product_data_parser = new ProductDataParser();
 		$this->logger = WebhookLogger::get_instance();
 
-		// 註冊 Hook：監聽 buygo-line-notify 的 webhook 訊息事件
+		// 註冊 Hook：監聯 buygo-line-notify 的 webhook 訊息事件
+		// 圖片訊息 → 觸發商品圖片上傳流程
 		add_action( 'buygo_line_notify/webhook_message_image', array( $this, 'handleImageUpload' ), 10, 4 );
-		add_action( 'buygo_line_notify/webhook_message', array( $this, 'handleProductInfo' ), 10, 3 );
+		// 文字訊息 → 處理關鍵字回應、命令、商品資訊等
+		add_action( 'buygo_line_notify/webhook_message_text', array( $this, 'handleTextMessage' ), 10, 4 );
+		// Postback 事件 → 處理商品類型選擇（單一/多樣）
 		add_action( 'buygo_line_notify/webhook_postback', array( $this, 'handlePostback' ), 10, 3 );
 	}
 
@@ -137,12 +140,14 @@ class LineWebhookHandler {
 
 		$this->logger->log( 'postback_received', array(
 			'action' => $params['action'] ?? '',
+			'type'   => $params['type'] ?? '',
 			'value'  => $params['value'] ?? '',
 		), $user_id, $line_uid );
 
 		// 處理商品類型選擇
+		// 注意：Flex Message 按鈕使用 'type' 參數（例如 action=product_type&type=simple）
 		if ( isset( $params['action'] ) && $params['action'] === 'product_type' ) {
-			$product_type = $params['value'] ?? 'simple';
+			$product_type = $params['type'] ?? $params['value'] ?? 'simple';
 
 			// 記錄使用者選擇的商品類型
 			update_user_meta( $user_id, 'pending_product_type', $product_type );
@@ -155,6 +160,33 @@ class LineWebhookHandler {
 				'type' => $product_type,
 			), $user_id, $line_uid );
 		}
+	}
+
+	/**
+	 * 處理文字訊息（由 buygo-line-notify 的 webhook_message_text hook 觸發）
+	 *
+	 * 這是處理所有文字訊息的入口點，包含：
+	 * - 關鍵字回應（後台設定的關鍵字模板）
+	 * - 命令處理（/one、/many、/help 等）
+	 * - 綁定碼流程
+	 * - 商品資訊輸入
+	 *
+	 * @param array       $event      LINE Webhook 事件資料
+	 * @param string      $line_uid   LINE User ID
+	 * @param int|null    $user_id    WordPress User ID（未綁定時為 null）
+	 * @param string      $message_id LINE Message ID
+	 * @return void
+	 */
+	public function handleTextMessage( $event, $line_uid, $user_id, $message_id ) {
+		$this->logger->log( 'text_message_hook_received', array(
+			'line_uid'   => $line_uid,
+			'user_id'    => $user_id,
+			'message_id' => $message_id,
+			'text'       => substr( $event['message']['text'] ?? '', 0, 50 ),
+		), $user_id, $line_uid );
+
+		// 呼叫內部的文字訊息處理方法
+		$this->handle_text_message( $event );
 	}
 
 	/**
@@ -477,27 +509,46 @@ class LineWebhookHandler {
 		update_user_meta( $user->ID, 'pending_product_timestamp', time() );
 
 		// 發送商品類型選單 Flex Message
+		// 優先使用後台設定的模板 (flex_image_upload_menu)，如果不存在則使用 LineFlexTemplates 的硬編碼模板
 		$this->logger->log( 'sending_product_type_menu', array(
 			'user_id' => $user->ID,
 			'step' => 'send_reply',
+			'template_key' => 'flex_image_upload_menu',
 		), $user->ID, $line_uid );
 
-		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
-		$flexContents = LineFlexTemplates::getProductTypeMenu();
+		// 嘗試從 NotificationTemplates 系統取得後台設定的模板
+		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'flex_image_upload_menu', [] );
 
-		// 包裝成 Flex Message 格式
-		$flexMessage = array(
-			'type' => 'flex',
-			'altText' => '請選擇商品類型',
-			'contents' => $flexContents,
-		);
+		if ( $template && isset( $template['line']['flex_template'] ) ) {
+			// 使用後台設定的模板
+			$this->logger->log( 'using_custom_template', array(
+				'template_key' => 'flex_image_upload_menu',
+				'source' => 'NotificationTemplates',
+			), $user->ID, $line_uid );
 
-		$result = $messaging->send_reply( $event['replyToken'] ?? '', $flexMessage, $line_uid );
+			$flexMessage = \BuyGoPlus\Services\NotificationTemplates::build_flex_message( $template['line']['flex_template'] );
+		} else {
+			// Fallback: 使用 LineFlexTemplates 的硬編碼模板
+			$this->logger->log( 'using_fallback_template', array(
+				'template_key' => 'flex_image_upload_menu',
+				'source' => 'LineFlexTemplates',
+				'reason' => 'custom_template_not_found',
+			), $user->ID, $line_uid );
 
-		if ( is_wp_error( $result ) ) {
+			$flexContents = LineFlexTemplates::getProductTypeMenu();
+			$flexMessage = array(
+				'type' => 'flex',
+				'altText' => '請選擇商品類型',
+				'contents' => $flexContents,
+			);
+		}
+
+		// 使用 send_reply_via_facade() 以支援 Reply Token 過期時自動切換到 Push API
+		$result = $this->send_reply_via_facade( $event['replyToken'] ?? '', $flexMessage, $line_uid );
+
+		if ( ! $result ) {
 			$this->logger->log( 'error', array(
 				'message' => 'Failed to send product type menu',
-				'error' => $result->get_error_message(),
 			), $user->ID, $line_uid );
 		} else {
 			$this->logger->log( 'product_type_menu_sent', array(
@@ -590,7 +641,9 @@ class LineWebhookHandler {
 
 		switch ( $message_type ) {
 			case 'image':
-				$this->handle_image_message( $event );
+				// 圖片訊息由 buygo-line-notify 的 hook 觸發 handleImageUpload() 處理
+				// 不要在這裡重複處理，避免發送兩次訊息
+				// $this->handle_image_message( $event );
 				break;
 
 			case 'text':
@@ -1225,15 +1278,47 @@ class LineWebhookHandler {
 
 		// 使用 buygo-line-notify 的 LineMessagingService
 		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
-		$result = $messaging->send_reply( $reply_token, $message, $line_uid );
 
-		if ( is_wp_error( $result ) ) {
-			$this->logger->log( 'error', array(
-				'message' => 'Failed to send LINE reply via Facade',
-				'error' => $result->get_error_message(),
-				'action' => 'send_reply_via_facade',
-			), null, $line_uid );
-			return false;
+		// 先嘗試 Reply（如果 Token 有效）
+		$result = false;
+		if ( ! empty( $reply_token ) ) {
+			$result = $messaging->send_reply( $reply_token, $message, $line_uid );
+		}
+
+		// 如果 Reply 失敗（Token 無效或為空），改用 Push Message
+		if ( is_wp_error( $result ) || empty( $reply_token ) ) {
+			if ( is_wp_error( $result ) ) {
+				$this->logger->log( 'reply_failed_fallback_to_push', array(
+					'error' => $result->get_error_message(),
+					'fallback' => 'push_message',
+				), null, $line_uid );
+			}
+
+			// 確保有 LINE UID 才能使用 Push
+			if ( ! empty( $line_uid ) ) {
+				// 將訊息包裝成 LINE 訊息格式
+				$push_message = is_array( $message ) ? $message : array(
+					'type' => 'text',
+					'text' => $message,
+				);
+
+				$result = $messaging->push_message( $line_uid, $push_message );
+
+				if ( is_wp_error( $result ) ) {
+					$this->logger->log( 'error', array(
+						'message' => 'Failed to send LINE message (both reply and push failed)',
+						'error' => $result->get_error_message(),
+						'action' => 'send_reply_via_facade',
+					), null, $line_uid );
+					return false;
+				}
+			} else {
+				$this->logger->log( 'error', array(
+					'message' => 'Cannot send message: no reply token and no LINE UID',
+					'action' => 'send_reply_via_facade',
+				), null, $line_uid );
+				return false;
+			}
 		}
 
 		return $result;
