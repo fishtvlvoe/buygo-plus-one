@@ -18,6 +18,10 @@ class ProductService
 {
     private $debugService;
 
+    // 測試版限制（Phase 19）
+    const MAX_PRODUCTS_PER_SELLER = 2;  // 每個賣家最多 2 個商品
+    const MAX_IMAGES_PER_PRODUCT = 2;   // 每個商品最多 2 張圖片
+
     public function __construct()
     {
         $this->debugService = DebugService::get_instance();
@@ -49,16 +53,15 @@ class ProductService
                 ->with(['product', 'product_detail'])
                 ->where('item_status', 'active');
 
-            // 權限篩選 (暫時移除 post_author 過濾，因為 REST API 的登入狀態不穩定)
-            // 未來可以改用其他方式驗證權限
-            // if ($viewMode === 'frontend') {
-            //     if (!$isAdmin) {
-            //         // 一般賣家：只顯示自己的商品
-            //         $query->whereHas('product', function($q) use ($user) {
-            //             $q->where('post_author', $user->ID);
-            //         });
-            //     }
-            // }
+            // 權限篩選：賣家只能看到自己的商品（Phase 19）
+            if ($viewMode === 'frontend') {
+                if (!$isAdmin) {
+                    // 一般賣家：只顯示自己的商品
+                    $query->whereHas('product', function($q) use ($user) {
+                        $q->where('post_author', $user->ID);
+                    });
+                }
+            }
 
             // 狀態篩選
             if (isset($filters['status']) && $filters['status'] !== 'all') {
@@ -721,5 +724,239 @@ class ProductService
 
         $user = get_userdata($userId);
         return $user ? ($user->display_name ?: $user->user_login) : '';
+    }
+
+    /**
+     * 取得商品的 Variation 列表
+     *
+     * @param int $productId WordPress Post ID (不是 variation ID)
+     * @return array Variation 列表
+     */
+    public function getVariations(int $productId): array
+    {
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'fct_product_variations';
+
+            $variations = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, variation_title, item_price, total_stock, available, stock_status, media_id
+                 FROM {$table}
+                 WHERE post_id = %d AND item_status = 'active'
+                 ORDER BY id ASC",
+                $productId
+            ), ARRAY_A);
+
+            // 轉換價格單位（分 → 元）並取得圖片 URL
+            foreach ($variations as &$v) {
+                $v['price'] = $v['item_price'] / 100;
+                unset($v['item_price']);
+
+                // 取得 variation 的圖片 URL
+                $v['image'] = null;
+                if (!empty($v['media_id'])) {
+                    $imageUrl = wp_get_attachment_image_url((int)$v['media_id'], 'medium');
+                    $v['image'] = $imageUrl ?: null;
+                }
+                unset($v['media_id']); // 移除 media_id，只保留 image URL
+            }
+
+            return $variations;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得 Variations 失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [];
+        }
+    }
+
+    /**
+     * 取得 Variation 的統計資料
+     *
+     * @param int $variationId ProductVariation ID
+     * @return array 統計資料
+     */
+    public function getVariationStats(int $variationId): array
+    {
+        try {
+            // 計算下單數量（只計算父訂單）
+            $orderCounts = $this->calculateOrderCounts([$variationId]);
+            $ordered = $orderCounts[$variationId] ?? 0;
+
+            // 計算已分配數量（從子訂單計算）
+            $allocatedCounts = $this->calculateAllocatedToChildOrders([$variationId]);
+            $allocated = $allocatedCounts[$variationId] ?? 0;
+
+            // 計算已出貨數量
+            $shippedCounts = $this->calculateShippedCounts([$variationId]);
+            $shipped = $shippedCounts[$variationId] ?? 0;
+
+            // 取得已採購數量（從 variation meta）
+            $variation = ProductVariation::find($variationId);
+            $purchased = 0;
+            if ($variation) {
+                // 從 variation meta 讀取（而不是 post meta）
+                $purchased = (int) get_metadata('fluent_cart_variation', $variationId, '_buygo_purchased', true);
+            }
+
+            return [
+                'ordered' => $ordered,
+                'allocated' => $allocated,
+                'shipped' => $shipped,
+                'purchased' => $purchased,
+                'pending' => max(0, $allocated - $shipped),
+                'reserved' => max(0, $ordered - $purchased)
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '取得 Variation 統計失敗', [
+                'variation_id' => $variationId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [
+                'ordered' => 0,
+                'allocated' => 0,
+                'shipped' => 0,
+                'purchased' => 0,
+                'pending' => 0,
+                'reserved' => 0
+            ];
+        }
+    }
+
+    /**
+     * 檢查商品是否為多樣式商品
+     *
+     * @param int $productId WordPress Post ID
+     * @return bool
+     */
+    public function isVariableProduct(int $productId): bool
+    {
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'fct_product_variations';
+
+            $count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table}
+                 WHERE post_id = %d AND item_status = 'active'",
+                $productId
+            ));
+
+            return (int)$count > 1;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductService', '檢查 Variable Product 失敗', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return false;
+        }
+    }
+
+    /**
+     * 檢查賣家是否可以新增商品（Phase 19）
+     *
+     * @param int $user_id 賣家 ID
+     * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
+     */
+    public function canAddProduct($user_id) {
+        // 檢查賣家類型
+        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
+
+        // 真實賣家沒有限制
+        if ($seller_type === 'real') {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '真實賣家無商品數量限制'
+            ];
+        }
+
+        // 取得自訂的商品限制數量 (0 = 無限制)
+        $product_limit = get_user_meta($user_id, 'buygo_product_limit', true);
+        if ($product_limit === '') {
+            $product_limit = self::MAX_PRODUCTS_PER_SELLER; // 預設為 2
+        }
+        $product_limit = intval($product_limit);
+
+        // 如果限制為 0,表示無限制
+        if ($product_limit === 0) {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '測試賣家（無商品數量限制）'
+            ];
+        }
+
+        // 測試賣家：查詢現有商品數量
+        $count = Product::where('post_author', $user_id)
+            ->where('post_status', '!=', 'trash')
+            ->count();
+
+        $can_add = $count < $product_limit;
+
+        return [
+            'can_add' => $can_add,
+            'current' => $count,
+            'limit' => $product_limit,
+            'message' => $can_add
+                ? sprintf('還可新增 %d 個商品', $product_limit - $count)
+                : sprintf('已達商品數量上限（%d/%d）', $count, $product_limit)
+        ];
+    }
+
+    /**
+     * 檢查商品是否可以新增圖片（Phase 19）
+     *
+     * @param int $product_id 商品 ID (wp_posts.ID)
+     * @param int $user_id 賣家 ID
+     * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
+     */
+    public function canAddImage($product_id, $user_id) {
+        // 檢查賣家類型
+        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
+
+        // 真實賣家沒有限制
+        if ($seller_type === 'real') {
+            return [
+                'can_add' => true,
+                'current' => 0,
+                'limit' => 0,
+                'message' => '真實賣家無圖片數量限制'
+            ];
+        }
+
+        // 測試賣家：計算現有圖片數量
+        $image_count = 0;
+
+        // 1. 縮圖
+        $thumbnail_id = get_post_thumbnail_id($product_id);
+        if ($thumbnail_id) {
+            $image_count++;
+        }
+
+        // 2. Gallery 圖片
+        $gallery = get_post_meta($product_id, '_product_image_gallery', true);
+        if (!empty($gallery)) {
+            $gallery_ids = explode(',', $gallery);
+            $image_count += count($gallery_ids);
+        }
+
+        $can_add = $image_count < self::MAX_IMAGES_PER_PRODUCT;
+
+        return [
+            'can_add' => $can_add,
+            'current' => $image_count,
+            'limit' => self::MAX_IMAGES_PER_PRODUCT,
+            'message' => $can_add
+                ? sprintf('還可新增 %d 張圖片', self::MAX_IMAGES_PER_PRODUCT - $image_count)
+                : sprintf('已達圖片數量上限（%d/%d）', $image_count, self::MAX_IMAGES_PER_PRODUCT)
+        ];
     }
 }

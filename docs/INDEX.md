@@ -42,6 +42,7 @@ docs/
 ├── testing/                    # 測試相關
 │   ├── TESTING.md              # 測試指南
 │   ├── TESTING-CHECKLIST.md    # 測試檢查清單
+│   ├── INTEGRATION-TESTING.md  # 整合測試指南（buygo-line-notify）
 │   └── WEBHOOK_TEST_MODE.md    # Webhook 測試模式
 │
 └── reference/                  # 參考資料
@@ -72,6 +73,7 @@ docs/
 ### 測試相關
 1. [TESTING-CHECKLIST.md](testing/TESTING-CHECKLIST.md) - 測試檢查清單
 2. [TESTING.md](testing/TESTING.md) - 測試指南
+3. [INTEGRATION-TESTING.md](testing/INTEGRATION-TESTING.md) - 整合測試指南（buygo-line-notify）
 
 ---
 

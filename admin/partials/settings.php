@@ -12,59 +12,31 @@
 }
 </style>
 <?php
+// 設定 Header 參數
+$header_title = '設定';
+$header_breadcrumb = '<a href="/buygo-portal/dashboard">首頁</a>
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+<span class="active">設定</span>';
+$show_currency_toggle = false;
+
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
+
 $settings_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
-    <!-- Header（與其他頁面一致） -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
-        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">設定</h1>
-                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
-                    <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    <span class="text-slate-900 font-medium">設定</span>
-                </nav>
-            </div>
-        </div>
+HTML;
 
-        <!-- 右側操作區 -->
-        <div class="flex items-center gap-2 md:gap-3 shrink-0">
-            <!-- 手機版搜尋按鈕 -->
-            <button @click="showMobileSearch = !showMobileSearch"
-                class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </button>
+// 將 Header 加入模板
+$settings_component_template .= $header_html;
 
-            <!-- 桌面版全域搜尋框 -->
-            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
-                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
-                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
-                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
+$settings_component_template .= <<<'HTML'
 
-            <!-- 通知鈴鐺 -->
-            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            </button>
-        </div>
-
-        <!-- 手機版搜尋覆蓋層 -->
-        <transition name="search-slide">
-            <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
-                <div class="relative flex-1">
-                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
-                        class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-                <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
-            </div>
-        </transition>
-    </header>
-
-    <!-- 設定內容容器 -->
-    <div class="p-6">
+    <!-- 設定內容容器（標準化佈局，對齊 Orders 頁面） -->
+    <div class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
         <!-- 模板設定 -->
-        <div class="buygo-card p-6 mb-6">
+        <div class="buygo-card p-6">
             <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -293,7 +265,7 @@ $settings_component_template = <<<'HTML'
                             <div class="mb-4 flex justify-end">
                                 <button
                                     @click="showAddKeywordModal = true"
-                                    class="buygo-btn buygo-btn-primary">
+                                    class="btn btn-primary">
                                     + 新增關鍵字
                                 </button>
                             </div>
@@ -417,12 +389,12 @@ $settings_component_template = <<<'HTML'
                                                     <div class="flex justify-end gap-2">
                                                         <button
                                                             @click="cancelKeywordEdit(keyword.id)"
-                                                            class="buygo-btn buygo-btn-secondary">
+                                                            class="btn btn-secondary">
                                                             取消
                                                         </button>
                                                         <button
                                                             @click="saveKeyword(keyword.id)"
-                                                            class="buygo-btn buygo-btn-primary">
+                                                            class="btn btn-primary">
                                                             儲存
                                                         </button>
                                                     </div>
@@ -602,7 +574,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="saveTemplates"
                     :disabled="savingTemplates"
-                    class="buygo-btn buygo-btn-primary">
+                    class="btn btn-primary">
                     <span v-if="savingTemplates">儲存中...</span>
                     <span v-else>儲存</span>
                 </button>
@@ -622,7 +594,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="memberView = 'add'"
                     v-if="memberView === 'list'"
-                    class="buygo-btn buygo-btn-primary flex items-center">
+                    class="btn btn-primary flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
@@ -633,7 +605,7 @@ $settings_component_template = <<<'HTML'
                 <button
                     @click="memberView = 'list'; userSearchQuery = ''; userSearchResults = []; showRecentUsers = false"
                     v-if="memberView === 'add'"
-                    class="buygo-btn buygo-btn-secondary flex items-center">
+                    class="btn btn-secondary flex items-center">
                     <svg class="w-4 h-4 md:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
@@ -746,7 +718,7 @@ $settings_component_template = <<<'HTML'
                         <button
                             @click="searchUsers"
                             :disabled="!userSearchQuery"
-                            class="buygo-btn buygo-btn-primary px-4">
+                            class="btn btn-primary">
                             搜尋
                         </button>
                     </div>
@@ -885,12 +857,12 @@ $settings_component_template = <<<'HTML'
             <div class="p-6 border-t border-slate-200 flex justify-end gap-2">
                 <button
                     @click="showAddKeywordModal = false"
-                    class="buygo-btn buygo-btn-secondary">
+                    class="btn btn-secondary">
                     取消
                 </button>
                 <button
                     @click="addKeywordFromModal"
-                    class="buygo-btn buygo-btn-primary">
+                    class="btn btn-primary">
                     新增
                 </button>
             </div>
@@ -2084,6 +2056,7 @@ const SettingsPageComponent = {
         });
         
         return {
+            wpNonce,
             activeTemplateTab,
             templateTabs,
             templateEdits,

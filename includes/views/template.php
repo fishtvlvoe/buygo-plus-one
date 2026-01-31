@@ -36,8 +36,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Design System CSS (基於 UI/UX Pro Max 建議 + Demo 設計稿) -->
-    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/assets/design-system.css'); ?>">
+    <!-- Design System CSS (統一設計系統 - 2026-01-27) -->
+    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'design-system/index.css'); ?>">
 
     <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
@@ -53,25 +53,16 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     </style>
 </head>
 <body class="bg-slate-50">
-    <div id="buygo-app">
-        <!-- 載入新版側邊欄組件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
+    <div id="buygo-app"></div>
 
-        <!-- 載入智慧搜尋框元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
+    <!-- 載入組件定義 -->
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
+    <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
 
-        <!-- 載入 PageHeader 元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
-
-        <!-- 載入分頁元件 -->
-        <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
-
-        <!-- 主內容區 -->
-        <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
-            <!-- 頁面內容容器（由 Vue 動態渲染） -->
-            <div id="page-content"></div>
-        </div>
-    </div>
+    <!-- 獨立 Header 元件 (Vue Component) -->
+    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'components/shared/header-component.js'); ?>"></script>
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -113,7 +104,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             'shipment-details' => 'ShipmentDetailsPageComponent',
             'customers' => 'CustomersPageComponent',
             'settings' => 'SettingsPageComponent',
-            'dashboard' => null
+            'dashboard' => 'DashboardPageComponent',
+            'search' => 'SearchPageComponent'
         ];
         $page_component_name = $component_map[$current_page] ?? null;
     }
@@ -127,6 +119,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         components: {
             NewSidebar: NewSidebarComponent,
             PageHeader: PageHeader,
+            'page-header-component': PageHeaderComponent,
             SmartSearchBox: BuyGoSmartSearchBox<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
         },
         data() {
@@ -134,10 +127,19 @@ $current_page = get_query_var('buygo_page', 'dashboard');
                 currentPage: '<?php echo esc_js($current_page); ?>'
             }
         },
+        methods: {
+            handleGlobalSearchSelect(item) {
+                // 根據類型導向不同頁面
+                if (item.url) {
+                    window.location.href = item.url;
+                }
+            }
+        },
         template: `
             <div>
                 <NewSidebar :currentPage="currentPage" />
                 <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
+                    <!-- 頁面內容 -->
                     <?php if ($page_component_name): ?>
                     <PageContent />
                     <?php else: ?>
@@ -152,6 +154,9 @@ $current_page = get_query_var('buygo_page', 'dashboard');
             </div>
         `
     });
+
+    // 全域註冊 Header 元件（讓所有頁面元件都能使用）
+    app.component('page-header-component', PageHeaderComponent);
 
     app.mount('#buygo-app');
     </script>

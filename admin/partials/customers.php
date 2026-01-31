@@ -7,65 +7,28 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 <!-- Customers Page Styles -->
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/customers.css', __FILE__)); ?>" />
 <?php
+// 設定 Header 參數
+$header_title = '客戶';
+$header_breadcrumb = '<a href="/buygo-portal/dashboard" class="">首頁</a>
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+<span class="active">客戶</span>
+<span v-if="currentView === \'detail\'" class="text-slate-300">/</span>
+<span v-if="currentView === \'detail\'" class="text-primary font-medium truncate">詳情 #{{ currentCustomerId }}</span>';
+$show_currency_toggle = true;
+
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
+
 $customers_component_template = <<<'HTML'
 <main class="min-h-screen bg-slate-50">
+HTML;
 
-    <!-- ============================================ -->
-    <!-- 頁首部分 -->
-    <!-- ============================================ -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 md:static relative">
-        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-            <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">客戶</h1>
-                <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
-                    <a href="/buygo-portal/dashboard" class="text-slate-500 hover:text-primary">首頁</a>
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    <span class="text-slate-900 font-medium">客戶</span>
-                    <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
-                    <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentCustomerId }}</span>
-                </nav>
-            </div>
-        </div>
+// 將 Header 加入模板
+$customers_component_template .= $header_html;
 
-        <!-- 右側操作區 -->
-        <div class="flex items-center gap-2 md:gap-3 shrink-0">
-            <!-- 手機版搜尋按鈕 -->
-            <button @click="showMobileSearch = !showMobileSearch"
-                class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </button>
-
-            <!-- 桌面版全域搜尋框 -->
-            <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
-                <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
-                    class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
-                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-
-            <!-- 通知鈴鐺 -->
-            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            </button>
-
-            <!-- 幣別切換 -->
-            <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
-                {{ displayCurrency }}
-            </button>
-        </div>
-
-        <!-- 手機版搜尋覆蓋層 -->
-        <transition name="search-slide">
-            <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
-                <div class="relative flex-1">
-                    <input type="text" placeholder="全域搜尋..." v-model="globalSearchQuery" @input="handleGlobalSearch"
-                        class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-                <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
-            </div>
-        </transition>
-    </header>
-    <!-- 結束：頁首部分 -->
+$customers_component_template .= <<<'HTML'
 
     <!-- ============================================ -->
     <!-- 內容區域 -->
@@ -101,10 +64,10 @@ $customers_component_template = <<<'HTML'
         <!-- Content -->
         <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="data-table">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50 border-b border-slate-200">
+                    <table>
+                        <thead>
                             <tr>
                                 <th class="px-4 py-4 w-12 text-center"><input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></th>
                                 <th class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">客戶</th>
@@ -113,8 +76,8 @@ $customers_component_template = <<<'HTML'
                                 <th class="px-2 py-4 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-slate-100">
-                            <tr v-for="customer in customers" :key="customer.id" class="hover:bg-slate-50 transition">
+                        <tbody>
+                            <tr v-for="customer in customers" :key="customer.id">
                                 <td class="px-4 py-4 text-center"><input type="checkbox" :value="customer.id" v-model="selectedItems" class="rounded border-slate-300 text-primary w-4 h-4 cursor-pointer"></td>
                                 <td class="px-4 py-4">
                                     <div class="flex items-center gap-3 min-w-0">
@@ -123,16 +86,22 @@ $customers_component_template = <<<'HTML'
                                             <div class="text-sm font-bold text-slate-900 hover:text-primary hover:underline transition-colors cursor-pointer truncate" @click="navigateTo('detail', customer.id)">
                                                 {{ customer.full_name || '-' }}
                                             </div>
+                                            <div v-if="customer.line_display_name" class="text-xs text-green-600 mt-0.5 truncate flex items-center gap-1">
+                                                <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                                                </svg>
+                                                {{ customer.line_display_name }}
+                                            </div>
                                             <div class="text-xs text-slate-500 mt-0.5 truncate">{{ customer.phone || '-' }}</div>
                                             <div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ customer.email || '-' }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-2 py-4 text-center text-sm text-slate-600">{{ customer.order_count || 0 }}</td>
-                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</td>
+                                <td class="px-2 py-4 text-right text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, 'JPY') }}</td>
                                 <td class="px-2 py-4 text-center">
-                                    <button @click="navigateTo('detail', customer.id)" class="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark text-xs font-medium rounded-lg transition whitespace-nowrap">
-                                        查看詳情
+                                    <button @click="navigateTo('detail', customer.id)" class="btn btn-primary">
+                                        查看
                                     </button>
                                 </td>
                             </tr>
@@ -142,10 +111,16 @@ $customers_component_template = <<<'HTML'
             </div> <!-- End desktop table -->
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4 md:space-y-6">
-                <div v-for="customer in customers" :key="customer.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
+            <div class="card-list">
+                <div v-for="customer in customers" :key="customer.id" class="card">
                     <div class="mb-3">
                         <div class="text-base font-bold text-slate-900 mb-1">{{ customer.full_name || '-' }}</div>
+                        <div v-if="customer.line_display_name" class="text-sm text-green-600 mb-1 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                            </svg>
+                            {{ customer.line_display_name }}
+                        </div>
                         <div class="text-sm text-slate-600 mb-1">{{ customer.phone || '-' }}</div>
                         <div class="flex items-center justify-between mt-2">
                             <div>
@@ -154,37 +129,37 @@ $customers_component_template = <<<'HTML'
                             </div>
                             <div>
                                 <div class="text-xs text-slate-500">總消費</div>
-                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, systemCurrency) }}</div>
+                                <div class="text-sm font-semibold text-slate-900">{{ formatPrice(customer.total_spent || 0, 'JPY') }}</div>
                             </div>
                         </div>
                     </div>
-                    <button @click="navigateTo('detail', customer.id)" class="w-full buygo-btn buygo-btn-primary">
-                        查看詳情
+                    <button @click="navigateTo('detail', customer.id)" class="w-full btn btn-primary">
+                        查看
                     </button>
                 </div>
             </div> <!-- End mobile cards -->
 
             <!-- 統一分頁樣式 -->
-            <div v-if="totalCustomers > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
-                <div class="text-sm text-slate-700 text-center sm:text-left">
+            <div class="pagination-container" v-if="totalCustomers > 0">
+                <div class="pagination-info">
                     顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalCustomers : Math.min(currentPage * perPage, totalCustomers) }}</span> 筆，共 <span class="font-medium">{{ totalCustomers }}</span> 筆
                 </div>
-                <div class="flex items-center gap-3">
-                    <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                <div class="pagination-controls">
+                    <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
                         <option :value="5">5 筆</option>
                         <option :value="10">10 筆</option>
                         <option :value="20">20 筆</option>
                         <option :value="50">50 筆</option>
                     </select>
-                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <nav class="pagination-nav" aria-label="Pagination">
+                        <button @click="previousPage" :disabled="currentPage === 1" class="pagination-button first">
                             <span class="sr-only">上一頁</span>
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['pagination-button page', { 'active': p === currentPage }]">
                             {{ p }}
                         </button>
-                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button last">
                             <span class="sr-only">下一頁</span>
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                         </button>
@@ -365,6 +340,28 @@ $customers_component_template = <<<'HTML'
                                     </div>
                                 </div>
 
+                                <!-- LINE 名稱 -->
+                                <div v-if="selectedCustomer.line_display_name" class="bg-green-50 rounded-lg p-3 border border-green-200">
+                                    <span class="text-xs text-green-600 block mb-1 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                                        </svg>
+                                        LINE 名稱
+                                    </span>
+                                    <div class="text-sm font-medium text-green-800">{{ selectedCustomer.line_display_name }}</div>
+                                </div>
+
+                                <!-- 身分證字號 -->
+                                <div v-if="selectedCustomer.taiwan_id_number" class="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                                    <span class="text-xs text-amber-600 block mb-1 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                                        </svg>
+                                        身分證字號
+                                    </span>
+                                    <div class="text-sm font-medium text-amber-800 font-mono">{{ selectedCustomer.taiwan_id_number }}</div>
+                                </div>
+
                                 <div class="bg-slate-50 rounded-lg p-3">
                                     <span class="text-xs text-slate-500 block mb-1">Email</span>
                                     <div class="text-sm font-medium text-slate-900 break-all">{{ selectedCustomer.email || '-' }}</div>
@@ -383,7 +380,7 @@ $customers_component_template = <<<'HTML'
                                     </div>
                                     <div class="bg-green-50 rounded-lg p-4 text-center">
                                         <span class="text-xs text-green-600 block mb-1">總消費</span>
-                                        <div class="text-2xl font-bold text-green-700">{{ formatPrice(selectedCustomer.total_spent || 0, displayCurrency) }}</div>
+                                        <div class="text-2xl font-bold text-green-700">{{ formatPrice(selectedCustomer.total_spent || 0, 'JPY') }}</div>
                                     </div>
                                 </div>
                             </div>

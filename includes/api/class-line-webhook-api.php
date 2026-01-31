@@ -65,7 +65,22 @@ class Line_Webhook_API {
 		$body = $request->get_body();
 		$data = json_decode( $body, true );
 
+		// 詳細記錄請求體內容以診斷空事件問題
+		$logger->log( 'webhook_body_parsed', array(
+			'body_length' => strlen( $body ),
+			'body_preview' => substr( $body, 0, 500 ), // 記錄前 500 字元
+			'json_decode_success' => is_array( $data ),
+			'has_events' => isset( $data['events'] ),
+			'events_count' => isset( $data['events'] ) ? count( $data['events'] ) : 0,
+			'data_keys' => is_array( $data ) ? array_keys( $data ) : null,
+			'json_last_error' => json_last_error_msg(),
+		) );
+
 		if ( ! isset( $data['events'] ) ) {
+			$logger->log( 'webhook_no_events', array(
+				'reason' => 'No events array in webhook data',
+				'data_structure' => is_array( $data ) ? array_keys( $data ) : gettype( $data ),
+			) );
 			return rest_ensure_response( array( 'success' => false ) );
 		}
 
@@ -89,10 +104,11 @@ class Line_Webhook_API {
 			// 然後再調用 fastcgi_finish_request 在背景處理事件
 
 			// 使用 shutdown hook 在背景處理
-			add_action( 'shutdown', function() use ( $data ) {
+			$webhook_handler = $this->webhook_handler; // 避免閉包中 $this 上下文丟失
+			add_action( 'shutdown', function() use ( $data, $webhook_handler ) {
 				if ( function_exists( 'fastcgi_finish_request' ) ) {
 					fastcgi_finish_request();
-					$this->webhook_handler->process_events( $data['events'], false );
+					$webhook_handler->process_events( $data['events'], false );
 				}
 			} );
 		} else {
@@ -114,10 +130,27 @@ class Line_Webhook_API {
 		$logger = \BuyGoPlus\Services\WebhookLogger::get_instance();
 		$signature = $request->get_header( 'x-line-signature' );
 
+		// 嘗試多種方式獲取簽名 header
+		$signature_alternatives = array(
+			'x-line-signature' => $request->get_header( 'x-line-signature' ),
+			'X-LINE-Signature' => $request->get_header( 'X-LINE-Signature' ),
+			'X-Line-Signature' => $request->get_header( 'X-Line-Signature' ),
+			'HTTP_X_LINE_SIGNATURE' => isset( $_SERVER['HTTP_X_LINE_SIGNATURE'] ) ? $_SERVER['HTTP_X_LINE_SIGNATURE'] : null,
+		);
+
+		// 使用第一個非空的簽名
+		foreach ( $signature_alternatives as $key => $value ) {
+			if ( ! empty( $value ) ) {
+				$signature = $value;
+				break;
+			}
+		}
+
 		// 記錄所有 webhook 請求（包括失敗的）
 		$logger->log( 'webhook_request_received', array(
 			'has_signature' => ! empty( $signature ),
 			'signature_preview' => $signature ? substr( $signature, 0, 20 ) . '...' : null,
+			'signature_alternatives' => $signature_alternatives,
 			'request_method' => $request->get_method(),
 			'content_type' => $request->get_header( 'Content-Type' ),
 		) );

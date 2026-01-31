@@ -1,0 +1,65 @@
+/**
+ * Card Component
+ * 卡片組件樣式 - 手機版專用
+ */
+
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--current-card-padding);
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  border-color: var(--color-hover-border);
+}
+
+.card-list {
+  display: none;  /* Hidden on desktop */
+  flex-direction: column;
+  gap: var(--current-section-gap);
+}
+
+.card-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-1);
+}
+
+.card-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-slate-600);
+  margin-bottom: var(--spacing-1);
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-2);
+}
+
+.card-meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-meta-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.card-meta-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+/* Mobile only - show on mobile */
+@media (max-width: 767px) {
+  .card-list {
+    display: flex;
+  }
+}

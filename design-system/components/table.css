@@ -1,0 +1,77 @@
+/**
+ * Table Component
+ * 表格組件樣式 - 桌面版專用
+ */
+
+.data-table {
+  width: 100%;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.data-table table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background-color: var(--color-slate-50);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table thead th {
+  padding: 1rem;  /* px-4 py-4 */
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-slate-500);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  white-space: nowrap;
+}
+
+.data-table thead th.text-center {
+  text-align: center;
+}
+
+.data-table thead th.text-right {
+  text-align: right;
+}
+
+.data-table tbody {
+  background-color: white;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--color-slate-100);
+  transition: background-color var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.data-table tbody td {
+  padding: 1rem;  /* px-4 py-4 */
+  font-size: var(--font-size-sm);
+  color: var(--color-slate-600);
+}
+
+.data-table tbody td.text-center {
+  text-align: center;
+}
+
+.data-table tbody td.text-right {
+  text-align: right;
+}
+
+/* Desktop only - hide on mobile */
+@media (max-width: 767px) {
+  .data-table {
+    display: none;
+  }
+}

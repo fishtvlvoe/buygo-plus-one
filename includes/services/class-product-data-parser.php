@@ -41,7 +41,7 @@ class ProductDataParser {
 	 * 解析訊息
 	 *
 	 * @param string $message 訊息內容
-	 * @return array|WP_Error
+	 * @return array|WP_Error 回傳格式: ['type' => 'simple|variable', 'data' => [...], 'variations' => [...]]
 	 */
 	public function parse( $message ) {
 		$this->debug_service->log( 'ProductDataParser', '開始解析產品資料', array(
@@ -54,60 +54,43 @@ class ProductDataParser {
 				throw new \Exception( '訊息內容不能為空' );
 			}
 
-			$data = array();
+			// 解析原始文字為 key-value 陣列
+			$rawData = $this->parseRawText( $message );
 
-			// 分割訊息為多行
-			$lines = explode( "\n", trim( $message ) );
+			// 判斷是否為多樣式商品
+			$isMultiVariation = $this->isMultiVariation( $rawData );
 
-			// 第一行為商品名稱
-			if ( ! empty( $lines[0] ) ) {
-				$data['name'] = trim( $lines[0] );
+			// 根據類型解析商品資料
+			if ( $isMultiVariation ) {
+				// 多樣式商品
+				$result = array(
+					'type' => 'variable',
+					'data' => $this->parseSimpleProduct( $rawData ), // 主商品資料
+					'variations' => $this->parseVariations( $rawData ), // 樣式陣列
+				);
+			} else {
+				// 單一商品
+				$result = array(
+					'type' => 'simple',
+					'data' => $this->parseSimpleProduct( $rawData ),
+				);
 			}
 
-			// 解析其他欄位
-			foreach ( $lines as $line ) {
-				$this->parse_line( $line, $data );
-			}
-
-			// 如果有多個數量、價格或原價，在解析完成後分配給 variations
-			// 這樣可以確保即使這些欄位在分類之後解析，也能正確分配
-			if ( ! empty( $data['variations'] ) && is_array( $data['variations'] ) ) {
-				// 分配數量
-				if ( ! empty( $data['quantities'] ) ) {
-					foreach ( $data['variations'] as $index => $variation ) {
-						if ( isset( $data['quantities'][ $index ] ) ) {
-							$data['variations'][ $index ]['quantity'] = $data['quantities'][ $index ];
-						}
-					}
-				}
-
-				// 分配價格
-				if ( ! empty( $data['prices'] ) ) {
-					foreach ( $data['variations'] as $index => $variation ) {
-						if ( isset( $data['prices'][ $index ] ) ) {
-							$data['variations'][ $index ]['price'] = $data['prices'][ $index ];
-						}
-					}
-				}
-
-				// 分配原價
-				if ( ! empty( $data['compare_prices'] ) ) {
-					foreach ( $data['variations'] as $index => $variation ) {
-						if ( isset( $data['compare_prices'][ $index ] ) ) {
-							$data['variations'][ $index ]['compare_price'] = $data['compare_prices'][ $index ];
-						}
-					}
-				}
-			}
-
-			$this->debug_service->log( 'ProductDataParser', '解析成功', array(
-				'product_name' => $data['name'] ?? '',
-				'price' => $data['price'] ?? 0,
-				'has_variations' => ! empty( $data['variations'] ),
-				'variation_count' => ! empty( $data['variations'] ) ? count( $data['variations'] ) : 0
+			// 為了向後相容,保留舊格式(扁平結構)
+			$legacyFormat = array_merge( $rawData, array(
+				'type' => $result['type'],
 			) );
 
-			return $data;
+			$this->debug_service->log( 'ProductDataParser', '解析成功', array(
+				'product_name' => $rawData['name'] ?? '',
+				'price' => $rawData['price'] ?? 0,
+				'type' => $result['type'],
+				'has_variations' => ! empty( $rawData['variations'] ),
+				'variation_count' => ! empty( $rawData['variations'] ) ? count( $rawData['variations'] ) : 0
+			) );
+
+			// 回傳舊格式以保持向後相容
+			return $legacyFormat;
 
 		} catch ( \Exception $e ) {
 			$this->debug_service->log( 'ProductDataParser', '解析失敗', array(
@@ -118,6 +101,199 @@ class ProductDataParser {
 
 			return new \WP_Error( 'parse_failed', '解析失敗：' . $e->getMessage() );
 		}
+	}
+
+	/**
+	 * 解析原始文字為 key-value 陣列
+	 *
+	 * @param string $text 原始訊息文字
+	 * @return array 解析後的 key-value 陣列
+	 */
+	private function parseRawText( $text ) {
+		$data = array();
+
+		// 分割訊息為多行
+		$lines = explode( "\n", trim( $text ) );
+
+		// 第一行為商品名稱
+		if ( ! empty( $lines[0] ) ) {
+			$data['name'] = trim( $lines[0] );
+		}
+
+		// 解析其他欄位
+		foreach ( $lines as $line ) {
+			$this->parse_line( $line, $data );
+		}
+
+		// 如果有多個數量、價格或原價，在解析完成後分配給 variations
+		// 這樣可以確保即使這些欄位在分類之後解析，也能正確分配
+		if ( ! empty( $data['variations'] ) && is_array( $data['variations'] ) ) {
+			// 分配數量
+			if ( ! empty( $data['quantities'] ) ) {
+				foreach ( $data['variations'] as $index => $variation ) {
+					if ( isset( $data['quantities'][ $index ] ) ) {
+						$data['variations'][ $index ]['quantity'] = $data['quantities'][ $index ];
+					}
+				}
+			}
+
+			// 分配價格
+			if ( ! empty( $data['prices'] ) ) {
+				foreach ( $data['variations'] as $index => $variation ) {
+					if ( isset( $data['prices'][ $index ] ) ) {
+						$data['variations'][ $index ]['price'] = $data['prices'][ $index ];
+					}
+				}
+			}
+
+			// 分配原價
+			if ( ! empty( $data['compare_prices'] ) ) {
+				foreach ( $data['variations'] as $index => $variation ) {
+					if ( isset( $data['compare_prices'][ $index ] ) ) {
+						$data['variations'][ $index ]['compare_price'] = $data['compare_prices'][ $index ];
+					}
+				}
+			}
+		}
+
+		return $data;
+	}
+
+	/**
+	 * 判斷是否為多樣式商品
+	 *
+	 * 檢查「日幣」或「數量」欄位是否包含 / 分隔符
+	 *
+	 * @param array $rawData 原始解析資料
+	 * @return bool true: 多樣式, false: 單一商品
+	 */
+	public function isMultiVariation( $rawData ) {
+		// 檢查是否已經標記為多樣式 (parse_line 中設定的 is_variable)
+		if ( ! empty( $rawData['is_variable'] ) ) {
+			return true;
+		}
+
+		// 檢查是否有 variations 陣列
+		if ( ! empty( $rawData['variations'] ) && is_array( $rawData['variations'] ) ) {
+			return true;
+		}
+
+		// 檢查價格和數量欄位是否包含 /
+		$price = $rawData['日幣'] ?? $rawData['price'] ?? '';
+		$quantity = $rawData['數量'] ?? $rawData['quantity'] ?? '';
+
+		if ( is_string( $price ) && strpos( $price, '/' ) !== false ) {
+			return true;
+		}
+
+		if ( is_string( $quantity ) && strpos( $quantity, '/' ) !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * 解析單一商品資料
+	 *
+	 * @param array $rawData 原始解析資料
+	 * @return array 商品資料
+	 */
+	public function parseSimpleProduct( $rawData ) {
+		$product = array(
+			'name' => $rawData['name'] ?? '',
+			'price' => $rawData['price'] ?? 0,
+			'currency' => $rawData['currency'] ?? 'TWD',
+		);
+
+		// 可選欄位
+		if ( ! empty( $rawData['compare_price'] ) ) {
+			$product['original_price'] = $rawData['compare_price'];
+		}
+
+		if ( isset( $rawData['quantity'] ) ) {
+			$product['quantity'] = $rawData['quantity'];
+		}
+
+		if ( ! empty( $rawData['category'] ) ) {
+			$product['category'] = $rawData['category'];
+		}
+
+		if ( ! empty( $rawData['arrival_date'] ) ) {
+			$product['arrival_date'] = $rawData['arrival_date'];
+		}
+
+		if ( ! empty( $rawData['preorder_date'] ) ) {
+			$product['preorder_date'] = $rawData['preorder_date'];
+		}
+
+		if ( ! empty( $rawData['description'] ) ) {
+			$product['description'] = $rawData['description'];
+		}
+
+		return $product;
+	}
+
+	/**
+	 * 解析多樣式商品資料
+	 *
+	 * @param array $rawData 原始解析資料
+	 * @return array variations 陣列
+	 */
+	public function parseVariations( $rawData ) {
+		// 如果已經有 variations 陣列,直接回傳
+		if ( ! empty( $rawData['variations'] ) && is_array( $rawData['variations'] ) ) {
+			return $rawData['variations'];
+		}
+
+		// 否則嘗試從分類欄位解析
+		$category = $rawData['分類'] ?? $rawData['category'] ?? '';
+		if ( empty( $category ) || strpos( $category, '/' ) === false ) {
+			return array();
+		}
+
+		// 分割分類為樣式名稱
+		$names = explode( '/', $category );
+		$prices = ! empty( $rawData['prices'] ) ? $rawData['prices'] : array();
+		$quantities = ! empty( $rawData['quantities'] ) ? $rawData['quantities'] : array();
+		$compare_prices = ! empty( $rawData['compare_prices'] ) ? $rawData['compare_prices'] : array();
+
+		$variations = array();
+		$letters = range( 'A', 'Z' );
+
+		foreach ( $names as $index => $name ) {
+			$name = trim( $name );
+			if ( empty( $name ) ) {
+				continue;
+			}
+
+			$code = isset( $letters[ $index ] ) ? $letters[ $index ] : 'Z' . $index;
+
+			$variation = array(
+				'code' => $code,
+				'name' => $name,
+				'variation_title' => sprintf( '(%s) %s', $code, $name ),
+			);
+
+			// 分配價格
+			if ( isset( $prices[ $index ] ) ) {
+				$variation['price'] = $prices[ $index ];
+			}
+
+			// 分配數量
+			if ( isset( $quantities[ $index ] ) ) {
+				$variation['quantity'] = $quantities[ $index ];
+			}
+
+			// 分配原價
+			if ( isset( $compare_prices[ $index ] ) ) {
+				$variation['compare_price'] = $compare_prices[ $index ];
+			}
+
+			$variations[] = $variation;
+		}
+
+		return $variations;
 	}
 
 	/**

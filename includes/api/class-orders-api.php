@@ -181,14 +181,18 @@ class Orders_API {
             
             // 取得訂單列表
             $result = $this->orderService->getOrders($params);
-            
+
+            // 取得全域統計（不受分頁影響）
+            $stats = $this->orderService->getOrderStats();
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $result['orders'],
                 'total' => $result['total'],
                 'page' => $result['page'],
                 'per_page' => $result['per_page'],
-                'pages' => $result['pages']
+                'pages' => $result['pages'],
+                'stats' => $stats
             ], 200);
             
         } catch (\Exception $e) {

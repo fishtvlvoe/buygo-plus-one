@@ -1,0 +1,44 @@
+/**
+ * Effects Tokens
+ * 視覺效果 - 陰影、圓角、過渡
+ */
+
+:root {
+  /* Border Radius */
+  --radius-sm: 0.125rem;     /* 2px */
+  --radius-base: 0.25rem;    /* 4px, rounded */
+  --radius-md: 0.375rem;     /* 6px, rounded-md */
+  --radius-lg: 0.5rem;       /* 8px, rounded-lg */
+  --radius-xl: 0.75rem;      /* 12px, rounded-xl */
+  --radius-2xl: 1rem;        /* 16px, rounded-2xl */
+  --radius-full: 9999px;     /* rounded-full */
+
+  /* Box Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Focus Ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-focus-ring);
+}
+
+/* Focus Ring Utility */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+.focus-ring-offset:focus {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-offset) var(--color-surface),
+              0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+}

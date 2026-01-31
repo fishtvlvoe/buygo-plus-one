@@ -1,0 +1,225 @@
+/**
+ * Smart Search Box Component
+ * 智慧搜尋框組件樣式
+ */
+
+.smart-search-box {
+  /* 移除 margin-bottom,讓父容器控制間距 */
+}
+
+.smart-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;  /* 確保內部元素垂直居中 */
+}
+
+.smart-search-input-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.smart-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;  /* pl-4 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.smart-search-icon svg {
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+  color: var(--color-slate-400);
+}
+
+.smart-search-input {
+  display: block;
+  width: 100%;
+  padding-left: 2.75rem;  /* pl-11 */
+  padding-right: 2.5rem;  /* pr-10 */
+  padding-top: 0.625rem;  /* 10px */
+  padding-bottom: 0.625rem;  /* 10px */
+  height: 44px;  /* 固定高度 44px,與切換按鈕容器高度一致 */
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;  /* 確保文字垂直居中 */
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  transition: all var(--transition-base);
+}
+
+/* 響應式調整 */
+@media (max-width: 767px) {
+  .smart-search-input {
+    height: 40px;  /* 手機版使用較小的高度 */
+    padding-top: 0.5rem;  /* 8px */
+    padding-bottom: 0.5rem;  /* 8px */
+  }
+}
+
+.smart-search-input:focus {
+  box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-sm);
+  border-color: transparent;
+}
+
+.smart-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Currency Toggle (optional) */
+.smart-search-currency {
+  position: absolute;
+  top: 50%;
+  right: 1rem;  /* pr-4 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 幣別標籤 */
+.smart-search-currency-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-slate-700);
+}
+
+/* 有幣別切換時的輸入框（增加右側 padding） */
+.smart-search-input--with-currency {
+  padding-right: 8rem;  /* pr-32 */
+}
+
+/* Suggestions Dropdown */
+.smart-search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin-top: 0.5rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  /* 移除 max-height 和 overflow-y，因為預設只顯示 3 筆，不需要滾動 */
+}
+
+.smart-search-suggestion-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.smart-search-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.smart-search-suggestion-item:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.smart-search-suggestion-item.active {
+  background-color: var(--color-primary-50);
+}
+
+.smart-search-no-results {
+  padding: 1rem;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* === Suggestions 標題區 === */
+.smart-search-suggestions-header {
+  padding: 0.75rem 1rem;  /* px-4 py-3 */
+  background-color: rgba(248, 250, 252, 0.5);  /* bg-slate-50/50 */
+  border-bottom: 1px solid var(--color-border-light);  /* border-b border-slate-100 */
+}
+
+.smart-search-suggestions-title {
+  font-size: 0.625rem;  /* text-[10px] */
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;  /* tracking-wider */
+  color: var(--color-slate-400);
+}
+
+/* === Suggestions 列表 === */
+.smart-search-suggestions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.smart-search-suggestions-list > li {
+  border-bottom: 1px solid var(--color-border-light);  /* divide-y divide-gray-100 */
+}
+
+.smart-search-suggestions-list > li:last-child {
+  border-bottom: none;
+}
+
+/* === Suggestion Item 內容元素 === */
+.smart-search-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;  /* gap-2 */
+}
+
+.smart-search-item-image {
+  width: 2rem;  /* w-8 */
+  height: 2rem;  /* h-8 */
+  border-radius: var(--radius-md);  /* rounded */
+  object-fit: cover;
+}
+
+.smart-search-item-text {
+  font-weight: 500;  /* font-medium */
+  color: var(--color-slate-900);
+  transition: color var(--transition-fast);
+}
+
+.smart-search-suggestion-item:hover .smart-search-item-text {
+  color: var(--color-primary);  /* group-hover:text-primary */
+}
+
+.smart-search-item-subtext {
+  font-size: var(--font-size-xs);
+  color: var(--color-slate-500);
+}
+
+/* === Clear Button 清除按鈕 === */
+.smart-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;  /* pr-3 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  color: var(--color-slate-400);
+  transition: color var(--transition-fast);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.smart-search-clear:hover {
+  color: var(--color-slate-600);
+}
+
+.smart-search-clear svg {
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+}
+
+/* 有幣別切換時，清除按鈕位置調整 */
+.smart-search-clear--with-currency {
+  right: 6rem;  /* right-24 = 6rem */
+}
