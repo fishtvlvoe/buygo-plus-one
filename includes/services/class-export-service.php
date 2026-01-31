@@ -54,6 +54,7 @@ class ExportService
         $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
         $table_customers = $wpdb->prefix . 'fct_customers';
         $table_order_items = $wpdb->prefix . 'fct_order_items';
+        $table_order_addresses = $wpdb->prefix . 'fct_order_addresses';
 
         // 準備 CSV 資料
         $csv_data = [];
@@ -85,9 +86,6 @@ class ExportService
             // 取得出貨單基本資訊（包含客戶的 WordPress user_id 以查詢 LINE 名稱）
             $shipment = $wpdb->get_row($wpdb->prepare(
                 "SELECT s.*,
-                        CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name,
-                        c.phone as customer_phone,
-                        c.address as customer_address,
                         c.email as customer_email,
                         c.user_id as wp_user_id
                  FROM {$table_shipments} s
@@ -106,7 +104,7 @@ class ExportService
                 $line_display_name = get_user_meta($shipment['wp_user_id'], 'buygo_line_display_name', true);
             }
 
-            // 取得出貨單商品項目（包含 order_id 以查詢身分證字號）
+            // 取得出貨單商品項目（包含 order_id 以查詢身分證字號和訂單地址）
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT si.*,
                         oi.title as product_name,
@@ -118,12 +116,45 @@ class ExportService
                 $shipment_id
             ), ARRAY_A);
 
-            // 取得身分證字號（從第一個訂單項目的訂單 meta）
+            // 從訂單地址表取得收件人真實姓名和地址
+            $customer_name = '';
+            $customer_phone = '';
+            $customer_address = '';
             $taiwan_id_number = '';
+
             if (!empty($items) && !empty($items[0]['order_id'])) {
+                $order_id = $items[0]['order_id'];
+
+                // 從訂單地址表取得收件人資訊（優先使用 shipping 地址）
+                $order_address = $wpdb->get_row($wpdb->prepare(
+                    "SELECT name, meta, address_1, address_2, city, state, postcode, country
+                     FROM {$table_order_addresses}
+                     WHERE order_id = %d
+                     ORDER BY type = 'shipping' DESC, type = 'billing' DESC
+                     LIMIT 1",
+                    $order_id
+                ), ARRAY_A);
+
+                if ($order_address) {
+                    $customer_name = $order_address['name'] ?? '';
+                    $address_meta = json_decode($order_address['meta'] ?? '{}', true) ?: [];
+                    $customer_phone = $address_meta['other_data']['phone'] ?? '';
+
+                    // 組合完整地址
+                    $address_parts = array_filter([
+                        $order_address['postcode'] ?? '',
+                        $order_address['city'] ?? '',
+                        $order_address['state'] ?? '',
+                        $order_address['address_1'] ?? '',
+                        $order_address['address_2'] ?? ''
+                    ]);
+                    $customer_address = implode('', $address_parts);
+                }
+
+                // 取得身分證字號
                 $taiwan_id_number = $wpdb->get_var($wpdb->prepare(
                     "SELECT meta_value FROM {$table_order_meta} WHERE order_id = %d AND meta_key = 'taiwan_id_number'",
-                    $items[0]['order_id']
+                    $order_id
                 ));
             }
 
@@ -131,10 +162,10 @@ class ExportService
             if (empty($items)) {
                 $csv_data[] = [
                     $shipment['shipment_number'] ?? '',
-                    trim($shipment['customer_name'] ?? ''),
+                    trim($customer_name),
                     $line_display_name,
-                    $shipment['customer_phone'] ?? '',
-                    $shipment['customer_address'] ?? '',
+                    $customer_phone,
+                    $customer_address,
                     $shipment['customer_email'] ?? '',
                     $taiwan_id_number,
                     '',
@@ -157,10 +188,10 @@ class ExportService
                     if ($index === 0) {
                         $csv_data[] = [
                             $shipment['shipment_number'] ?? '',
-                            trim($shipment['customer_name'] ?? ''),
+                            trim($customer_name),
                             $line_display_name,
-                            $shipment['customer_phone'] ?? '',
-                            $shipment['customer_address'] ?? '',
+                            $customer_phone,
+                            $customer_address,
                             $shipment['customer_email'] ?? '',
                             $taiwan_id_number,
                             $item['product_name'] ?? '未知商品',
