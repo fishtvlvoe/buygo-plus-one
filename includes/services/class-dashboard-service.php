@@ -35,18 +35,21 @@ class DashboardService
     /**
      * 計算儀表板統計數據（本月總覽）
      *
+     * @param string $currency 幣別 (預設 JPY)
      * @return array 統計數據陣列
      */
-    public function calculateStats(): array
+    public function calculateStats(string $currency = 'JPY'): array
     {
-        $this->debugService->log('DashboardService', '開始計算儀表板統計', []);
+        $this->debugService->log('DashboardService', '開始計算儀表板統計', [
+            'currency' => $currency
+        ]);
 
         try {
             $current_month_start = date('Y-m-01 00:00:00');
             $last_month_start = date('Y-m-01 00:00:00', strtotime('-1 month'));
             $last_month_end = date('Y-m-t 23:59:59', strtotime('-1 month'));
 
-            // 本月統計（使用慢查詢監控）
+            // 本月統計（使用慢查詢監控，按幣別篩選）
             $current_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
@@ -55,12 +58,14 @@ class DashboardService
                  FROM {$this->table_orders}
                  WHERE created_at >= %s
                      AND payment_status = 'paid'
+                     AND currency = %s
                      AND mode = 'live'",
-                $current_month_start
+                $current_month_start,
+                $currency
             );
             $current_stats = $this->executeWithMonitoring($current_query, 'calculateStats:current');
 
-            // 上月統計（使用慢查詢監控）
+            // 上月統計（使用慢查詢監控，按幣別篩選）
             $last_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
@@ -69,9 +74,11 @@ class DashboardService
                  FROM {$this->table_orders}
                  WHERE created_at BETWEEN %s AND %s
                      AND payment_status = 'paid'
+                     AND currency = %s
                      AND mode = 'live'",
                 $last_month_start,
-                $last_month_end
+                $last_month_end,
+                $currency
             );
             $last_stats = $this->executeWithMonitoring($last_query, 'calculateStats:last');
 
@@ -110,7 +117,7 @@ class DashboardService
             return [
                 'total_revenue' => [
                     'value' => (int)$current_stats['total_revenue'],
-                    'currency' => 'TWD',
+                    'currency' => $currency,
                     'change_percent' => $revenue_change,
                     'period' => '本月'
                 ],
@@ -126,7 +133,7 @@ class DashboardService
                 ],
                 'avg_order_value' => [
                     'value' => $avg_order_value,
-                    'currency' => 'TWD',
+                    'currency' => $currency,
                     'change_percent' => $avg_change,
                     'period' => '本月'
                 ]

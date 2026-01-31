@@ -430,7 +430,8 @@ const ProductsPageComponent = {
                             }
                             return product;
                         });
-                    totalProducts.value = products.value.length;
+                    // 【修復】使用 API 回傳的總數，而非當前頁的商品數
+                    totalProducts.value = data.total || products.value.length;
                     // 並行執行 URL 參數檢查和賣家限制檢查，減少載入時間
                     await Promise.all([
                         checkUrlParams(),
@@ -790,9 +791,13 @@ const ProductsPageComponent = {
         const getDisplayTitle = (product) => {
             if (!product) return '';
             if (product.has_variations && product.selected_variation) {
-                return product.selected_variation.variation_title || product.name;
+                const varTitle = product.selected_variation.variation_title;
+                // 排除「預設」這個無意義的 variation_title
+                return (varTitle && varTitle !== '預設') ? varTitle : product.name;
             }
-            return product.variation_title || product.name;
+            const varTitle = product.variation_title;
+            // 排除「預設」這個無意義的 variation_title
+            return (varTitle && varTitle !== '預設') ? varTitle : product.name;
         };
 
         const getDisplayPrice = (product) => {
