@@ -56,7 +56,13 @@ class Dashboard_API {
         register_rest_route($this->namespace, '/dashboard/stats', [
             'methods' => 'GET',
             'callback' => [$this, 'get_stats'],
-            'permission_callback' => [API::class, 'check_permission']
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'currency' => [
+                    'default' => 'JPY',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ]
+            ]
         ]);
 
         // GET /dashboard/revenue - 營收趨勢
@@ -113,8 +119,11 @@ class Dashboard_API {
      */
     public function get_stats($request) {
         try {
-            // 定義快取鍵
-            $cache_key = 'buygo_dashboard_stats';
+            // 取得幣別參數
+            $currency = $request->get_param('currency') ?? 'JPY';
+
+            // 定義快取鍵（包含幣別參數）
+            $cache_key = "buygo_dashboard_stats_{$currency}";
 
             // 嘗試從 transient 讀取快取
             $cached = get_transient($cache_key);
@@ -130,8 +139,8 @@ class Dashboard_API {
                 ], 200);
             }
 
-            // 快取不存在，調用 DashboardService 計算統計
-            $stats = $this->dashboardService->calculateStats();
+            // 快取不存在，調用 DashboardService 計算統計（傳入幣別參數）
+            $stats = $this->dashboardService->calculateStats($currency);
 
             // 快取 5 分鐘
             set_transient($cache_key, $stats, 5 * MINUTE_IN_SECONDS);

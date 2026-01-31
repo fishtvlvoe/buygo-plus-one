@@ -173,12 +173,24 @@ const DashboardPageComponent = {
             loading: true,
             error: null,
 
+            // 當前顯示幣別（從 useCurrency composable 同步）
+            currentCurrency: 'JPY',
+
+            // 幣別符號對照表
+            currencySymbols: {
+                'JPY': '¥',
+                'TWD': 'NT$',
+                'USD': '$',
+                'CNY': '¥',
+                'THB': '฿'
+            },
+
             // 統計數據
             stats: {
-                total_revenue: { value: 0, change_percent: 0 },
+                total_revenue: { value: 0, change_percent: 0, currency: 'JPY' },
                 total_orders: { value: 0, change_percent: 0 },
                 total_customers: { value: 0, change_percent: 0 },
-                avg_order_value: { value: 0, change_percent: 0 }
+                avg_order_value: { value: 0, change_percent: 0, currency: 'JPY' }
             },
 
             // 營收趨勢資料
@@ -198,6 +210,11 @@ const DashboardPageComponent = {
     },
 
     async mounted() {
+        // 從 useCurrency composable 取得當前系統幣別
+        const { systemCurrency } = useCurrency();
+        this.currentCurrency = systemCurrency.value;
+        console.log('[Dashboard] 初始幣別:', this.currentCurrency);
+
         await this.loadAllData();
 
         // 等待所有資料載入完成後，再渲染圖表
@@ -230,8 +247,8 @@ const DashboardPageComponent = {
         },
 
         async loadStats() {
-            // 使用 FluentCart 官方 Dashboard API
-            const response = await fetch('/wp-json/fluent-cart/v2/dashboard/stats', {
+            // 使用 BuyGo 自己的 Dashboard API（支援幣別篩選）
+            const response = await fetch(`/wp-json/buygo-plus-one/v1/dashboard/stats?currency=${this.currentCurrency}`, {
                 headers: { 'X-WP-Nonce': window.buygoWpNonce }
             });
 
@@ -241,64 +258,11 @@ const DashboardPageComponent = {
 
             const result = await response.json();
 
-            // FluentCart API 回傳格式：{ stats: [ {...}, {...} ] }
-            // 需要轉換為我們的資料格式
-            if (result.stats && Array.isArray(result.stats)) {
-                this.parseFluentCartStats(result.stats);
+            if (result.success && result.data) {
+                // 直接使用 BuyGo API 回傳的資料
+                this.stats = result.data;
             } else {
-                console.error('FluentCart API 回傳格式不正確:', result);
-            }
-        },
-
-        parseFluentCartStats(statsArray) {
-            // 解析 FluentCart stats 陣列，映射到我們的 stats 物件
-            statsArray.forEach(stat => {
-                // FluentCart 金額以元為單位，帶小數點（例如：180.0000）
-                // 我們需要轉換為分（乘以 100）
-                const value = parseFloat(stat.current_count) || 0;
-
-                // 根據 title 判斷是哪個統計項目（FluentCart 使用繁體中文）
-                if (stat.title === '收入') {
-                    this.stats.total_revenue = {
-                        value: Math.round(value * 100), // 元 → 分
-                        change_percent: 0
-                    };
-                } else if (stat.title === '訂單') {
-                    this.stats.total_orders = {
-                        value: value,
-                        change_percent: 0
-                    };
-                }
-            });
-
-            // FluentCart API 沒有提供客戶數，使用我們自己的 API
-            this.loadCustomersCount();
-
-            // 計算平均訂單金額
-            if (this.stats.total_orders.value > 0) {
-                this.stats.avg_order_value = {
-                    value: Math.round(this.stats.total_revenue.value / this.stats.total_orders.value),
-                    change_percent: 0
-                };
-            }
-        },
-
-        async loadCustomersCount() {
-            // FluentCart Dashboard API 沒有客戶數統計，使用我們自己的 API
-            try {
-                const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/stats', {
-                    headers: { 'X-WP-Nonce': window.buygoWpNonce }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.data && result.data.total_customers) {
-                        this.stats.total_customers = result.data.total_customers;
-                    }
-                }
-            } catch (err) {
-                console.warn('無法載入客戶數統計:', err);
-                // 客戶數載入失敗不影響其他統計
+                console.error('BuyGo Dashboard API 回傳格式不正確:', result);
             }
         },
 
@@ -383,7 +347,8 @@ const DashboardPageComponent = {
 
         formatCurrency(cents) {
             const amount = Math.round(cents / 100); // 分 → 元，移除小數點
-            return `NT$ ${amount.toLocaleString()}`;
+            const symbol = this.currencySymbols[this.currentCurrency] || '¥';
+            return `${symbol} ${amount.toLocaleString()}`;
         },
 
         getChangeClass(percent) {
@@ -413,9 +378,28 @@ const DashboardPageComponent = {
         },
 
         // 覆寫 HeaderMixin 的 cycleCurrency，加上 Dashboard 特定邏輯
-        onCurrencyChange(newCurrency) {
-            // 當幣別切換時，重新載入營收資料
-            this.loadRevenue();
+        async onCurrencyChange(newCurrency) {
+            console.log('[Dashboard] 幣別切換:', newCurrency);
+            // 更新當前幣別
+            this.currentCurrency = newCurrency;
+            // 當幣別切換時，重新載入統計資料和營收資料
+            this.loading = true;
+            try {
+                await Promise.all([
+                    this.loadStats(),
+                    this.loadRevenue()
+                ]);
+                // 重新渲染圖表
+                this.$nextTick(() => {
+                    if (this.revenueData && this.$refs.revenueChart) {
+                        this.renderRevenueChart();
+                    }
+                });
+            } catch (err) {
+                console.error('切換幣別時載入資料失敗:', err);
+            } finally {
+                this.loading = false;
+            }
         },
 
         handleActivityClick(activity) {
