@@ -93,6 +93,9 @@ class Plugin {
         // 載入核心服務
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
 
+        // 載入監控工具
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/monitoring/class-slow-query-monitor.php';
+
         // 載入診斷工具（WP-CLI 命令）
         if (defined('WP_CLI') && WP_CLI) {
             require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/diagnostics/class-diagnostics-command.php';
@@ -154,16 +157,15 @@ class Plugin {
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
-        
-        // 初始化 Webhook API
-        $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
-        add_action('rest_api_init', array($webhook_api, 'register_routes'));
 
-        // 註冊 WordPress Cron 處理 LINE webhook 事件（用於非 FastCGI 環境）
-        add_action('buygo_process_line_webhook', function($events) {
-            $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
-            $webhook_handler->process_events($events, false);
-        });
+        // 初始化 Dashboard API
+        $dashboard_api = new \BuyGoPlus\Api\Dashboard_API();
+        add_action('rest_api_init', array($dashboard_api, 'register_routes'));
+
+        // LINE Webhook API 已移除
+        // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
+        // BuyGo Plus One 透過 hook 機制接收事件，不直接處理 webhook
+        // 參考：.planning/debug/line-webhook-integration-failure.md 外掛架構定位
 
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
