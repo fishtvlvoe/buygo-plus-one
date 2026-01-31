@@ -111,6 +111,36 @@ class CheckoutCustomizationService
     }
 
     /**
+     * 檢查是否為結帳頁面
+     *
+     * @return bool
+     */
+    public static function is_checkout_page(): bool
+    {
+        // 方法 1: 檢查 FluentCart 的結帳頁面函數
+        if (function_exists('fluent_cart_is_checkout_page') && fluent_cart_is_checkout_page()) {
+            return true;
+        }
+
+        // 方法 2: 檢查 URL 路徑
+        $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+        if (strpos($request_uri, '/checkout') !== false) {
+            return true;
+        }
+
+        // 方法 3: 檢查頁面 slug
+        global $post;
+        if ($post && is_a($post, 'WP_Post')) {
+            $checkout_slugs = ['checkout', 'cart', 'fluent-checkout'];
+            if (in_array($post->post_name, $checkout_slugs, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 注入隱藏結帳元素的 CSS
      */
     public function inject_checkout_css(): void
@@ -410,11 +440,18 @@ class CheckoutCustomizationService
      * 由於 FluentCart 的 fluent_cart/checkout_address_fields Filter
      * 在實際環境中未觸發，改用 JavaScript 動態插入欄位
      *
+     * 只在結帳頁面執行
+     *
      * @return void
      */
     public function inject_validation_script(): void
     {
         if (is_admin() || !self::is_id_number_enabled()) {
+            return;
+        }
+
+        // 只在結帳頁面顯示身分證欄位
+        if (!self::is_checkout_page()) {
             return;
         }
         ?>
