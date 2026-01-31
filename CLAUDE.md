@@ -17,10 +17,11 @@
 /Users/fishtv/Development/
 ├── .plugin-testing/          # 共用測試框架（配置、腳本、模板）
 ├── buygo-plus-one/           # 主要外掛（開發原始碼）
+├── buygo-line-notify/        # LINE Notify 外掛（LINE 訊息、Webhook、登入）
 └── buygo-plus-one-example/   # 範例/參考外掛
 ```
 
-`buygo-plus-one/` 中的外掛透過符號連結指向 WordPress 安裝目錄 `/Users/fishtv/Local Sites/buygo/app/public/wp-content/plugins/`，在此編輯的內容會立即反映到 WordPress。
+`buygo-plus-one/` 和 `buygo-line-notify/` 中的外掛透過符號連結指向 WordPress 安裝目錄 `/Users/fishtv/Local Sites/buygo/app/public/wp-content/plugins/`，在此編輯的內容會立即反映到 WordPress。
 
 ## 常用指令
 
@@ -110,6 +111,54 @@ tests/Unit/Services/ProductServiceBasicTest.php
 - Local by Flywheel 安裝位置：`/Users/fishtv/Local Sites/buygo/`
 - MySQL socket：`/Users/fishtv/Library/Application Support/Local/run/oFa4PFqBu/mysql/mysqld.sock`
 - 測試資料庫：`wordpress_test`（使用者：root，密碼：root）
+- **本地網域**：`http://buygo.local`（僅供本機開發）
+- **測試網站**：`https://test.buygo.me`（外部可存取，用於瀏覽器測試）
+
+**重要**：當需要透過瀏覽器存取網站時，務必使用 `https://test.buygo.me`，而非本地網域。本地的 WordPress 有外連版本，所有網頁測試都應該使用外部網域。
+
+## Test Script Manager（測試腳本管理）
+
+使用 Test Script Manager 外掛進行快速開發和測試：
+
+### 何時使用
+
+當需要進行以下任務時，自動使用 `/tsm` Skills：
+- WordPress 資料庫查詢和分析
+- PHP 函式和 WordPress API 測試
+- Hook 和 Filter 除錯
+- WooCommerce 訂單/產品測試
+- 效能分析和優化
+- 快速原型開發（包含 JavaScript/CSS）
+
+### 測試環境
+
+- 後台頁面：https://test.buygo.me/wp-admin/admin.php?page=test-script-manager
+- 外掛位置：`wp-content/plugins/test-script-manager/`
+
+### 開發工作流程
+
+1. **快速開發和測試**
+   - 在 Test Script Manager 後台編寫測試腳本
+   - 可以在 PHP 中嵌入 JavaScript 和 CSS 進行整合測試
+   - 反覆修改、執行、除錯，快速迭代
+
+2. **確認功能正常**
+   - 在後台執行測試，確認輸出結果
+   - 測試腳本儲存在資料庫中，可重複使用
+   - 版本控制：自動儲存每次修改
+
+3. **正式化程式碼**
+   - 測試完成後，將程式碼拆分成獨立檔案
+   - JavaScript → `assets/js/`
+   - CSS → `assets/css/`
+   - PHP → `includes/`
+
+### 優點
+
+- ✅ 不需要每次建立實體檔案
+- ✅ 集中管理所有測試腳本
+- ✅ 即時執行，快速驗證
+- ✅ 保留測試紀錄，未來可參考
 
 ## 主要相依套件
 
@@ -130,6 +179,32 @@ tests/Unit/Services/ProductServiceBasicTest.php
 
 - 建立 CLAUDE.md 檔案
 - 使用者要求：將文件改為繁體中文、後續對話使用繁體中文回應、記錄重要對話內容
+
+### 2026-01-31
+
+- 整合 Test Script Manager 外掛和 Skills
+- 更新 tsm.md Skill，加入動態環境偵測功能
+- 在 CLAUDE.md 中加入 Test Script Manager 使用規則和開發工作流程
+- 測試網站：https://test.buygo.me
+
+#### buygo-line-notify 外掛遺失問題修復
+
+**問題**：`buygo-line-notify` 外掛在切換分支時被意外刪除
+
+**原因分析**：
+- 外掛在 `test/gsd-customers-ui` 分支上的某次提交（2883eed）中被整個刪除
+- 但外掛從未被提交到 `release/v0.2.0` 分支
+- 從 `test/gsd-customers-ui` 切換到 `release/v0.2.0` 時，git 自動清理了工作目錄中的外掛檔案
+
+**解決方案**：
+1. 使用 `git checkout 2883eed -- buygo-line-notify/` 從歷史恢復外掛
+2. 提交到 `release/v0.2.0` 分支，確保外掛永久存在
+3. 更新 CLAUDE.md，記錄此問題
+
+**預防措施**：
+- **重要**：外掛目錄必須在所有活躍分支上都被提交
+- 切換分支前，確認重要的外掛目錄已提交
+- 如果外掛被誤刪，使用 `git reflog` 和 `git checkout <commit> -- <path>` 恢復
 
 版本紀錄規範
 存檔 (當我說「存檔」或「提交」時)
