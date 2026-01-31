@@ -69,18 +69,18 @@ class OrderService
             }
 
             // 根據參數決定是否顯示子訂單
-            // include_children: 'all' = 顯示所有, 'only' = 只顯示子訂單, 預設 = 只顯示父訂單
+            // include_children: 'parents_only' = 只顯示父訂單, 'children_only' = 只顯示子訂單
+            // 預設（空值或 'all'）= 顯示所有訂單（父訂單 + 子訂單）
             $include_children = $params['include_children'] ?? '';
 
-            if ($include_children === 'all') {
-                // 顯示所有訂單（父訂單和子訂單）
-            } elseif ($include_children === 'only') {
+            if ($include_children === 'parents_only') {
+                // 只顯示父訂單（沒有 parent_id 的訂單）
+                $query->whereNull('parent_id');
+            } elseif ($include_children === 'children_only') {
                 // 只顯示子訂單（type = 'split'）
                 $query->where('type', 'split');
-            } else {
-                // 預設：只顯示父訂單（沒有 parent_id 的訂單）
-                $query->whereNull('parent_id');
             }
+            // 預設：顯示所有訂單（父訂單和子訂單），不加任何條件
 
             // 搜尋：訂單編號或客戶名稱
             if (!empty($search)) {
