@@ -45,6 +45,10 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
  * 3. 執行資料表升級
  */
 register_activation_hook(__FILE__, function () {
+    // 標記需要 flush rewrite rules
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
+    \BuyGoPlus\Routes::schedule_flush();
+
     // 1. 兼容性檢查 - 確保舊外掛未啟用
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
     \BuyGoPlus\PluginCompatibility::on_activation();
