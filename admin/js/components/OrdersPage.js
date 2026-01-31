@@ -939,12 +939,24 @@ const OrdersPageComponent = {
         };
         
 
+        // 是否全選（用於 checkbox 狀態）
+        const isAllSelected = computed(() => {
+            const visibleOrders = filteredOrders.value;
+            if (visibleOrders.length === 0) return false;
+            return visibleOrders.every(order => selectedItems.value.includes(order.id));
+        });
+
         // 全選/取消全選
         const toggleSelectAll = (event) => {
+            const visibleOrders = filteredOrders.value;
             if (event.target.checked) {
-                selectedItems.value = orders.value.map(o => o.id);
+                // 選取當前篩選後的所有訂單
+                const visibleIds = visibleOrders.map(o => o.id);
+                selectedItems.value = [...new Set([...selectedItems.value, ...visibleIds])];
             } else {
-                selectedItems.value = [];
+                // 取消選取當前篩選後的所有訂單
+                const visibleIds = new Set(visibleOrders.map(o => o.id));
+                selectedItems.value = selectedItems.value.filter(id => !visibleIds.has(id));
             }
         };
         
@@ -1109,6 +1121,7 @@ const OrdersPageComponent = {
             handleSearchInput,
             handleSearchClear,
             toggleSelectAll,
+            isAllSelected,
             selectedItems,
             searchFilter,
             searchFilterName,
