@@ -5,7 +5,12 @@
  */
 
 // 預先定義社群 URL（Heredoc 內使用）
-$community_url = esc_url(home_url('/community'));
+// 使用 FluentCommunity 的 Helper 類別取得動態設定的 Portal Slug
+$community_url = '';
+if (class_exists('\FluentCommunity\App\Services\Helper')) {
+    $portal_slug = \FluentCommunity\App\Services\Helper::getPortalSlug();
+    $community_url = esc_url(home_url('/' . $portal_slug . '/'));
+}
 
 $new_sidebar_template = <<<HTML
 <div>
