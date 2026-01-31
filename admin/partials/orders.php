@@ -12,9 +12,7 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.ph
 <?php
 // 設定 Header 參數
 $header_title = '訂單';
-$header_breadcrumb = '首頁 <span class="text-slate-300">/</span> 訂單列表
-<span v-if="currentView === \'detail\'" class="text-slate-300">/</span>
-<span v-if="currentView === \'detail\'" class="text-primary font-medium truncate">詳情 #{{ currentOrderId }}</span>';
+$header_breadcrumb = '首頁 / 訂單列表';
 $show_currency_toggle = true;
 
 // 載入共用 Header
@@ -99,6 +97,38 @@ $orders_component_template .= <<<'HTML'
                             <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
                                 {{ stats.shipped }}
                             </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 批次操作區塊 -->
+                <div v-if="selectedItems.length > 0" class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 text-sm text-blue-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>已選擇 <strong>{{ selectedItems.length }}</strong> 筆訂單</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            @click="batchPrepare"
+                            :disabled="batchProcessing"
+                            class="btn btn-primary btn-sm"
+                        >
+                            <svg v-if="batchProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg v-else class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                            {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
+                        </button>
+                        <button
+                            @click="selectedItems = []"
+                            class="btn btn-secondary btn-sm"
+                        >
+                            取消選擇
                         </button>
                     </div>
                 </div>
@@ -365,17 +395,22 @@ $orders_component_template .= <<<'HTML'
                 <template v-for="order in filteredOrders" :key="order.id">
                 <div class="card">
                     <div class="flex items-start justify-between mb-3">
-                        <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" :value="order.id" v-model="selectedItems" class="w-5 h-5 rounded border-slate-300">
+                        </div>
+                        <div class="flex-1 ml-3">
                             <div class="flex items-center gap-2">
-                                <!-- 子訂單展開按鈕 -->
+                                <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
+                                <!-- 子訂單展開按鈕（更明顯） -->
                                 <button
                                     v-if="order.children && order.children.length > 0"
                                     @click.stop="toggleChildrenCollapse(order.id)"
-                                    class="text-slate-400 hover:text-primary transition flex-shrink-0 p-1"
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
                                 >
+                                    <span>{{ order.children.length }} 批次</span>
                                     <svg
-                                        class="w-4 h-4 transition-transform"
-                                        :class="{ 'rotate-180': isChildrenCollapsed(order.id) }"
+                                        class="w-3 h-3 transition-transform"
+                                        :class="{ 'rotate-180': !isChildrenCollapsed(order.id) }"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -383,14 +418,9 @@ $orders_component_template .= <<<'HTML'
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 </button>
-                                <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
-                                <span v-if="order.children && order.children.length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                    {{ order.children.length }} 批次
-                                </span>
                             </div>
                             <p class="card-subtitle">{{ order.customer_name }}</p>
                         </div>
-                        <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
