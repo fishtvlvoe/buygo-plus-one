@@ -176,15 +176,27 @@ class OrderService
     /**
      * 取得訂單狀態統計（全域統計，不受分頁影響）
      *
+     * 統計邏輯：
+     * - 父訂單數量（total）：只計算父訂單
+     * - 轉備貨（unshipped）：統計未出貨的「可操作訂單」
+     * - 備貨中（preparing）：統計備貨中的訂單
+     * - 已出貨（shipped）：統計已出貨的訂單
+     *
+     * 「可操作訂單」定義：
+     * - 如果父訂單有子訂單，則統計子訂單
+     * - 如果父訂單沒有子訂單，則統計父訂單本身
+     *
      * @return array
      */
     public function getOrderStats(): array
     {
         try {
-            // 使用 FluentCart Order Model 直接查詢
-            // 只計算父訂單（沒有 parent_id 的訂單）
-            $query = Order::whereNull('parent_id');
-            $total = $query->count();
+            // 取得所有父訂單（包含子訂單關聯）
+            $parentOrders = Order::whereNull('parent_id')
+                ->with(['children'])
+                ->get();
+
+            $total = $parentOrders->count();
 
             $stats = [
                 'total' => $total,
@@ -193,23 +205,19 @@ class OrderService
                 'shipped' => 0
             ];
 
-            // 取得所有父訂單的 shipping_status 統計
-            $allOrders = Order::whereNull('parent_id')
-                ->select('shipping_status')
-                ->get();
+            foreach ($parentOrders as $parentOrder) {
+                $children = $parentOrder->children ?? [];
 
-            foreach ($allOrders as $order) {
-                $status = $order->shipping_status ?? 'unshipped';
-
-                if (empty($status) || $status === 'unshipped' || $status === 'pending') {
-                    $stats['unshipped']++;
-                } elseif ($status === 'preparing') {
-                    $stats['preparing']++;
-                } elseif (in_array($status, ['shipped', 'completed', 'processing', 'ready_to_ship'])) {
-                    $stats['shipped']++;
+                if (count($children) > 0) {
+                    // 有子訂單，統計子訂單的狀態
+                    foreach ($children as $child) {
+                        $status = $child->shipping_status ?? 'unshipped';
+                        $this->incrementStatsByStatus($stats, $status);
+                    }
                 } else {
-                    // 其他未知狀態歸類為 unshipped
-                    $stats['unshipped']++;
+                    // 沒有子訂單，統計父訂單本身
+                    $status = $parentOrder->shipping_status ?? 'unshipped';
+                    $this->incrementStatsByStatus($stats, $status);
                 }
             }
 
@@ -228,6 +236,26 @@ class OrderService
                 'preparing' => 0,
                 'shipped' => 0
             ];
+        }
+    }
+
+    /**
+     * 根據狀態增加統計數字
+     *
+     * @param array &$stats 統計陣列
+     * @param string $status 訂單狀態
+     */
+    private function incrementStatsByStatus(array &$stats, string $status): void
+    {
+        if (empty($status) || $status === 'unshipped' || $status === 'pending') {
+            $stats['unshipped']++;
+        } elseif ($status === 'preparing') {
+            $stats['preparing']++;
+        } elseif (in_array($status, ['shipped', 'completed', 'processing', 'ready_to_ship'])) {
+            $stats['shipped']++;
+        } else {
+            // 其他未知狀態歸類為 unshipped
+            $stats['unshipped']++;
         }
     }
 
