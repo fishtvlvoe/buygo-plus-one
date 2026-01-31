@@ -455,6 +455,10 @@ $shipment_details_template .= <<<'HTML'
                         <span class="text-sm text-slate-600 w-20 shrink-0">電話</span>
                         <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_phone || '-' }}</span>
                     </div>
+                    <div class="flex" v-if="detailModal.shipment?.taiwan_id_number">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">身分證字號</span>
+                        <span class="text-sm text-slate-900 font-mono">{{ detailModal.shipment?.taiwan_id_number }}</span>
+                    </div>
                     <div class="flex md:col-span-2">
                         <span class="text-sm text-slate-600 w-20 shrink-0">地址</span>
                         <span class="text-sm text-slate-900">{{ detailModal.shipment?.customer_address || '-' }}</span>

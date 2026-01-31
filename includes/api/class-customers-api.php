@@ -276,11 +276,13 @@ class Customers_API {
 
             $customer['orders'] = $orders ?: [];
 
-            // 取得 LINE 名稱（從 wp_usermeta）
+            // 取得 LINE 名稱和身分證字號（從 wp_usermeta）
             if (!empty($customer['user_id'])) {
                 $customer['line_display_name'] = get_user_meta($customer['user_id'], 'buygo_line_display_name', true) ?: '';
+                $customer['taiwan_id_number'] = get_user_meta($customer['user_id'], 'buygo_taiwan_id_number', true) ?: '';
             } else {
                 $customer['line_display_name'] = '';
+                $customer['taiwan_id_number'] = '';
             }
 
             return new \WP_REST_Response([
