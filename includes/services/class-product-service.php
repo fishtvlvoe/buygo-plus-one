@@ -45,21 +45,31 @@ class ProductService
             global $wpdb;
             
             $user = wp_get_current_user();
-            $isAdmin = in_array('administrator', (array)$user->roles, true) || 
-                      in_array('buygo_admin', (array)$user->roles, true);
+            $isWpAdmin = in_array('administrator', (array)$user->roles, true);
 
             // 建立查詢
             $query = ProductVariation::query()
                 ->with(['product', 'product_detail'])
                 ->where('item_status', 'active');
 
-            // 權限篩選：賣家只能看到自己的商品（Phase 19）
+            // 權限篩選：多賣家隔離（Phase 24）
+            // - WordPress 管理員可看到所有商品
+            // - BuyGo 賣家只能看到自己的商品
+            // - BuyGo 小幫手可以看到被授權賣場的商品
             if ($viewMode === 'frontend') {
-                if (!$isAdmin) {
-                    // 一般賣家：只顯示自己的商品
-                    $query->whereHas('product', function($q) use ($user) {
-                        $q->where('post_author', $user->ID);
-                    });
+                if (!$isWpAdmin) {
+                    // 取得使用者可存取的 seller_ids
+                    $accessible_seller_ids = SettingsService::get_accessible_seller_ids($user->ID);
+
+                    if (!empty($accessible_seller_ids)) {
+                        // 只顯示可存取賣家的商品
+                        $query->whereHas('product', function($q) use ($accessible_seller_ids) {
+                            $q->whereIn('post_author', $accessible_seller_ids);
+                        });
+                    } else {
+                        // 沒有授權的賣場，返回空結果
+                        $query->whereRaw('1 = 0');
+                    }
                 }
             }
 

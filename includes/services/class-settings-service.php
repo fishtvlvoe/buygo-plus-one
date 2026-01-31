@@ -553,10 +553,162 @@ class SettingsService
         
         return true;
     }
-    
+
+    /**
+     * 取得使用者可存取的 seller_ids 列表
+     *
+     * 用於多賣家隔離：
+     * - 如果是 buygo_admin，只返回自己的 ID
+     * - 如果是 buygo_helper，返回所有授權賣場的 seller_ids
+     * - 如果同時是多個賣場的小幫手，返回所有 seller_ids
+     *
+     * @param int|null $user_id 使用者 ID，若為 null 則使用當前使用者
+     * @return array<int> 可存取的 seller_ids 列表
+     */
+    public static function get_accessible_seller_ids(?int $user_id = null): array
+    {
+        global $wpdb;
+
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+
+        if (!$user_id) {
+            return [];
+        }
+
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return [];
+        }
+
+        $seller_ids = [];
+
+        // 檢查是否為 buygo_admin（賣家本人）
+        if (in_array('buygo_admin', (array) $user->roles, true)) {
+            $seller_ids[] = $user_id;
+        }
+
+        // 檢查是否為 buygo_helper（小幫手）
+        // 從 wp_buygo_helpers 表查詢此用戶被授權的賣場
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            $authorized_sellers = $wpdb->get_col($wpdb->prepare(
+                "SELECT seller_id FROM {$table_name} WHERE user_id = %d",
+                $user_id
+            ));
+
+            foreach ($authorized_sellers as $seller_id) {
+                if (!in_array((int) $seller_id, $seller_ids, true)) {
+                    $seller_ids[] = (int) $seller_id;
+                }
+            }
+        }
+
+        return $seller_ids;
+    }
+
+    /**
+     * 檢查使用者是否為賣家（buygo_admin）
+     *
+     * @param int|null $user_id 使用者 ID，若為 null 則使用當前使用者
+     * @return bool
+     */
+    public static function is_seller(?int $user_id = null): bool
+    {
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+
+        if (!$user_id) {
+            return false;
+        }
+
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+
+        return in_array('buygo_admin', (array) $user->roles, true);
+    }
+
+    /**
+     * 檢查使用者是否為小幫手（buygo_helper）
+     *
+     * @param int|null $user_id 使用者 ID，若為 null 則使用當前使用者
+     * @return bool
+     */
+    public static function is_helper(?int $user_id = null): bool
+    {
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+
+        if (!$user_id) {
+            return false;
+        }
+
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+
+        return in_array('buygo_helper', (array) $user->roles, true);
+    }
+
+    /**
+     * 檢查使用者是否可以管理小幫手
+     *
+     * 只有賣家（buygo_admin）可以新增/移除小幫手
+     * 小幫手不能管理其他小幫手
+     *
+     * @param int|null $user_id 使用者 ID，若為 null 則使用當前使用者
+     * @return bool
+     */
+    public static function can_manage_helpers(?int $user_id = null): bool
+    {
+        return self::is_seller($user_id);
+    }
+
+    /**
+     * 檢查使用者的 LINE 綁定狀態
+     *
+     * @param int $user_id 使用者 ID
+     * @return array 包含 is_linked 和 line_uid
+     */
+    public static function get_line_binding_status(int $user_id): array
+    {
+        $line_uid = self::get_user_line_id($user_id);
+
+        return [
+            'is_linked' => !empty($line_uid),
+            'line_uid' => $line_uid,
+        ];
+    }
+
+    /**
+     * 取得小幫手列表（含 LINE 綁定狀態）
+     *
+     * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
+     * @return array
+     */
+    public static function get_helpers_with_line_status(?int $seller_id = null): array
+    {
+        $helpers = self::get_helpers($seller_id);
+
+        foreach ($helpers as &$helper) {
+            $line_status = self::get_line_binding_status($helper['id']);
+            $helper['line_linked'] = $line_status['is_linked'];
+            $helper['line_uid'] = $line_status['line_uid'];
+        }
+
+        return $helpers;
+    }
+
     /**
      * 取得 LINE 設定（自動解密敏感資料）
-     * 
+     *
      * @return array
      */
     public static function get_line_settings(): array
