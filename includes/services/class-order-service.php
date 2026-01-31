@@ -174,6 +174,84 @@ class OrderService
     }
 
     /**
+     * 取得訂單狀態統計（全域統計，不受分頁影響）
+     *
+     * @return array
+     */
+    public function getOrderStats(): array
+    {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'fc_order_shipping_statuses';
+            $orders_table = $wpdb->prefix . 'fc_orders';
+
+            // 檢查 shipping_status 表是否存在
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+
+            // 基礎查詢：只計算父訂單（沒有 parent_id 的訂單）
+            $total_query = "SELECT COUNT(*) FROM $orders_table WHERE parent_id IS NULL";
+            $total = (int) $wpdb->get_var($total_query);
+
+            $stats = [
+                'total' => $total,
+                'unshipped' => 0,
+                'preparing' => 0,
+                'shipped' => 0
+            ];
+
+            if ($table_exists) {
+                // 使用 LEFT JOIN 來處理可能沒有對應 shipping_status 記錄的訂單
+                $status_query = "
+                    SELECT
+                        COALESCE(ss.shipping_status, 'unshipped') as status,
+                        COUNT(*) as count
+                    FROM $orders_table o
+                    LEFT JOIN $table_name ss ON o.id = ss.order_id
+                    WHERE o.parent_id IS NULL
+                    GROUP BY COALESCE(ss.shipping_status, 'unshipped')
+                ";
+
+                $results = $wpdb->get_results($status_query);
+
+                foreach ($results as $row) {
+                    $status = $row->status ?: 'unshipped';
+                    $count = (int) $row->count;
+
+                    if ($status === 'unshipped' || $status === '' || $status === null) {
+                        $stats['unshipped'] += $count;
+                    } elseif ($status === 'preparing') {
+                        $stats['preparing'] += $count;
+                    } elseif (in_array($status, ['shipped', 'completed', 'processing', 'ready_to_ship'])) {
+                        $stats['shipped'] += $count;
+                    } else {
+                        // 其他狀態歸類為 unshipped
+                        $stats['unshipped'] += $count;
+                    }
+                }
+            } else {
+                // 如果 shipping_status 表不存在，所有訂單都是 unshipped
+                $stats['unshipped'] = $total;
+            }
+
+            $this->debugService->log('OrderService', '取得訂單統計成功', $stats);
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('OrderService', '取得訂單統計失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [
+                'total' => 0,
+                'unshipped' => 0,
+                'preparing' => 0,
+                'shipped' => 0
+            ];
+        }
+    }
+
+    /**
      * 更新訂單狀態
      * 
      * @param int $orderId 訂單 ID

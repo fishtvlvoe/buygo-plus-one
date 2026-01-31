@@ -248,32 +248,32 @@ $orders_component_template .= <<<'HTML'
                             </td>
                             <td>{{ formatDate(order.created_at) }}</td>
                             <td>
-                                <div class="flex items-center gap-2">
-                                    <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
+                                <div class="flex items-center gap-2 flex-nowrap min-w-max">
+                                    <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition flex-shrink-0" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
                                     <!-- 根據狀態顯示不同按鈕（父訂單） -->
                                     <button
                                         v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                                         @click="shipOrder(order)"
-                                        class="btn btn-primary btn-sm">
+                                        class="btn btn-primary btn-sm flex-shrink-0">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="order.shipping_status === 'preparing'"
-                                        class="status-tag status-tag-warning inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
-                                        class="status-tag status-tag-info inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'shipped'"
-                                        class="status-tag status-tag-success inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -323,32 +323,32 @@ $orders_component_template .= <<<'HTML'
                             </td>
                             <td>{{ formatDate(childOrder.created_at) }}</td>
                             <td>
-                                <div class="flex items-center gap-2">
-                                    <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
+                                <div class="flex items-center gap-2 flex-nowrap min-w-max">
+                                    <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition flex-shrink-0" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
                                     <!-- 根據狀態顯示不同按鈕 -->
                                     <button
                                         v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
                                         @click="shipChildOrder(childOrder, order)"
-                                        class="btn btn-primary btn-sm">
+                                        class="btn btn-primary btn-sm flex-shrink-0">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'preparing'"
-                                        class="status-tag status-tag-warning inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
-                                        class="status-tag status-tag-info inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'shipped'"
-                                        class="status-tag status-tag-success inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -362,10 +362,32 @@ $orders_component_template .= <<<'HTML'
 
             <!-- 手機版卡片 -->
             <div class="card-list">
-                <div v-for="order in filteredOrders" :key="order.id" class="card">
+                <template v-for="order in filteredOrders" :key="order.id">
+                <div class="card">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
+                            <div class="flex items-center gap-2">
+                                <!-- 子訂單展開按鈕 -->
+                                <button
+                                    v-if="order.children && order.children.length > 0"
+                                    @click.stop="toggleChildrenCollapse(order.id)"
+                                    class="text-slate-400 hover:text-primary transition flex-shrink-0 p-1"
+                                >
+                                    <svg
+                                        class="w-4 h-4 transition-transform"
+                                        :class="{ 'rotate-180': isChildrenCollapsed(order.id) }"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
+                                <span v-if="order.children && order.children.length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                    {{ order.children.length }} 批次
+                                </span>
+                            </div>
                             <p class="card-subtitle">{{ order.customer_name }}</p>
                         </div>
                         <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
@@ -499,6 +521,90 @@ $orders_component_template .= <<<'HTML'
                         </span>
                     </div>
                 </div>
+
+                <!-- 手機版子訂單卡片 -->
+                <template v-if="order.children && order.children.length > 0 && !isChildrenCollapsed(order.id)">
+                    <div
+                        v-for="childOrder in order.children"
+                        :key="'mobile-child-' + childOrder.id"
+                        class="card ml-4 border-l-4 border-blue-400 bg-blue-50/30"
+                    >
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    <h3 class="card-title">#{{ childOrder.invoice_no }}</h3>
+                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                </div>
+                                <p class="card-subtitle">{{ order.customer_name }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div class="col-span-2">
+                                <span class="text-slate-500">商品：</span>
+                                <template v-if="childOrder.items && childOrder.items.length > 0">
+                                    <span v-for="(item, idx) in childOrder.items" :key="item.id" class="text-slate-900">
+                                        {{ item.product_name || item.product_title }} × {{ item.quantity }}<span v-if="idx < childOrder.items.length - 1">、</span>
+                                    </span>
+                                </template>
+                                <span v-else class="text-blue-700">拆單商品</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">總金額：</span>
+                                <span class="font-bold text-slate-900">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">運送狀態：</span>
+                                <span
+                                    :class="getStatusClass(childOrder.shipping_status || 'unshipped')"
+                                    class="px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                                >
+                                    {{ getStatusText(childOrder.shipping_status || 'unshipped') }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">日期：</span>
+                                <span class="text-slate-900">{{ formatDate(childOrder.created_at) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button @click="openOrderDetail(childOrder.id)" class="btn btn-primary flex-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                查看詳情
+                            </button>
+                            <!-- 根據狀態顯示不同按鈕 -->
+                            <button
+                                v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
+                                @click="shipChildOrder(childOrder, order)"
+                                class="btn btn-primary flex-1">
+                                轉備貨
+                            </button>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'preparing'"
+                                class="status-tag status-tag-warning flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                備貨中
+                            </span>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
+                                class="status-tag status-tag-info flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                待出貨
+                            </span>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'shipped'"
+                                class="status-tag status-tag-success flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                已出貨
+                            </span>
+                        </div>
+                    </div>
+                </template>
+                </template>
             </div> <!-- End md:hidden (mobile cards) -->
 
             <!-- 統一分頁樣式 -->
