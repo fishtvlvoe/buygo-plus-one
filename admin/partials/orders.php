@@ -61,40 +61,40 @@ $orders_component_template .= <<<'HTML'
                         <button
                             @click="filterStatus = null"
                             :class="filterStatus === null ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
-                            全部
-                            <span v-if="stats.total > 0" class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+                            <span>全部</span>
+                            <span v-if="stats.total > 0" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
                                 {{ stats.total }}
                             </span>
                         </button>
                         <button
                             @click="filterStatus = 'unshipped'"
                             :class="filterStatus === 'unshipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
-                            轉備貨
-                            <span v-if="stats.unshipped > 0" class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                            <span>轉備貨</span>
+                            <span v-if="stats.unshipped > 0" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
                                 {{ stats.unshipped }}
                             </span>
                         </button>
                         <button
                             @click="filterStatus = 'preparing'"
                             :class="filterStatus === 'preparing' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
-                            備貨中
-                            <span v-if="stats.preparing > 0" class="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
+                            <span>備貨中</span>
+                            <span v-if="stats.preparing > 0" class="px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
                                 {{ stats.preparing }}
                             </span>
                         </button>
                         <button
                             @click="filterStatus = 'shipped'"
                             :class="filterStatus === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
-                            class="flex-1 py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
-                            已出貨
-                            <span v-if="stats.shipped > 0" class="ml-2 px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
+                            <span>已出貨</span>
+                            <span v-if="stats.shipped > 0" class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
                                 {{ stats.shipped }}
                             </span>
                         </button>
@@ -392,6 +392,21 @@ $orders_component_template .= <<<'HTML'
 
             <!-- 手機版卡片 -->
             <div class="card-list">
+                <!-- 手機版全選列 -->
+                <div v-if="filteredOrders.length > 0" class="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl mb-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            :checked="isAllSelected"
+                            @change="toggleSelectAll"
+                            class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        >
+                        <span class="text-sm font-medium text-slate-700">全選</span>
+                    </label>
+                    <span v-if="selectedItems.length > 0" class="text-xs text-blue-600 font-medium">
+                        已選 {{ selectedItems.length }} 筆
+                    </span>
+                </div>
                 <template v-for="order in filteredOrders" :key="order.id">
                 <div class="card">
                     <div class="flex items-start justify-between mb-3">
