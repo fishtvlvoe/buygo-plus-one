@@ -1,0 +1,85 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: mbstring, xml
+
+      - name: Install Composer dependencies (production only)
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Create plugin zip
+        run: |
+          mkdir -p release
+          rsync -av --exclude-from='.zipignore' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='phpunit*.xml' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='.gitignore' \
+            --exclude='.zipignore' \
+            --exclude='release' \
+            --exclude='*.md' \
+            --exclude='CLAUDE.md' \
+            --exclude='BUILD-REPORT.md' \
+            --exclude='CUMULATIVE_BUG_FIX.md' \
+            --exclude='HANDOFF-NOTES.md' \
+            --exclude='SECURITY-OPTIMIZATION-TODO.md' \
+            . release/buygo-plus-one/
+          cd release
+          zip -r buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip buygo-plus-one/
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: BuyGo+1 v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          body: |
+            ## BuyGo+1 v${{ steps.get_version.outputs.VERSION }}
+
+            ### 更新內容
+            請查看 CHANGELOG.md 了解詳細更新內容。
+
+            ### 安裝方法
+            1. 下載 `buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. 在 WordPress 後台上傳並啟用外掛
+            3. 確保已安裝並啟用 `buygo-line-notify` 外掛
+
+            ### 自動更新
+            此版本支援自動更新，安裝後會在有新版本時自動提示更新。
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_content_type: application/zip

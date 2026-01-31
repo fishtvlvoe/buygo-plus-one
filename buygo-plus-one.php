@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       BuyGo+1 開發版
+ * Plugin Name:       BuyGo+1
  * Plugin URI:        https://buygo.me
- * Description:       BuyGo 獨立賣場後台系統 開發測試版
- * Version:           0.02
+ * Description:       BuyGo 獨立賣場後台系統
+ * Version:           0.2.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 // 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
 
 if (!defined('BUYGO_PLUS_ONE_VERSION')) {
-    define('BUYGO_PLUS_ONE_VERSION', '0.03-dev');
+    define('BUYGO_PLUS_ONE_VERSION', '0.2.0');
 }
 
 // 新版專用的常數（舊版不會定義這些）
@@ -33,6 +33,9 @@ define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
 // Load plugin class
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 
+// Load updater
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
+
 /**
  * Activation Hook - 外掛啟用時執行
  *
@@ -42,6 +45,10 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
  * 3. 執行資料表升級
  */
 register_activation_hook(__FILE__, function () {
+    // 標記需要 flush rewrite rules
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
+    \BuyGoPlus\Routes::schedule_flush();
+
     // 1. 兼容性檢查 - 確保舊外掛未啟用
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
     \BuyGoPlus\PluginCompatibility::on_activation();
@@ -66,11 +73,6 @@ register_activation_hook(__FILE__, function () {
     // 載入並初始化短連結路由，然後刷新 rewrite rules
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
     \BuyGoPlus\ShortLinkRoutes::instance()->flush_rewrite_rules();
-
-    // 建立 Dashboard 查詢索引（B21-07: 提升大量資料查詢效能）
-    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/database/class-dashboard-indexes.php';
-    $dashboard_indexes = new \BuyGoPlus\Database\DashboardIndexes();
-    $dashboard_indexes->create_indexes();
 });
 
 /**
@@ -83,14 +85,17 @@ register_activation_hook(__FILE__, function () {
  * 注意：不會刪除資料表和設定，以便使用者重新啟用時可以保留資料
  */
 register_deactivation_hook(__FILE__, function () {
+    // 清理 rewrite rules
+    flush_rewrite_rules(false);
+
     // 清除快取
     wp_cache_flush();
 
     // 清除所有 BuyGo 相關的 Transients
     global $wpdb;
     $wpdb->query(
-        "DELETE FROM {$wpdb->options} 
-         WHERE option_name LIKE '_transient_buygo_%' 
+        "DELETE FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_buygo_%'
          OR option_name LIKE '_transient_timeout_buygo_%'"
     );
 
@@ -101,8 +106,7 @@ register_deactivation_hook(__FILE__, function () {
 /**
  * Initialize Plugin - 載入外掛
  *
- * 優先級設為 10，確保在 buygo-line-notify (優先級 20) 之前初始化
- * 這樣 LineWebhookHandler 才能在 buygo-line-notify 註冊 webhook endpoint 之前註冊好 hook 監聽器
+ * 優先級設為 20，確保在其他外掛（如 FluentCRM）載入後才初始化
  */
 add_action('plugins_loaded', function () {
     // 運行時兼容性檢查 - 偵測舊外掛是否被啟用
@@ -110,4 +114,7 @@ add_action('plugins_loaded', function () {
     \BuyGoPlus\PluginCompatibility::runtime_check();
 
     \BuyGoPlus\Plugin::instance()->init();
-}, 10);
+
+    // 初始化自動更新器
+    new \BuyGoPlus\Updater(BUYGO_PLUS_ONE_PLUGIN_FILE);
+}, 20);
