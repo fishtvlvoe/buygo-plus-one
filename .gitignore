@@ -21,3 +21,7 @@ coverage/
 
 # Composer
 composer.lock
+
+# Claude Code autonomous tasks
+.autonomous/
+buygo-line-notify/
