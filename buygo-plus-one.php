@@ -85,14 +85,17 @@ register_activation_hook(__FILE__, function () {
  * 注意：不會刪除資料表和設定，以便使用者重新啟用時可以保留資料
  */
 register_deactivation_hook(__FILE__, function () {
+    // 清理 rewrite rules
+    flush_rewrite_rules(false);
+
     // 清除快取
     wp_cache_flush();
 
     // 清除所有 BuyGo 相關的 Transients
     global $wpdb;
     $wpdb->query(
-        "DELETE FROM {$wpdb->options} 
-         WHERE option_name LIKE '_transient_buygo_%' 
+        "DELETE FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_buygo_%'
          OR option_name LIKE '_transient_timeout_buygo_%'"
     );
 
