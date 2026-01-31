@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       BuyGo+1 開發版
+ * Plugin Name:       BuyGo+1
  * Plugin URI:        https://buygo.me
- * Description:       BuyGo 獨立賣場後台系統 開發測試版
- * Version:           0.02
+ * Description:       BuyGo 獨立賣場後台系統
+ * Version:           0.2.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 // 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
 
 if (!defined('BUYGO_PLUS_ONE_VERSION')) {
-    define('BUYGO_PLUS_ONE_VERSION', '0.03-dev');
+    define('BUYGO_PLUS_ONE_VERSION', '0.2.0');
 }
 
 // 新版專用的常數（舊版不會定義這些）
@@ -32,6 +32,9 @@ define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
 
 // Load plugin class
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
+
+// Load updater
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
 
 /**
  * Activation Hook - 外掛啟用時執行
@@ -104,4 +107,7 @@ add_action('plugins_loaded', function () {
     \BuyGoPlus\PluginCompatibility::runtime_check();
 
     \BuyGoPlus\Plugin::instance()->init();
+
+    // 初始化自動更新器
+    new \BuyGoPlus\Updater(BUYGO_PLUS_ONE_PLUGIN_FILE);
 }, 20);
