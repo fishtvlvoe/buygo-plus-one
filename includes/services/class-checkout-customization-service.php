@@ -134,7 +134,10 @@ class CheckoutCustomizationService
         .fct_shipping_methods_wrapper,
         .fct_checkout_shipping_section,
         [class*="fct_shipping"],
-        [class*="fct-shipping"] {
+        [class*="fct-shipping"],
+        /* 隱藏配送選項標題 */
+        h4:has(+ .fct_shipping_methods_wrapper),
+        .fct_shipping_methods_section {
             display: none !important;
         }
         <?php endif; ?>
@@ -155,6 +158,56 @@ class CheckoutCustomizationService
         }
         <?php endif; ?>
         </style>
+
+        <?php if ($hide_shipping): ?>
+        <script id="buygo-auto-select-shipping">
+        /**
+         * 自動選擇第一個配送方式
+         * 當隱藏配送選項時，FluentCart 仍然需要選擇一個配送方式
+         * 這個腳本會自動選擇第一個可用的配送方式
+         */
+        (function() {
+            function autoSelectShipping() {
+                // 找到配送方式的 radio button 並自動選擇第一個
+                const shippingRadios = document.querySelectorAll('input[name="shipping_method_id"], input[name="shipping_method"], input[type="radio"][name*="shipping"]');
+
+                if (shippingRadios.length > 0) {
+                    const firstRadio = shippingRadios[0];
+                    if (!firstRadio.checked) {
+                        firstRadio.checked = true;
+                        // 觸發 change 事件讓 FluentCart 知道選擇已變更
+                        firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                        firstRadio.dispatchEvent(new Event('click', { bubbles: true }));
+                        console.log('[BuyGo] 自動選擇配送方式:', firstRadio.value);
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // 頁面載入後嘗試選擇
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(autoSelectShipping, 500);
+                });
+            } else {
+                setTimeout(autoSelectShipping, 500);
+            }
+
+            // 監聽 DOM 變化（FluentCart 可能動態載入配送選項）
+            const observer = new MutationObserver(function(mutations) {
+                autoSelectShipping();
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            // 5 秒後停止監聽
+            setTimeout(function() {
+                observer.disconnect();
+            }, 5000);
+        })();
+        </script>
+        <?php endif; ?>
         <?php
     }
 
