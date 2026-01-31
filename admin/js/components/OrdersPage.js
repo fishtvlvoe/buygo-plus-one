@@ -367,15 +367,16 @@ const OrdersPageComponent = {
         };
 
         // 載入訂單
-        // 計算統計資料
-        const calculateStats = () => {
-            const allOrders = orders.value || [];
-            stats.value = {
-                total: allOrders.length,
-                unshipped: allOrders.filter(o => !o.shipping_status || o.shipping_status === 'unshipped').length,
-                preparing: allOrders.filter(o => o.shipping_status === 'preparing').length,
-                shipped: allOrders.filter(o => o.shipping_status === 'shipped').length
-            };
+        // 更新統計資料（使用 API 返回的全域統計）
+        const updateStats = (apiStats) => {
+            if (apiStats) {
+                stats.value = {
+                    total: apiStats.total || 0,
+                    unshipped: apiStats.unshipped || 0,
+                    preparing: apiStats.preparing || 0,
+                    shipped: apiStats.shipped || 0
+                };
+            }
         };
 
         // 篩選後的訂單（根據狀態分類）
@@ -436,8 +437,8 @@ const OrdersPageComponent = {
                     }));
                     totalOrders.value = result.total || result.data.length;
 
-                    // 計算統計資料
-                    calculateStats();
+                    // 更新統計資料（使用 API 返回的全域統計）
+                    updateStats(result.stats);
 
                     // 預設折疊所有有子訂單的訂單
                     orders.value.forEach(order => {
