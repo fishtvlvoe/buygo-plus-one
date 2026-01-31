@@ -38,7 +38,8 @@ class CheckoutCustomizationService
 
         // 身分證欄位相關 hooks
         add_filter('fluent_cart/checkout_address_fields', [$this, 'add_id_number_field'], 10, 2);
-        add_action('fluent_cart/order_created', [$this, 'save_id_number_to_order'], 10, 2);
+        // FluentCart order_created hook 傳遞一個 array 參數
+        add_action('fluent_cart/order_created', [$this, 'save_id_number_to_order'], 10, 1);
 
         // 前端驗證腳本
         add_action('wp_footer', [$this, 'inject_validation_script'], 999);
@@ -297,15 +298,29 @@ class CheckoutCustomizationService
     /**
      * 儲存身分證字號到訂單 meta
      *
-     * @param int $order_id 訂單 ID
-     * @param array $order_data 訂單資料
+     * FluentCart 的 fluent_cart/order_created hook 傳遞一個 array，包含：
+     * - order: Order 物件
+     * - prev_order: 前一個訂單（可能為 null）
+     * - customer: Customer 物件
+     * - transaction: OrderTransaction 物件
+     *
+     * @param array $event_data 事件資料
      * @return void
      */
-    public function save_id_number_to_order($order_id, $order_data): void
+    public function save_id_number_to_order($event_data): void
     {
         if (!self::is_id_number_enabled()) {
             return;
         }
+
+        // 從事件資料中取得 order
+        $order = $event_data['order'] ?? null;
+        if (!$order || !isset($order->id)) {
+            error_log('[BuyGo Checkout] save_id_number_to_order: 無法取得訂單物件');
+            return;
+        }
+
+        $order_id = $order->id;
 
         $id_number = isset($_POST['taiwan_id_number'])
             ? sanitize_text_field($_POST['taiwan_id_number'])
