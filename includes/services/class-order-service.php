@@ -174,6 +174,92 @@ class OrderService
     }
 
     /**
+     * 取得訂單狀態統計（全域統計，不受分頁影響）
+     *
+     * 統計邏輯：
+     * - 父訂單數量（total）：只計算父訂單
+     * - 轉備貨（unshipped）：統計未出貨的「可操作訂單」
+     * - 備貨中（preparing）：統計備貨中的訂單
+     * - 已出貨（shipped）：統計已出貨的訂單
+     *
+     * 「可操作訂單」定義：
+     * - 如果父訂單有子訂單，則統計子訂單
+     * - 如果父訂單沒有子訂單，則統計父訂單本身
+     *
+     * @return array
+     */
+    public function getOrderStats(): array
+    {
+        try {
+            // 取得所有父訂單（包含子訂單關聯）
+            $parentOrders = Order::whereNull('parent_id')
+                ->with(['children'])
+                ->get();
+
+            $total = $parentOrders->count();
+
+            $stats = [
+                'total' => $total,
+                'unshipped' => 0,
+                'preparing' => 0,
+                'shipped' => 0
+            ];
+
+            foreach ($parentOrders as $parentOrder) {
+                $children = $parentOrder->children ?? [];
+
+                if (count($children) > 0) {
+                    // 有子訂單，統計子訂單的狀態
+                    foreach ($children as $child) {
+                        $status = $child->shipping_status ?? 'unshipped';
+                        $this->incrementStatsByStatus($stats, $status);
+                    }
+                } else {
+                    // 沒有子訂單，統計父訂單本身
+                    $status = $parentOrder->shipping_status ?? 'unshipped';
+                    $this->incrementStatsByStatus($stats, $status);
+                }
+            }
+
+            $this->debugService->log('OrderService', '取得訂單統計成功', $stats);
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('OrderService', '取得訂單統計失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return [
+                'total' => 0,
+                'unshipped' => 0,
+                'preparing' => 0,
+                'shipped' => 0
+            ];
+        }
+    }
+
+    /**
+     * 根據狀態增加統計數字
+     *
+     * @param array &$stats 統計陣列
+     * @param string $status 訂單狀態
+     */
+    private function incrementStatsByStatus(array &$stats, string $status): void
+    {
+        if (empty($status) || $status === 'unshipped' || $status === 'pending') {
+            $stats['unshipped']++;
+        } elseif ($status === 'preparing') {
+            $stats['preparing']++;
+        } elseif (in_array($status, ['shipped', 'completed', 'processing', 'ready_to_ship'])) {
+            $stats['shipped']++;
+        } else {
+            // 其他未知狀態歸類為 unshipped
+            $stats['unshipped']++;
+        }
+    }
+
+    /**
      * 更新訂單狀態
      * 
      * @param int $orderId 訂單 ID
@@ -268,6 +354,18 @@ class OrderService
                 'old_status' => $oldStatus,
                 'new_status' => $status
             ]);
+
+            // 觸發狀態變更通知（提供給其他模組，例如 LINE 推播）
+            \do_action('buygo_shipping_status_changed', $orderId, $oldStatus, $status);
+
+            // 特定狀態事件（與 ShippingStatusService 保持一致）
+            if ($status === 'shipped') {
+                \do_action('buygo_order_shipped', $orderId);
+            } elseif ($status === 'completed') {
+                \do_action('buygo_order_completed', $orderId);
+            } elseif ($status === 'out_of_stock') {
+                \do_action('buygo_order_out_of_stock', $orderId);
+            }
 
             // 【重要】如果是子訂單，同步更新父訂單的 shipping_status
             if (!empty($order->parent_id)) {
@@ -739,8 +837,10 @@ class OrderService
             }
         }
 
-        if (isset($order['order_items']) && is_array($order['order_items'])) {
-            foreach ($order['order_items'] as $item) {
+        // 【修復 2026-01-31】FluentCart Model 的 toArray() 可能返回 orderItems（駝峰命名）或 order_items（底線命名）
+        $order_items = $order['order_items'] ?? $order['orderItems'] ?? [];
+        if (is_array($order_items) && count($order_items) > 0) {
+            foreach ($order_items as $item) {
                 // 確保 $item 是陣列格式
                 if (is_object($item)) {
                     $item = (array) $item;
@@ -809,6 +909,16 @@ class OrderService
                     }
                 }
 
+                // 計算單價和總金額
+                $unit_price = isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0; // 轉換為元
+                $line_total = isset($item['line_total']) ? ($item['line_total'] / 100) : 0;
+
+                // 【修復】如果 line_total 是 0 但有單價和數量，則計算正確的總金額
+                // 這是因為拆單時子訂單的 line_total 沒有被正確設定
+                if ($line_total == 0 && $unit_price > 0 && $quantity > 0) {
+                    $line_total = $unit_price * $quantity;
+                }
+
                 $items[] = [
                     'id' => $item['id'] ?? 0,
                     'order_id' => $order['id'] ?? 0,
@@ -816,8 +926,8 @@ class OrderService
                     'product_name' => $product_name,
                     'product_image' => $product_image,
                     'quantity' => $quantity,
-                    'price' => isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0, // 轉換為元
-                    'total' => isset($item['line_total']) ? ($item['line_total'] / 100) : 0,
+                    'price' => $unit_price,
+                    'total' => $line_total,
                     'allocated_quantity' => $allocated_quantity,
                     'shipped_quantity' => $shipped_quantity,
                     'pending_quantity' => max(0, $quantity - $allocated_quantity - $shipped_quantity)

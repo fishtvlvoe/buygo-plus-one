@@ -16,10 +16,22 @@
 
 // 注意: 這是一個全局函數,不使用 ES6 import/export
 // 因為 WordPress 環境中 ES6 模組可能不被支持
+
+// 全域共享的幣別狀態（單例模式）
+// 這樣所有使用 useCurrency 的元件都會共享同一個 ref
+let _globalSystemCurrency = null;
+let _globalExchangeRates = null;
+
 function useCurrency() {
     const { ref, computed } = Vue;
-    // 系統幣別 (從 WordPress 全局設定讀取)
-    const systemCurrency = ref(window.buygoSettings?.currency || 'JPY');
+
+    // 初始化全域幣別（只在第一次調用時創建）
+    if (!_globalSystemCurrency) {
+        _globalSystemCurrency = ref(window.buygoSettings?.currency || 'JPY');
+        console.log('[useCurrency] 初始化全域幣別:', _globalSystemCurrency.value);
+    }
+
+    const systemCurrency = _globalSystemCurrency;
 
     // 幣別符號對照表
     const currencySymbols = {
@@ -34,15 +46,19 @@ function useCurrency() {
 
     // 匯率對照表 (基準: JPY = 1)
     // 注意: 實際應用中應該從 API 或設定檔讀取即時匯率
-    const exchangeRates = ref({
-        'JPY': 1,
-        'TWD': 0.23,    // 1 JPY = 0.23 TWD
-        'USD': 0.0067,  // 1 JPY = 0.0067 USD
-        'THB': 0.24,    // 1 JPY = 0.24 THB
-        'CNY': 0.048,   // 1 JPY = 0.048 CNY
-        'EUR': 0.0062,  // 1 JPY = 0.0062 EUR
-        'GBP': 0.0053   // 1 JPY = 0.0053 GBP
-    });
+    if (!_globalExchangeRates) {
+        _globalExchangeRates = ref({
+            'JPY': 1,
+            'TWD': 0.23,    // 1 JPY = 0.23 TWD
+            'USD': 0.0067,  // 1 JPY = 0.0067 USD
+            'THB': 0.24,    // 1 JPY = 0.24 THB
+            'CNY': 0.048,   // 1 JPY = 0.048 CNY
+            'EUR': 0.0062,  // 1 JPY = 0.0062 EUR
+            'GBP': 0.0053   // 1 JPY = 0.0053 GBP
+        });
+    }
+
+    const exchangeRates = _globalExchangeRates;
 
     /**
      * 取得幣別符號

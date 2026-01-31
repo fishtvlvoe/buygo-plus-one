@@ -177,6 +177,58 @@ class Products_API {
                 ]
             ]
         ]);
+
+        // GET /products/{id}/variations - 取得商品的 Variation 列表
+        register_rest_route($this->namespace, '/products/(?P<id>\\d+)/variations', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_product_variations'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
+        // GET /variations/{id}/stats - 取得 Variation 統計資料
+        register_rest_route($this->namespace, '/variations/(?P<id>\\d+)/stats', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_variation_stats'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
+        // PUT /variations/{id} - 更新 Variation（用於更新採購數量）
+        register_rest_route($this->namespace, '/variations/(?P<id>\\d+)', [
+            'methods' => 'PUT',
+            'callback' => [$this, 'update_variation'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
+        // GET /products/limit-check - 檢查賣家商品數量限制 (Phase 19)
+        register_rest_route($this->namespace, '/products/limit-check', [
+            'methods' => 'GET',
+            'callback' => [$this, 'check_seller_limit'],
+            'permission_callback' => [API::class, 'check_permission'],
+        ]);
     }
     
     /**
@@ -213,9 +265,23 @@ class Products_API {
                     $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
                 }
                 
+                // 檢查是否為多樣式商品
+                $hasVariations = false;
+                $variations = [];
+                $defaultVariation = null;
+
+                if (isset($product['post_id'])) {
+                    $hasVariations = $productService->isVariableProduct($product['post_id']);
+                    if ($hasVariations) {
+                        $variations = $productService->getVariations($product['post_id']);
+                        $defaultVariation = !empty($variations) ? $variations[0] : null;
+                    }
+                }
+
                 $formattedProduct = [
                     'id' => $product['id'],
                     'name' => $product['name'],
+                    'variation_title' => $product['variation_title'] ?? null,
                     'image' => $product['image'],
                     'price' => $product['price'],
                     'currency' => $product['currency'],
@@ -223,7 +289,11 @@ class Products_API {
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $product['purchased'] ?? 0,
                     'allocated' => $allocated,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated)
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated),
+                    'has_variations' => $hasVariations,
+                    'variations' => $variations,
+                    'default_variation' => $defaultVariation,
+                    'post_id' => $product['post_id'] ?? null
                 ];
                 
                 return new \WP_REST_Response([
@@ -244,10 +314,24 @@ class Products_API {
             $viewMode = 'frontend'; // BuyGo+1 固定使用 frontend 模式
             
             $products = $productService->getProductsWithOrderCount($filters, $viewMode);
-            
+
+            // 去重：同一個商品（post_id）只保留一個，避免多樣式商品重複顯示
+            $uniqueProducts = [];
+            $seenPostIds = [];
+            foreach ($products as $product) {
+                $postId = $product['post_id'] ?? null;
+                if ($postId && !isset($seenPostIds[$postId])) {
+                    $uniqueProducts[] = $product;
+                    $seenPostIds[$postId] = true;
+                } elseif (!$postId) {
+                    // 沒有 post_id 的商品直接加入（不應該發生，但保險起見）
+                    $uniqueProducts[] = $product;
+                }
+            }
+
             // 轉換資料格式以符合前端需求
             $formattedProducts = [];
-            foreach ($products as $product) {
+            foreach ($uniqueProducts as $product) {
                 // 轉換 status：WordPress 使用 'publish'，前端需要 'published'
                 $status = 'private';
                 if ($product['status'] === 'publish') {
@@ -263,9 +347,23 @@ class Products_API {
                     $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
                 }
                 
+                // 檢查是否為多樣式商品，並加入 variations 資料
+                $hasVariations = false;
+                $variations = [];
+                $defaultVariation = null;
+
+                if (isset($product['post_id'])) {
+                    $hasVariations = $productService->isVariableProduct($product['post_id']);
+                    if ($hasVariations) {
+                        $variations = $productService->getVariations($product['post_id']);
+                        $defaultVariation = !empty($variations) ? $variations[0] : null;
+                    }
+                }
+
                 $formattedProducts[] = [
                     'id' => $product['id'],
                     'name' => $product['name'],
+                    'variation_title' => $product['variation_title'] ?? null,
                     'image' => $product['image'],
                     'price' => $product['price'], // ProductService 已經轉換為元
                     'currency' => $product['currency'],
@@ -275,7 +373,11 @@ class Products_API {
                     'allocated' => $allocated,
                     'shipped' => $product['shipped'] ?? 0,
                     'pending' => $product['pending'] ?? 0,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0))
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0)),
+                    'has_variations' => $hasVariations,
+                    'variations' => $variations,
+                    'default_variation' => $defaultVariation,
+                    'post_id' => $product['post_id'] ?? null
                 ];
             }
             
@@ -1061,6 +1163,140 @@ class Products_API {
         $product = \FluentCart\App\Models\ProductVariation::find($product_id);
         if ($product && $product->post_id) {
             update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
+        }
+    }
+
+    /**
+     * 取得商品的 Variation 列表
+     */
+    public function get_product_variations($request) {
+        try {
+            $product_id = (int)$request->get_param('id');
+
+            // 檢查商品是否存在
+            $product = \FluentCart\App\Models\Product::find($product_id);
+            if (!$product) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '商品不存在'
+                ], 404);
+            }
+
+            $productService = new ProductService();
+            $variations = $productService->getVariations($product_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $variations
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 取得 Variation 統計資料
+     */
+    public function get_variation_stats($request) {
+        try {
+            $variation_id = (int)$request->get_param('id');
+
+            // 檢查 variation 是否存在
+            $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
+            if (!$variation) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'Variation 不存在'
+                ], 404);
+            }
+
+            $productService = new ProductService();
+            $stats = $productService->getVariationStats($variation_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $stats
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 更新 Variation（用於更新採購數量）
+     *
+     * PUT /wp-json/buygo-plus-one/v1/variations/{id}
+     */
+    public function update_variation($request) {
+        try {
+            $variation_id = (int)$request->get_param('id');
+            $data = $request->get_json_params();
+
+            // 檢查 variation 是否存在
+            $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
+            if (!$variation) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'Variation 不存在'
+                ], 404);
+            }
+
+            // 更新採購數量（儲存到 variation meta）
+            if (isset($data['purchased'])) {
+                $purchased = (int)$data['purchased'];
+                // 使用 variation meta 而不是 post meta
+                update_metadata('fluent_cart_variation', $variation_id, '_buygo_purchased', $purchased);
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '已更新 Variation'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 檢查賣家商品數量限制 (Phase 19)
+     *
+     * GET /wp-json/buygo-plus-one/v1/products/limit-check
+     */
+    public function check_seller_limit() {
+        try {
+            $user_id = get_current_user_id();
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '未登入'
+                ], 401);
+            }
+
+            $product_service = new ProductService();
+            $limit_status = $product_service->canAddProduct($user_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $limit_status
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

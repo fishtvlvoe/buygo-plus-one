@@ -1,0 +1,526 @@
+/**
+ * Dashboard Page Styles - Redesigned
+ * BuyGo+1 Plugin
+ *
+ * 遵循 BuyGo Design System 的 Dashboard 樣式
+ * 使用 CSS Variables 和統一的設計語言
+ */
+
+/* ============================================ */
+/* Fira 字體樣式（數據可讀性優化） */
+/* ============================================ */
+
+/* Dashboard 主體使用 Fira Sans */
+.buygo-plus-one-dashboard {
+    font-family: var(--font-fira-sans, -apple-system, BlinkMacSystemFont, sans-serif);
+}
+
+/* 統計數值使用 Fira Code 等寬字體 */
+.stat-card-value,
+.product-value,
+.stat-value {
+    font-family: var(--font-fira-code, monospace);
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============================================ */
+/* 統計卡片網格（精簡版） */
+/* ============================================ */
+
+.stats-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-4);
+}
+
+/* 平板：2欄 */
+@media (max-width: 1024px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 手機版：精簡版 2x2 grid，減小尺寸 */
+@media (max-width: 768px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-2);
+        margin-bottom: var(--spacing-3);
+    }
+}
+
+/* 統計卡片 - 精簡緊湊版 */
+.stat-card-compact {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-4);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card-compact::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, var(--color-primary), var(--color-primary-light));
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.stat-card-compact:hover {
+    border-color: var(--color-hover-border);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-card-compact:hover::before {
+    opacity: 1;
+}
+
+/* 統計卡片內容 - 更緊湊 */
+.stat-card-compact .stat-card-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-1);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-card-compact .stat-card-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-1);
+    line-height: var(--line-height-tight);
+}
+
+.stat-card-compact .stat-card-change {
+    font-size: var(--font-size-xs);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-weight: var(--font-weight-medium);
+    padding: 2px var(--spacing-2);
+    border-radius: var(--radius-full);
+    background: var(--color-slate-100);
+}
+
+/* 手機版卡片更小 */
+@media (max-width: 768px) {
+    .stat-card-compact {
+        padding: var(--spacing-3);
+    }
+
+    .stat-card-compact .stat-card-value {
+        font-size: var(--font-size-xl);
+    }
+}
+
+/* 變化百分比顏色 */
+.stat-card-change.positive {
+    color: var(--color-success-700);
+    background: var(--color-success-50);
+}
+
+.stat-card-change.negative {
+    color: var(--color-error-600);
+    background: var(--color-error-50);
+}
+
+/* ============================================ */
+/* 合併版圖表和區塊標題 */
+/* ============================================ */
+
+.section-title-merged {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.chart-card-merged {
+    margin-bottom: var(--spacing-4);
+}
+
+.chart-container-merged {
+    position: relative;
+    height: 280px;
+}
+
+/* 手機版：圖表變成獨立網格 */
+@media (max-width: 768px) {
+    .chart-card-merged {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .chart-container-merged {
+        height: 160px;
+    }
+
+    .section-title-merged {
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--spacing-2);
+        padding-bottom: var(--spacing-1);
+    }
+}
+
+/* ============================================ */
+/* 兩欄式主要內容區 */
+/* ============================================ */
+
+.dashboard-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
+}
+
+.dashboard-left-column,
+.dashboard-right-column {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-5);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 平板和手機版：單欄 */
+@media (max-width: 1024px) {
+    .dashboard-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 手機版：每個區塊變成獨立網格 */
+@media (max-width: 768px) {
+    .dashboard-main-grid {
+        display: block;
+        gap: 0;
+    }
+
+    .dashboard-left-column,
+    .dashboard-right-column {
+        padding: 0;
+        margin-bottom: var(--spacing-3);
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .dashboard-left-column:last-child,
+    .dashboard-right-column:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* ============================================ */
+/* 產品管理區塊 */
+/* ============================================ */
+
+.products-section {
+    margin-top: auto; /* 置底 */
+}
+
+.products-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    background: var(--color-slate-50);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-md);
+}
+
+.product-stat-item {
+    flex: 1;
+    text-align: center;
+}
+
+.product-label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-1);
+    font-weight: var(--font-weight-medium);
+}
+
+.product-value {
+    display: block;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+}
+
+.product-value-success {
+    color: var(--color-success-600);
+}
+
+.product-value-warning {
+    color: var(--color-warning);
+}
+
+/* 手機版：產品管理變成獨立網格 */
+@media (max-width: 768px) {
+    .products-section {
+        margin-top: 0;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .products-stats {
+        padding: var(--spacing-3);
+        gap: var(--spacing-2);
+    }
+
+    .product-value {
+        font-size: var(--font-size-lg);
+    }
+
+    .product-label {
+        font-size: 10px;
+    }
+}
+
+/* ============================================ */
+/* 活動列表（右欄） */
+/* ============================================ */
+
+.activities-container {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 520px;
+    overflow-x: hidden;
+}
+
+.empty-activities {
+    text-align: center;
+    padding: var(--spacing-12) var(--spacing-4);
+    color: var(--color-text-secondary);
+}
+
+.empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--spacing-4);
+    color: var(--color-slate-300);
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3);
+    border-bottom: 1px solid var(--color-border-light);
+    transition: background var(--transition-fast);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    margin: 0 calc(var(--spacing-3) * -1);
+}
+
+.activity-item:hover {
+    background: var(--color-hover-bg);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-icon.order {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+}
+
+.activity-icon.customer {
+    background: var(--color-success-50);
+    color: var(--color-success);
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    margin-bottom: 2px;
+}
+
+.activity-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.activity-time {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+/* 手機版：活動列表變成獨立網格（放在圖表下方） */
+@media (max-width: 768px) {
+    .dashboard-right-column {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+    }
+
+    .activities-container {
+        max-height: 300px;
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .activity-item {
+        gap: var(--spacing-2);
+        padding: var(--spacing-2);
+        margin: 0;
+        width: 100%;
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .activity-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .activity-title {
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .activity-description,
+    .activity-time {
+        font-size: 11px;
+    }
+
+    .activity-content {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+    }
+}
+
+/* ============================================ */
+/* 載入狀態 */
+/* ============================================ */
+
+.loading-skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ============================================ */
+/* 錯誤訊息 */
+/* ============================================ */
+
+.error-message {
+    background: var(--color-error-50);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-8);
+    text-align: center;
+}
+
+.error-message .error-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto var(--spacing-4);
+    color: var(--color-error);
+}
+
+.error-message .error-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-error-600);
+    margin-bottom: var(--spacing-4);
+}
+
+.error-message .retry-button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.error-message .retry-button:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============================================ */
+/* 空狀態 */
+/* ============================================ */
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-12) var(--spacing-4);
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--spacing-4);
+    color: var(--color-slate-300);
+}
+
+.empty-state h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-2);
+}
+
+.empty-state p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}

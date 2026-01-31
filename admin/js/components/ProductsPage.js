@@ -51,6 +51,9 @@ const ProductsPageComponent = {
         const loading = ref(true);
         const error = ref(null);
         const globalSearchQuery = ref('');
+
+        // --- Seller Limit State (Phase 19) ---
+        const sellerLimit = ref({ can_add: true, current: 0, limit: 0, message: '' });
         
         // --- Sub-page Data ---
         const editingProduct = ref({ id: '', name: '', price: 0, status: 'published', purchased: 0 }); // Initialize with defaults
@@ -269,8 +272,14 @@ const ProductsPageComponent = {
         const perPage = ref(5);
         const totalProducts = ref(0);
 
-        // 當前顯示幣別
+        // 當前顯示幣別（監聽全域幣別變化）
         const currentCurrency = ref(systemCurrency.value);
+
+        // 監聽全域幣別變化
+        watch(systemCurrency, (newCurrency) => {
+            console.log('[ProductsPage] 偵測到幣別變化:', newCurrency);
+            currentCurrency.value = newCurrency;
+        });
 
         // --- Router Logic (使用 BuyGoRouter 核心模組) ---
         const checkUrlParams = async () => {
@@ -372,6 +381,24 @@ const ProductsPageComponent = {
             return texts[status] || '未知';
         };
 
+        // --- Seller Limit Check (Phase 19) ---
+        const checkSellerLimit = async () => {
+            try {
+                const res = await fetch('/wp-json/buygo-plus-one/v1/products/limit-check', {
+                    credentials: 'include',
+                    headers: {
+                        'X-WP-Nonce': wpNonce
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    sellerLimit.value = data.data;
+                }
+            } catch (e) {
+                console.error('檢查賣家限制失敗:', e);
+            }
+        };
+
         // --- API Methods ---
         const loadProducts = async () => {
             loading.value = true;
@@ -392,9 +419,23 @@ const ProductsPageComponent = {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    products.value = data.data;
-                    totalProducts.value = data.total || data.data.length;
-                    await checkUrlParams(); 
+                    // 初始化 Variation 顯示邏輯
+                    products.value = data.data
+                        .filter(product => product !== null && product !== undefined)
+                        .map(product => {
+                            // 如果是多樣式商品，設定預設選中的 variation
+                            if (product.has_variations && product.default_variation) {
+                                product.selected_variation_id = product.default_variation.id;
+                                product.selected_variation = product.default_variation;
+                            }
+                            return product;
+                        });
+                    totalProducts.value = products.value.length;
+                    // 並行執行 URL 參數檢查和賣家限制檢查，減少載入時間
+                    await Promise.all([
+                        checkUrlParams(),
+                        checkSellerLimit()
+                    ]);
                 } else {
                     products.value = [];
                     totalProducts.value = 0;
@@ -522,12 +563,23 @@ const ProductsPageComponent = {
         const savePurchased = async (product) => {
              // Reuse logic from saveProduct or dedicated endpoint
              try {
-                await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
-                    credentials: 'include',
-                    body: JSON.stringify({ purchased: product.purchased })
-                });
+                // 如果是多樣式商品，更新選中的 variation 的採購數量
+                if (product.has_variations && product.selected_variation_id) {
+                    await fetch(`/wp-json/buygo-plus-one/v1/variations/${product.selected_variation_id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                        credentials: 'include',
+                        body: JSON.stringify({ purchased: product.purchased })
+                    });
+                } else {
+                    // 單一商品，更新商品本身的採購數量
+                    await fetch(`/wp-json/buygo-plus-one/v1/products/${product.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
+                        credentials: 'include',
+                        body: JSON.stringify({ purchased: product.purchased })
+                    });
+                }
                 showToast('已更新採購數量');
              } catch(e) { console.error(e); }
         };
@@ -734,6 +786,67 @@ const ProductsPageComponent = {
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
 
+        // Variation 相關方法
+        const getDisplayTitle = (product) => {
+            if (!product) return '';
+            if (product.has_variations && product.selected_variation) {
+                return product.selected_variation.variation_title || product.name;
+            }
+            return product.variation_title || product.name;
+        };
+
+        const getDisplayPrice = (product) => {
+            if (!product) return 0;
+            if (product.has_variations && product.selected_variation) {
+                return product.selected_variation.price;
+            }
+            return product.price;
+        };
+
+        // 取得顯示用的圖片 URL（優先顯示已選變體的圖片）
+        const getDisplayImage = (product) => {
+            if (!product) return null;
+            if (product.has_variations && product.selected_variation && product.selected_variation.image) {
+                return product.selected_variation.image;
+            }
+            return product.image;
+        };
+
+        const onVariationChange = async (product) => {
+            if (!product.has_variations || !product.selected_variation_id) return;
+
+            // 找到選中的 variation
+            const variation = product.variations.find(v => v.id === product.selected_variation_id);
+            if (!variation) return;
+
+            product.selected_variation = variation;
+
+            // 取得該 variation 的統計資料
+            try {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/variations/${variation.id}/stats?_t=${Date.now()}`, {
+                    cache: 'no-store',
+                    credentials: 'include',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // 更新商品的統計資料
+                    product.ordered = data.data.ordered || 0;
+                    product.allocated = data.data.allocated || 0;
+                    product.shipped = data.data.shipped || 0;
+                    product.purchased = data.data.purchased || 0;
+                    product.pending = data.data.pending || 0;
+                    product.reserved = data.data.reserved || 0;
+                }
+            } catch (e) {
+                console.error('載入 Variation 統計失敗:', e);
+            }
+        };
+
         // Smart Search Box 處理函數
         const handleProductSelect = (product) => {
             if (product && product.id) {
@@ -780,7 +893,7 @@ const ProductsPageComponent = {
         return {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
-            products, selectedItems, loading, error, globalSearchQuery,
+            products, selectedItems, loading, error, globalSearchQuery, sellerLimit,
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
@@ -800,7 +913,12 @@ const ProductsPageComponent = {
             handleProductSelect,
             handleProductSearch,
             handleProductSearchClear,
-             fileInput,
+            // Variation 方法
+            getDisplayTitle,
+            getDisplayPrice,
+            getDisplayImage,
+            onVariationChange,
+            fileInput,
              handleTabClick: (id) => {
                  currentTab.value = id;
                  if (id === 'products') navigateTo('list');

@@ -49,10 +49,20 @@ class Admin {
             return;
         }
 
+        // 載入設計系統（全域樣式）
+        wp_enqueue_style(
+            $this->plugin_name . '-design-system',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'design-system/index.css',
+            array(),
+            $this->version,
+            'all'
+        );
+
+        // 載入後台設定樣式
         wp_enqueue_style(
             $this->plugin_name,
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-settings.css',
-            array(),
+            array($this->plugin_name . '-design-system'),
             $this->version,
             'all'
         );

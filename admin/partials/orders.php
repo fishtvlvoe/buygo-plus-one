@@ -10,87 +10,28 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.ph
 <!-- Orders Page Styles -->
 <link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/orders.css', __FILE__)); ?>" />
 <?php
+// 設定 Header 參數
+$header_title = '訂單';
+$header_breadcrumb = '首頁 / 訂單列表';
+$show_currency_toggle = true;
+
+// 載入共用 Header
+ob_start();
+include __DIR__ . '/header-component.php';
+$header_html = ob_get_clean();
+
 $orders_component_template = <<<'HTML'
 <!-- Root Template Content (由 template.php 統一掛載，側邊欄已由共用組件處理) -->
 <div class="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
 
     <!-- Main Content -->
     <main class="flex flex-col min-w-0 relative bg-slate-50 min-h-screen">
+HTML;
 
-        <!-- ============================================ -->
-        <!-- 頁首部分 -->
-        <!-- ============================================ -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 md:static">
-            <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                <div class="flex flex-col overflow-hidden min-w-0 pl-12 md:pl-0" v-show="!showMobileSearch">
-                    <h1 class="text-xl font-bold text-slate-900 leading-tight truncate">訂單</h1>
-                    <nav class="hidden md:flex text-[10px] md:text-xs text-slate-500 gap-1 items-center truncate">
-                        首頁 <span class="text-slate-300">/</span> 訂單列表
-                        <span v-if="currentView === 'detail'" class="text-slate-300">/</span>
-                        <span v-if="currentView === 'detail'" class="text-primary font-medium truncate">詳情 #{{ currentOrderId }}</span>
-                    </nav>
-                    
-                    <!-- 篩選提示 -->
-                    <div v-if="searchFilter" class="hidden md:flex items-center gap-2 mt-1">
-                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                            篩選：{{ searchFilterName }}
-                        </span>
-                        <button 
-                            @click="handleSearchClear"
-                            class="text-xs text-slate-500 hover:text-slate-700 underline">
-                            清除篩選
-                        </button>
-                    </div>
-                </div>
-            </div>
+// 將 Header 加入模板
+$orders_component_template .= $header_html;
 
-            <!-- Right Actions -->
-            <div class="flex items-center gap-2 md:gap-3 shrink-0">
-                <button @click="showMobileSearch = !showMobileSearch"
-                    class="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
-
-                <!-- Batch Actions -->
-                <div v-if="selectedItems.length > 0" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <span class="text-xs font-medium text-slate-500 hidden sm:inline">已選 {{ selectedItems.length }} 項</span>
-                    <button @click="batchPrepare" :disabled="batchProcessing" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 border border-orange-200 transition disabled:opacity-50">
-                        {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
-                    </button>
-                    <button @click="batchDelete" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 border border-red-200 transition">批次刪除</button>
-                </div>
-
-                <!-- Desktop Search -->
-                <div class="relative hidden sm:block w-32 md:w-48 lg:w-64 transition-all duration-300">
-                    <input type="text" placeholder="全域搜尋..." v-model="searchQuery" @input="handleSearchInput"
-                        class="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-full transition-all">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-
-                <!-- Notification -->
-                <button class="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 relative">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                </button>
-                
-                <!-- Currency Toggle -->
-                <button @click="toggleCurrency" class="ml-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition shadow-sm">
-                    {{ systemCurrency }}
-                </button>
-            </div>
-
-            <!-- Mobile Search Overlay -->
-            <transition name="search-slide">
-                <div v-if="showMobileSearch" class="absolute inset-0 z-20 bg-white flex items-center px-4 gap-2 md:hidden">
-                    <div class="relative flex-1">
-                        <input type="text" placeholder="全域搜尋..." v-model="searchQuery" @input="handleSearchInput"
-                            class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary auto-focus">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <button @click="showMobileSearch = false" class="text-sm font-medium text-slate-500 p-2">取消</button>
-                </div>
-            </transition>
-        </header>
-        <!-- 結束：頁首部分 -->
+$orders_component_template .= <<<'HTML'
 
         <!-- ============================================ -->
         <!-- 內容區域 -->
@@ -114,6 +55,84 @@ $orders_component_template = <<<'HTML'
                     @clear="handleOrderSearchClear"
                 ></smart-search-box>
 
+                <!-- 狀態分類按鈕 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="flex gap-2 md:gap-8 px-3 md:px-6 border-b border-slate-200">
+                        <button
+                            @click="filterStatus = null"
+                            :class="filterStatus === null ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
+                        >
+                            <span>全部</span>
+                            <span v-if="tabCounts.total > 0" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+                                {{ tabCounts.total }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'unshipped'"
+                            :class="filterStatus === 'unshipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
+                        >
+                            <span>轉備貨</span>
+                            <span v-if="tabCounts.unshipped > 0" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                {{ tabCounts.unshipped }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'preparing'"
+                            :class="filterStatus === 'preparing' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
+                        >
+                            <span>備貨中</span>
+                            <span v-if="tabCounts.preparing > 0" class="px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
+                                {{ tabCounts.preparing }}
+                            </span>
+                        </button>
+                        <button
+                            @click="filterStatus = 'shipped'"
+                            :class="filterStatus === 'shipped' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-600 hover:text-slate-900'"
+                            class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
+                        >
+                            <span>已出貨</span>
+                            <span v-if="tabCounts.shipped > 0" class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
+                                {{ tabCounts.shipped }}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 批次操作區塊 -->
+                <div v-if="selectedItems.length > 0" class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 text-sm text-blue-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>已選擇 <strong>{{ selectedItems.length }}</strong> 筆訂單</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            @click="batchPrepare"
+                            :disabled="batchProcessing"
+                            class="btn btn-primary btn-sm"
+                        >
+                            <svg v-if="batchProcessing" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg v-else class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                            {{ batchProcessing ? '處理中...' : '批次轉備貨' }}
+                        </button>
+                        <button
+                            @click="selectedItems = []"
+                            class="btn btn-secondary btn-sm"
+                        >
+                            取消選擇
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Loading -->
                 <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
 
@@ -126,33 +145,34 @@ $orders_component_template = <<<'HTML'
                 <!-- Content -->
                 <div v-else>
             <!-- 桌面版表格 -->
-            <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-slate-50 border-b border-slate-200">
+            <div class="data-table">
+                <table>
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            <th>
                                 <input type="checkbox" @change="toggleSelectAll" class="rounded border-slate-300">
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">編號</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">項目</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">總金額</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">運送狀態</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">下單日期</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+                            <th>編號</th>
+                            <th>客戶</th>
+                            <th>項目</th>
+                            <th>總金額</th>
+                            <th>運送狀態</th>
+                            <th>下單日期</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        <!-- 父訂單行 -->
-                        <template v-for="order in orders" :key="order.id">
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-3">
+                    <tbody>
+                        <!-- 訂單行（父訂單或提取的子訂單） -->
+                        <template v-for="order in filteredOrders" :key="order.id">
+                        <tr :class="{ 'bg-blue-50/30 border-l-4 border-blue-400': order._isExtractedChild }">
+                            <td>
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">
+                            <td>
                                 <div class="flex items-center gap-2">
+                                    <!-- 展開/收合按鈕（僅限有子訂單的父訂單） -->
                                     <button
-                                        v-if="order.children && order.children.length > 0"
+                                        v-if="getFilteredChildren(order).length > 0"
                                         @click="toggleChildrenCollapse(order.id)"
                                         class="text-slate-400 hover:text-primary transition flex-shrink-0"
                                     >
@@ -166,14 +186,22 @@ $orders_component_template = <<<'HTML'
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </button>
+                                    <!-- 提取的子訂單加上箭頭圖示 -->
+                                    <svg v-if="order._isExtractedChild" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
                                     <span>#{{ order.invoice_no || order.id }}</span>
-                                    <span v-if="order.children && order.children.length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                        {{ order.children.length }} 批次
+                                    <!-- 提取的子訂單顯示「拆單」標籤 -->
+                                    <span v-if="order._isExtractedChild" class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                    <!-- 批次數（僅限有子訂單的父訂單） -->
+                                    <span v-if="getFilteredChildren(order).length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        {{ getFilteredChildren(order).length }} 批次
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">
+                            <!-- 客戶名稱：提取的子訂單從父訂單取得 -->
+                            <td>{{ order._isExtractedChild ? order._parentOrder.customer_name : order.customer_name }}</td>
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <span 
                                         @click="toggleOrderExpand(order.id)"
@@ -222,8 +250,8 @@ $orders_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ formatPrice(order.total_amount, order.currency) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatPrice(order.total_amount, order.currency) }}</td>
+                            <td>
                                 <div class="relative inline-block">
                                     <button
                                         @click.stop="toggleStatusDropdown(order.id)"
@@ -257,34 +285,34 @@ $orders_component_template = <<<'HTML'
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(order.created_at) }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition" title="查看詳情">
+                            <td>{{ formatDate(order.created_at) }}</td>
+                            <td>
+                                <div class="flex items-center gap-2 flex-nowrap min-w-max">
+                                    <button @click="openOrderDetail(order.id)" class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition flex-shrink-0" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
                                     <!-- 根據狀態顯示不同按鈕（父訂單） -->
                                     <button
                                         v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                                         @click="shipOrder(order)"
-                                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        class="btn btn-primary btn-sm flex-shrink-0">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="order.shipping_status === 'preparing'"
-                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
-                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="order.shipping_status === 'shipped'"
-                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -295,14 +323,14 @@ $orders_component_template = <<<'HTML'
                         <!-- 子訂單行（拆單） -->
                         <tr
                             v-if="!isChildrenCollapsed(order.id)"
-                            v-for="childOrder in order.children"
+                            v-for="childOrder in getFilteredChildren(order)"
                             :key="'child-' + childOrder.id"
                             class="bg-blue-50/30 hover:bg-blue-50/50 transition border-l-4 border-blue-400"
                         >
-                            <td class="px-4 py-3">
+                            <td>
                                 <!-- 子訂單不可勾選 -->
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-blue-700">
+                            <td>
                                 <div class="flex items-center gap-2">
                                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -311,8 +339,8 @@ $orders_component_template = <<<'HTML'
                                     <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ order.customer_name }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-600">
+                            <td>{{ order.customer_name }}</td>
+                            <td>
                                 <!-- 子訂單商品資訊 -->
                                 <div class="text-xs text-slate-600">
                                     <template v-if="childOrder.items && childOrder.items.length > 0">
@@ -323,8 +351,8 @@ $orders_component_template = <<<'HTML'
                                     <span v-else class="text-blue-700">拆單商品</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-700">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
-                            <td class="px-4 py-3">
+                            <td>{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</td>
+                            <td>
                                 <span
                                     :class="getStatusClass(childOrder.shipping_status || 'unshipped')"
                                     class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap"
@@ -332,34 +360,34 @@ $orders_component_template = <<<'HTML'
                                     {{ getStatusText(childOrder.shipping_status || 'unshipped') }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">{{ formatDate(childOrder.created_at) }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="查看詳情">
+                            <td>{{ formatDate(childOrder.created_at) }}</td>
+                            <td>
+                                <div class="flex items-center gap-2 flex-nowrap min-w-max">
+                                    <button @click="openOrderDetail(childOrder.id)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition flex-shrink-0" title="查看詳情">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </button>
                                     <!-- 根據狀態顯示不同按鈕 -->
                                     <button
                                         v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
                                         @click="shipChildOrder(childOrder, order)"
-                                        class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                                        class="btn btn-primary btn-sm flex-shrink-0">
                                         轉備貨
                                     </button>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'preparing'"
-                                        class="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-warning inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         備貨中
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
-                                        class="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-info inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         待出貨
                                     </span>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'shipped'"
-                                        class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 inline-flex items-center gap-1">
+                                        class="status-tag status-tag-success inline-flex items-center gap-1 flex-shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         已出貨
                                     </span>
@@ -372,14 +400,58 @@ $orders_component_template = <<<'HTML'
             </div>
 
             <!-- 手機版卡片 -->
-            <div class="md:hidden space-y-4">
-                <div v-for="order in orders" :key="order.id" class="bg-white border border-slate-200 rounded-xl p-4 mb-3">
+            <div class="card-list">
+                <!-- 手機版全選列 -->
+                <div v-if="filteredOrders.length > 0" class="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl mb-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            :checked="isAllSelected"
+                            @change="toggleSelectAll"
+                            class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        >
+                        <span class="text-sm font-medium text-slate-700">全選</span>
+                    </label>
+                    <span v-if="selectedItems.length > 0" class="text-xs text-blue-600 font-medium">
+                        已選 {{ selectedItems.length }} 筆
+                    </span>
+                </div>
+                <template v-for="order in filteredOrders" :key="order.id">
+                <div class="card" :class="{ 'ml-4 border-l-4 border-blue-400 bg-blue-50/30': order._isExtractedChild }">
                     <div class="flex items-start justify-between mb-3">
-                        <div class="flex-1">
-                            <div class="text-sm font-bold text-slate-900 mb-1">#{{ order.invoice_no || order.id }}</div>
-                            <div class="text-xs text-slate-500">{{ order.customer_name }}</div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" :value="order.id" v-model="selectedItems" class="w-5 h-5 rounded border-slate-300">
                         </div>
-                        <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
+                        <div class="flex-1 ml-3">
+                            <div class="flex items-center gap-2">
+                                <!-- 提取的子訂單加上箭頭圖示 -->
+                                <svg v-if="order._isExtractedChild" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
+                                <!-- 提取的子訂單顯示「拆單」標籤 -->
+                                <span v-if="order._isExtractedChild" class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                <!-- 子訂單展開按鈕（僅限有子訂單的父訂單） -->
+                                <button
+                                    v-if="getFilteredChildren(order).length > 0"
+                                    @click.stop="toggleChildrenCollapse(order.id)"
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
+                                >
+                                    <span>{{ getFilteredChildren(order).length }} 批次</span>
+                                    <svg
+                                        class="w-3 h-3 transition-transform"
+                                        :class="{ 'rotate-180': !isChildrenCollapsed(order.id) }"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- 客戶名稱：提取的子訂單從父訂單取得 -->
+                            <p class="card-subtitle">{{ order._isExtractedChild ? order._parentOrder.customer_name : order.customer_name }}</p>
+                        </div>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
@@ -479,7 +551,7 @@ $orders_component_template = <<<'HTML'
                     </div>
                     
                     <div class="flex gap-2">
-                        <button @click="openOrderDetail(order.id)" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                        <button @click="openOrderDetail(order.id)" class="btn btn-primary flex-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             查看詳情
                         </button>
@@ -487,58 +559,148 @@ $orders_component_template = <<<'HTML'
                         <button
                             v-if="hasAllocatedItems(order) && canShowShipButton(order)"
                             @click="shipOrder(order)"
-                            class="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition shadow-sm">
+                            class="btn btn-primary flex-1">
                             轉備貨
                         </button>
                         <span
                             v-else-if="order.shipping_status === 'preparing'"
-                            class="flex-1 px-3 py-2 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg border border-yellow-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-warning flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             備貨中
                         </span>
                         <span
                             v-else-if="order.shipping_status === 'processing' || order.shipping_status === 'ready_to_ship'"
-                            class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-info flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             待出貨
                         </span>
                         <span
                             v-else-if="order.shipping_status === 'shipped'"
-                            class="flex-1 px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg border border-green-200 flex items-center justify-center gap-1">
+                            class="status-tag status-tag-success flex-1 flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             已出貨
                         </span>
                     </div>
                 </div>
+
+                <!-- 手機版子訂單卡片 -->
+                <template v-if="getFilteredChildren(order).length > 0 && !isChildrenCollapsed(order.id)">
+                    <div
+                        v-for="childOrder in getFilteredChildren(order)"
+                        :key="'mobile-child-' + childOrder.id"
+                        class="card ml-4 border-l-4 border-blue-400 bg-blue-50/30"
+                    >
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    <h3 class="card-title">#{{ childOrder.invoice_no }}</h3>
+                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                </div>
+                                <p class="card-subtitle">{{ order.customer_name }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div class="col-span-2">
+                                <span class="text-slate-500">商品：</span>
+                                <template v-if="childOrder.items && childOrder.items.length > 0">
+                                    <span v-for="(item, idx) in childOrder.items" :key="item.id" class="text-slate-900">
+                                        {{ item.product_name || item.product_title }} × {{ item.quantity }}<span v-if="idx < childOrder.items.length - 1">、</span>
+                                    </span>
+                                </template>
+                                <span v-else class="text-blue-700">拆單商品</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">總金額：</span>
+                                <span class="font-bold text-slate-900">{{ formatPrice(childOrder.total_amount, childOrder.currency) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">運送狀態：</span>
+                                <span
+                                    :class="getStatusClass(childOrder.shipping_status || 'unshipped')"
+                                    class="px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                                >
+                                    {{ getStatusText(childOrder.shipping_status || 'unshipped') }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">日期：</span>
+                                <span class="text-slate-900">{{ formatDate(childOrder.created_at) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button @click="openOrderDetail(childOrder.id)" class="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-medium transition text-sm inline-flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                查看詳情
+                            </button>
+                            <!-- 根據狀態顯示不同按鈕 -->
+                            <button
+                                v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
+                                @click="shipChildOrder(childOrder, order)"
+                                class="btn btn-primary flex-1">
+                                轉備貨
+                            </button>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'preparing'"
+                                class="status-tag status-tag-warning flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                備貨中
+                            </span>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'processing' || childOrder.shipping_status === 'ready_to_ship'"
+                                class="status-tag status-tag-info flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                待出貨
+                            </span>
+                            <span
+                                v-else-if="childOrder.shipping_status === 'shipped'"
+                                class="status-tag status-tag-success flex-1 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                已出貨
+                            </span>
+                        </div>
+                    </div>
+                </template>
+                </template>
             </div> <!-- End md:hidden (mobile cards) -->
 
             <!-- 統一分頁樣式 -->
-            <div v-if="totalOrders > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-sm gap-3">
-                <div class="text-sm text-slate-700 text-center sm:text-left">
-                    顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalOrders : Math.min(currentPage * perPage, totalOrders) }}</span> 筆，共 <span class="font-medium">{{ totalOrders }}</span> 筆
+            <div class="pagination-container" v-if="filteredOrders.length > 0 || totalOrders > 0">
+                <div class="pagination-info">
+                    <!-- 有篩選時顯示篩選後的數量，無篩選時顯示分頁資訊 -->
+                    <template v-if="filterStatus">
+                        顯示 <span class="font-medium">1</span> 到 <span class="font-medium">{{ filteredOrders.length }}</span> 筆，共 <span class="font-medium">{{ filteredOrders.length }}</span> 筆
+                    </template>
+                    <template v-else>
+                        顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalOrders : Math.min(currentPage * perPage, totalOrders) }}</span> 筆，共 <span class="font-medium">{{ totalOrders }}</span> 筆
+                    </template>
                 </div>
-                <div class="flex items-center gap-3">
-                    <select v-model.number="perPage" @change="changePerPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                <div class="pagination-controls">
+                    <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
                         <option :value="5">5 筆</option>
                         <option :value="10">10 筆</option>
                         <option :value="20">20 筆</option>
                         <option :value="50">50 筆</option>
                     </select>
-                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button @click="previousPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <nav class="pagination-nav" aria-label="Pagination">
+                        <button @click="previousPage" :disabled="currentPage === 1" class="pagination-button first">
                             <span class="sr-only">上一頁</span>
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="[p === currentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                        <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :class="['pagination-button page', { 'active': p === currentPage }]">
                             {{ p }}
                         </button>
-                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button last">
                             <span class="sr-only">下一頁</span>
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                         </button>
                     </nav>
                 </div>
-            </div> <!-- End v-if="totalOrders > 0" (pagination) -->
+            </div> <!-- End pagination -->
             </div> <!-- End v-else (order content) -->
             </div>
             <!-- 結束：列表檢視 -->

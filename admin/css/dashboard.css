@@ -1,0 +1,327 @@
+/**
+ * Dashboard Page Styles
+ * BuyGo+1 Plugin
+ *
+ * Dashboard 頁面專用樣式 - 精簡風格（參考 FluentCart）
+ */
+
+/* ============================================ */
+/* 統計卡片網格 */
+/* ============================================ */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 響應式：手機版垂直排列 */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+}
+
+/* 統計卡片 - 精簡風格 */
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1rem;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 統計卡片內容 */
+.stat-card-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.stat-card-change {
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+/* 變化百分比顏色 */
+.stat-card-change.positive {
+    color: #10b981;
+}
+
+.stat-card-change.negative {
+    color: #ef4444;
+}
+
+/* ============================================ */
+/* 圖表卡片 */
+/* ============================================ */
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1rem;
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 1rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 280px;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 220px;
+    }
+}
+
+/* ============================================ */
+/* 底部區域網格 */
+/* ============================================ */
+
+.dashboard-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================ */
+/* 商品概覽 */
+/* ============================================ */
+
+.products-overview {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 1rem;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-item .label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+.stat-item .value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .stat-item {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+}
+
+/* ============================================ */
+/* 活動列表 */
+/* ============================================ */
+
+.activities-list {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1rem;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.activity-icon.order {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.activity-icon.customer {
+    background: #f0fdf4;
+    color: #10b981;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111827;
+    margin-bottom: 0.125rem;
+}
+
+.activity-description {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .activity-time {
+        align-self: flex-end;
+    }
+}
+
+/* ============================================ */
+/* 載入狀態 */
+/* ============================================ */
+
+.loading-skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ============================================ */
+/* 錯誤訊息 */
+/* ============================================ */
+
+.error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+}
+
+.error-message .error-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    color: #ef4444;
+}
+
+.error-message .error-text {
+    font-size: 0.875rem;
+    color: #991b1b;
+    margin-bottom: 1rem;
+}
+
+.error-message .retry-button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.error-message .retry-button:hover {
+    background: #1d4ed8;
+}

@@ -1,0 +1,88 @@
+/**
+ * Button Component
+ * 按鈕組件樣式
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-button-padding-y) var(--spacing-button-padding-x);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+  white-space: nowrap;
+}
+
+.btn:focus {
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: white;
+  color: var(--color-slate-700);
+  border-color: var(--color-slate-300);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-slate-50);
+}
+
+/* Danger Button */
+.btn-danger {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-error-600);
+}
+
+/* Small Button */
+.btn-sm {
+  padding: 0.375rem 0.75rem;  /* py-1.5 px-3 */
+  font-size: var(--font-size-xs);
+}
+
+/* Large Button */
+.btn-lg {
+  padding: 0.75rem 1.5rem;  /* py-3 px-6 */
+  font-size: var(--font-size-base);
+}
+
+/* Full Width Button */
+.btn-block {
+  width: 100%;
+  display: flex;
+}
+
+/* Legacy BuyGo Button Classes (for backward compatibility) */
+.buygo-btn {
+  @extend .btn;
+}
+
+.buygo-btn-primary {
+  @extend .btn-primary;
+}

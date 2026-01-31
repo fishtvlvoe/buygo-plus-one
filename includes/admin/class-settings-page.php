@@ -22,6 +22,8 @@ class SettingsPage
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
+        add_action('wp_ajax_buygo_update_seller_type', [$this, 'ajax_update_seller_type']);
+        add_action('wp_ajax_buygo_update_product_limit', [$this, 'ajax_update_product_limit']);
     }
 
     /**
@@ -99,7 +101,8 @@ class SettingsPage
         wp_localize_script('buygo-settings-admin', 'buygoSettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('buygo-plus-one/v1'),
-            'nonce' => wp_create_nonce('wp_rest') // REST API 使用 wp_rest nonce
+            'nonce' => wp_create_nonce('buygo-settings'), // AJAX 和 REST API 共用
+            'restNonce' => wp_create_nonce('wp_rest') // REST API 專用
         ]);
 
         // 阻擋 Cloudflare Beacon 以修復效能問題
@@ -138,6 +141,7 @@ class SettingsPage
             'line' => 'LINE 設定',
             'notifications' => '通知記錄',
             'workflow' => '流程監控',
+            'checkout' => '結帳設定',
             'roles' => '角色權限設定',
             'test-tools' => '測試工具',
             'debug-center' => '除錯中心'
@@ -175,6 +179,9 @@ class SettingsPage
                         break;
                     case 'workflow':
                         $this->render_workflow_tab();
+                        break;
+                    case 'checkout':
+                        $this->render_checkout_tab();
                         break;
                     case 'roles':
                         $this->render_roles_tab();
@@ -430,6 +437,74 @@ class SettingsPage
     }
 
     /**
+     * 渲染結帳設定 Tab
+     */
+    private function render_checkout_tab(): void
+    {
+        // 處理表單提交
+        if (isset($_POST['buygo_checkout_submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_checkout_settings')) {
+            \BuyGoPlus\Services\CheckoutCustomizationService::save_settings([
+                'hide_shipping' => isset($_POST['buygo_checkout_hide_shipping']),
+                'hide_ship_to_different' => isset($_POST['buygo_checkout_hide_ship_to_different']),
+                'enable_id_number' => isset($_POST['buygo_checkout_enable_id_number']),
+            ]);
+            echo '<div class="notice notice-success"><p>設定已儲存！</p></div>';
+        }
+
+        $settings = \BuyGoPlus\Services\CheckoutCustomizationService::get_settings();
+        ?>
+        <div class="checkout-settings-wrap">
+            <h2>FluentCart 結帳頁面自訂</h2>
+            <p class="description">這些設定會即時生效於 FluentCart 結帳頁面，無需清除快取。</p>
+
+            <form method="post" action="">
+                <?php wp_nonce_field('buygo_checkout_settings'); ?>
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">隱藏運送方式</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="buygo_checkout_hide_shipping" value="1"
+                                       <?php checked($settings['hide_shipping'], true); ?> />
+                                隱藏運送方式選擇區塊
+                            </label>
+                            <p class="description">適用於代購業者自行處理出貨的情況</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">隱藏寄送到其他地址</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="buygo_checkout_hide_ship_to_different" value="1"
+                                       <?php checked($settings['hide_ship_to_different'], true); ?> />
+                                隱藏「寄送到其他地址」選項
+                            </label>
+                            <p class="description">簡化結帳流程，只使用帳單地址</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">身分證字號欄位</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="buygo_checkout_enable_id_number" value="1"
+                                       <?php checked($settings['enable_id_number'], true); ?> />
+                                新增身分證字號欄位
+                            </label>
+                            <p class="description">海運報關使用，會驗證台灣身分證格式（如 A123456789）</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button type="submit" name="buygo_checkout_submit" class="button-primary">儲存設定</button>
+                </p>
+            </form>
+        </div>
+        <?php
+    }
+
+    /**
      * 渲染流程監控 Tab
      */
     private function render_workflow_tab(): void
@@ -640,6 +715,18 @@ class SettingsPage
                 continue;
             }
             
+            // 取得賣家類型
+            $seller_type = get_user_meta($user->ID, 'buygo_seller_type', true);
+            if (empty($seller_type)) {
+                $seller_type = 'test'; // 預設為測試賣家
+            }
+
+            // 取得商品限制數量 (0 = 無限制)
+            $product_limit = get_user_meta($user->ID, 'buygo_product_limit', true);
+            if ($product_limit === '') {
+                $product_limit = 2; // 預設為 2 個商品
+            }
+
             $all_users[] = [
                 'id' => $user->ID,
                 'name' => $user->display_name,
@@ -650,7 +737,9 @@ class SettingsPage
                 'is_wp_admin' => $is_wp_admin,
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
-                'is_in_helpers_list' => $is_in_helpers_list
+                'is_in_helpers_list' => $is_in_helpers_list,
+                'seller_type' => $seller_type,
+                'product_limit' => intval($product_limit)
             ];
         }
         
@@ -677,6 +766,8 @@ class SettingsPage
                             <th>Email</th>
                             <th>LINE ID</th>
                             <th>角色</th>
+                            <th>賣家類型</th>
+                            <th>商品限制</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -687,19 +778,49 @@ class SettingsPage
                                 <td><?php echo esc_html($user['email']); ?></td>
                                 <td>
                                     <?php if ($user['is_bound']): ?>
-                                        <span style="color: #00a32a;">✅ 已綁定</span>
-                                        <br>
-                                        <code style="font-size: 11px; color: #666;"><?php echo esc_html($user['line_id']); ?></code>
+                                        <div style="display: flex; align-items: flex-start; gap: 4px; max-width: 140px;">
+                                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="已綁定" style="flex-shrink: 0; margin-top: 2px;">
+                                                <circle cx="8" cy="8" r="8" fill="#00a32a"/>
+                                                <path d="M5 8L7 10L11 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            <code style="font-size: 9px; color: #666; line-height: 1.3; word-break: break-all; display: block;"><?php echo esc_html($user['line_id']); ?></code>
+                                        </div>
                                     <?php else: ?>
-                                        <span style="color: #d63638;">❌ 未綁定</span>
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="未綁定">
+                                            <circle cx="8" cy="8" r="8" fill="#d63638"/>
+                                            <path d="M5 5L11 11M11 5L5 11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html($user['role']); ?></td>
                                 <td>
+                                    <select class="seller-type-select" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px;">
+                                        <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家</option>
+                                        <option value="real" <?php selected($user['seller_type'], 'real'); ?>>真實賣家</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <input
+                                            type="number"
+                                            class="product-limit-input"
+                                            data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                            value="<?php echo esc_attr($user['product_limit']); ?>"
+                                            min="0"
+                                            step="1"
+                                            style="width: 60px; font-size: 12px;"
+                                            <?php echo ($user['seller_type'] === 'real') ? 'disabled' : ''; ?>
+                                        />
+                                        <span style="font-size: 11px; color: #666;">
+                                            <?php echo ($user['seller_type'] === 'real') ? '(無限制)' : '個商品'; ?>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                         <?php if (!$user['is_bound']): ?>
                                             <button type="button" class="button button-secondary send-binding-link" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4;">
-                                                📧 發送綁定連結
+                                                發送綁定連結
                                             </button>
                                         <?php endif; ?>
                                         <?php if (!$user['is_wp_admin']): ?>
@@ -2500,11 +2621,103 @@ LIMIT 10`,
         
         $token = isset($_POST['token']) ? sanitize_text_field($_POST['token']) : null;
         $result = SettingsService::test_line_connection($token);
-        
+
         if ($result['success']) {
             wp_send_json_success($result);
         } else {
             wp_send_json_error($result);
+        }
+    }
+
+    /**
+     * AJAX: 更新賣家類型
+     */
+    public function ajax_update_seller_type(): void
+    {
+        // 驗證 nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'buygo-settings')) {
+            wp_send_json_error('無效的請求');
+            return;
+        }
+
+        // 權限檢查
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('權限不足');
+            return;
+        }
+
+        // 取得參數
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $seller_type = isset($_POST['seller_type']) ? sanitize_text_field($_POST['seller_type']) : '';
+
+        // 驗證參數
+        if ($user_id <= 0) {
+            wp_send_json_error('無效的使用者 ID');
+            return;
+        }
+
+        if (!in_array($seller_type, ['test', 'real'], true)) {
+            wp_send_json_error('無效的賣家類型');
+            return;
+        }
+
+        // 更新 user meta
+        $result = update_user_meta($user_id, 'buygo_seller_type', $seller_type);
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => '賣家類型已更新',
+                'user_id' => $user_id,
+                'seller_type' => $seller_type
+            ]);
+        } else {
+            wp_send_json_error('更新失敗');
+        }
+    }
+
+    /**
+     * AJAX: 更新商品限制數量
+     */
+    public function ajax_update_product_limit(): void
+    {
+        // 驗證 nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'buygo-settings')) {
+            wp_send_json_error('無效的請求');
+            return;
+        }
+
+        // 權限檢查
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('權限不足');
+            return;
+        }
+
+        // 取得參數
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $product_limit = isset($_POST['product_limit']) ? intval($_POST['product_limit']) : 0;
+
+        // 驗證參數
+        if ($user_id <= 0) {
+            wp_send_json_error('無效的使用者 ID');
+            return;
+        }
+
+        if ($product_limit < 0) {
+            wp_send_json_error('商品限制數量不能為負數');
+            return;
+        }
+
+        // 更新 user meta
+        $result = update_user_meta($user_id, 'buygo_product_limit', $product_limit);
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => '商品限制已更新',
+                'user_id' => $user_id,
+                'product_limit' => $product_limit
+            ]);
+        } else {
+            wp_send_json_error('更新失敗');
         }
     }
 }

@@ -1,0 +1,64 @@
+/**
+ * Spacing Tokens
+ * 間距系統 - 包含桌面版和手機版的獨立 tokens
+ */
+
+:root {
+  /* Base Spacing - 基礎間距 */
+  --spacing-0: 0;
+  --spacing-0-5: 0.125rem;  /* 2px */
+  --spacing-1: 0.25rem;     /* 4px */
+  --spacing-1-5: 0.375rem;  /* 6px */
+  --spacing-2: 0.5rem;      /* 8px */
+  --spacing-3: 0.75rem;     /* 12px */
+  --spacing-4: 1rem;        /* 16px */
+  --spacing-5: 1.25rem;     /* 20px */
+  --spacing-6: 1.5rem;      /* 24px */
+  --spacing-8: 2rem;        /* 32px */
+  --spacing-10: 2.5rem;     /* 40px */
+  --spacing-12: 3rem;       /* 48px */
+  --spacing-16: 4rem;       /* 64px */
+
+  /* Desktop Spacing - 桌面版專用間距 */
+  --spacing-desktop-page-padding-x: 1.5rem;  /* 24px, px-6 */
+  --spacing-desktop-page-padding-y: 1.5rem;  /* 24px, py-6 */
+  --spacing-desktop-section-gap: 1.5rem;     /* 24px, space-y-6 */
+  --spacing-desktop-card-padding: 1rem;      /* 16px */
+  --spacing-desktop-item-gap: 1rem;          /* 16px */
+
+  /* Mobile Spacing - 手機版專用間距 */
+  --spacing-mobile-page-padding-x: 0.5rem;   /* 8px, p-2 */
+  --spacing-mobile-page-padding-y: 0.5rem;   /* 8px, p-2 */
+  --spacing-mobile-section-gap: 1rem;        /* 16px, space-y-4 */
+  --spacing-mobile-card-padding: 1rem;       /* 16px, p-4 */
+  --spacing-mobile-item-gap: 0.75rem;        /* 12px */
+
+  /* Component Spacing - 組件間距 */
+  --spacing-header-height: 4rem;             /* 64px, h-16 */
+  --spacing-button-padding-x: 1rem;          /* 16px */
+  --spacing-button-padding-y: 0.5rem;        /* 8px */
+  --spacing-input-padding-x: 1rem;           /* 16px */
+  --spacing-input-padding-y: 0.5rem;         /* 8px */
+}
+
+/* Desktop-specific spacing (≥ 768px) */
+@media (min-width: 768px) {
+  :root {
+    --current-page-padding-x: var(--spacing-desktop-page-padding-x);
+    --current-page-padding-y: var(--spacing-desktop-page-padding-y);
+    --current-section-gap: var(--spacing-desktop-section-gap);
+    --current-card-padding: var(--spacing-desktop-card-padding);
+    --current-item-gap: var(--spacing-desktop-item-gap);
+  }
+}
+
+/* Mobile-specific spacing (< 768px) */
+@media (max-width: 767px) {
+  :root {
+    --current-page-padding-x: var(--spacing-mobile-page-padding-x);
+    --current-page-padding-y: var(--spacing-mobile-page-padding-y);
+    --current-section-gap: var(--spacing-mobile-section-gap);
+    --current-card-padding: var(--spacing-mobile-card-padding);
+    --current-item-gap: var(--spacing-mobile-item-gap);
+  }
+}

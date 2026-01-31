@@ -1,0 +1,110 @@
+/**
+ * Form Component
+ * 表單組件樣式
+ */
+
+.form-input {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-input-padding-y) var(--spacing-input-padding-x);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.form-input:disabled {
+  background-color: var(--color-slate-100);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Search Input with Icon */
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  padding-left: 2.75rem;  /* pl-11 */
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;  /* left-3 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+  color: var(--color-slate-400);
+  pointer-events: none;
+}
+
+/* Select */
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;  /* py-1.5 px-3 */
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-slate-300);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  outline: none;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* Checkbox */
+.form-checkbox {
+  width: 1rem;  /* w-4 */
+  height: 1rem;  /* h-4 */
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-slate-300);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.form-checkbox:focus {
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--color-focus-ring);
+}
+
+/* Textarea */
+.form-textarea {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;  /* py-2 px-3 */
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-slate-300);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  outline: none;
+  resize: vertical;
+}
+
+.form-textarea:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-primary);
+}

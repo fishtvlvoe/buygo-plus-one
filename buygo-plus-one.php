@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       BuyGo+1
+ * Plugin Name:       BuyGo 開發版
  * Plugin URI:        https://buygo.me
  * Description:       BuyGo 獨立賣場後台系統
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 // 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
 
 if (!defined('BUYGO_PLUS_ONE_VERSION')) {
-    define('BUYGO_PLUS_ONE_VERSION', '0.2.0');
+    define('BUYGO_PLUS_ONE_VERSION', '0.2.1');
 }
 
 // 新版專用的常數（舊版不會定義這些）
@@ -45,6 +45,10 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
  * 3. 執行資料表升級
  */
 register_activation_hook(__FILE__, function () {
+    // 標記需要 flush rewrite rules
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
+    \BuyGoPlus\Routes::schedule_flush();
+
     // 1. 兼容性檢查 - 確保舊外掛未啟用
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
     \BuyGoPlus\PluginCompatibility::on_activation();
@@ -81,14 +85,17 @@ register_activation_hook(__FILE__, function () {
  * 注意：不會刪除資料表和設定，以便使用者重新啟用時可以保留資料
  */
 register_deactivation_hook(__FILE__, function () {
+    // 清理 rewrite rules
+    flush_rewrite_rules(false);
+
     // 清除快取
     wp_cache_flush();
 
     // 清除所有 BuyGo 相關的 Transients
     global $wpdb;
     $wpdb->query(
-        "DELETE FROM {$wpdb->options} 
-         WHERE option_name LIKE '_transient_buygo_%' 
+        "DELETE FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_buygo_%'
          OR option_name LIKE '_transient_timeout_buygo_%'"
     );
 
