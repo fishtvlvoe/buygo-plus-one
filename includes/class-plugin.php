@@ -104,6 +104,7 @@ class Plugin {
         // 載入 Admin Pages
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-management-page.php';
 
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
@@ -116,6 +117,9 @@ class Plugin {
         // 載入 Routes
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
+
+        // 載入 Shortcodes
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-seller-application-shortcode.php';
 
         // 載入 FluentCart/FluentCommunity 整合
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
@@ -142,6 +146,7 @@ class Plugin {
 
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
+        new \BuyGoPlus\Admin\SellerManagementPage();
         
         // 初始化 Routes
         new Routes();
@@ -159,6 +164,7 @@ class Plugin {
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
+        new \BuyGoPlus\Api\Seller_Application_API();
 
         // LINE Webhook API 已移除
         // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
@@ -172,6 +178,9 @@ class Plugin {
 
         // 初始化結帳頁面自訂服務（身分證字號等）
         \BuyGoPlus\Services\CheckoutCustomizationService::init();
+
+        // 初始化賣家申請 Shortcode
+        SellerApplicationShortcode::instance();
 
         // 初始化訂單項目標題修復服務
         \BuyGoPlus\Services\OrderItemTitleFixer::instance();

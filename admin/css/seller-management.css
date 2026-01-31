@@ -1,0 +1,79 @@
+/**
+ * Seller Management Admin Styles
+ * Phase 27: 賣家管理後台樣式
+ */
+
+/* 表格欄位寬度 */
+.column-user {
+    width: 20%;
+}
+
+.column-shop {
+    width: 25%;
+}
+
+.column-status,
+.column-type {
+    width: 12%;
+}
+
+.column-products {
+    width: 12%;
+}
+
+.column-date {
+    width: 12%;
+}
+
+.column-actions {
+    width: 19%;
+}
+
+/* 狀態標籤 */
+.awaiting-mod {
+    display: inline-block;
+    padding: 0 5px;
+    min-width: 7px;
+    height: 17px;
+    border-radius: 11px;
+    background-color: #d63638;
+    color: #fff;
+    font-size: 9px;
+    line-height: 17px;
+    text-align: center;
+    vertical-align: text-bottom;
+    margin-left: 5px;
+}
+
+/* 操作按鈕間距 */
+.column-actions .button {
+    margin-right: 5px;
+}
+
+/* 描述文字 */
+.description {
+    color: #666;
+    font-size: 12px;
+}
+
+/* 對話框樣式 */
+#reject-dialog {
+    padding: 15px;
+}
+
+#reject-dialog textarea {
+    margin-top: 10px;
+}
+
+/* 響應式調整 */
+@media screen and (max-width: 782px) {
+    .column-user,
+    .column-shop,
+    .column-status,
+    .column-type,
+    .column-products,
+    .column-date,
+    .column-actions {
+        width: auto;
+    }
+}
