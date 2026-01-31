@@ -139,10 +139,21 @@ class ProductService
                 // 計算預訂數量（客戶下單了但還沒採購到的）
                 $reserved = max(0, $ordered - $purchased);
 
+                // 取得商品名稱：直接從 wp_posts 讀取 post_title（最可靠的方式）
+                $post = get_post($product->post_id);
+                $productName = ($post && !empty($post->post_title)) ? $post->post_title : '';
+
+                // 如果 post_title 為空，使用 variation_title（但排除「預設」）
+                if (empty($productName)) {
+                    $productName = (!empty($product->variation_title) && $product->variation_title !== '預設')
+                        ? $product->variation_title
+                        : '未命名商品';
+                }
+
                 $productData = [
                     'id' => $product->id,
                     'post_id' => $product->post_id,
-                    'name' => $product->product->post_title ?? '',
+                    'name' => $productName,
                     'variation_title' => $product->variation_title,
                     'price' => (int) ($product->item_price / 100), // 轉換為元
                     'currency' => $currency,
@@ -687,10 +698,21 @@ class ProductService
             $productIds = [$product->id];
             $orderCounts = $this->calculateOrderCounts($productIds);
 
+            // 取得商品名稱：直接從 wp_posts 讀取 post_title（最可靠的方式）
+            $post = get_post($product->post_id);
+            $productName = ($post && !empty($post->post_title)) ? $post->post_title : '';
+
+            // 如果 post_title 為空，使用 variation_title（但排除「預設」）
+            if (empty($productName)) {
+                $productName = (!empty($product->variation_title) && $product->variation_title !== '預設')
+                    ? $product->variation_title
+                    : '未命名商品';
+            }
+
             return [
                 'id' => $product->id,
                 'post_id' => $product->post_id,
-                'name' => $product->product->post_title ?? '',
+                'name' => $productName,
                 'variation_title' => $product->variation_title,
                 'price' => (int) ($product->item_price / 100), // 轉換為元
                 'currency' => $currency,

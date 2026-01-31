@@ -936,47 +936,73 @@ class OrderService
         }
 
         // 取得客戶資料（含地址和電話）
+        // 【重要】優先使用訂單地址表的收件人姓名，而不是 Customer 的 LINE 名稱
         $customer_name = '';
         $customer_email = '';
         $customer_phone = '';
         $customer_address = '';
         $customer_id = null;
 
+        // 從訂單地址表讀取收件人資訊（billing 或 shipping 地址）
+        $table_order_addresses = $wpdb->prefix . 'fct_order_addresses';
+
+        // 先嘗試從當前訂單取得地址
+        $order_address = $wpdb->get_row($wpdb->prepare(
+            "SELECT name, meta, address_1, address_2, city, state, postcode, country
+             FROM {$table_order_addresses}
+             WHERE order_id = %d
+             ORDER BY type = 'shipping' DESC, type = 'billing' DESC
+             LIMIT 1",
+            $order_id
+        ), ARRAY_A);
+
+        // 【修復】如果是子訂單（拆單）且沒有地址記錄，從父訂單取得
+        $parent_id = $order['parent_id'] ?? null;
+        if (empty($order_address) && !empty($parent_id)) {
+            $order_address = $wpdb->get_row($wpdb->prepare(
+                "SELECT name, meta, address_1, address_2, city, state, postcode, country
+                 FROM {$table_order_addresses}
+                 WHERE order_id = %d
+                 ORDER BY type = 'shipping' DESC, type = 'billing' DESC
+                 LIMIT 1",
+                $parent_id
+            ), ARRAY_A);
+        }
+
+        if ($order_address) {
+            // 使用訂單地址表的收件人姓名
+            $customer_name = $order_address['name'] ?? '';
+
+            // 從 meta JSON 中讀取電話
+            $address_meta = json_decode($order_address['meta'] ?? '{}', true) ?: [];
+            $customer_phone = $address_meta['other_data']['phone'] ?? '';
+
+            // 組合完整地址
+            $address_parts = array_filter([
+                $order_address['address_1'] ?? '',
+                $order_address['address_2'] ?? '',
+                $order_address['city'] ?? '',
+                $order_address['state'] ?? '',
+                $order_address['postcode'] ?? '',
+                $order_address['country'] ?? ''
+            ]);
+            $customer_address = implode(', ', $address_parts);
+        }
+
+        // 從 customer 關聯讀取 email 和 customer_id
         if (isset($order['customer'])) {
             $customer = $order['customer'];
             if (is_object($customer)) {
                 $customer = $customer->toArray();
             }
-            $first_name = $customer['first_name'] ?? '';
-            $last_name = $customer['last_name'] ?? '';
-            $customer_name = trim($first_name . ' ' . $last_name);
             $customer_email = $customer['email'] ?? '';
             $customer_id = $customer['id'] ?? null;
 
-            // 從 fct_customer_addresses 讀取電話和地址（與客戶 API 保持一致）
-            if ($customer_id) {
-                global $wpdb;
-                $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
-
-                $address_data = $wpdb->get_row($wpdb->prepare(
-                    "SELECT phone, CONCAT(
-                        COALESCE(address_1, ''), ' ',
-                        COALESCE(address_2, ''), ', ',
-                        COALESCE(city, ''), ', ',
-                        COALESCE(state, ''), ' ',
-                        COALESCE(postcode, ''), ', ',
-                        COALESCE(country, '')
-                    ) as full_address
-                    FROM {$table_addresses}
-                    WHERE customer_id = %d AND is_primary = 1
-                    LIMIT 1",
-                    $customer_id
-                ), ARRAY_A);
-
-                if ($address_data) {
-                    $customer_phone = $address_data['phone'] ?? '';
-                    $customer_address = $address_data['full_address'] ?? '';
-                }
+            // 如果訂單地址表沒有姓名，才用 Customer 的姓名作為後備
+            if (empty($customer_name)) {
+                $first_name = $customer['first_name'] ?? '';
+                $last_name = $customer['last_name'] ?? '';
+                $customer_name = trim($first_name . ' ' . $last_name);
             }
         }
 

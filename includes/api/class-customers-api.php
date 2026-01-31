@@ -120,18 +120,24 @@ class Customers_API {
             
             // 取得客戶資料（直接從 fct_orders 聚合計算，不使用 FluentCart 的統計欄位）
             // 注意：phone 和 address 從 fct_customer_addresses 表取得
-            $query = "SELECT 
+            // 名稱優先使用 fct_customer_addresses.name（收件地址中的正式名稱）
+            $query = "SELECT
                         c.id,
                         c.first_name,
                         c.last_name,
-                        CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as full_name,
+                        -- 優先使用地址表中的 name（正式收件人名稱），若無則使用 fct_customers 的名稱
+                        COALESCE(
+                            (SELECT a.name FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 AND a.name IS NOT NULL AND a.name != '' LIMIT 1),
+                            NULLIF(TRIM(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, ''))), ''),
+                            c.email
+                        ) as full_name,
                         c.email,
                         c.status,
                         COUNT(o.id) as order_count,
                         COALESCE(SUM(o.total_amount), 0) as total_spent,
                         MAX(o.created_at) as last_order_date,
                         (SELECT a.phone FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
-                        (SELECT CONCAT(COALESCE(a.city, ''), ', ', COALESCE(a.state, ''), ', ', COALESCE(a.country, '')) 
+                        (SELECT CONCAT(COALESCE(a.city, ''), ', ', COALESCE(a.state, ''), ', ', COALESCE(a.country, ''))
                          FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
                       FROM {$table_customers} c
                       LEFT JOIN {$table_orders} o ON c.id = o.customer_id
@@ -156,9 +162,17 @@ class Customers_API {
                 $customers = [];
             }
 
-            // 為每個客戶添加頭像 URL 和 LINE 名稱
+            // 為每個客戶添加頭像 URL、LINE 名稱，並清理姓名
             if (is_array($customers)) {
                 foreach ($customers as &$customer) {
+                    // 清理姓名：移除表情符號和特殊符號
+                    $customer['full_name'] = $this->sanitize_customer_name($customer['full_name']);
+
+                    // 如果清理後的名稱為空，使用 email 作為顯示名稱
+                    if (empty($customer['full_name'])) {
+                        $customer['full_name'] = $customer['email'];
+                    }
+
                     // 取得 WordPress user_id（從 fct_customers 表）
                     $wp_user_id = $this->get_wp_user_id_by_customer_id($customer['id']);
 
@@ -210,14 +224,21 @@ class Customers_API {
             $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
             
             // 取得客戶基本資料（直接從 fct_orders 聚合計算，不使用 FluentCart 的統計欄位）
+            // 名稱優先使用 fct_customer_addresses.name（收件地址中的正式名稱），
+            // 因為這是客戶在結帳時填寫的正式收件人名稱，不會包含表情符號
             $customer = $wpdb->get_row($wpdb->prepare(
-                "SELECT 
+                "SELECT
                     c.id,
                     c.user_id,
                     c.email,
                     c.first_name,
                     c.last_name,
-                    CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as full_name,
+                    -- 優先使用地址表中的 name（正式收件人名稱），若無則使用 fct_customers 的名稱
+                    COALESCE(
+                        (SELECT a.name FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 AND a.name IS NOT NULL AND a.name != '' LIMIT 1),
+                        NULLIF(TRIM(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, ''))), ''),
+                        c.email
+                    ) as full_name,
                     c.status,
                     COUNT(o.id) as order_count,
                     COALESCE(SUM(o.total_amount), 0) as total_spent,
@@ -275,6 +296,14 @@ class Customers_API {
             }
 
             $customer['orders'] = $orders ?: [];
+
+            // 清理姓名：移除表情符號和特殊符號
+            $customer['full_name'] = $this->sanitize_customer_name($customer['full_name']);
+
+            // 如果清理後的名稱為空，使用 email 作為顯示名稱
+            if (empty($customer['full_name'])) {
+                $customer['full_name'] = $customer['email'];
+            }
 
             // 取得 LINE 名稱和身分證字號（從 wp_usermeta）
             if (!empty($customer['user_id'])) {
@@ -381,6 +410,37 @@ class Customers_API {
             "SELECT user_id FROM {$table_customers} WHERE id = %d",
             $customer_id
         ));
+    }
+
+    /**
+     * 清理名稱：移除表情符號和特殊符號，只保留中文、英文、數字和基本標點
+     *
+     * @param string $name 原始名稱
+     * @return string 清理後的名稱
+     */
+    private function sanitize_customer_name($name) {
+        if (empty($name)) {
+            return '';
+        }
+
+        // 移除表情符號和特殊符號
+        // 保留：中文字(CJK)、英文字母、數字、空格、基本標點（句號、逗號、破折號）
+        // Unicode 範圍：
+        // - 中文字：\x{4e00}-\x{9fff} (CJK Unified Ideographs)
+        // - 中文標點：\x{3000}-\x{303f}
+        // - 全形字符：\x{ff00}-\x{ffef}
+        // - 日文假名：\x{3040}-\x{30ff}
+        $cleaned = preg_replace(
+            '/[^\p{Han}\p{Latin}\p{N}\s\.\,\-\_\(\)\[\]\/\·\、\。\，\：\；\！\？\「\」\『\』\（\）\【\】]/u',
+            '',
+            $name
+        );
+
+        // 移除多餘的空格
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        $cleaned = trim($cleaned);
+
+        return $cleaned;
     }
 
     /**

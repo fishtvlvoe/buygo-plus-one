@@ -271,16 +271,18 @@ class DashboardService
         ]);
 
         try {
-            // 查詢最近的訂單（包含客戶名稱和金額）
+            $table_order_addresses = $this->wpdb->prefix . 'fct_order_addresses';
+
+            // 查詢最近的訂單（從訂單地址表取得收件人真實姓名）
             $query = $this->wpdb->prepare(
                 "SELECT
                     o.id,
                     o.total_amount,
                     o.created_at,
-                    c.first_name,
-                    c.last_name,
+                    oa.name as recipient_name,
                     c.email
                 FROM {$this->table_orders} o
+                LEFT JOIN {$table_order_addresses} oa ON o.id = oa.order_id
                 LEFT JOIN {$this->table_customers} c ON o.customer_id = c.id
                 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                     AND o.mode = 'live'
@@ -293,8 +295,16 @@ class DashboardService
 
             // 格式化活動資料
             $activities = [];
+            $seen_orders = []; // 避免同一訂單因多個地址記錄重複
             foreach ($results as $row) {
-                $customer_name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+                // 避免重複訂單
+                if (isset($seen_orders[$row['id']])) {
+                    continue;
+                }
+                $seen_orders[$row['id']] = true;
+
+                // 優先使用訂單地址的收件人姓名
+                $customer_name = trim($row['recipient_name'] ?? '');
                 if (empty($customer_name)) {
                     $customer_name = $row['email'] ?? '訪客';
                 }
