@@ -4,7 +4,10 @@
  * 基於 products.php 的藍色主題設計
  */
 
-$new_sidebar_template = <<<'HTML'
+// 預先定義社群 URL（Heredoc 內使用）
+$community_url = esc_url(home_url('/community'));
+
+$new_sidebar_template = <<<HTML
 <div>
     <!-- 桌面版側邊欄 -->
     <aside class="bg-white border-r border-slate-200 hidden md:flex flex-col transition-all duration-300 z-20 shrink-0 fixed left-0 top-0 h-screen"
@@ -50,7 +53,7 @@ $new_sidebar_template = <<<'HTML'
         </nav>
 
         <!-- 社群連結按鈕 -->
-        <a href="<?php echo esc_url(home_url('/community')); ?>"
+        <a href="{$community_url}"
            target="_blank"
            class="flex items-center justify-center p-4 border-t border-slate-100 text-slate-400 hover:text-primary hover:bg-blue-50 transition-colors group"
            title="前往 BuyGo 社群">
@@ -117,7 +120,7 @@ $new_sidebar_template = <<<'HTML'
 
             <!-- 社群連結 -->
             <div class="border-t border-slate-100 p-4">
-                <a href="<?php echo esc_url(home_url('/community')); ?>"
+                <a href="{$community_url}"
                    target="_blank"
                    class="flex items-center px-6 py-3 text-slate-600 hover:bg-blue-50 hover:text-primary rounded-lg transition-colors">
                     <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
