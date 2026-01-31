@@ -10,6 +10,26 @@ class Routes {
         add_action('init', [$this, 'register_rewrite_rules']);
         add_filter('query_vars', [$this, 'add_query_vars']);
         add_action('template_redirect', [$this, 'handle_buygo_pages']);
+
+        // 檢查並執行 rewrite rules flush
+        add_action('init', [$this, 'maybe_flush_rewrite_rules'], 20);
+    }
+
+    /**
+     * 設定 flush rewrite rules flag（供 activation hook 呼叫）
+     */
+    public static function schedule_flush() {
+        set_transient('buygo_plus_one_flush_routes', 1, 60);
+    }
+
+    /**
+     * 檢查並執行 rewrite rules flush
+     */
+    public function maybe_flush_rewrite_rules() {
+        if (get_transient('buygo_plus_one_flush_routes')) {
+            delete_transient('buygo_plus_one_flush_routes');
+            flush_rewrite_rules(false); // soft flush
+        }
     }
     
     public function register_rewrite_rules() {
