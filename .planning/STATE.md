@@ -7,12 +7,15 @@
 
 ## 當前位置
 
-**Status:** ○ 定義需求中
-**Last activity:** 2026-02-01 - 開始 Milestone v1.2: LINE 通知觸發機制整合
+**Status:** ✅ Roadmap 已建立，準備進入 Phase 28
+**Last activity:** 2026-02-01 - 完成 v1.2 Roadmap 建立
 
 **Progress:**
 ```
-Milestone v1.2: ░░░░░ 0% (定義需求中)
+Phase 28: ░░░░░ 0% (基礎架構與整合) — 待規劃
+Phase 29: ░░░░░ 0% (Bot 回應邏輯) — 待規劃
+Phase 30: ░░░░░ 0% (商品上架通知) — 待規劃
+Phase 31: ░░░░░ 0% (訂單通知) — 待規劃
 ```
 
 **所有已完成的 Milestones:**
@@ -63,18 +66,16 @@ Milestone v1.2: ░░░░░ 0% (定義需求中)
 - 將與 buygo-line-notify 整合
 - 使用現有 MessagingService
 
-**與計畫對齊:** ○ 定義中
-- 正在定義 v1.2 需求
+**與計畫對齊:** ✅ 完美
+- v1.2 Roadmap 已建立 (4 phases, 17 requirements)
 
 ---
 
 ## 會話連續性
 
 **Last session:** 2026-02-01
-**Stopped at:** 開始 Milestone v1.2
+**Stopped at:** v1.2 Roadmap 完成
 **Resume file:** 無
 
 **下一步:**
-- 定義 v1.2 需求
-- 建立 ROADMAP
-- 開始 Phase 28
+- `/gsd:plan-phase 28` — 規劃 Phase 28 基礎架構與整合

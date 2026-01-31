@@ -1,203 +1,162 @@
-# Roadmap: BuyGo+1 v1.1
+# Roadmap: BuyGo+1 v1.2
 
-**Created:** 2026-01-31
-**Milestone:** v1.1 部署優化與會員權限
-**Starting Phase:** 23（延續 v1.0 的 Phase 22）
+**Created:** 2026-02-01
+**Milestone:** v1.2 LINE 通知觸發機制整合
+**Starting Phase:** 28（延續 v1.1 的 Phase 27）
 
 ## Phase Overview
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 23 | 部署優化 | 完成 GitHub 更新、Rewrite Flush、Portal 按鈕 | DEPLOY-01~03 | 3 |
-| 24 | 資料架構與 Service | 建立 helpers 資料表和 Service 方法 | DATA-01~03, SVC-01~05 | 5 |
-| 25 | API 權限過濾 | 所有 API 端點加入賣家權限檢查 | API-01~05, PERM-01~05 | 5 |
-| 26 | 前端 UI（Portal） | Portal Settings 會員權限管理 UI | UI-01~07 | 4 |
-| 27 | 賣家申請與 WP 後台 | 申請表單、審核系統、WP 後台設定頁 | APPLY-01~06, ADMIN-01~04 | 5 |
+| 28 | 基礎架構與整合 | 建立身份識別和 buygo-line-notify 整合基礎 | IDENT-01~03, INTEG-01~03 | 4 |
+| 29 | Bot 回應邏輯 | 實作 bot 對不同身份的回應規則 | BOT-01~04 | 4 |
+| 30 | 商品上架通知 | 透過 LINE 上架商品時發送通知 | PROD-01~03 | 3 |
+| 31 | 訂單通知 | 訂單建立和狀態變更通知 | ORD-01~04 | 4 |
 
 ---
 
-## Phase 23: 部署優化
+## Phase 28: 基礎架構與整合
 
-**Goal:** 完成 GitHub 自動更新機制、Rewrite Rules 自動 Flush、Portal 快捷按鈕
-
-**Requirements:**
-- DEPLOY-01: 整合 plugin-update-checker 函式庫
-- DEPLOY-02: 外掛啟用時自動 flush rewrite rules
-- DEPLOY-03: 後台新增「前往 BuyGo Portal」按鈕
-
-**Success Criteria:**
-1. 用戶可在 WP 後台看到 BuyGo+1 更新通知（當 GitHub 有新 Release 時）
-2. 外掛啟用後，自訂路由立即生效（無需手動 flush）
-3. WP 後台有「前往 BuyGo Portal」按鈕，點擊可跳轉到 /buygo-portal/
-
-**Technical Notes:**
-- 使用 `yahnis-elsts/plugin-update-checker` via Composer
-- 使用 flag-based transient 方法處理 rewrite rules
-- ShortLinkRoutes 已有參考實作
-
-**Dependencies:**
-- 無外部依賴
-
----
-
-## Phase 24: 資料架構與 Service
-
-**Goal:** 建立 wp_buygo_helpers 資料表和 Settings_Service 擴充方法
+**Goal:** 建立身份識別服務和 buygo-line-notify 整合基礎，為後續通知功能打下基礎
 
 **Requirements:**
-- DATA-01: 建立 wp_buygo_helpers 資料表
-- DATA-02: 驗證商品查詢的 post_author 過濾
-- DATA-03: 驗證訂單查詢的賣家過濾
-- SVC-01: Settings_Service.get_helpers(seller_id)
-- SVC-02: Settings_Service.add_helper(user_id, seller_id)
-- SVC-03: Settings_Service.remove_helper(user_id, seller_id)
-- SVC-04: 權限檢查方法
-- SVC-05: 整合 LineUserService
+- IDENT-01: 查詢 LINE UID 對應的 WordPress User ID
+- IDENT-02: 判斷用戶角色（賣家/小幫手/買家）
+- IDENT-03: 判斷用戶是否有 LINE 綁定
+- INTEG-01: 監聽 buygo-line-notify 發出的 WordPress hooks
+- INTEG-02: 呼叫 MessagingService 發送 LINE 推播
+- INTEG-03: 移植並使用 NotificationTemplates 模板系統
 
 **Success Criteria:**
-1. wp_buygo_helpers 資料表在外掛啟用時自動建立
-2. get_helpers 返回正確的小幫手列表（含 LINE 綁定狀態）
-3. add_helper/remove_helper 正確更新資料表
-4. 權限檢查方法返回用戶可存取的 seller_ids 列表
-5. 單元測試通過
+1. IdentityService 可以根據 LINE UID 查詢並返回用戶角色
+2. NotificationService 可以成功呼叫 buygo-line-notify 的 MessagingService
+3. NotificationTemplates 模板系統可以產生格式化的通知訊息
+4. 單元測試通過
 
 **Technical Notes:**
-- 資料表結構：id, user_id, seller_id, created_at, updated_at
-- UNIQUE KEY (user_id, seller_id) 防止重複
-- LineUserService::isUserLinked() soft dependency
+- 建立 `IdentityService` 類別處理身份識別
+- 建立 `NotificationService` 類別處理通知發送
+- 移植 `NotificationTemplates` 從舊外掛
+- 使用 WordPress hooks 監聽 buygo-line-notify 事件
+- Soft dependency：buygo-line-notify 未啟用時優雅降級
 
 **Dependencies:**
 - buygo-line-notify 外掛（soft dependency）
+- v1.1 完成的 wp_buygo_helpers 資料表
 
 ---
 
-## Phase 25: API 權限過濾
+## Phase 29: Bot 回應邏輯
 
-**Goal:** 所有 API 端點加入賣家權限檢查，確保多賣家隔離
+**Goal:** 根據用戶身份決定 bot 是否回應訊息
 
 **Requirements:**
-- API-01: GET /settings/helpers（含 LINE 狀態）
-- API-02: POST /settings/helpers（賣家限定）
-- API-03: DELETE /settings/helpers/{user_id}（賣家限定）
-- API-04: 商品 API post_author 過濾
-- API-05: 訂單 API 賣家過濾
-- PERM-01~05: 權限規則實作
+- BOT-01: 賣家發送訊息時，bot 正常回應
+- BOT-02: 小幫手發送訊息時，bot 正常回應
+- BOT-03: 買家發送訊息時，bot 不回應（靜默）
+- BOT-04: 未綁定用戶發送訊息時，bot 不回應（靜默）
 
 **Success Criteria:**
-1. 小幫手呼叫 POST/DELETE helpers API 返回 403
-2. 賣家 A 無法查詢到賣家 B 的商品
-3. 小幫手可以查詢被授權賣場的商品
-4. 一個用戶作為多個賣場的小幫手時，可查詢所有授權賣場的商品
-5. API 測試通過（可用 curl 或 Postman 驗證）
+1. 賣家傳訊息給 bot，bot 能正常處理並回應
+2. 小幫手傳訊息給 bot，bot 能正常處理並回應
+3. 買家傳訊息給 bot，bot 不發送任何訊息
+4. 未綁定用戶傳訊息給 bot，bot 不發送任何訊息
 
 **Technical Notes:**
-- check_admin_permission() 區分賣家和小幫手
-- 商品查詢：WHERE post_author IN (可存取的 seller_ids)
-- 訂單查詢：透過 order_items.post_id → posts.post_author
+- 在 buygo-line-notify 的 webhook handler 加入 filter hook
+- buygo-plus-one 監聽 filter 並根據身份決定是否繼續處理
+- 返回 `false` 表示不處理（靜默）
+- 使用 Phase 28 建立的 IdentityService
 
 **Dependencies:**
-- Phase 24 完成
+- Phase 28 完成（IdentityService）
 
 ---
 
-## Phase 26: 前端 UI（Portal）
+## Phase 30: 商品上架通知
 
-**Goal:** BuyGo Portal Settings 頁面會員權限管理 UI
+**Goal:** 當賣家透過 LINE 上架商品時，通知相關人員
 
 **Requirements:**
-- UI-01: 「會員權限管理」區塊
-- UI-02: 小幫手列表（姓名、Email、LINE 狀態、新增時間）
-- UI-03: 新增小幫手（WP 用戶搜尋）
-- UI-04: 移除小幫手（確認對話框）
-- UI-05: LINE 綁定狀態顯示
-- UI-06: LINE 綁定按鈕
-- UI-07: 小幫手角色隱藏此區塊
+- PROD-01: 當賣家透過 LINE 上架商品時，觸發通知事件
+- PROD-02: 發送通知給商品擁有者（賣家）
+- PROD-03: 發送通知給所有已綁定 LINE 的小幫手
 
 **Success Criteria:**
-1. 賣家可在 Portal Settings 看到「會員權限管理」區塊
-2. 小幫手列表正確顯示，含 LINE 綁定狀態圖示
-3. 可成功新增小幫手（從 WP 用戶選擇）
-4. 可成功移除小幫手（有確認對話框）
-5. 未綁定 LINE 的小幫手顯示警告訊息
-6. 小幫手登入後看不到「會員權限管理」區塊
+1. 透過 LINE 上架商品後，賣家收到「商品上架成功」通知
+2. 透過 LINE 上架商品後，所有已綁定 LINE 的小幫手收到通知
+3. FluentCart 後台新增商品時，不發送通知
 
 **Technical Notes:**
-- Vue 3 元件
-- 使用現有設計系統元件（.data-table, .btn, .status-tag）
-- LINE 綁定按鈕連結到 buygo-line-notify 的綁定頁面
+- 監聽 `buygo_product_created_via_line` hook（或類似）
+- 使用 SettingsService.get_helpers() 取得小幫手列表
+- 使用 IdentityService 判斷誰有 LINE 綁定
+- 使用 NotificationService 發送通知
+- 通知模板：product_created
 
 **Dependencies:**
-- Phase 25 完成（API 端點）
+- Phase 28 完成（NotificationService, IdentityService）
+- buygo-line-notify 的商品建立 hook
 
 ---
 
-## Phase 27: 賣家申請與 WP 後台
+## Phase 31: 訂單通知
 
-**Goal:** 用戶可自助申請成為測試賣家，管理員在 WP 後台管理
+**Goal:** 訂單建立和狀態變更時發送通知給相關人員
 
 **Requirements:**
-
-### 賣家申請系統 (APPLY)
-- APPLY-01: 申請表單（姓名、Email、LINE、申請理由）
-- APPLY-02: 申請後自動批准為測試賣家（buygo_seller_type = 'test'）
-- APPLY-03: Portal 申請入口（未成為賣家的用戶看到申請按鈕）
-- APPLY-04: Shortcode `[buygo_seller_application]` 可放任意頁面
-- APPLY-05: 申請成功後發送 Email 通知
-- APPLY-06: 記錄申請日期和狀態
-
-### WP 後台管理頁面 (ADMIN)
-- ADMIN-01: WP 後台「BuyGo+1 設定」主選單
-- ADMIN-02: 賣家申請列表（顯示所有申請，可篩選測試/真實）
-- ADMIN-03: 賣家升級功能（測試賣家 → 真實賣家，解除商品限制）
-- ADMIN-04: 會員權限管理（同 Portal，在 WP 後台也可操作）
+- ORD-01: 新訂單建立時，通知賣家
+- ORD-02: 新訂單建立時，通知所有已綁定 LINE 的小幫手
+- ORD-03: 新訂單建立時，通知買家（如果買家有 LINE 綁定）
+- ORD-04: 訂單狀態變更時，僅通知買家
 
 **Success Criteria:**
-1. 一般用戶可在 Portal 或 Shortcode 頁面申請成為賣家
-2. 申請後自動成為測試賣家（有商品數量限制）
-3. 管理員可在 WP 後台看到所有申請
-4. 管理員可升級測試賣家為真實賣家
-5. WP 後台可管理小幫手（與 Portal 功能相同）
+1. 新訂單建立時，賣家收到「新訂單」通知
+2. 新訂單建立時，小幫手收到「新訂單」通知
+3. 新訂單建立時，買家收到「訂單已建立」通知（如有 LINE 綁定）
+4. 訂單狀態變更（如：已出貨、已完成），僅買家收到通知
 
 **Technical Notes:**
-- 測試賣家商品限制：從 user_meta `buygo_product_limit` 讀取（預設 10 件）
-- 真實賣家：`buygo_product_limit` = 0（無限制）
-- WP 後台使用 WordPress Settings API
-- 申請狀態：pending（待審核）、approved（已批准）、rejected（已拒絕）
+- 監聽 FluentCart 訂單 hooks：
+  - `fluent_cart/order/created` — 新訂單
+  - `fluent_cart/order/status_changed` — 狀態變更
+- 訂單通知需要找出商品的 post_author（賣家）
+- 使用 SettingsService.get_helpers() 取得小幫手
+- 通知模板：
+  - seller_order_created
+  - helper_order_created
+  - buyer_order_created
+  - buyer_order_status_changed
 
 **Dependencies:**
-- Phase 24 完成（Service Layer）
-- Phase 25 完成（API 端點）
+- Phase 28 完成（NotificationService, IdentityService）
+- Phase 30 完成（商品通知模式可複用）
 
 ---
 
 ## Milestone Success Criteria
 
-v1.1 完成時，系統應具備：
+v1.2 完成時，系統應具備：
 
-1. **部署優化**
-   - GitHub Releases 自動更新可用
-   - 外掛啟用後路由立即生效
-   - Portal 快捷按鈕可用
+1. **身份識別**
+   - 可根據 LINE UID 識別用戶身份
+   - 可判斷用戶是賣家、小幫手、買家或未綁定
 
-2. **多賣家隔離**
-   - 賣家 A 無法看到賣家 B 的商品/訂單
-   - 小幫手可看到被授權賣場的資料
-   - 一個用戶可作為多個賣場的小幫手
+2. **Bot 回應邏輯**
+   - 賣家/小幫手可與 bot 互動
+   - 買家/未綁定用戶發訊息時 bot 靜默
 
-3. **會員權限管理**
-   - 賣家可新增/移除小幫手
-   - 小幫手不能管理其他小幫手
-   - LINE 綁定狀態清楚顯示
+3. **商品上架通知**
+   - LINE 上架商品 → 賣家 + 小幫手收到通知
+   - FluentCart 後台操作不觸發通知
 
-4. **賣家申請系統**
-   - 一般用戶可自助申請成為測試賣家
-   - 申請後自動批准（測試賣家有商品限制）
-   - 管理員可在 WP 後台升級為真實賣家
+4. **訂單通知**
+   - 新訂單 → 賣家 + 小幫手 + 買家 收到通知
+   - 狀態變更 → 僅買家收到通知
 
-5. **WP 後台管理**
-   - 管理員可在 WordPress 後台管理所有功能
-   - 賣家申請列表清楚顯示
-   - 會員權限管理與 Portal 同步
+5. **整合**
+   - 與 buygo-line-notify 正確整合
+   - 模板系統可自訂訊息內容
 
 ---
 
@@ -205,11 +164,11 @@ v1.1 完成時，系統應具備：
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| FluentCart API 變更 | Low | High | 使用 post_author 是穩定的 WordPress 原生欄位 |
-| buygo-line-notify 未啟用 | Medium | Low | Soft dependency，顯示提示訊息 |
-| 權限邏輯複雜度 | Medium | Medium | 單元測試覆蓋權限檢查方法 |
+| buygo-line-notify API 變更 | Low | High | 使用版本檢查，soft dependency |
+| LINE API 限制（發送頻率） | Medium | Medium | 實作佇列機制，批次發送 |
+| 通知太頻繁造成用戶困擾 | Medium | Low | 提供通知設定選項（未來功能）|
 
 ---
 
-*Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 after initial creation*
+*Roadmap created: 2026-02-01*
+*Last updated: 2026-02-01 after initial creation*
