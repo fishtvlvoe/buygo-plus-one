@@ -130,39 +130,27 @@ class CheckoutCustomizationService
         ?>
         <style id="buygo-checkout-customization">
         <?php if ($hide_shipping): ?>
-        /* 隱藏運送方式區塊 - 使用多個 selector 作為 fallback */
-        .fc-checkout-shipping-methods,
-        .fc-shipping-methods,
-        .fluent-cart-checkout .shipping-methods-section,
-        .fluent-cart-checkout .shipping-section,
-        .fluent-cart-checkout [data-section="shipping"],
-        .fcc-shipping-section,
-        .fcc-shipping-methods,
-        .fct-checkout-shipping-methods,
-        .fct-shipping-method-section {
+        /* 隱藏運送方式/配送選項區塊 - FluentCart 結帳頁面 */
+        .fct_shipping_methods_wrapper,
+        .fct_checkout_shipping_section,
+        [class*="fct_shipping"],
+        [class*="fct-shipping"] {
             display: none !important;
         }
         <?php endif; ?>
 
         <?php if ($hide_ship_different): ?>
-        /* 隱藏「寄送到其他地址」選項 */
-        .fc-checkout-ship-different,
-        .ship-to-different-address,
-        .fluent-cart-checkout .shipping-address-toggle,
-        .fluent-cart-checkout [data-toggle="shipping-address"],
-        .fcc-ship-different-address,
-        .fct-ship-to-different,
-        .fct-checkout-ship-different,
-        [class*="ship-different"],
-        [class*="different-address"] {
+        /* 隱藏「寄送到其他地址」選項 - FluentCart 結帳頁面 */
+        .fct_ship_to_different_wrapper,
+        [class*="ship_to_different"],
+        [class*="ship-to-different"],
+        [data-fluent-cart-ship-to-different-address] {
             display: none !important;
         }
-
         /* 確保 shipping address 區塊也隱藏 */
-        .fluent-cart-checkout .shipping-address-fields,
-        .fcc-shipping-address,
-        .fct-shipping-address-form,
-        [class*="shipping-address-form"] {
+        .fct_shipping_address_section,
+        #shipping_address_section_section,
+        [id*="shipping_address"] {
             display: none !important;
         }
         <?php endif; ?>
