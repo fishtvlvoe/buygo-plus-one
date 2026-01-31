@@ -198,12 +198,17 @@ class Settings_API {
     }
     
     /**
-     * 取得小幫手列表
+     * 取得小幫手列表（含 LINE 綁定狀態）
+     *
+     * Phase 25: API-01
+     * - 回傳小幫手列表，包含 LINE 綁定狀態
+     * - 賣家和小幫手都可以查看列表
      */
     public function get_helpers($request) {
         try {
-            $helpers = SettingsService::get_helpers();
-            
+            // 使用 get_helpers_with_line_status 取得含 LINE 狀態的小幫手列表
+            $helpers = SettingsService::get_helpers_with_line_status();
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => $helpers
@@ -418,16 +423,38 @@ class Settings_API {
     
     /**
      * 取得當前使用者權限
+     *
+     * Phase 25: PERM-01~05
+     * - is_seller: 是否為賣家（buygo_admin 角色）
+     * - is_helper: 是否為小幫手（buygo_helper 角色）
+     * - can_manage_helpers: 是否可以管理小幫手（只有賣家可以）
+     * - accessible_seller_ids: 可存取的賣場 ID 列表
+     * - is_wp_admin: 是否為 WordPress 管理員
      */
     public function get_user_permissions($request) {
         try {
-            $is_admin = current_user_can('buygo_admin') || current_user_can('manage_options');
-            
+            $user_id = get_current_user_id();
+            $is_wp_admin = current_user_can('manage_options');
+            $is_seller = SettingsService::is_seller($user_id);
+            $is_helper = SettingsService::is_helper($user_id);
+            $can_manage_helpers = SettingsService::can_manage_helpers($user_id);
+            $accessible_seller_ids = SettingsService::get_accessible_seller_ids($user_id);
+
+            // 取得 LINE 綁定狀態
+            $line_status = SettingsService::get_line_binding_status($user_id);
+
             return new \WP_REST_Response([
                 'success' => true,
                 'data' => [
-                    'is_admin' => $is_admin,
-                    'can_add_helper' => $is_admin,
+                    'user_id' => $user_id,
+                    'is_wp_admin' => $is_wp_admin,
+                    'is_seller' => $is_seller,
+                    'is_helper' => $is_helper,
+                    'is_admin' => $is_seller || $is_wp_admin, // 向後相容
+                    'can_add_helper' => $can_manage_helpers,
+                    'can_manage_helpers' => $can_manage_helpers,
+                    'accessible_seller_ids' => $accessible_seller_ids,
+                    'line_linked' => $line_status['is_linked'],
                 ]
             ], 200);
         } catch (\Exception $e) {
