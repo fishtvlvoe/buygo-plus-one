@@ -630,6 +630,7 @@ $settings_component_template .= <<<'HTML'
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">使用者</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">LINE 綁定</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
@@ -643,6 +644,21 @@ $settings_component_template .= <<<'HTML'
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-600">{{ helper.email }}</td>
                                     <td class="px-4 py-3">
+                                        <!-- LINE 綁定狀態（Phase 26 UI-05） -->
+                                        <span v-if="helper.line_linked" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <svg class="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2C6.48 2 2 5.58 2 10c0 2.12 1.02 4.04 2.7 5.5l-.25 2.5 2.6-1.5c1.25.5 2.62.75 3.95.75 5.52 0 10-3.58 10-8S17.52 2 12 2z"/>
+                                            </svg>
+                                            已綁定
+                                        </span>
+                                        <span v-else class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                            </svg>
+                                            未綁定
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <button
                                             @click="removeHelper(helper.id)"
                                             class="text-red-600 hover:text-red-700 text-sm font-medium flex items-center">
@@ -654,7 +670,7 @@ $settings_component_template .= <<<'HTML'
                                     </td>
                                 </tr>
                                 <tr v-if="helpers.length === 0">
-                                    <td colspan="3" class="px-4 py-8 text-center text-slate-500">
+                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">
                                         尚無小幫手
                                     </td>
                                 </tr>
@@ -670,12 +686,28 @@ $settings_component_template .= <<<'HTML'
                                 小幫手 {{ index + 1 }}
                             </div>
                             <!-- 用戶資訊 -->
-                            <div class="flex items-center gap-3 mb-4">
+                            <div class="flex items-center gap-3 mb-3">
                                 <img :src="helper.avatar || 'https://www.gravatar.com/avatar/?d=mp&s=100'" :alt="helper.name" class="w-12 h-12 rounded-full bg-white shrink-0 border border-slate-200 object-cover">
                                 <div class="min-w-0 flex-1">
                                     <div class="text-base font-semibold text-slate-900 truncate">{{ helper.name }}</div>
                                     <div class="text-sm text-slate-600 truncate">{{ helper.email }}</div>
                                 </div>
+                            </div>
+                            <!-- LINE 綁定狀態（Phase 26 UI-05） -->
+                            <div class="flex items-center justify-between mb-4 px-1">
+                                <span class="text-sm text-slate-600">LINE 綁定</span>
+                                <span v-if="helper.line_linked" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <svg class="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2C6.48 2 2 5.58 2 10c0 2.12 1.02 4.04 2.7 5.5l-.25 2.5 2.6-1.5c1.25.5 2.62.75 3.95.75 5.52 0 10-3.58 10-8S17.52 2 12 2z"/>
+                                    </svg>
+                                    已綁定
+                                </span>
+                                <span v-else class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    未綁定
+                                </span>
                             </div>
                             <!-- 刪除按鈕 -->
                             <button
@@ -1772,18 +1804,22 @@ const SettingsPageComponent = {
             }
         };
         
-        // 檢查是否為管理員
+        // 檢查是否可管理小幫手（Phase 26 UI-07）
+        // 只有賣家（is_seller）可以看到小幫手管理區塊
+        // 小幫手（is_helper 但不是 is_seller）看不到此區塊
         const checkAdmin = async () => {
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/user/permissions', {
                     headers: { 'X-WP-Nonce': wpNonce },
                     credentials: 'include'
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
-                    isAdmin.value = result.data.is_admin || false;
+                    // 使用 can_manage_helpers 來決定是否顯示小幫手管理區塊
+                    // can_manage_helpers 在 API 中會檢查 is_seller
+                    isAdmin.value = result.data.can_manage_helpers || result.data.is_wp_admin || false;
                 }
             } catch (err) {
                 console.error('檢查權限錯誤:', err);
