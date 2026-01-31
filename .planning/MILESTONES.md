@@ -74,14 +74,71 @@
 
 ---
 
-## Project Status
+### v1.1 - 部署優化與會員權限
 
-**Current Status:** ✅ Milestone v1.0 Complete
+**Archived:** 2026-02-01
+**Duration:** 2026-01-31 ~ 2026-02-01
 
-**Next Steps:**
-- 可開始規劃下一個 Milestone (v1.1)
-- 潛在功能: 商品批量操作、訂單匯出、更多報表...
+#### Summary
+
+完成部署優化（GitHub 自動更新、Rewrite Flush、Portal 按鈕）和多賣家權限隔離系統，包括賣家申請流程和 WP 後台管理。
+
+#### Phases Completed
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 23 | 部署優化 | 3/3 | ✅ Complete |
+| 24 | 資料架構與 Service | - | ✅ Complete |
+| 25 | API 權限過濾 | - | ✅ Complete |
+| 26 | 前端 UI 會員權限管理 | - | ✅ Complete |
+| 27 | 賣家申請與 WP 後台 | - | ✅ Complete |
+
+#### Key Achievements
+
+1. **部署優化**
+   - GitHub Releases 自動更新機制
+   - Rewrite Rules 自動 Flush
+   - Portal 社群連結按鈕
+
+2. **多賣家權限隔離**
+   - wp_buygo_helpers 資料表
+   - SettingsService 權限方法
+   - 商品/訂單 API 權限過濾
+   - get_accessible_seller_ids() 方法
+
+3. **會員權限管理 UI**
+   - Portal Settings 會員權限管理區塊
+   - 小幫手列表（含 LINE 綁定狀態）
+   - 新增/移除小幫手功能
+
+4. **賣家申請系統**
+   - 申請表單 Shortcode
+   - 自動批准為測試賣家
+   - WP 後台管理頁面
+   - 賣家升級功能
+
+#### Key Decisions
+
+- D24-01 ~ D24-03: 多賣家權限相關決策
+
+#### Files Created/Modified
+
+- `includes/services/class-settings-service.php` (擴充權限方法)
+- `includes/api/class-settings-api.php` (helpers 端點)
+- `includes/class-seller-application-shortcode.php`
+- `includes/admin/class-seller-management-page.php`
+- `admin/css/seller-management.css`
+- `admin/js/seller-management.js`
 
 ---
 
-*Last Updated: 2026-01-31*
+## Project Status
+
+**Current Status:** ✅ Milestone v1.1 Complete
+
+**Next Steps:**
+- 開始 Milestone v1.2: LINE 通知觸發機制整合
+
+---
+
+*Last Updated: 2026-02-01*
