@@ -1,0 +1,39 @@
+# Git files
+.git
+.gitignore
+.github
+
+# Documentation (development only)
+*.md
+!README.md
+CLAUDE.md
+BUILD-REPORT.md
+CUMULATIVE_BUG_FIX.md
+HANDOFF-NOTES.md
+SECURITY-OPTIMIZATION-TODO.md
+
+# Development dependencies
+node_modules
+vendor
+composer.json
+composer.lock
+package.json
+package-lock.json
+yarn.lock
+
+# Testing
+tests
+phpunit.xml
+phpunit-unit.xml
+phpunit.xml.dist
+.phpunit.result.cache
+
+# Build files
+release
+*.log
+.DS_Store
+Thumbs.db
+
+# Development tools
+bin/setup-test-db.php
+scripts/dev-*.sh

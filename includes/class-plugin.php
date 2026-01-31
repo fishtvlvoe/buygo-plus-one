@@ -85,65 +85,30 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
 
-        // 載入 Services（19 個服務）
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-checkout-customization-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-taiwan-id-validator.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-dashboard-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-export-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-customizer.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-search-service.php';
-        // class-image-uploader.php 已遷移到 buygo-line-notify，透過 Facade 使用
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-binding-receipt.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-flex-templates.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-notifier.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-webhook-handler.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-data-parser.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
+        // 使用 glob 批次載入 Services（15 個服務）
+        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-*.php') as $service) {
+            require_once $service;
+        }
 
         // 載入核心服務
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
 
-        // 載入監控工具
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/monitoring/class-slow-query-monitor.php';
-
         // 載入診斷工具（WP-CLI 命令）
         if (defined('WP_CLI') && WP_CLI) {
             require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/diagnostics/class-diagnostics-command.php';
-            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/database/class-dashboard-indexes.php';
-            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/cli/class-dashboard-cli.php';
         }
 
         // 載入 Admin Pages
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-type-field.php';
 
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
 
-        // 載入 API（11 個 API）
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-customers-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-dashboard-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-debug-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-global-search-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-keywords-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-line-webhook-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-liff-login-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-orders-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-products-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-settings-api.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-shipments-api.php';
+        // 使用 glob 批次載入 API（5 個 API）
+        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-*.php') as $api) {
+            require_once $api;
+        }
 
         // 載入 Routes
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
@@ -152,11 +117,6 @@ class Plugin {
         // 載入 FluentCart/FluentCommunity 整合
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
-
-        // 載入 LINE Product Upload Bridge (整合 buygo-line-notify)
-        if (file_exists(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-line-product-upload-bridge.php')) {
-            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-line-product-upload-bridge.php';
-        }
     }
     
     /**
@@ -179,7 +139,6 @@ class Plugin {
 
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
-        new \BuyGoPlus\Admin\SellerTypeField();
         
         // 初始化 Routes
         new Routes();
@@ -189,54 +148,30 @@ class Plugin {
         
         // 初始化 FluentCart 產品頁面自訂
         FluentCartProductPage::instance();
-
-        // 初始化 FluentCart 產品頁面客製化
-        \BuyGoPlus\Services\FluentCart_Customizer::init();
-
-        // 初始化 FluentCart 結帳頁面客製化
-        \BuyGoPlus\Services\CheckoutCustomizationService::init();
-
-        // 初始化 Dashboard 快取管理（B21-05: 訂單變更時主動清除快取）
-        \BuyGoPlus\Services\DashboardCacheManager::init();
-
-        // 初始化 LINE 訂單通知（下單成功 / 已出貨）
-        new \BuyGoPlus\Services\LineOrderNotifier();
-
-        // 初始化 LINE Webhook Handler（商品上架流程）
-        new \BuyGoPlus\Services\LineWebhookHandler();
-
-        // 初始化 LINE Product Upload Bridge (整合 buygo-line-notify)
-        if (class_exists('\\BuyGoPlus\\Integrations\\LineProductUploadBridge')) {
-            \BuyGoPlus\Integrations\LineProductUploadBridge::init();
-        }
-
-        // FluentCart 收據頁：顯示 LINE 綁定碼
-        new \BuyGoPlus\Services\LineBindingReceipt();
         
         // 初始化 API
         new \BuyGoPlus\Api\API();
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
+        
+        // 初始化 Webhook API
+        $webhook_api = new \BuyGoPlus\Api\Line_Webhook_API();
+        add_action('rest_api_init', array($webhook_api, 'register_routes'));
 
-        // 初始化 Dashboard API
-        $dashboard_api = new \BuyGoPlus\Api\Dashboard_API();
-        add_action('rest_api_init', array($dashboard_api, 'register_routes'));
-
-        // LINE Webhook API 已移除
-        // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
-        // BuyGo Plus One 透過 hook 機制接收事件，不直接處理 webhook
-        // 參考：.planning/debug/line-webhook-integration-failure.md 外掛架構定位
+        // 註冊 WordPress Cron 處理 LINE webhook 事件（用於非 FastCGI 環境）
+        add_action('buygo_process_line_webhook', function($events) {
+            $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
+            $webhook_handler->process_events($events, false);
+        });
 
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
             new FluentCommunity();
         }
 
-        // 註冊 WP-CLI 指令
-        if (defined('WP_CLI') && WP_CLI) {
-            \WP_CLI::add_command('buygo dashboard', 'BuyGoPlus\\CLI\\DashboardCLI');
-        }
+        // 初始化結帳頁面自訂服務（身分證字號等）
+        \BuyGoPlus\Services\CheckoutCustomizationService::init();
 
         // 阻擋 Cloudflare Beacon 以修復效能問題
         add_action('wp_footer', function() {

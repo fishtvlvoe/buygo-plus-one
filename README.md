@@ -11,65 +11,43 @@
 - 📊 庫存分配管理
 - ⚙️ 彈性設定系統
 
-## 外掛依賴
-
-**重要**：`buygo-plus-one-dev` 需要 `buygo-line-notify` 外掛才能正常運作 LINE 相關功能。
-
-### 安裝順序
-
-1. **先安裝並啟用 `buygo-line-notify`**
-   - 這是 LINE 基礎設施外掛，提供圖片上傳、訊息發送等核心功能
-   - 在 `buygo-line-notify` 中完成 LINE Channel 設定（Access Token、Channel Secret）
-
-2. **再安裝並啟用 `buygo-plus-one-dev`**
-   - 這是業務邏輯外掛，提供商品上架、訂單通知等功能
-   - 依賴 `buygo-line-notify` 提供的 Facade API
-
-### 依賴關係
-
-```
-buygo-line-notify (基礎設施層)
-    ├── ImageUploader - 圖片上傳
-    ├── LineMessagingService - 訊息發送
-    ├── SettingsService - 設定管理
-    └── Logger - 日誌服務
-    └── BuygoLineNotify (Facade API)
-
-buygo-plus-one-dev (業務邏輯層)
-    ├── LineWebhookHandler - 使用 BuygoLineNotify::image_uploader()
-    ├── LineOrderNotifier - 使用 BuygoLineNotify::messaging()
-    └── 其他業務邏輯服務
-```
-
-如果 `buygo-line-notify` 未啟用，系統會顯示管理員通知提醒。
-
 ## 快速開始
 
 ### 安裝
 
-1. **安裝 `buygo-line-notify`**
-   - 上傳到 `/wp-content/plugins/buygo-line-notify/`
-   - 在 WordPress 後台啟用
-   - 完成 LINE Channel 設定
+#### 方式一：從 GitHub Releases 下載（推薦）
 
-2. **安裝 `buygo-plus-one-dev`**
-   - 上傳到 `/wp-content/plugins/buygo-plus-one/`
-   - 在 WordPress 後台啟用
-   - 訪問 `yoursite.com/buygo-portal/dashboard`
+1. 訪問 [GitHub Releases](https://github.com/fishtvlvoe/buygo-plus-one/releases)
+2. 下載最新版本的 ZIP 檔案
+3. 在 WordPress 後台上傳並啟用
+4. 確保已安裝並啟用 `buygo-line-notify` 外掛
 
-### 開發部署流程
+**自動更新**：安裝後會自動檢查更新，有新版本時會在後台顯示更新通知。
+
+#### 方式二：手動安裝
+
+1. 上傳到 `/wp-content/plugins/buygo-plus-one/`
+2. 在 WordPress 後台啟用外掛
+3. 訪問 `yoursite.com/buygo-portal/dashboard`
+
+### 發布新版本
 
 ```bash
-# 1. 修改代碼
-git add .
-git commit -m "feat: 新增功能描述"
+# 1. 更新版本號和 CHANGELOG
+# 編輯 buygo-plus-one.php 和 CHANGELOG.md
 
-# 2. 推送到 GitHub
+# 2. 提交變更
+git add .
+git commit -m "chore: prepare for v0.2.0 release"
 git push origin main
 
-# 3. InstaWP 自動部署到臨時網站
-# 訪問 InstaWP 臨時網站進行測試
+# 3. 執行發布腳本
+./release.sh
+
+# 4. GitHub Actions 會自動建立 Release 和上傳 ZIP
 ```
+
+詳細發布流程請參考 [RELEASE-GUIDE.md](RELEASE-GUIDE.md)
 
 ## 技術棧
 
