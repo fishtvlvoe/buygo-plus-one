@@ -82,6 +82,45 @@ class OrderService
             }
             // 預設：顯示所有訂單（父訂單和子訂單），不加任何條件
 
+            // 多賣家權限過濾（Phase 24）
+            // - WordPress 管理員可看到所有訂單
+            // - BuyGo 賣家和小幫手只能看到包含自己商品的訂單
+            $current_user = wp_get_current_user();
+            $isWpAdmin = in_array('administrator', (array)$current_user->roles, true);
+
+            if (!$isWpAdmin && $current_user->ID > 0) {
+                // 取得使用者可存取的 seller_ids
+                $accessible_seller_ids = SettingsService::get_accessible_seller_ids($current_user->ID);
+
+                if (!empty($accessible_seller_ids)) {
+                    // 過濾訂單：只顯示包含可存取賣家商品的訂單
+                    // 透過 order_items -> posts (products) -> post_author 關聯
+                    global $wpdb;
+                    $table_items = $wpdb->prefix . 'fct_order_items';
+                    $table_posts = $wpdb->posts;
+
+                    $seller_ids_placeholder = implode(',', array_map('intval', $accessible_seller_ids));
+
+                    // 取得包含這些賣家商品的訂單 ID
+                    $order_ids = $wpdb->get_col(
+                        "SELECT DISTINCT oi.order_id
+                         FROM {$table_items} oi
+                         INNER JOIN {$table_posts} p ON oi.post_id = p.ID OR oi.post_id = p.post_parent
+                         WHERE p.post_author IN ({$seller_ids_placeholder})"
+                    );
+
+                    if (!empty($order_ids)) {
+                        $query->whereIn('id', $order_ids);
+                    } else {
+                        // 沒有符合的訂單
+                        $query->whereRaw('1 = 0');
+                    }
+                } else {
+                    // 沒有授權的賣場，返回空結果
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
             // 搜尋：訂單編號或客戶名稱
             if (!empty($search)) {
                 $query->where(function($q) use ($search) {

@@ -7,8 +7,8 @@
 
 ## 當前位置
 
-**Status:** ✅ Phase 23 完成，準備進入 Phase 24
-**Last activity:** 2026-02-01 - 完成 23-03 Portal 社群按鈕（本地開發）
+**Status:** ✅ Phase 24 完成，準備進入 Phase 25
+**Last activity:** 2026-02-01 - 完成 Phase 24 多賣家權限隔離（本地開發）
 
 **Progress:**
 ```
@@ -18,6 +18,7 @@ Phase 12: █████ 100% (已完成) ✅ COMPLETE - 分頁器遷移
 Phase 21: █████ 100% (5/5 plans) ✅ COMPLETE - Dashboard 功能
 Phase 22: █████ 100% (已完成) ✅ COMPLETE - 全域搜尋功能
 Phase 23: █████ 100% (3/3 plans) ✅ COMPLETE - 部署優化
+Phase 24: █████ 100% (已完成) ✅ COMPLETE - 資料架構與 Service
 ```
 
 **所有已完成的 Phases:**
@@ -54,6 +55,11 @@ Phase 23: █████ 100% (3/3 plans) ✅ COMPLETE - 部署優化
 - ✅ 23-02: Rewrite Rules 自動 Flush
 - ✅ 23-03: Portal 社群連結按鈕（本地開發完成）
 
+**Phase 24: 資料架構與 Service** ✅
+- ✅ DATA-01~03: wp_buygo_helpers 資料表和權限過濾
+- ✅ SVC-01~05: SettingsService 權限方法和 LINE 綁定狀態
+- 商品/訂單查詢使用 get_accessible_seller_ids() 過濾
+
 ---
 
 ## 累積決策
@@ -83,6 +89,9 @@ Phase 23: █████ 100% (3/3 plans) ✅ COMPLETE - 部署優化
 | D22-09 | 元件隔離原則 | Header 全域搜尋完全獨立於 header-component.js | 2026-01-29 | 22-03 |
 | D22-10 | localStorage 搜尋歷史 | 保留最近 10 筆,跨頁面共享 | 2026-01-29 | 22-03 |
 | D22-11 | Debounce 300ms | 減少 API 請求,提升效能 | 2026-01-29 | 22-03 |
+| D24-01 | 使用 post_author 作為賣家識別 | 商品建立時需設定正確的 post_author | 2026-02-01 | 24 |
+| D24-02 | 訂單過濾使用 SQL JOIN | 透過 order_items 關聯到商品的 post_author | 2026-02-01 | 24 |
+| D24-03 | 小幫手可存取多個賣場 | get_accessible_seller_ids() 返回陣列 | 2026-02-01 | 24 |
 
 ---
 
@@ -142,6 +151,9 @@ Phase 23: █████ 100% (3/3 plans) ✅ COMPLETE - 部署優化
   - ✅ 23-01: GitHub 自動更新
   - ✅ 23-02: Rewrite Rules Flush
   - ✅ 23-03: Portal 社群按鈕
+- Phase 24: ✅ 完成（資料架構與 Service）
+  - ✅ DATA-01~03: 資料表和權限過濾
+  - ✅ SVC-01~05: 權限方法和 LINE 綁定狀態
 
 **Debug Sessions:**
 - Header 元件整合問題: ✅ 已解決 (2026-01-29)
@@ -153,6 +165,6 @@ Phase 23: █████ 100% (3/3 plans) ✅ COMPLETE - 部署優化
 - B21-07: ✅ 資料庫索引 - 已加入外掛啟用流程 (2026-01-31)
 
 **下一步:**
-- Git 提交 Phase 23 變更（本地）
-- 開始 Phase 24（資料架構與 Service）
+- Git 提交 Phase 24 變更（本地）
+- 開始 Phase 25（API 權限過濾）
 - **重要**：僅本地開發，等穩定版發布到 GitHub 後再部署
