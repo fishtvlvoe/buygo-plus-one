@@ -15,23 +15,39 @@
 
 ### 安裝
 
+#### 方式一：從 GitHub Releases 下載（推薦）
+
+1. 訪問 [GitHub Releases](https://github.com/fishtvlvoe/buygo-plus-one/releases)
+2. 下載最新版本的 ZIP 檔案
+3. 在 WordPress 後台上傳並啟用
+4. 確保已安裝並啟用 `buygo-line-notify` 外掛
+
+**自動更新**：安裝後會自動檢查更新，有新版本時會在後台顯示更新通知。
+
+#### 方式二：手動安裝
+
 1. 上傳到 `/wp-content/plugins/buygo-plus-one/`
 2. 在 WordPress 後台啟用外掛
 3. 訪問 `yoursite.com/buygo-portal/dashboard`
 
-### 開發部署流程
+### 發布新版本
 
 ```bash
-# 1. 修改代碼
-git add .
-git commit -m "feat: 新增功能描述"
+# 1. 更新版本號和 CHANGELOG
+# 編輯 buygo-plus-one.php 和 CHANGELOG.md
 
-# 2. 推送到 GitHub
+# 2. 提交變更
+git add .
+git commit -m "chore: prepare for v0.2.0 release"
 git push origin main
 
-# 3. InstaWP 自動部署到臨時網站
-# 訪問 InstaWP 臨時網站進行測試
+# 3. 執行發布腳本
+./release.sh
+
+# 4. GitHub Actions 會自動建立 Release 和上傳 ZIP
 ```
+
+詳細發布流程請參考 [RELEASE-GUIDE.md](RELEASE-GUIDE.md)
 
 ## 技術棧
 
