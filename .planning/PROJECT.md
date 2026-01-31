@@ -8,24 +8,25 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 
 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，**每個賣家只能看到自己的商品和訂單**，同時支援小幫手協作。
 
-## Current Milestone: v1.1 部署優化與會員權限
+## Current Milestone: v1.2 LINE 通知觸發機制整合
 
-**Goal:** 完成部署優化（GitHub 自動更新、永久連結 flush、Portal 按鈕）和多賣家權限隔離系統
+**Goal:** 在 buygo-plus-one 中實作商品上架和訂單通知的觸發邏輯，與 buygo-line-notify 串接
 
 **Target features:**
 
-### P0 部署優化
-- GitHub Releases 自動更新機制（客戶 WP 後台可收到更新通知）
-- 外掛啟用時自動 flush rewrite rules
-- 後台新增「前往 BuyGo Portal」快捷按鈕
+### 商品上架通知
+- 透過 LINE 上架商品時，通知賣家和所有已綁定 LINE 的小幫手
+- FluentCart 後台操作不觸發通知（僅 LINE 上架觸發）
 
-### P1 會員權限管理系統
-- `wp_buygo_helpers` 資料表（多賣家隔離）
-- Settings_Service 擴充（get_helpers, add_helper, remove_helper）
-- 商品歸屬機制（需查詢 FluentCart 是否有 owner 欄位）
-- Settings 頁面「會員權限管理」UI
-- 小幫手 LINE 綁定狀態顯示（已綁定/未綁定）
-- 小幫手 LINE 綁定按鈕（未綁定時可點擊綁定）
+### 訂單通知
+- 新訂單建立 → 通知賣家 + 小幫手 + 買家（如果買家有 LINE 綁定）
+- 訂單狀態變更 → 僅通知買家
+
+### 身份識別與回應邏輯
+- LINE UID → WordPress User ID → 角色判斷
+- 賣家/小幫手：可與 bot 互動，收到通知
+- 買家：只收推播，bot 不回應其訊息
+- 未綁定用戶：bot 完全不回應（靜默忽略）
 
 ## Requirements
 
@@ -39,52 +40,44 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 - ✓ 快取機制（WordPress Transients、1/5/15 分鐘分層）— v1.0
 - ✓ 效能優化（SlowQueryMonitor、DashboardIndexes）— v1.0
 
-### Active - v1.1 Milestone
+<!-- v1.1 已完成的功能 -->
 
-#### 部署優化 (P0)
+- ✓ GitHub Releases 自動更新機制 — v1.1
+- ✓ Rewrite Rules 自動 Flush — v1.1
+- ✓ Portal 社群連結按鈕 — v1.1
+- ✓ 多賣家權限隔離（wp_buygo_helpers、get_accessible_seller_ids）— v1.1
+- ✓ 會員權限管理 UI（Portal Settings）— v1.1
+- ✓ 賣家申請系統（Shortcode、自動批准測試賣家）— v1.1
+- ✓ WP 後台賣家管理（申請列表、升級功能）— v1.1
 
-- [ ] **DEPLOY-01**: GitHub Releases 自動更新機制
-- [ ] **DEPLOY-02**: 外掛啟用時自動 flush rewrite rules
-- [ ] **DEPLOY-03**: 後台新增「前往 BuyGo Portal」按鈕
+### Active - v1.2 Milestone
 
-#### 會員權限管理 (P1)
+#### LINE 通知觸發 (NOTIF)
 
-##### 資料架構
+- [ ] **NOTIF-01**: 商品上架通知觸發（僅 LINE 上架觸發，FluentCart 後台不觸發）
+- [ ] **NOTIF-02**: 通知賣家和所有已綁定 LINE 的小幫手
+- [ ] **NOTIF-03**: 新訂單通知（賣家 + 小幫手 + 買家）
+- [ ] **NOTIF-04**: 訂單狀態變更通知（僅買家）
 
-- [ ] **PERM-01**: 建立 `wp_buygo_helpers` 資料表（id, user_id, seller_id, created_at, updated_at）
-- [ ] **PERM-02**: 查詢並確認 FluentCart 商品歸屬機制（是否有 owner 欄位）
-- [ ] **PERM-03**: 若 FluentCart 無 owner 欄位，需建立商品歸屬資料表或欄位
+#### 身份識別與回應 (IDENT)
 
-##### Service Layer
+- [ ] **IDENT-01**: LINE UID → WordPress User ID 查詢
+- [ ] **IDENT-02**: 角色判斷（賣家/小幫手/買家/未綁定）
+- [ ] **IDENT-03**: 賣家/小幫手 bot 回應邏輯
+- [ ] **IDENT-04**: 買家僅推播不回應
+- [ ] **IDENT-05**: 未綁定用戶靜默忽略
 
-- [ ] **PERM-04**: Settings_Service.get_helpers(seller_id) — 取得特定賣家的小幫手
-- [ ] **PERM-05**: Settings_Service.add_helper(user_id, seller_id) — 新增小幫手
-- [ ] **PERM-06**: Settings_Service.remove_helper(user_id, seller_id) — 移除小幫手
-- [ ] **PERM-07**: 權限檢查整合 — 判斷用戶可存取哪些賣場的商品
+#### 與 buygo-line-notify 整合 (INTEG)
 
-##### API Layer
+- [ ] **INTEG-01**: 監聽 buygo-line-notify 的 WordPress hooks
+- [ ] **INTEG-02**: 使用 MessagingService 發送推播
+- [ ] **INTEG-03**: 移植 NotificationTemplates 模板系統
 
-- [ ] **API-01**: GET /settings/helpers — 取得當前賣家的小幫手列表
-- [ ] **API-02**: POST /settings/helpers — 新增小幫手（只有賣家可以，小幫手不行）
-- [ ] **API-03**: DELETE /settings/helpers/{user_id} — 移除小幫手（只有賣家可以）
-- [ ] **API-04**: 所有商品/訂單 API 加入賣場權限過濾
+### Out of Scope (v1.2)
 
-##### 前端 UI
-
-- [ ] **UI-01**: Settings 頁面「會員權限管理」區塊
-- [ ] **UI-02**: 小幫手列表（姓名、Email、LINE 綁定狀態、新增時間）
-- [ ] **UI-03**: 新增小幫手功能（從 WP 用戶選擇）
-- [ ] **UI-04**: 移除小幫手功能
-- [ ] **UI-05**: LINE 綁定狀態顯示（✅ 已綁定 / ⚠️ 未綁定警告）
-- [ ] **UI-06**: LINE 綁定按鈕（小幫手登入後，未綁定時顯示按鈕）
-- [ ] **UI-07**: 小幫手不顯示「會員權限管理」區塊
-
-### Out of Scope (v1.1)
-
-- **多樣式商品功能** — 延後到 v1.2
-- **LINE 通知功能** — 延後到 v1.2（需先完成 buygo-line-notify v0.3）
-- **FluentCommunity 側邊欄連結** — 可選功能，看時間決定是否加入
-- **資料遷移** — 現有商品會清空，不需遷移
+- **多樣式商品功能** — 延後到 v1.3
+- **FluentCommunity 側邊欄連結** — 可選功能
+- **資料遷移** — 不需要
 
 ## Context
 
@@ -142,12 +135,15 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| v1.1: P0 + P1 合併一個 Milestone | 部署優化快速，權限系統是核心需求 | ✅ Confirmed 2026-01-31 |
-| 使用 GitHub Releases 更新機制 | 客戶可在 WP 後台收到更新通知 | ✅ Confirmed 2026-01-31 |
-| 小幫手權限 = 賣家權限（除了管理小幫手） | 簡化權限模型 | ✅ Confirmed 2026-01-31 |
-| 賣場識別 = LINE UID + WP user_id | 確保賣家已綁定 LINE 才能運作 | ✅ Confirmed 2026-01-31 |
-| 小幫手來源 = 任何 WP 用戶 | 靈活選擇 | ✅ Confirmed 2026-01-31 |
-| 未綁定 LINE 的小幫手顯示警告 | UX 防呆，避免用戶誤解 | ✅ Confirmed 2026-01-31 |
+| v1.1: P0 + P1 合併一個 Milestone | 部署優化快速，權限系統是核心需求 | ✅ Good 2026-02-01 |
+| 使用 GitHub Releases 更新機制 | 客戶可在 WP 後台收到更新通知 | ✅ Good 2026-02-01 |
+| 小幫手權限 = 賣家權限（除了管理小幫手） | 簡化權限模型 | ✅ Good 2026-02-01 |
+| 賣場識別 = LINE UID + WP user_id | 確保賣家已綁定 LINE 才能運作 | ✅ Good 2026-02-01 |
+| 小幫手來源 = 任何 WP 用戶 | 靈活選擇 | ✅ Good 2026-02-01 |
+| 未綁定 LINE 的小幫手顯示警告 | UX 防呆，避免用戶誤解 | ✅ Good 2026-02-01 |
+| LINE 通知只觸發於 LINE 上架 | FluentCart 後台操作不需通知 | — Pending |
+| 未綁定用戶完全靜默忽略 | 不要發送任何訊息給未綁定用戶 | — Pending |
+| 買家只收推播不回應 bot 訊息 | 買家身份明確區分於賣家/小幫手 | — Pending |
 
 ---
-*Last updated: 2026-01-31 after v1.1 Milestone initialization*
+*Last updated: 2026-02-01 after v1.2 Milestone initialization*
