@@ -4,7 +4,7 @@
 需要 WordPress 最少版本：5.8
 測試至 WordPress 版本：6.4
 需要 PHP 版本：7.4
-穩定版本標籤：0.0.1
+穩定版本標籤：0.2.2
 授權條款：GPLv2 或更新版本
 授權條款網址：http://www.gnu.org/licenses/gpl-2.0.html
 
