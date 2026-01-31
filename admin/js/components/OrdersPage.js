@@ -1046,6 +1046,12 @@ const OrdersPageComponent = {
             loadOrders();
         };
 
+        // 幣別切換處理（Header 元件會呼叫此方法）
+        const onCurrencyChange = (newCurrency) => {
+            console.log('[OrdersPage] 幣別變更:', newCurrency);
+            currentCurrency.value = newCurrency;
+        };
+
         return {
             orders,
             loading,
@@ -1119,6 +1125,8 @@ const OrdersPageComponent = {
             handleOrderSelect,
             handleOrderSearch,
             handleOrderSearchClear,
+            // 幣別切換
+            onCurrencyChange,
             // 運送狀態相關
             shippingStatuses,
             toggleStatusDropdown,
