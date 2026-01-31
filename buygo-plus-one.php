@@ -66,6 +66,11 @@ register_activation_hook(__FILE__, function () {
     // 載入並初始化短連結路由，然後刷新 rewrite rules
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
     \BuyGoPlus\ShortLinkRoutes::instance()->flush_rewrite_rules();
+
+    // 建立 Dashboard 查詢索引（B21-07: 提升大量資料查詢效能）
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/database/class-dashboard-indexes.php';
+    $dashboard_indexes = new \BuyGoPlus\Database\DashboardIndexes();
+    $dashboard_indexes->create_indexes();
 });
 
 /**

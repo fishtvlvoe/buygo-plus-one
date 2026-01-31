@@ -196,6 +196,9 @@ class Plugin {
         // 初始化 FluentCart 結帳頁面客製化
         \BuyGoPlus\Services\CheckoutCustomizationService::init();
 
+        // 初始化 Dashboard 快取管理（B21-05: 訂單變更時主動清除快取）
+        \BuyGoPlus\Services\DashboardCacheManager::init();
+
         // 初始化 LINE 訂單通知（下單成功 / 已出貨）
         new \BuyGoPlus\Services\LineOrderNotifier();
 

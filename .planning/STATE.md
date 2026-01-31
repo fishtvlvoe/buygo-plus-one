@@ -1,34 +1,52 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-01-29
+**最後更新:** 2026-01-31
 **專案版本:** 開發中
 
 ---
 
 ## 當前位置
 
-**Phase:** 22 - 全域搜尋功能
-**Plan:** 03 完成 / 共 03 個計畫
-**Status:** ✅ 完成
-**Last activity:** 2026-01-29 - 完成 22-03-PLAN.md (Header 全域搜尋框整合 + 即時建議 + 搜尋歷史)
+**Status:** ✅ 所有已規劃的 Phase 已完成
+**Last activity:** 2026-01-31 - 補寫 Phase 11 SUMMARY 檔案並清理重複目錄
 
 **Progress:**
 ```
-Phase 21: █████ 100% (5/5 plans) ✅ COMPLETE
-Phase 22: █████ 100% (3/3 plans) ✅ COMPLETE
+Phase 10: █████ 100% (已完成) ✅ COMPLETE - 表格與卡片遷移
+Phase 11: █████ 100% (7/7 plans) ✅ COMPLETE - 按鈕與狀態標籤遷移
+Phase 12: █████ 100% (已完成) ✅ COMPLETE - 分頁器遷移
+Phase 21: █████ 100% (5/5 plans) ✅ COMPLETE - Dashboard 功能
+Phase 22: █████ 100% (已完成) ✅ COMPLETE - 全域搜尋功能
 ```
 
-**Phase 22 已完成:**
-- 22-01: Global Search API 端點實作
-- 22-02: search.php 搜尋結果頁面 + 路由
-- 22-03: Header 全域搜尋框整合 + 即時建議 + 搜尋歷史
+**所有已完成的 Phases:**
 
-**Phase 21 成就 (已完成):**
+**Phase 10: 表格與卡片遷移 (4 個頁面)** ✅
+- shipment-products, shipment-details, orders, products 遷移到設計系統
+- 表格使用 .data-table，卡片使用 .card-list/.card
+- 已驗證 (10-VERIFICATION.md)
+
+**Phase 11: 按鈕與狀態標籤遷移 (4 個頁面)** ✅
+- 補充設計系統 danger classes
+- shipment-products, shipment-details, orders, products, settings 遷移
+- 所有按鈕使用 .btn .btn-*，狀態標籤使用 .status-tag .status-tag-*
+- 保留特殊設計（分配按鈕 icon）
+
+**Phase 12: 分頁器遷移** ✅
+- 遷移分頁器到設計系統
+- 已在 5 個頁面中使用 .pagination classes
+
+**Phase 21: Dashboard 功能** ✅
 - DashboardService 實作 (4 個查詢方法)
 - Dashboard_API 實作 (4 個 REST 端點 + 快取)
 - dashboard.php Vue 3 前端頁面 (Chart.js 整合)
 - 整合測試和驗證完成 (真人驗證通過)
 - 完整文件產出 (測試報告 + 使用者指南 + 效能分析)
+
+**Phase 22: 全域搜尋功能** ✅
+- Global Search API 端點實作
+- search.php 搜尋結果頁面 + 路由
+- Header 全域搜尋框整合 + 即時建議 + 搜尋歷史
 
 ---
 
@@ -68,9 +86,7 @@ Phase 22: █████ 100% (3/3 plans) ✅ COMPLETE
 
 | ID | 問題 | 優先級 | 影響範圍 | 提出日期 |
 |----|------|--------|----------|----------|
-| B21-05 | 缺少快取失效機制 | 中 | 統計數據即時性 | 2026-01-29 |
-| B21-06 | 缺少慢查詢監控 | 高 | 效能問題偵測 | 2026-01-29 |
-| B21-07 | 資料庫索引未建立 | 高 | 大量資料效能 | 2026-01-29 |
+| （目前無待解決的技術債） | - | - | - | - |
 
 ### 已解決
 
@@ -80,6 +96,9 @@ Phase 22: █████ 100% (3/3 plans) ✅ COMPLETE
 | B21-02 | 未測試大量資料效能 | 完成效能分析,預估 100K 訂單仍符合目標 | 2026-01-29 |
 | B21-03 | 缺少多賣家隔離機制 | 現階段單賣家場景,未來擴展時再實作 | 2026-01-29 |
 | B21-04 | Rewrite rules 未 flush | 真人執行 flush (後台 → 永久連結 → 儲存) | 2026-01-29 |
+| B21-05 | 缺少快取失效機制 | 建立 DashboardCacheManager，訂單變更時主動清除快取 | 2026-01-31 |
+| B21-06 | 缺少慢查詢監控 | DashboardService 整合 SlowQueryMonitor，實際監控查詢執行時間 | 2026-01-31 |
+| B21-07 | 資料庫索引未建立 | 將 DashboardIndexes::create_indexes() 加入外掛啟用流程 | 2026-01-31 |
 
 ---
 
@@ -102,22 +121,26 @@ Phase 22: █████ 100% (3/3 plans) ✅ COMPLETE
 
 ## 會話連續性
 
-**Last session:** 2026-01-29 16:30 UTC
-**Stopped at:** 完成 Phase 22 所有計畫 (全域搜尋功能完整實作)
+**Last session:** 2026-01-31
+**Stopped at:** 技術債全部清理完成
 **Resume file:** 無
 
-**Phase 22 完整執行紀錄 (已完成):**
-- 22-01: Global Search API 端點實作 ✅
-- 22-02: search.php 搜尋結果頁面 + 路由 ✅
-- 22-03: Header 全域搜尋框整合 + 即時建議 + 搜尋歷史 ✅
+**Phase 完成狀態:**
+- Phase 10: ✅ 完成（表格與卡片遷移）
+- Phase 11: ✅ 完成（按鈕與狀態標籤遷移，已補寫 7 個 SUMMARY）
+- Phase 12: ✅ 完成（分頁器遷移）
+- Phase 19.2: ✅ 完成（FluentCart 結帳頁面自訂）
+- Phase 21: ✅ 完成（Dashboard 功能，5/5 plans）
+- Phase 22: ✅ 完成（全域搜尋功能）
 
-**Phase 21 完整執行紀錄 (已完成):**
-- 21-01: DashboardService 實作 (4 個查詢方法)
-- 21-02: Dashboard_API 實作 (4 個 REST 端點)
-- 21-03: dashboard.php Vue 3 前端頁面
-- 21-04: (跳過,直接整合測試)
-- 21-05: 整合測試與驗證 (真人驗證通過)
+**Debug Sessions:**
+- Header 元件整合問題: ✅ 已解決 (2026-01-29)
+
+**技術債清理:**
+- B21-05: ✅ 快取失效機制 - DashboardCacheManager 已建立 (2026-01-31)
+- B21-06: ✅ 慢查詢監控 - DashboardService 已整合 SlowQueryMonitor (2026-01-31)
+- B21-07: ✅ 資料庫索引 - 已加入外掛啟用流程 (2026-01-31)
 
 **下一步:**
-- 待使用者測試全域搜尋功能
-- 或處理技術債: B21-05 (快取失效機制), B21-06 (慢查詢監控), B21-07 (資料庫索引)
+- 所有已規劃的 Phase 和技術債已完成
+- 可以開始新的 Milestone：`/gsd:new-milestone`
