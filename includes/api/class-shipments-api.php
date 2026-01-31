@@ -859,15 +859,17 @@ class Shipments_API
                     $shipment['customer_email'] = '';
                 }
 
-                // 取得 LINE 名稱（從 wp_usermeta）
+                // 取得 LINE 名稱和身分證字號（從 wp_usermeta）
                 $wp_user_id = $wpdb->get_var($wpdb->prepare(
                     "SELECT user_id FROM {$table_customers} WHERE id = %d",
                     $shipment['customer_id']
                 ));
                 if ($wp_user_id) {
                     $shipment['line_display_name'] = get_user_meta($wp_user_id, 'buygo_line_display_name', true) ?: '';
+                    $shipment['taiwan_id_number'] = get_user_meta($wp_user_id, 'buygo_taiwan_id_number', true) ?: '';
                 } else {
                     $shipment['line_display_name'] = '';
+                    $shipment['taiwan_id_number'] = '';
                 }
             }
 
@@ -974,13 +976,15 @@ class Shipments_API
             // 寫入 UTF-8 BOM（讓 Excel 正確識別 UTF-8）
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // 寫入標題行（新增「備註」欄位）
+            // 寫入標題行（新增「身分證字號」和「LINE 名稱」欄位）
             fputcsv($output, [
                 '出貨單號',
                 '客戶姓名',
                 '客戶電話',
                 '客戶地址',
                 'Email',
+                '身分證字號',
+                'LINE 名稱',
                 '商品名稱',
                 '數量',
                 '單價',
@@ -1035,6 +1039,19 @@ class Shipments_API
                     $shipment['customer_phone'] = '';
                     $shipment['customer_address'] = '';
                     $shipment['customer_email'] = '';
+                }
+
+                // 取得 LINE 名稱和身分證字號（從 wp_usermeta）
+                $wp_user_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT user_id FROM {$table_customers} WHERE id = %d",
+                    $shipment['customer_id']
+                ));
+                if ($wp_user_id) {
+                    $shipment['line_display_name'] = get_user_meta($wp_user_id, 'buygo_line_display_name', true) ?: '';
+                    $shipment['taiwan_id_number'] = get_user_meta($wp_user_id, 'buygo_taiwan_id_number', true) ?: '';
+                } else {
+                    $shipment['line_display_name'] = '';
+                    $shipment['taiwan_id_number'] = '';
                 }
 
                 // 取得出貨單商品項目（合併相同商品）
@@ -1093,6 +1110,8 @@ class Shipments_API
                         $shipment['customer_phone'] ?? '',
                         $shipment['customer_address'] ?? '',
                         $shipment['customer_email'] ?? '',
+                        $shipment['taiwan_id_number'] ?? '',
+                        $shipment['line_display_name'] ?? '',
                         '',
                         '',
                         '',
@@ -1116,6 +1135,8 @@ class Shipments_API
                             $shipment['customer_phone'] ?? '',
                             $shipment['customer_address'] ?? '',
                             $shipment['customer_email'] ?? '',
+                            $shipment['taiwan_id_number'] ?? '',
+                            $shipment['line_display_name'] ?? '',
                             $item['product_name'] ?? '未知商品',
                             $quantity,
                             $price,
@@ -1130,7 +1151,7 @@ class Shipments_API
                 }
 
                 // 每個出貨單後加一個空行
-                fputcsv($output, ['', '', '', '', '', '', '', '', '', '', '', '', '']);
+                fputcsv($output, ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
             }
 
             fclose($output);

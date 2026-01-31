@@ -326,7 +326,7 @@ class CheckoutCustomizationService
     }
 
     /**
-     * 儲存身分證字號到訂單 meta
+     * 儲存身分證字號到訂單 meta 和用戶 meta
      *
      * FluentCart 的 fluent_cart/order_created hook 傳遞一個 array，包含：
      * - order: Order 物件
@@ -410,6 +410,13 @@ class CheckoutCustomizationService
             );
         }
 
+        // 同時儲存到用戶 meta（供下次結帳自動填入）
+        $user_id = get_current_user_id();
+        if ($user_id > 0) {
+            update_user_meta($user_id, 'buygo_taiwan_id_number', $id_number);
+            error_log("[BuyGo Checkout] Taiwan ID saved to user meta: user_id=$user_id");
+        }
+
         // 記錄儲存成功
         error_log("[BuyGo Checkout] Taiwan ID saved: $id_number for order $order_id");
     }
@@ -435,6 +442,28 @@ class CheckoutCustomizationService
     }
 
     /**
+     * 從用戶 meta 取得已儲存的身分證字號
+     * 用於結帳時自動填入
+     *
+     * @param int|null $user_id 用戶 ID，若為 null 則使用當前登入用戶
+     * @return string|null 身分證字號或 null
+     */
+    public static function get_saved_id_number(?int $user_id = null): ?string
+    {
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+
+        if ($user_id <= 0) {
+            return null;
+        }
+
+        $id_number = get_user_meta($user_id, 'buygo_taiwan_id_number', true);
+
+        return !empty($id_number) ? $id_number : null;
+    }
+
+    /**
      * 注入身分證欄位和驗證腳本
      *
      * 由於 FluentCart 的 fluent_cart/checkout_address_fields Filter
@@ -454,12 +483,28 @@ class CheckoutCustomizationService
         if (!self::is_checkout_page()) {
             return;
         }
+
+        // 取得已儲存的身分證字號（供自動填入）
+        $saved_id_number = self::get_saved_id_number();
+        $saved_id_number_js = $saved_id_number ? esc_js($saved_id_number) : '';
         ?>
         <script id="buygo-taiwan-id-field">
         (function() {
+            // 從 PHP 傳入的已儲存身分證字號
+            var savedIdNumber = '<?php echo $saved_id_number_js; ?>';
+
             function initTaiwanIdField() {
                 // 檢查是否已存在
-                if (document.querySelector('input[name="taiwan_id_number"]')) return;
+                if (document.querySelector('input[name="taiwan_id_number"]')) {
+                    // 如果欄位已存在但沒有值，嘗試自動填入
+                    var existingInput = document.getElementById('taiwan_id_number');
+                    if (existingInput && !existingInput.value && savedIdNumber) {
+                        existingInput.value = savedIdNumber;
+                        existingInput.style.borderColor = '#28a745';
+                        console.log('[BuyGo] 身分證字號自動填入（已存在欄位）');
+                    }
+                    return;
+                }
 
                 // 找到帳單地址區塊後面插入
                 const billingSection = document.querySelector('[class*="billing"]');
@@ -487,10 +532,15 @@ class CheckoutCustomizationService
 
                 if (!insertPoint) return;
 
-                // 建立身分證欄位區塊
+                // 建立身分證欄位區塊（帶有自動填入的值）
                 const fieldWrapper = document.createElement('div');
                 fieldWrapper.className = 'buygo-taiwan-id-field';
                 fieldWrapper.style.cssText = 'margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;';
+
+                // 如果有儲存的身分證，設定初始值和綠色邊框
+                const initialValue = savedIdNumber || '';
+                const borderColor = savedIdNumber ? '#28a745' : '#ced4da';
+
                 fieldWrapper.innerHTML = `
                     <label for="taiwan_id_number" style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
                         身分證字號 <span style="color: #dc3545;">*</span>
@@ -502,7 +552,8 @@ class CheckoutCustomizationService
                         placeholder="A123456789"
                         maxlength="10"
                         required
-                        style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px; text-transform: uppercase;"
+                        value="${initialValue}"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid ${borderColor}; border-radius: 6px; font-size: 16px; text-transform: uppercase;"
                     />
                     <small style="display: block; margin-top: 6px; color: #6c757d; font-size: 13px;">
                         海運報關使用（範例：A123456789）
@@ -522,6 +573,11 @@ class CheckoutCustomizationService
                 // 取得 input 元素
                 const idInput = document.getElementById('taiwan_id_number');
                 if (!idInput) return;
+
+                // 記錄自動填入
+                if (savedIdNumber) {
+                    console.log('[BuyGo] 身分證字號自動填入:', savedIdNumber);
+                }
 
                 // 自動轉大寫
                 idInput.addEventListener('input', function(e) {
