@@ -837,8 +837,10 @@ class OrderService
             }
         }
 
-        if (isset($order['order_items']) && is_array($order['order_items'])) {
-            foreach ($order['order_items'] as $item) {
+        // 【修復 2026-01-31】FluentCart Model 的 toArray() 可能返回 orderItems（駝峰命名）或 order_items（底線命名）
+        $order_items = $order['order_items'] ?? $order['orderItems'] ?? [];
+        if (is_array($order_items) && count($order_items) > 0) {
+            foreach ($order_items as $item) {
                 // 確保 $item 是陣列格式
                 if (is_object($item)) {
                     $item = (array) $item;
@@ -907,6 +909,16 @@ class OrderService
                     }
                 }
 
+                // 計算單價和總金額
+                $unit_price = isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0; // 轉換為元
+                $line_total = isset($item['line_total']) ? ($item['line_total'] / 100) : 0;
+
+                // 【修復】如果 line_total 是 0 但有單價和數量，則計算正確的總金額
+                // 這是因為拆單時子訂單的 line_total 沒有被正確設定
+                if ($line_total == 0 && $unit_price > 0 && $quantity > 0) {
+                    $line_total = $unit_price * $quantity;
+                }
+
                 $items[] = [
                     'id' => $item['id'] ?? 0,
                     'order_id' => $order['id'] ?? 0,
@@ -914,8 +926,8 @@ class OrderService
                     'product_name' => $product_name,
                     'product_image' => $product_image,
                     'quantity' => $quantity,
-                    'price' => isset($item['unit_price']) ? ($item['unit_price'] / 100) : 0, // 轉換為元
-                    'total' => isset($item['line_total']) ? ($item['line_total'] / 100) : 0,
+                    'price' => $unit_price,
+                    'total' => $line_total,
                     'allocated_quantity' => $allocated_quantity,
                     'shipped_quantity' => $shipped_quantity,
                     'pending_quantity' => max(0, $quantity - $allocated_quantity - $shipped_quantity)
