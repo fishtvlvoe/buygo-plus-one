@@ -15,13 +15,24 @@
 
 ```
 /Users/fishtv/Development/
-├── .plugin-testing/          # 共用測試框架（配置、腳本、模板）
-├── buygo-plus-one/           # 主要外掛（開發原始碼）
-├── buygo-line-notify/        # LINE Notify 外掛（LINE 訊息、Webhook、登入）
-└── buygo-plus-one-example/   # 範例/參考外掛
+├── .plugin-testing/              # 共用測試框架（配置、腳本、模板）
+├── buygo-plus-one/               # 主要外掛（正式版，main 分支）
+├── buygo-plus-one-dev/           # 開發版（feature 分支）
+├── buygo-line-notify/            # LINE Notify 外掛（獨立倉庫）
+├── fluentcart-payuni/            # FluentCart PayUNi 金流外掛
+└── buygo-multi-variation/        # 計畫文件（非外掛）
 ```
 
-`buygo-plus-one/` 和 `buygo-line-notify/` 中的外掛透過符號連結指向 WordPress 安裝目錄 `/Users/fishtv/Local Sites/buygo/app/public/wp-content/plugins/`，在此編輯的內容會立即反映到 WordPress。
+## 外掛倉庫狀態
+
+| 外掛 | GitHub 倉庫 | 分支 | WordPress 連結 |
+|------|------------|------|----------------|
+| buygo-plus-one | fishtvlvoe/buygo-plus-one | main | 直接目錄 |
+| buygo-plus-one-dev | fishtvlvoe/buygo-plus-one | feature/checkout-id-number | 符號連結 → |
+| buygo-line-notify | fishtvlvoe/buygo-line-notify | main | 符號連結 → |
+| fluentcart-payuni | fishtvlvoe/fluentcart-payuni | main | 符號連結 → |
+
+所有外掛透過符號連結指向 WordPress 安裝目錄 `/Users/fishtv/Local Sites/buygo/app/public/wp-content/plugins/`，編輯內容會立即反映到 WordPress。
 
 ## 常用指令
 
@@ -197,14 +208,15 @@ tests/Unit/Services/ProductServiceBasicTest.php
 - 從 `test/gsd-customers-ui` 切換到 `release/v0.2.0` 時，git 自動清理了工作目錄中的外掛檔案
 
 **解決方案**：
-1. 使用 `git checkout 2883eed -- buygo-line-notify/` 從歷史恢復外掛
-2. 提交到 `release/v0.2.0` 分支，確保外掛永久存在
-3. 更新 CLAUDE.md，記錄此問題
+1. ✅ 使用 `git checkout 2883eed -- buygo-line-notify/` 從歷史恢復外掛
+2. ✅ 從主倉庫移除，改為獨立 Git 倉庫
+3. ✅ 建立 GitHub 倉庫：https://github.com/fishtvlvoe/buygo-line-notify
+4. ✅ 推送到 GitHub，完成獨立化
 
-**預防措施**：
-- **重要**：外掛目錄必須在所有活躍分支上都被提交
-- 切換分支前，確認重要的外掛目錄已提交
-- 如果外掛被誤刪，使用 `git reflog` 和 `git checkout <commit> -- <path>` 恢復
+**最終架構**：
+- 所有外掛都是獨立的 Git 倉庫
+- 每個外掛有自己的 GitHub 遠端倉庫
+- 不再依賴主倉庫，避免分支切換問題
 
 版本紀錄規範
 存檔 (當我說「存檔」或「提交」時)
