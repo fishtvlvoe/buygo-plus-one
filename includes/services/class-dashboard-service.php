@@ -46,8 +46,8 @@ class DashboardService
             $last_month_start = date('Y-m-01 00:00:00', strtotime('-1 month'));
             $last_month_end = date('Y-m-t 23:59:59', strtotime('-1 month'));
 
-            // 本月統計
-            $current_stats = $this->wpdb->get_row($this->wpdb->prepare(
+            // 本月統計（使用慢查詢監控）
+            $current_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
                     COALESCE(SUM(total_amount), 0) as total_revenue,
@@ -57,10 +57,11 @@ class DashboardService
                      AND payment_status = 'paid'
                      AND mode = 'live'",
                 $current_month_start
-            ), ARRAY_A);
+            );
+            $current_stats = $this->executeWithMonitoring($current_query, 'calculateStats:current');
 
-            // 上月統計 (用於計算變化百分比)
-            $last_stats = $this->wpdb->get_row($this->wpdb->prepare(
+            // 上月統計（使用慢查詢監控）
+            $last_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
                     COALESCE(SUM(total_amount), 0) as total_revenue,
@@ -71,7 +72,8 @@ class DashboardService
                      AND mode = 'live'",
                 $last_month_start,
                 $last_month_end
-            ), ARRAY_A);
+            );
+            $last_stats = $this->executeWithMonitoring($last_query, 'calculateStats:last');
 
             // 計算變化百分比
             $revenue_change = $this->calculateChangePercent(
@@ -156,7 +158,7 @@ class DashboardService
         try {
             $start_date = date('Y-m-d 00:00:00', strtotime("-{$days} days"));
 
-            $results = $this->wpdb->get_results($this->wpdb->prepare(
+            $query = $this->wpdb->prepare(
                 "SELECT
                     DATE(created_at) as date,
                     COALESCE(SUM(total_amount), 0) as daily_revenue
@@ -169,7 +171,8 @@ class DashboardService
                  ORDER BY date ASC",
                 $start_date,
                 $currency
-            ), ARRAY_A);
+            );
+            $results = $this->executeResultsWithMonitoring($query, 'getRevenueTrend');
 
             // 建立日期對營收的映射
             $revenue_map = [];
@@ -286,7 +289,7 @@ class DashboardService
                 $limit
             );
 
-            $results = $this->wpdb->get_results($query, ARRAY_A);
+            $results = $this->executeResultsWithMonitoring($query, 'getRecentActivities');
 
             // 格式化活動資料
             $activities = [];
@@ -338,5 +341,53 @@ class DashboardService
         }
 
         return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    /**
+     * 執行查詢並監控執行時間
+     *
+     * @param string $query SQL 查詢
+     * @param string $method 呼叫方法名稱
+     * @param string $output_type 輸出類型 (ARRAY_A, OBJECT, etc.)
+     * @return mixed 查詢結果
+     */
+    private function executeWithMonitoring(string $query, string $method, string $output_type = ARRAY_A)
+    {
+        $start_time = microtime(true);
+
+        $result = $this->wpdb->get_row($query, $output_type);
+
+        $execution_time = microtime(true) - $start_time;
+
+        $this->slowQueryMonitor->log_if_slow($query, $execution_time, [
+            'service' => 'DashboardService',
+            'method' => $method
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * 執行多行查詢並監控執行時間
+     *
+     * @param string $query SQL 查詢
+     * @param string $method 呼叫方法名稱
+     * @param string $output_type 輸出類型 (ARRAY_A, OBJECT, etc.)
+     * @return array 查詢結果
+     */
+    private function executeResultsWithMonitoring(string $query, string $method, string $output_type = ARRAY_A): array
+    {
+        $start_time = microtime(true);
+
+        $results = $this->wpdb->get_results($query, $output_type);
+
+        $execution_time = microtime(true) - $start_time;
+
+        $this->slowQueryMonitor->log_if_slow($query, $execution_time, [
+            'service' => 'DashboardService',
+            'method' => $method
+        ]);
+
+        return $results ?: [];
     }
 }
