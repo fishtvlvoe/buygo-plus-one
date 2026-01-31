@@ -165,46 +165,97 @@ class CheckoutCustomizationService
          * 自動選擇第一個配送方式
          * 當隱藏配送選項時，FluentCart 仍然需要選擇一個配送方式
          * 這個腳本會自動選擇第一個可用的配送方式
+         *
+         * FluentCart 使用 fc_selected_shipping_method 作為欄位名稱
          */
         (function() {
+            var shippingSelected = false;
+
             function autoSelectShipping() {
-                // 找到配送方式的 radio button 並自動選擇第一個
-                const shippingRadios = document.querySelectorAll('input[name="shipping_method_id"], input[name="shipping_method"], input[type="radio"][name*="shipping"]');
+                if (shippingSelected) return true;
+
+                // FluentCart 使用 fc_selected_shipping_method 作為配送方式的欄位名稱
+                const shippingRadios = document.querySelectorAll(
+                    'input[name="fc_selected_shipping_method"], ' +
+                    'input[name="shipping_method_id"], ' +
+                    'input[name="shipping_method"], ' +
+                    'input[type="radio"][name*="shipping"]'
+                );
+
+                console.log('[BuyGo] 找到配送方式 radio buttons:', shippingRadios.length);
 
                 if (shippingRadios.length > 0) {
                     const firstRadio = shippingRadios[0];
                     if (!firstRadio.checked) {
                         firstRadio.checked = true;
-                        // 觸發 change 事件讓 FluentCart 知道選擇已變更
+                        // 觸發多種事件確保 FluentCart/Vue 能夠偵測到變更
+                        firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
                         firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
                         firstRadio.dispatchEvent(new Event('click', { bubbles: true }));
-                        console.log('[BuyGo] 自動選擇配送方式:', firstRadio.value);
+
+                        // 嘗試觸發 Vue 的響應式更新
+                        if (typeof Vue !== 'undefined' || window.__VUE__) {
+                            firstRadio.dispatchEvent(new CustomEvent('vue:change', { bubbles: true }));
+                        }
+
+                        console.log('[BuyGo] 自動選擇配送方式:', firstRadio.name, '=', firstRadio.value);
+                        shippingSelected = true;
+                    } else {
+                        console.log('[BuyGo] 配送方式已選擇:', firstRadio.value);
+                        shippingSelected = true;
                     }
                     return true;
                 }
                 return false;
             }
 
-            // 頁面載入後嘗試選擇
+            // 頁面載入後嘗試選擇（多次重試）
+            function retrySelectShipping(attempts) {
+                if (attempts <= 0) {
+                    console.warn('[BuyGo] 無法找到配送方式選項');
+                    return;
+                }
+                if (!autoSelectShipping()) {
+                    setTimeout(function() {
+                        retrySelectShipping(attempts - 1);
+                    }, 500);
+                }
+            }
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function() {
-                    setTimeout(autoSelectShipping, 500);
+                    setTimeout(function() { retrySelectShipping(10); }, 500);
                 });
             } else {
-                setTimeout(autoSelectShipping, 500);
+                setTimeout(function() { retrySelectShipping(10); }, 500);
             }
 
             // 監聽 DOM 變化（FluentCart 可能動態載入配送選項）
-            const observer = new MutationObserver(function(mutations) {
-                autoSelectShipping();
-            });
+            function startObserver() {
+                if (!document.body) {
+                    document.addEventListener('DOMContentLoaded', startObserver);
+                    return;
+                }
 
-            observer.observe(document.body, { childList: true, subtree: true });
+                try {
+                    const observer = new MutationObserver(function(mutations) {
+                        if (!shippingSelected) {
+                            autoSelectShipping();
+                        }
+                    });
 
-            // 5 秒後停止監聽
-            setTimeout(function() {
-                observer.disconnect();
-            }, 5000);
+                    observer.observe(document.body, { childList: true, subtree: true });
+
+                    // 10 秒後停止監聽
+                    setTimeout(function() {
+                        observer.disconnect();
+                    }, 10000);
+                } catch (e) {
+                    console.warn('[BuyGo] MutationObserver 初始化失敗:', e);
+                }
+            }
+
+            startObserver();
         })();
         </script>
         <?php endif; ?>
@@ -505,18 +556,31 @@ class CheckoutCustomizationService
             }
 
             // 監聽動態內容變化（FluentCart 可能用 AJAX 載入結帳頁面）
-            const observer = new MutationObserver(function(mutations) {
-                if (!document.querySelector('input[name="taiwan_id_number"]')) {
-                    initTaiwanIdField();
+            function startIdFieldObserver() {
+                if (!document.body) {
+                    document.addEventListener('DOMContentLoaded', startIdFieldObserver);
+                    return;
                 }
-            });
 
-            observer.observe(document.body, { childList: true, subtree: true });
+                try {
+                    const observer = new MutationObserver(function(mutations) {
+                        if (!document.querySelector('input[name="taiwan_id_number"]')) {
+                            initTaiwanIdField();
+                        }
+                    });
 
-            // 3 秒後停止監聽（避免效能問題）
-            setTimeout(function() {
-                observer.disconnect();
-            }, 3000);
+                    observer.observe(document.body, { childList: true, subtree: true });
+
+                    // 3 秒後停止監聽（避免效能問題）
+                    setTimeout(function() {
+                        observer.disconnect();
+                    }, 3000);
+                } catch (e) {
+                    console.warn('[BuyGo] ID field observer 初始化失敗:', e);
+                }
+            }
+
+            startIdFieldObserver();
         })();
         </script>
         <?php
