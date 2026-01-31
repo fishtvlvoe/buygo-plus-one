@@ -173,6 +173,9 @@ class Plugin {
         // 初始化結帳頁面自訂服務（身分證字號等）
         \BuyGoPlus\Services\CheckoutCustomizationService::init();
 
+        // 初始化訂單項目標題修復服務
+        \BuyGoPlus\Services\OrderItemTitleFixer::instance();
+
         // 阻擋 Cloudflare Beacon 以修復效能問題
         add_action('wp_footer', function() {
             ?>
