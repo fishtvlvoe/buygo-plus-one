@@ -379,42 +379,204 @@ const OrdersPageComponent = {
             }
         };
 
-        // 篩選後的訂單（根據狀態分類）
-        // 邏輯：
-        // - 如果父訂單有子訂單，則根據「任一子訂單」的狀態來判斷是否顯示
-        // - 如果父訂單沒有子訂單，則根據父訂單自己的狀態來判斷
-        const filteredOrders = computed(() => {
-            if (!filterStatus.value) {
-                return orders.value; // 顯示全部
+        // 狀態對應函數（與後端 incrementStatsByStatus 保持一致）
+        const getStatusCategory = (status) => {
+            if (!status || status === 'unshipped' || status === 'pending') {
+                return 'unshipped';
+            } else if (status === 'preparing') {
+                return 'preparing';
+            } else if (['shipped', 'completed', 'processing', 'ready_to_ship'].includes(status)) {
+                return 'shipped';
+            }
+            return 'unshipped';
+        };
+
+        // 檢查訂單是否已分配庫存
+        const hasAllocatedItems = (order) => {
+            if (!order) {
+                return false;
             }
 
-            // 狀態對應函數（與後端 incrementStatsByStatus 保持一致）
-            const getStatusCategory = (status) => {
-                if (!status || status === 'unshipped' || status === 'pending') {
-                    return 'unshipped';
-                } else if (status === 'preparing') {
-                    return 'preparing';
-                } else if (['shipped', 'completed', 'processing', 'ready_to_ship'].includes(status)) {
-                    return 'shipped';
-                }
-                return 'unshipped';
-            };
+            // 【關鍵邏輯】如果父訂單已有子訂單，父訂單不應顯示「轉備貨」按鈕
+            // 使用者應該在子訂單上執行轉備貨操作
+            if (order.children && order.children.length > 0) {
+                return false;
+            }
 
-            return orders.value.filter(order => {
+            // 優先檢查 has_allocation 欄位（如果 API 有提供）
+            if (order.has_allocation === true) {
+                return true;
+            }
+
+            // 如果沒有 has_allocation 欄位，檢查 items 中的 allocated_quantity
+            if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
+                return false;
+            }
+
+            // 檢查每個 item 的 allocated_quantity
+            return order.items.some(item => {
+                // 處理各種可能的資料類型：數字、字串、null、undefined
+                const allocatedQty = item.allocated_quantity != null
+                    ? parseInt(item.allocated_quantity, 10)
+                    : 0;
+
+                // 確保是有效數字
+                const isValidNumber = !isNaN(allocatedQty) && isFinite(allocatedQty);
+                return isValidNumber && allocatedQty > 0;
+            });
+        };
+
+        // 檢查是否可以顯示「轉備貨」按鈕
+        // 只有在未出貨狀態才顯示按鈕，已備貨或已出貨則顯示狀態標籤
+        const canShowShipButton = (order) => {
+            if (!order) return false;
+            const status = order.shipping_status || 'unshipped';
+            // 只有 unshipped 狀態才顯示轉備貨按鈕
+            return status === 'unshipped' || status === '';
+        };
+
+        // 篩選後的訂單（根據狀態分類，不含分頁）
+        // 邏輯（2026-01-31 更新）：
+        // - 「全部」分頁：顯示所有訂單（父訂單+子訂單階層結構）
+        // - 「轉備貨」分頁：只顯示「已分配庫存且未出貨」的訂單（可操作的）
+        // - 其他分頁（備貨中/已出貨）：只顯示符合狀態的訂單
+        //   - 有子訂單的父訂單：只顯示符合條件的子訂單（作為獨立項目，不帶父訂單）
+        //   - 沒有子訂單的父訂單：根據父訂單自己的狀態判斷
+        const allFilteredOrders = computed(() => {
+            if (!filterStatus.value) {
+                return orders.value; // 顯示全部（保持原始階層結構）
+            }
+
+            // 過濾訂單：只顯示可操作的訂單
+            const result = [];
+
+            // 「轉備貨」分頁特殊處理：只顯示已分配庫存的訂單
+            const isUnshippedFilter = filterStatus.value === 'unshipped';
+
+            for (const order of orders.value) {
                 const children = order.children || [];
 
                 if (children.length > 0) {
-                    // 有子訂單：檢查是否「任一子訂單」符合篩選條件
-                    return children.some(child => {
+                    // 有子訂單：找出符合狀態的子訂單
+                    const matchingChildren = children.filter(child => {
                         const childCategory = getStatusCategory(child.shipping_status);
-                        return childCategory === filterStatus.value;
+                        if (childCategory !== filterStatus.value) {
+                            return false;
+                        }
+                        // 「轉備貨」分頁：額外檢查是否已分配庫存
+                        if (isUnshippedFilter) {
+                            return hasAllocatedItems(child);
+                        }
+                        return true;
                     });
+
+                    // 將每個符合條件的子訂單作為獨立項目加入結果
+                    // 不再以父訂單包裹子訂單的形式顯示
+                    for (const child of matchingChildren) {
+                        // 【修復 2026-01-31】確保提取的子訂單有 items 資料
+                        // 如果子訂單沒有 items，從父訂單的子訂單中繼承
+                        const childWithItems = {
+                            ...child,
+                            items: child.items || [], // 確保 items 存在
+                            _isExtractedChild: true, // 標記這是從父訂單提取出來的子訂單
+                            _parentOrder: order // 保留父訂單參考（如需要顯示父訂單資訊）
+                        };
+                        result.push(childWithItems);
+                    }
                 } else {
                     // 沒有子訂單：檢查父訂單自己的狀態
                     const parentCategory = getStatusCategory(order.shipping_status);
-                    return parentCategory === filterStatus.value;
+                    if (parentCategory !== filterStatus.value) {
+                        continue;
+                    }
+                    // 「轉備貨」分頁：額外檢查是否已分配庫存
+                    if (isUnshippedFilter && !hasAllocatedItems(order)) {
+                        continue;
+                    }
+                    result.push(order);
                 }
-            });
+            }
+
+            return result;
+        });
+
+        // 【修復 2026-01-31】加入分頁邏輯的篩選訂單
+        // filteredOrders 是分頁後的結果，用於模板渲染
+        const filteredOrders = computed(() => {
+            const all = allFilteredOrders.value;
+
+            // 如果 perPage 為 -1，表示顯示全部
+            if (perPage.value === -1) {
+                return all;
+            }
+
+            // 計算分頁起始和結束索引
+            const start = (currentPage.value - 1) * perPage.value;
+            const end = start + perPage.value;
+
+            return all.slice(start, end);
+        });
+
+        // 根據當前篩選狀態，取得子訂單列表（用於模板）
+        // 邏輯：
+        // - 無篩選（全部）：返回所有子訂單
+        // - 有篩選：返回空陣列（因為子訂單已經被提取為獨立項目顯示）
+        const getFilteredChildren = (order) => {
+            if (!filterStatus.value) {
+                return order.children || [];
+            }
+            // 篩選模式下，子訂單已經被提取為獨立項目，不需要在父訂單下再顯示
+            return [];
+        };
+
+        // 計算每個分類的實際可操作數量（用於標籤頁顯示）
+        // 這與 filteredOrders 使用相同的邏輯，確保數字與實際顯示內容一致
+        const tabCounts = computed(() => {
+            const counts = {
+                total: 0,
+                unshipped: 0,   // 轉備貨（需要有已分配庫存）
+                preparing: 0,   // 備貨中
+                shipped: 0      // 已出貨
+            };
+
+            for (const order of orders.value) {
+                const children = order.children || [];
+
+                if (children.length > 0) {
+                    // 有子訂單：計算各狀態的子訂單數量
+                    for (const child of children) {
+                        const childCategory = getStatusCategory(child.shipping_status);
+
+                        // 「轉備貨」需要額外檢查是否已分配庫存
+                        if (childCategory === 'unshipped') {
+                            if (hasAllocatedItems(child)) {
+                                counts.unshipped++;
+                            }
+                        } else if (childCategory === 'preparing') {
+                            counts.preparing++;
+                        } else if (childCategory === 'shipped') {
+                            counts.shipped++;
+                        }
+                    }
+                    counts.total++; // 父訂單計入總數
+                } else {
+                    // 沒有子訂單：根據父訂單狀態計算
+                    const parentCategory = getStatusCategory(order.shipping_status);
+
+                    if (parentCategory === 'unshipped') {
+                        if (hasAllocatedItems(order)) {
+                            counts.unshipped++;
+                        }
+                    } else if (parentCategory === 'preparing') {
+                        counts.preparing++;
+                    } else if (parentCategory === 'shipped') {
+                        counts.shipped++;
+                    }
+                    counts.total++;
+                }
+            }
+
+            return counts;
         });
 
         const loadOrders = async () => {
@@ -422,8 +584,13 @@ const OrdersPageComponent = {
             error.value = null;
 
             try {
+                // 始終請求所有資料（最多 100 筆），以便正確計算各分頁的數量
+                // 因為前端需要完整資料來計算「轉備貨」等分頁的實際可操作數量
+                const requestPerPage = 100;
+                const requestPage = 1;
+
                 // 加入時間戳記強制繞過所有快取
-                let url = `/wp-json/buygo-plus-one/v1/orders?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+                let url = `/wp-json/buygo-plus-one/v1/orders?page=${requestPage}&per_page=${requestPerPage}&_t=${Date.now()}`;
 
                 if (searchFilter.value) {
                     url += `&id=${searchFilter.value}`;
@@ -512,11 +679,12 @@ const OrdersPageComponent = {
                 return `${order.total_items || 0} 件`;
             }
 
-            // 【修復】使用 pending_quantity（待分配數量）而非 quantity
-            // 因為當訂單被分割成子訂單時，quantity 會被更新，但 pending_quantity 保持正確
+            // 【修復 2026-01-31】直接使用 quantity 顯示
+            // 子訂單有自己正確的 quantity 值，不需要用 pending_quantity
+            // pending_quantity 是「待分配數量」，對於已分配/已出貨的訂單會是 0
             const itemsText = order.items
                 .map(item => {
-                    const displayQty = item.pending_quantity !== undefined ? item.pending_quantity : (item.quantity || 0);
+                    const displayQty = item.quantity || 0;
                     return `${item.product_name || '未知商品'} x${displayQty}`;
                 })
                 .join(', ');
@@ -717,49 +885,6 @@ const OrdersPageComponent = {
         // 檢查訂單是否有可出貨的商品（用於父訂單）
         // 重要：如果父訂單已有子訂單（拆單），父訂單本身不應顯示「轉備貨」按鈕
         // 因為此時應該在子訂單上操作，而非父訂單
-        const hasAllocatedItems = (order) => {
-            if (!order) {
-                return false;
-            }
-
-            // 【關鍵邏輯】如果父訂單已有子訂單，父訂單不應顯示「轉備貨」按鈕
-            // 使用者應該在子訂單上執行轉備貨操作
-            if (order.children && order.children.length > 0) {
-                return false;
-            }
-
-            // 優先檢查 has_allocation 欄位（如果 API 有提供）
-            if (order.has_allocation === true) {
-                return true;
-            }
-
-            // 如果沒有 has_allocation 欄位，檢查 items 中的 allocated_quantity
-            if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
-                return false;
-            }
-
-            // 檢查每個 item 的 allocated_quantity
-            return order.items.some(item => {
-                // 處理各種可能的資料類型：數字、字串、null、undefined
-                const allocatedQty = item.allocated_quantity != null
-                    ? parseInt(item.allocated_quantity, 10)
-                    : 0;
-
-                // 確保是有效數字
-                const isValidNumber = !isNaN(allocatedQty) && isFinite(allocatedQty);
-                return isValidNumber && allocatedQty > 0;
-            });
-        };
-
-        // 檢查是否可以顯示「轉備貨」按鈕
-        // 只有在未出貨狀態才顯示按鈕，已備貨或已出貨則顯示狀態標籤
-        const canShowShipButton = (order) => {
-            if (!order) return false;
-            const status = order.shipping_status || 'unshipped';
-            // 只有 unshipped 狀態才顯示轉備貨按鈕
-            return status === 'unshipped' || status === '';
-        };
-
         // 執行訂單出貨
         const shipOrder = async (order) => {
             // 轉備貨：將訂單狀態更新為 'preparing'
@@ -960,10 +1085,12 @@ const OrdersPageComponent = {
             }
         };
         
-        // 分頁
+        // 分頁（使用篩選後的總數而非 API 返回的總數）
         const totalPages = computed(() => {
             if (perPage.value === -1) return 1;
-            return Math.ceil(totalOrders.value / perPage.value);
+            // 【修復 2026-01-31】使用 allFilteredOrders 的長度計算總頁數
+            // 這樣分頁才會正確反映當前篩選條件下的結果數量
+            return Math.ceil(allFilteredOrders.value.length / perPage.value);
         });
         
         // 可見的頁碼（最多顯示 5 頁）
@@ -1017,6 +1144,15 @@ const OrdersPageComponent = {
             loadOrders();
         };
         
+        // 監聽篩選狀態變化
+        // 【修復 2026-01-31】切換分頁時不需要重新載入資料
+        // 因為前端已經有所有資料，只需要重置到第一頁即可
+        // Vue computed 會自動重新計算 filteredOrders
+        watch(filterStatus, () => {
+            currentPage.value = 1; // 重置到第一頁
+            // 不再呼叫 loadOrders()，前端直接篩選
+        });
+
         // 初始化
         onMounted(() => {
             loadOrders();
@@ -1177,6 +1313,9 @@ const OrdersPageComponent = {
             filterStatus,
             stats,
             filteredOrders,
+            getFilteredChildren,
+            getStatusCategory,
+            tabCounts,
             // API 認證
             wpNonce
         };

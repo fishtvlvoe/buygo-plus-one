@@ -64,8 +64,8 @@ $orders_component_template .= <<<'HTML'
                             class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
                             <span>全部</span>
-                            <span v-if="stats.total > 0" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
-                                {{ stats.total }}
+                            <span v-if="tabCounts.total > 0" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+                                {{ tabCounts.total }}
                             </span>
                         </button>
                         <button
@@ -74,8 +74,8 @@ $orders_component_template .= <<<'HTML'
                             class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
                             <span>轉備貨</span>
-                            <span v-if="stats.unshipped > 0" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
-                                {{ stats.unshipped }}
+                            <span v-if="tabCounts.unshipped > 0" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                {{ tabCounts.unshipped }}
                             </span>
                         </button>
                         <button
@@ -84,8 +84,8 @@ $orders_component_template .= <<<'HTML'
                             class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
                             <span>備貨中</span>
-                            <span v-if="stats.preparing > 0" class="px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
-                                {{ stats.preparing }}
+                            <span v-if="tabCounts.preparing > 0" class="px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full text-xs">
+                                {{ tabCounts.preparing }}
                             </span>
                         </button>
                         <button
@@ -94,8 +94,8 @@ $orders_component_template .= <<<'HTML'
                             class="flex-1 py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition flex flex-col md:flex-row items-center justify-center gap-1"
                         >
                             <span>已出貨</span>
-                            <span v-if="stats.shipped > 0" class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
-                                {{ stats.shipped }}
+                            <span v-if="tabCounts.shipped > 0" class="px-2 py-0.5 bg-green-100 text-green-600 rounded-full text-xs">
+                                {{ tabCounts.shipped }}
                             </span>
                         </button>
                     </div>
@@ -162,16 +162,17 @@ $orders_component_template .= <<<'HTML'
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- 父訂單行 -->
+                        <!-- 訂單行（父訂單或提取的子訂單） -->
                         <template v-for="order in filteredOrders" :key="order.id">
-                        <tr>
+                        <tr :class="{ 'bg-blue-50/30 border-l-4 border-blue-400': order._isExtractedChild }">
                             <td>
                                 <input type="checkbox" :value="order.id" v-model="selectedItems" class="rounded border-slate-300">
                             </td>
                             <td>
                                 <div class="flex items-center gap-2">
+                                    <!-- 展開/收合按鈕（僅限有子訂單的父訂單） -->
                                     <button
-                                        v-if="order.children && order.children.length > 0"
+                                        v-if="getFilteredChildren(order).length > 0"
                                         @click="toggleChildrenCollapse(order.id)"
                                         class="text-slate-400 hover:text-primary transition flex-shrink-0"
                                     >
@@ -185,13 +186,21 @@ $orders_component_template .= <<<'HTML'
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </button>
+                                    <!-- 提取的子訂單加上箭頭圖示 -->
+                                    <svg v-if="order._isExtractedChild" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
                                     <span>#{{ order.invoice_no || order.id }}</span>
-                                    <span v-if="order.children && order.children.length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                        {{ order.children.length }} 批次
+                                    <!-- 提取的子訂單顯示「拆單」標籤 -->
+                                    <span v-if="order._isExtractedChild" class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                    <!-- 批次數（僅限有子訂單的父訂單） -->
+                                    <span v-if="getFilteredChildren(order).length > 0" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        {{ getFilteredChildren(order).length }} 批次
                                     </span>
                                 </div>
                             </td>
-                            <td>{{ order.customer_name }}</td>
+                            <!-- 客戶名稱：提取的子訂單從父訂單取得 -->
+                            <td>{{ order._isExtractedChild ? order._parentOrder.customer_name : order.customer_name }}</td>
                             <td>
                                 <div class="flex items-center gap-2">
                                     <span 
@@ -314,7 +323,7 @@ $orders_component_template .= <<<'HTML'
                         <!-- 子訂單行（拆單） -->
                         <tr
                             v-if="!isChildrenCollapsed(order.id)"
-                            v-for="childOrder in order.children"
+                            v-for="childOrder in getFilteredChildren(order)"
                             :key="'child-' + childOrder.id"
                             class="bg-blue-50/30 hover:bg-blue-50/50 transition border-l-4 border-blue-400"
                         >
@@ -408,21 +417,27 @@ $orders_component_template .= <<<'HTML'
                     </span>
                 </div>
                 <template v-for="order in filteredOrders" :key="order.id">
-                <div class="card">
+                <div class="card" :class="{ 'ml-4 border-l-4 border-blue-400 bg-blue-50/30': order._isExtractedChild }">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex items-center gap-2">
                             <input type="checkbox" :value="order.id" v-model="selectedItems" class="w-5 h-5 rounded border-slate-300">
                         </div>
                         <div class="flex-1 ml-3">
                             <div class="flex items-center gap-2">
+                                <!-- 提取的子訂單加上箭頭圖示 -->
+                                <svg v-if="order._isExtractedChild" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
                                 <h3 class="card-title">#{{ order.invoice_no || order.id }}</h3>
-                                <!-- 子訂單展開按鈕（更明顯） -->
+                                <!-- 提取的子訂單顯示「拆單」標籤 -->
+                                <span v-if="order._isExtractedChild" class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">拆單</span>
+                                <!-- 子訂單展開按鈕（僅限有子訂單的父訂單） -->
                                 <button
-                                    v-if="order.children && order.children.length > 0"
+                                    v-if="getFilteredChildren(order).length > 0"
                                     @click.stop="toggleChildrenCollapse(order.id)"
                                     class="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
                                 >
-                                    <span>{{ order.children.length }} 批次</span>
+                                    <span>{{ getFilteredChildren(order).length }} 批次</span>
                                     <svg
                                         class="w-3 h-3 transition-transform"
                                         :class="{ 'rotate-180': !isChildrenCollapsed(order.id) }"
@@ -434,7 +449,8 @@ $orders_component_template .= <<<'HTML'
                                     </svg>
                                 </button>
                             </div>
-                            <p class="card-subtitle">{{ order.customer_name }}</p>
+                            <!-- 客戶名稱：提取的子訂單從父訂單取得 -->
+                            <p class="card-subtitle">{{ order._isExtractedChild ? order._parentOrder.customer_name : order.customer_name }}</p>
                         </div>
                     </div>
                     
@@ -568,9 +584,9 @@ $orders_component_template .= <<<'HTML'
                 </div>
 
                 <!-- 手機版子訂單卡片 -->
-                <template v-if="order.children && order.children.length > 0 && !isChildrenCollapsed(order.id)">
+                <template v-if="getFilteredChildren(order).length > 0 && !isChildrenCollapsed(order.id)">
                     <div
-                        v-for="childOrder in order.children"
+                        v-for="childOrder in getFilteredChildren(order)"
                         :key="'mobile-child-' + childOrder.id"
                         class="card ml-4 border-l-4 border-blue-400 bg-blue-50/30"
                     >
@@ -653,9 +669,15 @@ $orders_component_template .= <<<'HTML'
             </div> <!-- End md:hidden (mobile cards) -->
 
             <!-- 統一分頁樣式 -->
-            <div class="pagination-container" v-if="totalOrders > 0">
+            <div class="pagination-container" v-if="filteredOrders.length > 0 || totalOrders > 0">
                 <div class="pagination-info">
-                    顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalOrders : Math.min(currentPage * perPage, totalOrders) }}</span> 筆，共 <span class="font-medium">{{ totalOrders }}</span> 筆
+                    <!-- 有篩選時顯示篩選後的數量，無篩選時顯示分頁資訊 -->
+                    <template v-if="filterStatus">
+                        顯示 <span class="font-medium">1</span> 到 <span class="font-medium">{{ filteredOrders.length }}</span> 筆，共 <span class="font-medium">{{ filteredOrders.length }}</span> 筆
+                    </template>
+                    <template v-else>
+                        顯示 <span class="font-medium">{{ perPage === -1 ? 1 : (currentPage - 1) * perPage + 1 }}</span> 到 <span class="font-medium">{{ perPage === -1 ? totalOrders : Math.min(currentPage * perPage, totalOrders) }}</span> 筆，共 <span class="font-medium">{{ totalOrders }}</span> 筆
+                    </template>
                 </div>
                 <div class="pagination-controls">
                     <select v-model.number="perPage" @change="changePerPage" class="pagination-select">
