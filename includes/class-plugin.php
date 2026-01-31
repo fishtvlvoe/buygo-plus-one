@@ -153,14 +153,12 @@ class Plugin {
         FluentCartProductPage::instance();
         
         // 初始化 API
+        // API 類別會自動載入並註冊所有 REST API 端點
+        // (Products, Orders, Shipments, Customers, GlobalSearch, Dashboard)
         new \BuyGoPlus\Api\API();
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
-
-        // 初始化 Dashboard API
-        $dashboard_api = new \BuyGoPlus\Api\Dashboard_API();
-        add_action('rest_api_init', array($dashboard_api, 'register_routes'));
 
         // LINE Webhook API 已移除
         // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
