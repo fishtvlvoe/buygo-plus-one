@@ -90,8 +90,26 @@ class ShortLinkRoutes {
         
         // 重定向到 FluentCart 產品頁面
         $product_url = get_permalink($item_id);
-        
+
         if ($product_url) {
+            // 取得當前請求的完整 URL
+            $current_url = home_url(add_query_arg(array(), $GLOBALS['wp']->request));
+
+            // 標準化 URL 進行比較（移除尾部斜線）
+            $current_url_normalized = untrailingslashit($current_url);
+            $product_url_normalized = untrailingslashit($product_url);
+
+            // 如果目標 URL 與當前 URL 相同，直接載入商品頁面而不重定向
+            if ($current_url_normalized === $product_url_normalized) {
+                // 設定正確的 query，讓 WordPress 載入商品頁面
+                global $wp_query;
+                $wp_query = new \WP_Query(array(
+                    'p' => $item_id,
+                    'post_type' => 'fluent-products',
+                ));
+                return; // 讓 WordPress 繼續載入模板
+            }
+
             wp_redirect($product_url, 301);
             exit;
         }
