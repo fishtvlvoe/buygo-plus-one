@@ -380,13 +380,40 @@ const OrdersPageComponent = {
         };
 
         // 篩選後的訂單（根據狀態分類）
+        // 邏輯：
+        // - 如果父訂單有子訂單，則根據「任一子訂單」的狀態來判斷是否顯示
+        // - 如果父訂單沒有子訂單，則根據父訂單自己的狀態來判斷
         const filteredOrders = computed(() => {
             if (!filterStatus.value) {
                 return orders.value; // 顯示全部
             }
+
+            // 狀態對應函數（與後端 incrementStatsByStatus 保持一致）
+            const getStatusCategory = (status) => {
+                if (!status || status === 'unshipped' || status === 'pending') {
+                    return 'unshipped';
+                } else if (status === 'preparing') {
+                    return 'preparing';
+                } else if (['shipped', 'completed', 'processing', 'ready_to_ship'].includes(status)) {
+                    return 'shipped';
+                }
+                return 'unshipped';
+            };
+
             return orders.value.filter(order => {
-                const status = order.shipping_status || 'unshipped';
-                return status === filterStatus.value;
+                const children = order.children || [];
+
+                if (children.length > 0) {
+                    // 有子訂單：檢查是否「任一子訂單」符合篩選條件
+                    return children.some(child => {
+                        const childCategory = getStatusCategory(child.shipping_status);
+                        return childCategory === filterStatus.value;
+                    });
+                } else {
+                    // 沒有子訂單：檢查父訂單自己的狀態
+                    const parentCategory = getStatusCategory(order.shipping_status);
+                    return parentCategory === filterStatus.value;
+                }
             });
         });
 
