@@ -1,23 +1,24 @@
-# Roadmap: BuyGo+1 v1.3
+# Roadmap: BuyGo+1 v1.4
 
 **Created:** 2026-02-02
-**Milestone:** v1.3 - 出貨通知與 FluentCart 同步系統
-**Starting Phase:** 32（延續 v1.2 的 Phase 31）
+**Milestone:** v1.4 - 會員前台子訂單顯示功能
+**Starting Phase:** 35（延續 v1.3 的 Phase 34）
 
 ## Milestones
 
 - ✅ **v1.0 MVP** - Phases 1-22 (shipped 2026-01-29)
 - ✅ **v1.1 部署優化與會員權限** - Phases 23-27 (shipped 2026-02-01)
 - ✅ **v1.2 LINE 通知觸發機制整合** - Phases 28-31 (shipped 2026-02-01)
-- 🚧 **v1.3 出貨通知與 FluentCart 同步系統** - Phases 32-34 (in progress)
+- ✅ **v1.3 出貨通知與 FluentCart 同步系統** - Phases 32-34 (shipped 2026-02-02)
+- 🚧 **v1.4 會員前台子訂單顯示功能** - Phases 35-37 (in progress)
 
 ## Phase Overview
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 32 | 資料庫基礎升級 | 擴充出貨單資料模型支援預計送達時間 | DATA-01, DATA-02 | 3 |
-| 33 | 通知觸發與模板引擎 | 實作出貨通知邏輯和模板變數替換 | NOTIF-01~05, TMPL-03, TMPL-05 | 5 |
-| 34 | 模板管理介面 | 提供後台 UI 讓賣家自訂通知模板 | DATA-03, TMPL-01, TMPL-02, TMPL-04 | 4 |
+| 35 | FluentCart Hook 探索與注入點設定 | 確定整合技術可行性，建立 UI 注入基礎 | INTEG-01~03 | 3 |
+| 36 | 子訂單查詢與 API 服務 | 完成後端資料層，可通過 API 查詢子訂單 | QUERY-01~04, API-01~04 | 5 |
+| 37 | 前端 UI 元件與互動 | 完成前端顯示和交互，整合 API | UI-01~06 | 5 |
 
 ---
 
@@ -44,172 +45,163 @@
 
 **Milestone Goal:** 整合 buygo-line-notify，實作商品上架和訂單通知
 
-### Phase 28: 基礎架構與整合
-**Goal:** 建立身份識別服務和 buygo-line-notify 整合基礎
-**Requirements:** IDENT-01~03, INTEG-01~03
-**Success Criteria:**
-  1. IdentityService 可以根據 LINE UID 查詢並返回用戶角色
-  2. NotificationService 可以成功呼叫 buygo-line-notify 的 MessagingService
-  3. NotificationTemplates 模板系統可以產生格式化的通知訊息
-  4. 單元測試通過
+### Phase 28-31: [詳細內容見 v1.2 ROADMAP.md]
 
-### Phase 29: Bot 回應邏輯
-**Goal:** 根據用戶身份決定 bot 是否回應訊息
-**Requirements:** BOT-01~04
-**Success Criteria:**
-  1. 賣家傳訊息給 bot，bot 能正常處理並回應
-  2. 小幫手傳訊息給 bot，bot 能正常處理並回應
-  3. 買家傳訊息給 bot，bot 不發送任何訊息
-  4. 未綁定用戶傳訊息給 bot，bot 不發送任何訊息
+</details>
 
-### Phase 30: 商品上架通知
-**Goal:** 當賣家透過 LINE 上架商品時，通知相關人員
-**Requirements:** PROD-01~03
-**Success Criteria:**
-  1. 透過 LINE 上架商品後，賣家收到「商品上架成功」通知
-  2. 透過 LINE 上架商品後，所有已綁定 LINE 的小幫手收到通知
-  3. FluentCart 後台新增商品時，不發送通知
+<details>
+<summary>✅ v1.3 出貨通知與 FluentCart 同步系統 (Phases 32-34) - SHIPPED 2026-02-02</summary>
 
-### Phase 31: 訂單通知
-**Goal:** 訂單建立和狀態變更時發送通知給相關人員
-**Requirements:** ORD-01~04
-**Success Criteria:**
-  1. 新訂單建立時，賣家收到「新訂單」通知
-  2. 新訂單建立時，小幫手收到「新訂單」通知
-  3. 新訂單建立時，買家收到「訂單已建立」通知（如有 LINE 綁定）
-  4. 訂單狀態變更（如：已出貨、已完成），僅買家收到通知
+**Milestone Goal:** 完善出貨流程，實作 LINE 出貨通知功能
+
+### Phase 32-34: [詳細內容見 v1.3 ROADMAP.md]
 
 </details>
 
 ---
 
-## 🚧 v1.3 出貨通知與 FluentCart 同步系統 (In Progress)
+## 🚧 v1.4 會員前台子訂單顯示功能 (In Progress)
 
-**Milestone Goal:** 完善出貨流程，實作 LINE 出貨通知功能，讓買家在商品出貨時收到即時通知
+**Milestone Goal:** 在 FluentCart 會員前台訂單頁面中，讓購物者能查看該主訂單包含的所有子訂單詳細資訊
 
 **Context:**
-- 現有出貨單資料模型已完成（buygo_shipments, buygo_shipment_items）
-- 標記出貨時會自動更新子訂單 shipping_status = 'shipped'
-- buygo-line-notify 整合基礎已建立（v1.2）
-- 缺少：出貨通知觸發器、預計送達時間欄位、模板管理 UI
+- FluentCart 會員前台目前僅顯示主訂單資訊
+- 購物者無法查看子訂單的商品清單、狀態、金額
+- 需使用 WordPress Hook 注入 UI（不修改 FluentCart 原始碼）
+- 類似 LINE 登入按鈕的整合模式（參考 buygo-line-notify）
+- UI 使用 BuyGo+1 設計系統（.btn, .card, .status-tag）
+
+**技術背景:**
+- FluentCart 資料表：wp_fct_orders（主訂單）、wp_fct_child_orders（子訂單）、wp_fct_order_items（商品）
+- 訂單關係：1 主訂單 → N 子訂單（每個子訂單對應一個賣家）
+- 子訂單狀態：payment_status, shipping_status, fulfillment_status
 
 ---
 
-### Phase 32: 資料庫基礎升級
+### Phase 35: FluentCart Hook 探索與注入點設定
 
-**Goal:** 擴充 buygo_shipments 資料表，支援預計送達時間欄位
+**Goal:** 確定 FluentCart 會員訂單詳情頁的整合技術可行性，建立 UI 注入基礎
 
-**Depends on:** v1.2 Phase 31 完成
+**Depends on:** v1.3 Phase 34 完成
 
 **Requirements:**
-- DATA-01: 新增 estimated_delivery_at 欄位到 buygo_shipments 表
-- DATA-02: 資料庫升級腳本
+- INTEG-01: 找出 FluentCart 會員訂單詳情頁的 Hook 點位置
+- INTEG-02: 透過 WordPress Hook 在主訂單下方注入「查看子訂單」按鈕
+- INTEG-03: 注入子訂單列表容器（初始隱藏，點擊按鈕展開）
 
 **Success Criteria** (what must be TRUE):
-1. buygo_shipments 表包含 estimated_delivery_at 欄位（DATETIME, NULL allowed）
-2. 從舊版本升級到新版本時，dbDelta 自動新增欄位而不影響現有資料
-3. Plugin::DB_VERSION 版本號正確更新，確保升級邏輯不重複執行
+1. 識別出 FluentCart 會員訂單詳情頁的 WordPress Action Hook（例如：fluent_cart/order_details/after_content）
+2. 在主訂單詳情頁面可以看到「查看子訂單」按鈕（位於主訂單資訊下方）
+3. 按鈕下方存在隱藏的 div 容器（id="buygo-child-orders-container"），點擊按鈕時容器展開
 
 **Plans:** TBD
 
 Plans:
-- [ ] 32-01: TBD
+- [ ] 35-01: TBD
 
 ---
 
-### Phase 33: 通知觸發與模板引擎
+### Phase 36: 子訂單查詢與 API 服務
 
-**Goal:** 實作出貨通知觸發邏輯、模板變數替換，和買家 LINE 通知發送
+**Goal:** 實作後端資料查詢邏輯和 REST API 端點，提供子訂單資料給前端
 
-**Depends on:** Phase 32（需要 estimated_delivery_at 欄位）
+**Depends on:** Phase 35（需要確認整合可行性）
 
 **Requirements:**
-- NOTIF-01: NotificationHandler 監聯出貨單標記為「已出貨」事件
-- NOTIF-02: 收集出貨單資訊（商品清單、數量、物流方式、預計送達時間）
-- NOTIF-03: 套用出貨通知模板（NotificationTemplates::shipment_shipped）
-- NOTIF-04: 透過 NotificationService 發送 LINE 通知給買家
-- NOTIF-05: 確保一張出貨單只發送一次通知（即使包含多個子訂單）
-- TMPL-03: 預設出貨通知模板
-- TMPL-05: 模板變數替換邏輯
+- QUERY-01: ChildOrderService 查詢指定主訂單的所有子訂單（含賣家資訊）
+- QUERY-02: 使用 Eager Loading 查詢子訂單商品清單（避免 N+1 查詢）
+- QUERY-03: 整合子訂單狀態資訊（payment_status、shipping_status、fulfillment_status）
+- QUERY-04: 子訂單金額小計計算（含幣別資訊）
+- API-01: GET /buygo-plus-one/v1/child-orders/{parent_order_id} 端點
+- API-02: 三層權限驗證（API nonce + Service customer_id + SQL WHERE）
+- API-03: 回傳格式化的子訂單資料（編號、商品、狀態、金額、賣家）
+- API-04: 錯誤處理（訂單不存在、無權限、系統錯誤）
 
 **Success Criteria** (what must be TRUE):
-1. 賣家標記出貨單為「已出貨」時，自動觸發 buygo/shipment/marked_as_shipped 事件
-2. NotificationHandler 正確收集出貨單資訊（商品清單、物流方式、預計送達時間）
-3. 出貨通知使用預設模板，變數 {product_list}、{shipping_method}、{estimated_delivery} 正確替換為實際資料
-4. 僅買家收到 LINE 通知，賣家和小幫手不收到
-5. 同一張出貨單不會重複發送通知（idempotency 機制）
+1. ChildOrderService::getChildOrdersByParentId($parent_order_id, $customer_id) 可以查詢指定主訂單的所有子訂單，並使用一次 JOIN 查詢載入所有商品資訊（無 N+1 問題）
+2. API 端點 GET /wp-json/buygo-plus-one/v1/child-orders/123 可以成功回傳子訂單資料（JSON 格式）
+3. 僅訂單所屬顧客可以查詢（其他用戶會收到 403 Forbidden 錯誤）
+4. 回傳資料包含：子訂單編號、商品清單（名稱、數量、價格）、狀態標籤（付款、出貨、處理）、金額小計、賣家名稱
+5. 錯誤情況正確處理：訂單不存在回傳 404、無權限回傳 403、系統錯誤回傳 500 + 錯誤訊息
 
-**Plans:** 3 plans
+**Plans:** TBD
 
 Plans:
-- [ ] 33-01-PLAN.md — 通知觸發基礎架構（NotificationHandler + Action Hook）
-- [ ] 33-02-PLAN.md — 模板引擎與變數替換（shipment_shipped 模板 + 格式化方法）
-- [ ] 33-03-PLAN.md — 通知發送與防重複機制（整合 + Idempotency）
+- [ ] 36-01: TBD
 
 ---
 
-### Phase 34: 模板管理介面
+### Phase 37: 前端 UI 元件與互動
 
-**Goal:** 提供後台 UI 讓賣家自訂出貨通知模板，並在出貨單建立/編輯表單中新增預計送達時間輸入欄位
+**Goal:** 實作前端 UI 元件，整合 API 資料，提供流暢的子訂單顯示體驗
 
-**Depends on:** Phase 33（需要通知邏輯完成以測試模板）
+**Depends on:** Phase 36（需要 API 端點完成）
 
 **Requirements:**
-- DATA-03: 後台出貨單建立/編輯表單新增「預計送達時間」輸入欄位
-- TMPL-01: Settings 頁面新增「通知模板」設定區塊
-- TMPL-02: 出貨通知模板編輯器（支援變數：{product_list}、{shipping_method}、{estimated_delivery}）
-- TMPL-04: 模板儲存到 wp_options（buygo_notification_template_shipment_shipped）
+- UI-01: 「查看子訂單」按鈕樣式（使用 BuyGo+1 .btn 設計系統）
+- UI-02: 子訂單列表卡片樣式（復用 .data-table 和 .card）
+- UI-03: 折疊/展開交互邏輯（Vanilla JavaScript，使用 .buygo- 命名空間）
+- UI-04: 子訂單狀態標籤顯示（使用 .status-tag 元件）
+- UI-05: RWD 響應式設計（手機優先，60%+ 流量）
+- UI-06: Loading 狀態和錯誤提示
 
 **Success Criteria** (what must be TRUE):
-1. Settings 頁面顯示「通知模板管理」區塊，列出所有可用通知類型（商品上架、新訂單、訂單狀態變更、出貨通知）
-2. 賣家可以編輯出貨通知模板，系統顯示可用變數列表，並提供「重設為預設值」按鈕
-3. 模板儲存到 wp_options（key: buygo_notification_template_shipment_shipped），使用多層快取（static cache + wp_cache）
-4. 出貨單建立/編輯頁面顯示「預計送達時間」日期選擇器（選填），儲存時格式化為 MySQL DATETIME 格式
+1. 「查看子訂單」按鈕使用 BuyGo+1 設計系統樣式（.btn .btn-primary），與 FluentCart 原生按鈕視覺區分但不突兀
+2. 點擊按鈕後，發送 AJAX 請求到 API，顯示 Loading 動畫（Spinner 或骨架屏）
+3. 子訂單列表以卡片形式顯示，每張卡片包含：子訂單編號、商品列表（表格）、狀態標籤、金額小計、賣家名稱
+4. 狀態標籤使用 .status-tag 系統（已付款=綠色、未付款=黃色、已出貨=藍色、處理中=灰色）
+5. 在手機（< 768px）和桌面（>= 768px）都能正確顯示，手機版自動切換為垂直佈局
+6. 錯誤情況顯示友善提示（訂單無子訂單、API 錯誤、權限不足）
 
-**Plans:** 2 plans
+**Plans:** TBD
 
 Plans:
-- [ ] 34-01-PLAN.md — 出貨通知模板定義（前端 templateDefinitions + 後端 definitions）
-- [ ] 34-02-PLAN.md — 預計送達時間輸入欄位（出貨單 Modal + API + 資料庫）
+- [ ] 37-01: TBD
 
 ---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 32 → 33 → 34
+Phases execute in numeric order: 35 → 36 → 37
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 32. 資料庫基礎升級 | 0/TBD | Not started | - |
-| 33. 通知觸發與模板引擎 | 0/3 | Planned | - |
-| 34. 模板管理介面 | 0/2 | Planned | - |
+| 35. FluentCart Hook 探索與注入點設定 | 0/TBD | Not started | - |
+| 36. 子訂單查詢與 API 服務 | 0/TBD | Not started | - |
+| 37. 前端 UI 元件與互動 | 0/TBD | Not started | - |
 
 ---
 
 ## Milestone Success Criteria
 
-v1.3 完成時，系統應具備：
+v1.4 完成時，系統應具備：
 
-1. **資料模型擴充**
-   - buygo_shipments 表包含 estimated_delivery_at 欄位
-   - 賣家可在建立/編輯出貨單時輸入預計送達時間
+1. **FluentCart 整合**
+   - 在 FluentCart 會員訂單詳情頁成功注入 UI 元件
+   - 使用 WordPress Hook，不修改 FluentCart 原始碼
+   - 升級 FluentCart 不影響整合功能
 
-2. **LINE 出貨通知**
-   - 賣家標記出貨單為「已出貨」→ 自動通知買家
-   - 通知內容包含：商品清單、數量、物流方式、預計送達時間
-   - 一張出貨單只發送一次通知（即使包含多個子訂單）
-   - 僅通知買家（賣家和小幫手不收通知）
+2. **子訂單顯示**
+   - 購物者可以點擊「查看子訂單」展開子訂單列表
+   - 每個子訂單顯示：編號、商品清單、狀態、金額、賣家
+   - 子訂單狀態使用顏色標籤清楚區分（付款、出貨、處理）
 
-3. **通知模板管理**
-   - Settings 頁面提供模板管理 UI
-   - 預設出貨通知模板清晰易懂
-   - 賣家可自訂模板內容（變數替換功能）
+3. **權限與安全**
+   - 僅訂單所屬顧客可以查看子訂單
+   - API 端點有三層權限驗證（nonce + customer_id + SQL）
+   - 無權限用戶會收到友善的錯誤提示
 
-4. **整合與相容性**
-   - 與 buygo-line-notify 整合（Soft Dependency 模式）
-   - 資料庫升級平滑，不影響現有功能
-   - 向後相容，未填寫預計送達時間時優雅降級
+4. **使用者體驗**
+   - 初始載入時子訂單列表隱藏，減少頁面負擔
+   - Loading 狀態清楚，錯誤提示友善
+   - RWD 響應式設計，手機和桌面都能正常使用
+   - 視覺風格與 FluentCart 融合，使用 BuyGo+1 設計系統
+
+5. **效能與維護性**
+   - 查詢使用 Eager Loading，避免 N+1 問題
+   - Vanilla JavaScript 實作，無額外依賴
+   - 程式碼遵循 WordPress 標準和 BuyGo+1 慣例
 
 ---
 
@@ -217,12 +209,30 @@ v1.3 完成時，系統應具備：
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| dbDelta 語法錯誤導致升級失敗 | Low | High | 嚴格遵循 WordPress 官方文件格式，測試升級流程 |
-| 重複發送通知（idempotency 失敗） | Medium | Medium | 使用 WordPress transient 和嚴格檢查 |
-| 模板變數替換錯誤（XSS 漏洞） | Low | High | 使用 esc_html() 防止 XSS，單元測試覆蓋變數替換邏輯 |
-| buygo-line-notify 未啟用 | Low | Low | 已實作 Soft Dependency 模式，優雅降級 |
+| FluentCart 無提供合適的 Hook 點 | Medium | High | 先探索 Hook 點（Phase 35），若無法找到改用其他整合方式（例如：Shortcode + 手動插入） |
+| FluentCart 升級改變 Hook 結構 | Low | Medium | 使用 FluentCart 官方文件建議的 Hook，定期追蹤 FluentCart 更新日誌 |
+| 權限驗證漏洞（跨顧客存取） | Low | High | 三層權限驗證（API nonce + Service + SQL），單元測試覆蓋權限邏輯 |
+| N+1 查詢問題影響效能 | Low | Medium | 使用 Eager Loading（一次 JOIN 查詢），SlowQueryMonitor 監控 |
+| 手機版 RWD 佈局問題 | Low | Low | 手機優先設計，測試 iPhone/Android 實機 |
+
+---
+
+## Out of Scope (v1.4)
+
+以下功能明確**不包含**在 v1.4：
+
+- **賣家後台子訂單顯示** — v1.4 僅做購物者前台，賣家後台未來再評估
+- **商品縮圖顯示** — 延後至 v1.5+（視覺增強）
+- **物流追蹤連結** — 延後至 v1.5+（需整合物流商 API）
+- **訂單狀態時間軸** — 延後至 v1.5+（互動增強）
+- **重複購買按鈕** — 延後至 v1.5+（提升 GMV）
+- **LINE 通知整合** — 延後至 v1.5+（利用現有基礎設施）
+- **子訂單編輯功能** — 前台不應允許編輯，避免資料不一致
+- **子訂單搜尋/篩選** — 單純列表顯示即可
+- **子訂單匯出功能** — 目前不需要
+- **即時更新（WebSocket）** — v1.4 使用 AJAX 查詢，夠用
 
 ---
 
 *Roadmap created: 2026-02-02*
-*Last updated: 2026-02-02 after Phase 33 planning*
+*Last updated: 2026-02-02*

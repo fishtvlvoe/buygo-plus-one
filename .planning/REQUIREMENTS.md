@@ -56,27 +56,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INTEG-01 | TBD | Pending |
-| INTEG-02 | TBD | Pending |
-| INTEG-03 | TBD | Pending |
-| QUERY-01 | TBD | Pending |
-| QUERY-02 | TBD | Pending |
-| QUERY-03 | TBD | Pending |
-| QUERY-04 | TBD | Pending |
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| API-03 | TBD | Pending |
-| API-04 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| UI-06 | TBD | Pending |
+| INTEG-01 | Phase 35 | Pending |
+| INTEG-02 | Phase 35 | Pending |
+| INTEG-03 | Phase 35 | Pending |
+| QUERY-01 | Phase 36 | Pending |
+| QUERY-02 | Phase 36 | Pending |
+| QUERY-03 | Phase 36 | Pending |
+| QUERY-04 | Phase 36 | Pending |
+| API-01 | Phase 36 | Pending |
+| API-02 | Phase 36 | Pending |
+| API-03 | Phase 36 | Pending |
+| API-04 | Phase 36 | Pending |
+| UI-01 | Phase 37 | Pending |
+| UI-02 | Phase 37 | Pending |
+| UI-03 | Phase 37 | Pending |
+| UI-04 | Phase 37 | Pending |
+| UI-05 | Phase 37 | Pending |
+| UI-06 | Phase 37 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 18 total
-- Mapped to phases: 0/18 (0% - pending roadmap creation)
+- Mapped to phases: 18/18 (100% coverage)
+- Phase 35 (FluentCart Hook 探索與注入點設定): 3 requirements
+- Phase 36 (子訂單查詢與 API 服務): 8 requirements
+- Phase 37 (前端 UI 元件與互動): 6 requirements
 
 ---
 
@@ -286,4 +289,4 @@
 
 ---
 
-*Last updated: 2026-02-02 after v1.4 requirements definition*
+*Last updated: 2026-02-02 after v1.4 roadmap creation*
