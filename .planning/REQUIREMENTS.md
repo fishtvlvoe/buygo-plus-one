@@ -4,7 +4,83 @@
 
 ---
 
-## v1.3 Requirements (Active)
+## v1.4 Requirements (Active)
+
+**Milestone:** v1.4 - 會員前台子訂單顯示功能
+**Defined:** 2026-02-02
+
+### FluentCart 訂單頁面整合 (INTEG)
+
+- [ ] **INTEG-01**: 找出 FluentCart 會員訂單詳情頁的 Hook 點位置
+- [ ] **INTEG-02**: 透過 WordPress Hook 在主訂單下方注入「查看子訂單」按鈕
+- [ ] **INTEG-03**: 注入子訂單列表容器（初始隱藏，點擊按鈕展開）
+
+### 子訂單查詢服務 (QUERY)
+
+- [ ] **QUERY-01**: ChildOrderService 查詢指定主訂單的所有子訂單（含賣家資訊）
+- [ ] **QUERY-02**: 使用 Eager Loading 查詢子訂單商品清單（避免 N+1 查詢）
+- [ ] **QUERY-03**: 整合子訂單狀態資訊（payment_status、shipping_status、fulfillment_status）
+- [ ] **QUERY-04**: 子訂單金額小計計算（含幣別資訊）
+
+### REST API 端點 (API)
+
+- [ ] **API-01**: GET /buygo-plus-one/v1/child-orders/{parent_order_id} 端點
+- [ ] **API-02**: 三層權限驗證（API nonce + Service customer_id + SQL WHERE）
+- [ ] **API-03**: 回傳格式化的子訂單資料（編號、商品、狀態、金額、賣家）
+- [ ] **API-04**: 錯誤處理（訂單不存在、無權限、系統錯誤）
+
+### 前端 UI 元件 (UI)
+
+- [ ] **UI-01**: 「查看子訂單」按鈕樣式（使用 BuyGo+1 .btn 設計系統）
+- [ ] **UI-02**: 子訂單列表卡片樣式（復用 .data-table 和 .card）
+- [ ] **UI-03**: 折疊/展開交互邏輯（Vanilla JavaScript，使用 .buygo- 命名空間）
+- [ ] **UI-04**: 子訂單狀態標籤顯示（使用 .status-tag 元件）
+- [ ] **UI-05**: RWD 響應式設計（手機優先，60%+ 流量）
+- [ ] **UI-06**: Loading 狀態和錯誤提示
+
+### Out of Scope (v1.4)
+
+- **所有子訂單預設展開** — 頁面初始載入量過大，影響效能和 UX
+- **即時編輯訂單資訊** — 前台不應允許編輯，避免資料不一致
+- **過度詳細的商品規格** — 購買後不需要完整規格，只需基本識別資訊
+- **已下單後比價功能** — 訂單已成立，比價無意義且影響滿意度
+- **無限層級子訂單** — FluentCart 僅支援一層子訂單，過度設計
+- **賣家後台子訂單顯示** — v1.4 僅做購物者前台，賣家後台未來再評估
+- **商品縮圖顯示** — 延後至 v1.5+（視覺增強）
+- **物流追蹤連結** — 延後至 v1.5+（需整合物流商 API）
+- **訂單狀態時間軸** — 延後至 v1.5+（互動增強）
+- **重複購買按鈕** — 延後至 v1.5+（提升 GMV）
+- **LINE 通知整合** — 延後至 v1.5+（利用現有基礎設施）
+
+### Traceability (v1.4)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| INTEG-01 | TBD | Pending |
+| INTEG-02 | TBD | Pending |
+| INTEG-03 | TBD | Pending |
+| QUERY-01 | TBD | Pending |
+| QUERY-02 | TBD | Pending |
+| QUERY-03 | TBD | Pending |
+| QUERY-04 | TBD | Pending |
+| API-01 | TBD | Pending |
+| API-02 | TBD | Pending |
+| API-03 | TBD | Pending |
+| API-04 | TBD | Pending |
+| UI-01 | TBD | Pending |
+| UI-02 | TBD | Pending |
+| UI-03 | TBD | Pending |
+| UI-04 | TBD | Pending |
+| UI-05 | TBD | Pending |
+| UI-06 | TBD | Pending |
+
+**Coverage:**
+- v1.4 requirements: 18 total
+- Mapped to phases: 0/18 (0% - pending roadmap creation)
+
+---
+
+## v1.3 Requirements (Planned)
 
 **Milestone:** v1.3 - 出貨通知與 FluentCart 同步系統
 **Defined:** 2026-02-02
@@ -210,4 +286,4 @@
 
 ---
 
-*Last updated: 2026-02-02 after v1.3 roadmap creation and traceability mapping*
+*Last updated: 2026-02-02 after v1.4 requirements definition*
