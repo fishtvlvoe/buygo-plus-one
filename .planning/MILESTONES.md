@@ -132,12 +132,83 @@
 
 ---
 
+### v1.2 - LINE 通知觸發機制整合
+
+**Archived:** 2026-02-01
+**Duration:** 2026-02-01 ~ 2026-02-01
+
+#### Summary
+
+在 buygo-plus-one 中實作商品上架和訂單通知的觸發邏輯，與 buygo-line-notify 串接。透過 WordPress Filter Hook 機制進行跨外掛通訊，實現身份識別、Bot 回應、商品上架通知和訂單通知功能。
+
+#### Phases Completed
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 28 | 基礎架構與整合 | - | ✅ Complete |
+| 29 | Bot 回應邏輯 | - | ✅ Complete |
+| 30 | 商品上架通知 | - | ✅ Complete |
+| 31 | 訂單通知 | - | ✅ Complete |
+
+#### Key Achievements
+
+1. **基礎架構**
+   - IdentityService: 身份識別服務（賣家/小幫手/買家/未綁定）
+   - NotificationService: 通知發送服務（整合 buygo-line-notify）
+   - NotificationTemplates: 模板系統
+
+2. **Bot 回應邏輯**
+   - LineResponseProvider: 監聽 `buygo_line_notify/get_response` filter
+   - 賣家/小幫手可與 bot 互動，獲得回覆
+   - 買家/未綁定用戶發訊息時 bot 靜默
+
+3. **商品上架通知**
+   - ProductNotificationHandler: 監聽 `buygo/product/created`
+   - 透過 LINE 上架商品 → 賣家 + 小幫手收到通知
+   - FluentCart 後台新增不觸發通知
+
+4. **訂單通知**
+   - LineOrderNotifier 擴展：
+     - 新訂單 → 賣家 + 小幫手 + 買家 收到通知
+     - 訂單狀態變更 → 僅買家收到通知
+   - 模板：seller_order_created, order_created, order_shipped
+
+#### Key Decisions
+
+| ID | 決策 | 影響 |
+|----|------|------|
+| D29-01 | 使用 Filter 進行跨外掛通訊 | buygo-line-notify/get_response filter |
+| D29-02 | buygo-line-notify 負責發送 | buygo-plus-one 只提供模板內容 |
+
+#### Files Created/Modified
+
+- `includes/services/class-identity-service.php` (新增)
+- `includes/services/class-notification-service.php` (新增)
+- `includes/services/class-notification-templates.php` (新增)
+- `includes/services/class-line-response-provider.php` (新增)
+- `includes/services/class-product-notification-handler.php` (新增)
+- `includes/services/class-line-order-notifier.php` (擴展)
+- `includes/class-plugin.php` (註冊 handlers)
+
+#### Architecture
+
+```
+buygo-line-notify (接收 Webhook、發送訊息)
+        ↓ filter: buygo_line_notify/get_response
+buygo-plus-one (提供模板、身份識別)
+        ↓ action: buygo_line_notify/send
+buygo-line-notify (實際發送 LINE 訊息)
+```
+
+---
+
 ## Project Status
 
-**Current Status:** ✅ Milestone v1.1 Complete
+**Current Status:** ✅ Milestone v1.2 Complete
 
 **Next Steps:**
-- 開始 Milestone v1.2: LINE 通知觸發機制整合
+- 測試完整流程
+- 準備 v1.2 Release
 
 ---
 
