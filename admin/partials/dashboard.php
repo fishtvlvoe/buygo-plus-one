@@ -328,7 +328,10 @@ const DashboardPageComponent = {
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
-                                    return `營收: ${this.formatCurrency(context.parsed.y)}`;
+                                    // 資料中的金額單位是「分」，需要除以 100
+                                    const amount = Math.round(context.parsed.y / 100);
+                                    const symbol = this.currencySymbols[this.currentCurrency] || '¥';
+                                    return `營收: ${symbol}${amount.toLocaleString()}`;
                                 }
                             }
                         }
@@ -337,7 +340,12 @@ const DashboardPageComponent = {
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: (value) => this.formatCurrency(value)
+                                callback: (value) => {
+                                    // 資料中的金額單位是「分」，需要除以 100
+                                    const amount = Math.round(value / 100);
+                                    const symbol = this.currencySymbols[this.currentCurrency] || '¥';
+                                    return `${symbol}${amount.toLocaleString()}`;
+                                }
                             }
                         }
                     }
@@ -348,7 +356,7 @@ const DashboardPageComponent = {
         formatCurrency(cents) {
             const amount = Math.round(cents / 100); // 分 → 元，移除小數點
             const symbol = this.currencySymbols[this.currentCurrency] || '¥';
-            return `${symbol} ${amount.toLocaleString()}`;
+            return `${symbol}${amount.toLocaleString()}`;
         },
 
         getChangeClass(percent) {
@@ -382,12 +390,13 @@ const DashboardPageComponent = {
             console.log('[Dashboard] 幣別切換:', newCurrency);
             // 更新當前幣別
             this.currentCurrency = newCurrency;
-            // 當幣別切換時，重新載入統計資料和營收資料
+            // 當幣別切換時，重新載入統計資料、營收資料和活動列表
             this.loading = true;
             try {
                 await Promise.all([
                     this.loadStats(),
-                    this.loadRevenue()
+                    this.loadRevenue(),
+                    this.loadActivities()  // 新增：重新載入活動列表
                 ]);
                 // 重新渲染圖表
                 this.$nextTick(() => {
