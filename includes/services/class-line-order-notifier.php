@@ -348,29 +348,69 @@ class LineOrderNotifier {
 	 * @return int|null
 	 */
 	private function getSellerIdFromOrder( Order $order ): ?int {
+		$webhookLogger = WebhookLogger::get_instance();
+
 		try {
 			// FluentCart 使用 order_items 關聯，不是 items
 			$order->load( 'order_items' );
 		} catch ( \Exception $e ) {
-			// ignore
+			$webhookLogger->log( 'seller_lookup_load_error', [
+				'order_id' => (int) $order->id,
+				'error'    => $e->getMessage(),
+			], null, null );
 		}
 
 		$items = $order->order_items ?? [];
+
+		// Debug: 記錄 order_items 狀態
+		$webhookLogger->log( 'seller_lookup_items', [
+			'order_id'    => (int) $order->id,
+			'items_count' => count( $items ),
+			'items_type'  => gettype( $items ),
+		], null, null );
+
 		if ( empty( $items ) ) {
+			$webhookLogger->log( 'seller_lookup_no_items', [
+				'order_id' => (int) $order->id,
+			], null, null );
 			return null;
 		}
 
 		// 取得第一個訂單項目的商品 ID
 		// 注意：FluentCart 使用 post_id 欄位存商品 ID，而非 product_id
-		foreach ( $items as $item ) {
+		foreach ( $items as $index => $item ) {
 			$postId = $item->post_id ?? 0;
+
+			// Debug: 記錄每個 item 的資料
+			$webhookLogger->log( 'seller_lookup_item_detail', [
+				'order_id'   => (int) $order->id,
+				'item_index' => $index,
+				'post_id'    => $postId,
+				'item_class' => get_class( $item ),
+				'item_data'  => method_exists( $item, 'toArray' ) ? $item->toArray() : (array) $item,
+			], null, null );
+
 			if ( $postId > 0 ) {
 				$post = get_post( $postId );
+
+				// Debug: 記錄 post 資料
+				$webhookLogger->log( 'seller_lookup_post', [
+					'order_id'    => (int) $order->id,
+					'post_id'     => $postId,
+					'post_exists' => $post ? 'yes' : 'no',
+					'post_author' => $post ? (int) $post->post_author : null,
+					'post_type'   => $post ? $post->post_type : null,
+				], null, null );
+
 				if ( $post && $post->post_author ) {
 					return (int) $post->post_author;
 				}
 			}
 		}
+
+		$webhookLogger->log( 'seller_lookup_no_valid_post', [
+			'order_id' => (int) $order->id,
+		], null, null );
 
 		return null;
 	}
