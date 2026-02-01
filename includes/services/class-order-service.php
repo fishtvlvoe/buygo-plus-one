@@ -69,18 +69,19 @@ class OrderService
             }
 
             // 根據參數決定是否顯示子訂單
-            // include_children: 'parents_only' = 只顯示父訂單, 'children_only' = 只顯示子訂單
-            // 預設（空值或 'all'）= 顯示所有訂單（父訂單 + 子訂單）
+            // include_children: 'all' = 顯示所有訂單（父訂單 + 子訂單）, 'children_only' = 只顯示子訂單
+            // 預設（空值）= 只顯示父訂單（「全部」Tab 的預設行為）
             $include_children = $params['include_children'] ?? '';
 
-            if ($include_children === 'parents_only') {
-                // 只顯示父訂單（沒有 parent_id 的訂單）
-                $query->whereNull('parent_id');
+            if ($include_children === 'all') {
+                // 顯示所有訂單（父訂單和子訂單），不加任何條件
             } elseif ($include_children === 'children_only') {
-                // 只顯示子訂單（type = 'split'）
-                $query->where('type', 'split');
+                // 只顯示子訂單（有 parent_id 的訂單）
+                $query->whereNotNull('parent_id');
+            } else {
+                // 預設：只顯示父訂單（沒有 parent_id 的訂單）
+                $query->whereNull('parent_id');
             }
-            // 預設：顯示所有訂單（父訂單和子訂單），不加任何條件
 
             // 多賣家權限過濾（Phase 24）
             // - WordPress 管理員可看到所有訂單
@@ -446,7 +447,6 @@ class OrderService
 
             // 取得所有子訂單的 shipping_status
             $childOrders = Order::where('parent_id', $parentId)
-                ->where('type', 'split')
                 ->get();
 
             if ($childOrders->isEmpty()) {
@@ -1056,7 +1056,6 @@ class OrderService
             // 使用 FluentCart Model 查詢子訂單，確保載入 order_items
             $child_orders = Order::with(['customer', 'order_items'])
                 ->where('parent_id', $order['id'])
-                ->where('type', 'split')
                 ->orderBy('created_at', 'DESC')
                 ->get();
 
