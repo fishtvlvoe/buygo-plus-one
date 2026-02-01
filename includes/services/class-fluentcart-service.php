@@ -68,6 +68,20 @@ class FluentCartService {
 		}
 
 		try {
+			// 取得賣家 ID（商品擁有者）
+			$seller_id = $product_data['user_id'] ?? 0;
+			if ( empty( $seller_id ) ) {
+				$error_message = '無法建立商品：缺少賣家 ID (user_id)';
+				$this->debugService->log( 'FluentCartService', $error_message, array(
+					'product_data' => $product_data,
+				), 'error' );
+				$this->webhookLogger->log( 'error', array(
+					'message' => $error_message,
+					'product_data' => $product_data,
+				), null, $product_data['line_uid'] ?? null );
+				return new \WP_Error( 'missing_seller_id', $error_message );
+			}
+
 			// 使用 WordPress 原生函數建立商品
 			$post_data = array(
 				'post_title' => sanitize_text_field( $product_data['name'] ?? '' ),
@@ -75,6 +89,7 @@ class FluentCartService {
 				'post_excerpt' => '',
 				'post_status' => 'publish',
 				'post_type' => 'fluent-products',
+				'post_author' => (int) $seller_id,
 				'comment_status' => 'open',
 				'ping_status' => 'closed',
 			);
