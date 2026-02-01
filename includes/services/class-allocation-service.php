@@ -570,14 +570,18 @@ class AllocationService
                     'type' => 'split',
                     'customer_id' => $parent_order->customer_id,
                     'status' => 'pending',
+                    'payment_status' => $parent_order->payment_status ?? 'pending',  // 繼承父訂單的付款狀態
                     'shipping_status' => 'unshipped',  // 子訂單初始狀態為「未出貨」
+                    'subtotal' => $child_total_cents,
                     'total_amount' => $child_total_cents,
                     'currency' => $parent_order->currency,
                     'payment_method' => $parent_order->payment_method,
+                    'payment_method_title' => $parent_order->payment_method_title ?? '',
                     'invoice_no' => $child_invoice_no,
                     'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
                 ],
-                ['%d', '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s']
+                ['%d', '%s', '%d', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s']
             );
 
             if ($result === false || $wpdb->insert_id === 0) {
@@ -604,6 +608,13 @@ class AllocationService
                 '_shipped_qty' => 0              // 已出貨數量初始為 0
             ]);
 
+            // 取得商品標題（從父訂單項目複製）
+            $product_title = $parent_item->title ?? $parent_item->post_title ?? '';
+            if (empty($product_title)) {
+                // 如果父訂單項目沒有標題，從 WordPress 讀取
+                $product_title = get_the_title($parent_item->post_id) ?: '';
+            }
+
             $wpdb->insert(
                 $wpdb->prefix . 'fct_order_items',
                 [
@@ -613,9 +624,14 @@ class AllocationService
                     'quantity' => $quantity,
                     'unit_price' => $unit_price,
                     'subtotal' => $item_subtotal,
-                    'line_meta' => $child_item_meta,  // 使用包含 _allocated_qty 的 meta
+                    'line_total' => $item_subtotal,  // 加入 line_total
+                    'title' => $product_title,       // 加入 title
+                    'post_title' => $product_title,  // 加入 post_title
+                    'line_meta' => $child_item_meta,
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
                 ],
-                ['%d', '%d', '%d', '%d', '%f', '%f', '%s']
+                ['%d', '%d', '%d', '%d', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s']
             );
 
             if ($wpdb->insert_id === 0) {
