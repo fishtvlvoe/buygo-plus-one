@@ -144,6 +144,10 @@ class Plugin {
         // 初始化角色權限
         \BuyGoPlus\Services\SettingsService::init_roles();
 
+        // 初始化訂單同步服務（父子訂單狀態同步）
+        $orderSyncService = new \BuyGoPlus\Services\OrderSyncService();
+        $orderSyncService->register_hooks();
+
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
         new \BuyGoPlus\Admin\SellerManagementPage();
