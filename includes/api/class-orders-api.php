@@ -586,6 +586,31 @@ class Orders_API {
                 ], 500);
             }
 
+            // 複製父訂單的地址資料到子訂單
+            $table_addresses = $wpdb->prefix . 'fct_order_addresses';
+            $parent_addresses = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table_addresses} WHERE order_id = %d",
+                $order_id
+            ), ARRAY_A);
+
+            if (!empty($parent_addresses)) {
+                foreach ($parent_addresses as $address) {
+                    // 移除 ID 欄位，建立新的地址記錄
+                    unset($address['id']);
+                    $address['order_id'] = $new_order_id;
+                    $address['created_at'] = current_time('mysql');
+                    $address['updated_at'] = current_time('mysql');
+
+                    $wpdb->insert($table_addresses, $address);
+                }
+
+                $debugService->log('Orders_API', '複製父訂單地址到子訂單', [
+                    'parent_order_id' => $order_id,
+                    'child_order_id' => $new_order_id,
+                    'addresses_copied' => count($parent_addresses)
+                ]);
+            }
+
             // 同步更新父訂單項目的 _allocated_qty（重新計算而非遞增，確保與實際子訂單同步）
             foreach ($shipment_items as $item) {
                 $parent_order_item_id = $item['order_item_id'];
@@ -601,8 +626,7 @@ class Orders_API {
                      FROM {$wpdb->prefix}fct_order_items oi
                      INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
                      WHERE o.parent_id = %d
-                     AND oi.object_id = %d
-                     AND o.type = 'split'",
+                     AND oi.object_id = %d",
                     $order_id,
                     (int)($parent_order_item['object_id'] ?? 0)
                 ));
