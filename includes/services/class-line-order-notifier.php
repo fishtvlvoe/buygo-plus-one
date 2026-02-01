@@ -41,9 +41,9 @@ class LineOrderNotifier {
 	/**
 	 * Retry schedule seconds since trigger.
 	 *
-	 * attempt=1 => +60s, attempt=2 => +120s, attempt=3 => +300s
+	 * attempt=1 => +5s (快速首發), attempt=2 => +60s, attempt=3 => +180s
 	 */
-	private const RETRY_SCHEDULE = [ 60, 120, 300 ];
+	private const RETRY_SCHEDULE = [ 5, 60, 180 ];
  
 	/**
 	 * Debug service.
@@ -221,10 +221,12 @@ class LineOrderNotifier {
 		if ( $sellerId ) {
 			// 準備賣家通知的模板參數
 			$buyerName = $this->getBuyerNameFromOrder( $order );
+			$orderUrl = admin_url( 'admin.php?page=buygo-orders&id=' . $order->id );
 			$sellerArgs = [
 				'order_id' => (string) $order->id,
 				'buyer_name' => $buyerName,
 				'order_total' => $this->formatOrderTotal( $order ),
+				'order_url' => $orderUrl,
 			];
 
 			// 發送給賣家和小幫手
@@ -332,21 +334,23 @@ class LineOrderNotifier {
 	 */
 	private function getSellerIdFromOrder( Order $order ): ?int {
 		try {
-			$order->load( 'items' );
+			// FluentCart 使用 order_items 關聯，不是 items
+			$order->load( 'order_items' );
 		} catch ( \Exception $e ) {
 			// ignore
 		}
 
-		$items = $order->items ?? [];
+		$items = $order->order_items ?? [];
 		if ( empty( $items ) ) {
 			return null;
 		}
 
 		// 取得第一個訂單項目的商品 ID
+		// 注意：FluentCart 使用 post_id 欄位存商品 ID，而非 product_id
 		foreach ( $items as $item ) {
-			$productId = $item->product_id ?? 0;
-			if ( $productId > 0 ) {
-				$post = get_post( $productId );
+			$postId = $item->post_id ?? 0;
+			if ( $postId > 0 ) {
+				$post = get_post( $postId );
 				if ( $post && $post->post_author ) {
 					return (int) $post->post_author;
 				}

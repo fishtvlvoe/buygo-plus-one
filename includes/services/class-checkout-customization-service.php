@@ -43,6 +43,9 @@ class CheckoutCustomizationService
 
         // 前端驗證腳本
         add_action('wp_footer', [$this, 'inject_validation_script'], 999);
+
+        // 後端驗證 filter - 自動處理運費選擇（解決時序問題）
+        add_filter('fluent_cart/checkout/validate_data', [$this, 'auto_select_shipping_on_validate'], 5, 2);
     }
 
     /**
@@ -108,6 +111,69 @@ class CheckoutCustomizationService
     public static function is_id_number_enabled(): bool
     {
         return (bool) get_option(self::OPTION_ENABLE_ID_NUMBER, false);
+    }
+
+    /**
+     * 後端驗證時自動選擇運費（解決時序問題）
+     *
+     * 當啟用「隱藏運費選項」時，如果前端 JavaScript 來不及自動選擇運費，
+     * 這個 filter 會在驗證時自動選擇第一個可用的運費方式，
+     * 避免「要選擇運費」的錯誤。
+     *
+     * @param array $errors 目前的驗證錯誤
+     * @param array $context 包含 'data' 和 'cart' 的上下文
+     * @return array 修改後的錯誤陣列
+     */
+    public function auto_select_shipping_on_validate(array $errors, array $context): array
+    {
+        // 如果沒有啟用隱藏運費，不處理
+        if (!self::should_hide_shipping()) {
+            return $errors;
+        }
+
+        // 如果沒有運費相關錯誤，不處理
+        if (!isset($errors['shipping_method']['required'])) {
+            return $errors;
+        }
+
+        $data = $context['data'] ?? [];
+        $cart = $context['cart'] ?? null;
+
+        // 如果購物車不需要運費，移除錯誤
+        if ($cart && method_exists($cart, 'requireShipping') && !$cart->requireShipping()) {
+            unset($errors['shipping_method']);
+            return $errors;
+        }
+
+        // 嘗試自動選擇第一個運費方式
+        $billing_country = $data['billing_country'] ?? '';
+        $billing_state = $data['billing_state'] ?? '';
+
+        if (empty($billing_country)) {
+            // 沒有國家資訊，無法取得運費方式
+            return $errors;
+        }
+
+        // 使用 FluentCart 的 AddressHelper 取得可用運費方式
+        if (class_exists('\\FluentCart\\App\\Helpers\\AddressHelper')) {
+            $shipping_methods = \FluentCart\App\Helpers\AddressHelper::getShippingMethods($billing_country, $billing_state);
+
+            if (!empty($shipping_methods) && !is_wp_error($shipping_methods)) {
+                $first_method = reset($shipping_methods);
+                if ($first_method && isset($first_method->id)) {
+                    // 設定選中的運費方式到 $_POST（FluentCart 會從這裡讀取）
+                    $_POST['fc_selected_shipping_method'] = $first_method->id;
+                    $_REQUEST['fc_selected_shipping_method'] = $first_method->id;
+
+                    // 移除運費錯誤
+                    unset($errors['shipping_method']);
+
+                    error_log('[BuyGo Checkout] 自動選擇運費方式: ' . $first_method->id . ' (' . ($first_method->name ?? 'N/A') . ')');
+                }
+            }
+        }
+
+        return $errors;
     }
 
     /**
@@ -198,13 +264,16 @@ class CheckoutCustomizationService
          * 這個腳本會自動選擇第一個可用的配送方式
          *
          * FluentCart 使用 fc_selected_shipping_method 作為欄位名稱
+         *
+         * 修復時序問題：
+         * - 立即嘗試選擇運費（不等待）
+         * - 表單提交時強制檢查並選擇
+         * - MutationObserver 監聽動態載入
          */
         (function() {
             var shippingSelected = false;
 
             function autoSelectShipping() {
-                if (shippingSelected) return true;
-
                 // FluentCart 使用 fc_selected_shipping_method 作為配送方式的欄位名稱
                 const shippingRadios = document.querySelectorAll(
                     'input[name="fc_selected_shipping_method"], ' +
@@ -213,52 +282,55 @@ class CheckoutCustomizationService
                     'input[type="radio"][name*="shipping"]'
                 );
 
-                console.log('[BuyGo] 找到配送方式 radio buttons:', shippingRadios.length);
-
                 if (shippingRadios.length > 0) {
-                    const firstRadio = shippingRadios[0];
-                    if (!firstRadio.checked) {
-                        firstRadio.checked = true;
-                        // 觸發多種事件確保 FluentCart/Vue 能夠偵測到變更
-                        firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
-                        firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
-                        firstRadio.dispatchEvent(new Event('click', { bubbles: true }));
-
-                        // 嘗試觸發 Vue 的響應式更新
-                        if (typeof Vue !== 'undefined' || window.__VUE__) {
-                            firstRadio.dispatchEvent(new CustomEvent('vue:change', { bubbles: true }));
-                        }
-
-                        console.log('[BuyGo] 自動選擇配送方式:', firstRadio.name, '=', firstRadio.value);
+                    // 檢查是否已有選中的
+                    const checkedRadio = Array.from(shippingRadios).find(r => r.checked);
+                    if (checkedRadio) {
                         shippingSelected = true;
-                    } else {
-                        console.log('[BuyGo] 配送方式已選擇:', firstRadio.value);
-                        shippingSelected = true;
+                        return true;
                     }
+
+                    const firstRadio = shippingRadios[0];
+                    firstRadio.checked = true;
+                    // 觸發多種事件確保 FluentCart/Vue 能夠偵測到變更
+                    firstRadio.dispatchEvent(new Event('input', { bubbles: true }));
+                    firstRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                    firstRadio.dispatchEvent(new Event('click', { bubbles: true }));
+
+                    // 嘗試觸發 Vue 的響應式更新
+                    if (typeof Vue !== 'undefined' || window.__VUE__) {
+                        firstRadio.dispatchEvent(new CustomEvent('vue:change', { bubbles: true }));
+                    }
+
+                    console.log('[BuyGo] 自動選擇配送方式:', firstRadio.name, '=', firstRadio.value);
+                    shippingSelected = true;
                     return true;
                 }
                 return false;
             }
 
-            // 頁面載入後嘗試選擇（多次重試）
+            // 頁面載入後嘗試選擇（多次重試，更短的間隔）
             function retrySelectShipping(attempts) {
                 if (attempts <= 0) {
-                    console.warn('[BuyGo] 無法找到配送方式選項');
                     return;
                 }
                 if (!autoSelectShipping()) {
                     setTimeout(function() {
                         retrySelectShipping(attempts - 1);
-                    }, 500);
+                    }, 200); // 從 500ms 減少到 200ms
                 }
             }
 
+            // 立即嘗試（不等待 DOMContentLoaded）
+            autoSelectShipping();
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function() {
-                    setTimeout(function() { retrySelectShipping(10); }, 500);
+                    autoSelectShipping();
+                    retrySelectShipping(15); // 增加重試次數
                 });
             } else {
-                setTimeout(function() { retrySelectShipping(10); }, 500);
+                retrySelectShipping(15);
             }
 
             // 監聽 DOM 變化（FluentCart 可能動態載入配送選項）
@@ -277,7 +349,7 @@ class CheckoutCustomizationService
 
                     observer.observe(document.body, { childList: true, subtree: true });
 
-                    // 10 秒後停止監聽
+                    // 10 秒後停止監聯
                     setTimeout(function() {
                         observer.disconnect();
                     }, 10000);
@@ -287,6 +359,53 @@ class CheckoutCustomizationService
             }
 
             startObserver();
+
+            /**
+             * 關鍵修復：攔截表單提交，確保運費已選擇
+             * 這是解決「快速結帳」問題的核心
+             */
+            function interceptFormSubmit() {
+                const forms = document.querySelectorAll('form');
+                forms.forEach(function(form) {
+                    // 避免重複綁定
+                    if (form.dataset.buygoShippingIntercepted) return;
+                    form.dataset.buygoShippingIntercepted = 'true';
+
+                    form.addEventListener('submit', function(e) {
+                        // 檢查是否為結帳表單
+                        const isCheckoutForm = form.classList.contains('fct_checkout_form') ||
+                                              form.querySelector('[name="fc_selected_shipping_method"]') ||
+                                              form.querySelector('[data-fluent-cart-checkout-page-form]');
+
+                        if (!isCheckoutForm) return;
+
+                        // 強制嘗試選擇運費
+                        const selected = autoSelectShipping();
+
+                        // 如果仍然沒有選中的運費，且找到了運費選項
+                        const shippingRadios = form.querySelectorAll('input[name="fc_selected_shipping_method"]');
+                        if (shippingRadios.length > 0) {
+                            const checkedRadio = Array.from(shippingRadios).find(r => r.checked);
+                            if (!checkedRadio) {
+                                console.log('[BuyGo] 表單提交時強制選擇運費');
+                                shippingRadios[0].checked = true;
+                                shippingRadios[0].dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }, true); // 使用 capture phase 確保優先執行
+                });
+            }
+
+            // 初始化表單攔截
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', interceptFormSubmit);
+            } else {
+                interceptFormSubmit();
+            }
+
+            // 也監聽動態載入的表單
+            setTimeout(interceptFormSubmit, 1000);
+            setTimeout(interceptFormSubmit, 2000);
         })();
         </script>
         <?php endif; ?>

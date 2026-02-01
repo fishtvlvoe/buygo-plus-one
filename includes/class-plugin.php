@@ -190,6 +190,13 @@ class Plugin {
         // 參考架構：buygo-line-notify 發送訊息，buygo-plus-one 提供模板
         \BuyGoPlus\Services\LineResponseProvider::init();
 
+        // 初始化 LINE Webhook Handler
+        // 處理 buygo-line-notify 發出的 webhook hooks：
+        // - webhook_message_image: 圖片上傳 → 商品類型選單
+        // - webhook_message_text: 文字訊息 → 關鍵字回應、命令處理、商品資訊
+        // - webhook_postback: 按鈕點擊 → 商品類型選擇後發送格式說明
+        new \BuyGoPlus\Services\LineWebhookHandler();
+
         // 初始化商品上架通知（Phase 30）
         // 當賣家透過 LINE 上架商品時，通知賣家和小幫手
         new \BuyGoPlus\Services\ProductNotificationHandler();
@@ -198,6 +205,10 @@ class Plugin {
         // 新訂單：通知賣家 + 小幫手 + 買家
         // 訂單狀態變更：僅通知買家
         new \BuyGoPlus\Services\LineOrderNotifier();
+
+        // 初始化 LINE 關鍵字回覆功能
+        // 用戶可在 LINE 中輸入 /ID、/綁定、/help 等指令查詢狀態
+        \BuyGoPlus\Services\LineKeywordResponder::instance()->init();
 
         // 阻擋 Cloudflare Beacon 以修復效能問題
         add_action('wp_footer', function() {
