@@ -124,7 +124,7 @@ Plans:
 **Depends on:** Phase 32（需要 estimated_delivery_at 欄位）
 
 **Requirements:**
-- NOTIF-01: NotificationHandler 監聽出貨單標記為「已出貨」事件
+- NOTIF-01: NotificationHandler 監聯出貨單標記為「已出貨」事件
 - NOTIF-02: 收集出貨單資訊（商品清單、數量、物流方式、預計送達時間）
 - NOTIF-03: 套用出貨通知模板（NotificationTemplates::shipment_shipped）
 - NOTIF-04: 透過 NotificationService 發送 LINE 通知給買家
@@ -139,10 +139,12 @@ Plans:
 4. 僅買家收到 LINE 通知，賣家和小幫手不收到
 5. 同一張出貨單不會重複發送通知（idempotency 機制）
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 33-01: TBD
+- [ ] 33-01-PLAN.md — 通知觸發基礎架構（NotificationHandler + Action Hook）
+- [ ] 33-02-PLAN.md — 模板引擎與變數替換（shipment_shipped 模板 + 格式化方法）
+- [ ] 33-03-PLAN.md — 通知發送與防重複機制（整合 + Idempotency）
 
 ---
 
@@ -179,7 +181,7 @@ Phases execute in numeric order: 32 → 33 → 34
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 32. 資料庫基礎升級 | 0/TBD | Not started | - |
-| 33. 通知觸發與模板引擎 | 0/TBD | Not started | - |
+| 33. 通知觸發與模板引擎 | 0/3 | Planned | - |
 | 34. 模板管理介面 | 0/TBD | Not started | - |
 
 ---
@@ -215,11 +217,11 @@ v1.3 完成時，系統應具備：
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | dbDelta 語法錯誤導致升級失敗 | Low | High | 嚴格遵循 WordPress 官方文件格式，測試升級流程 |
-| 重複發送通知（idempotency 失敗） | Medium | Medium | 使用 notification_sent_at 欄位和嚴格檢查 |
+| 重複發送通知（idempotency 失敗） | Medium | Medium | 使用 WordPress transient 和嚴格檢查 |
 | 模板變數替換錯誤（XSS 漏洞） | Low | High | 使用 esc_html() 防止 XSS，單元測試覆蓋變數替換邏輯 |
 | buygo-line-notify 未啟用 | Low | Low | 已實作 Soft Dependency 模式，優雅降級 |
 
 ---
 
 *Roadmap created: 2026-02-02*
-*Last updated: 2026-02-02 after initial creation*
+*Last updated: 2026-02-02 after Phase 33 planning*
