@@ -166,10 +166,11 @@ Plans:
 3. 模板儲存到 wp_options（key: buygo_notification_template_shipment_shipped），使用多層快取（static cache + wp_cache）
 4. 出貨單建立/編輯頁面顯示「預計送達時間」日期選擇器（選填），儲存時格式化為 MySQL DATETIME 格式
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 34-01: TBD
+- [ ] 34-01-PLAN.md — 出貨通知模板定義（前端 templateDefinitions + 後端 definitions）
+- [ ] 34-02-PLAN.md — 預計送達時間輸入欄位（出貨單 Modal + API + 資料庫）
 
 ---
 
@@ -182,7 +183,7 @@ Phases execute in numeric order: 32 → 33 → 34
 |-------|----------------|--------|-----------|
 | 32. 資料庫基礎升級 | 0/TBD | Not started | - |
 | 33. 通知觸發與模板引擎 | 0/3 | Planned | - |
-| 34. 模板管理介面 | 0/TBD | Not started | - |
+| 34. 模板管理介面 | 0/2 | Planned | - |
 
 ---
 
