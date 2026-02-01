@@ -784,8 +784,76 @@ class NotificationTemplates {
     }
 
     /**
+     * 格式化商品清單為通知訊息格式
+     *
+     * @param array $items 商品項目陣列，每個元素包含 product_name 和 quantity
+     * @return string 格式化後的商品清單字串
+     */
+    public static function format_product_list(array $items): string {
+        if (empty($items)) {
+            return '（無商品資訊）';
+        }
+
+        $lines = [];
+        foreach ($items as $item) {
+            $name = esc_html($item['product_name'] ?? '未知商品');
+            $qty = intval($item['quantity'] ?? 1);
+            $lines[] = "- {$name} x {$qty}";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * 格式化預計送達時間
+     *
+     * @param string|null $estimated_delivery_at MySQL datetime 格式或 null
+     * @return string 格式化後的送達時間（或預設文字）
+     */
+    public static function format_estimated_delivery(?string $estimated_delivery_at): string {
+        if (empty($estimated_delivery_at)) {
+            return '配送中';
+        }
+
+        // 將 MySQL datetime 轉換為台灣常用格式
+        $timestamp = strtotime($estimated_delivery_at);
+        if ($timestamp === false) {
+            return '配送中';
+        }
+
+        return date('Y/m/d', $timestamp);
+    }
+
+    /**
+     * 格式化物流方式
+     *
+     * @param string|null $shipping_method 物流方式代碼或名稱
+     * @return string 格式化後的物流方式
+     */
+    public static function format_shipping_method(?string $shipping_method): string {
+        if (empty($shipping_method)) {
+            return '標準配送';
+        }
+
+        // 常見物流方式對照表
+        $methods = [
+            'standard' => '標準配送',
+            'express' => '快速配送',
+            'pickup' => '自取',
+            'convenience_store' => '超商取貨',
+            '7-11' => '7-ELEVEN 取貨',
+            'family' => '全家取貨',
+            'hilife' => '萊爾富取貨',
+            'ok' => 'OK 超商取貨',
+        ];
+
+        $method_lower = strtolower($shipping_method);
+        return esc_html($methods[$method_lower] ?? $shipping_method);
+    }
+
+    /**
      * 取得付款狀態的中文翻譯
-     * 
+     *
      * @param string $status 付款狀態代碼
      * @return string 中文翻譯
      */
@@ -795,7 +863,7 @@ class NotificationTemplates {
             'paid' => '已付款',
             'refunded' => '已退款'
         ];
-        
+
         return $status_map[$status] ?? $status;
     }
 
@@ -870,6 +938,13 @@ class NotificationTemplates {
             'order_shipped' => [
                 'line' => [
                     'message' => "📦 您的訂單已出貨！\n\n訂單編號：#{order_id}\n\n請留意收件，如有問題請聯繫客服。"
+                ]
+            ],
+
+            // 出貨通知（Phase 33: 發送給買家）
+            'shipment_shipped' => [
+                'line' => [
+                    'message' => "您的訂單已出貨囉！\n\n商品清單：\n{product_list}\n\n物流方式：{shipping_method}\n預計送達：{estimated_delivery}\n\n感謝您的購買！如有問題請聯繫客服。"
                 ]
             ],
 
