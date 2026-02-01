@@ -87,8 +87,8 @@ class NotificationService
             return false;
         }
 
-        // 取得訊息內容
-        $message = $template['line']['message'] ?? '';
+        // 取得訊息內容（支援 'text' 或 'message' 鍵名）
+        $message = $template['line']['text'] ?? $template['line']['message'] ?? '';
         if (empty($message)) {
             self::$debug_service->log('NotificationService', '模板訊息為空', [
                 'template_key' => $template_key,

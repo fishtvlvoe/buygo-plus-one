@@ -916,6 +916,18 @@ class LineWebhookHandler {
 			return;
 		}
 
+		// 檢查是否為系統指令（由 LineKeywordResponder filter 處理）
+		// 這些指令會透過 buygo_line_notify/get_response filter 處理
+		// 此處不處理，讓 buygo-line-notify 的 filter 機制接手
+		$system_commands = array( '/id', '/綁定', '/狀態', '/help', '/說明', '/指令' );
+		if ( in_array( strtolower( trim( $text ) ), $system_commands, true ) ) {
+			$this->logger->log( 'system_command_detected', array(
+				'command'  => $text,
+				'line_uid' => $line_uid,
+			), null, $line_uid );
+			return; // 不處理，讓 filter 機制處理
+		}
+
 		// 如果關鍵字回應系統沒有匹配，再檢查是否為命令
 		if ( $this->product_data_parser->is_command( $text ) ) {
 			$this->handle_command( $text, $reply_token );
