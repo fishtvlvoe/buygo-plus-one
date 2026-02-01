@@ -124,6 +124,41 @@ class LineWebhookHandler {
 	}
 
 	/**
+	 * 檢查 Bot 是否應該回應此用戶
+	 *
+	 * Phase 29: 根據身份決定是否處理訊息
+	 * - 賣家/小幫手：正常處理
+	 * - 買家/未綁定用戶：靜默不回應
+	 *
+	 * @param string   $line_uid     LINE User ID
+	 * @param int|null $user_id      WordPress User ID（可能為 null）
+	 * @param string   $message_type 訊息類型（用於日誌）
+	 * @return bool 是否應該處理
+	 */
+	private function shouldBotRespond( $line_uid, $user_id, $message_type = '' ) {
+		// 使用 IdentityService 判斷是否可以與 Bot 互動
+		$can_interact = IdentityService::canInteractWithBotByLineUid( $line_uid );
+
+		if ( ! $can_interact ) {
+			// 取得身份資訊用於日誌記錄
+			$identity = IdentityService::getIdentityByLineUid( $line_uid );
+
+			$this->logger->log( 'bot_response_filtered', array(
+				'line_uid'     => $line_uid,
+				'user_id'      => $identity['user_id'],
+				'role'         => $identity['role'],
+				'is_bound'     => $identity['is_bound'],
+				'message_type' => $message_type,
+				'action'       => 'silent_ignore',
+			), $identity['user_id'], $line_uid );
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * 處理 Postback 事件（商品類型選擇）
 	 *
 	 * 當使用者點擊 Flex Message 選單選擇商品類型時觸發
@@ -134,6 +169,11 @@ class LineWebhookHandler {
 	 * @return void
 	 */
 	public function handlePostback( $event, $line_uid, $user_id ) {
+		// Phase 29: 身份過濾 - 買家和未綁定用戶靜默不回應
+		if ( ! $this->shouldBotRespond( $line_uid, $user_id, 'postback' ) ) {
+			return;
+		}
+
 		// 解析 postback data
 		$postback_data = $event['postback']['data'] ?? '';
 		parse_str( $postback_data, $params );
@@ -178,11 +218,21 @@ class LineWebhookHandler {
 	 * @return void
 	 */
 	public function handleTextMessage( $event, $line_uid, $user_id, $message_id ) {
+		$text = $event['message']['text'] ?? '';
+
+		// 特例：綁定碼流程不受身份過濾限制（讓未綁定用戶也能綁定）
+		$is_binding_code = preg_match( '/^\s*(?:綁定|bind)?\s*([0-9]{6})\s*$/iu', $text );
+
+		// Phase 29: 身份過濾 - 買家和未綁定用戶靜默不回應（綁定碼除外）
+		if ( ! $is_binding_code && ! $this->shouldBotRespond( $line_uid, $user_id, 'text' ) ) {
+			return;
+		}
+
 		$this->logger->log( 'text_message_hook_received', array(
 			'line_uid'   => $line_uid,
 			'user_id'    => $user_id,
 			'message_id' => $message_id,
-			'text'       => substr( $event['message']['text'] ?? '', 0, 50 ),
+			'text'       => substr( $text, 0, 50 ),
 		), $user_id, $line_uid );
 
 		// 呼叫內部的文字訊息處理方法
@@ -403,7 +453,7 @@ class LineWebhookHandler {
 	}
 
 	/**
-	 * 處理圖片上傳（監聽 buygo_line_notify/webhook_message_image Hook）
+	 * 處理圖片上傳（監聯 buygo_line_notify/webhook_message_image Hook）
 	 *
 	 * 當賣家在 LINE 上傳圖片時：
 	 * 1. 檢查賣家權限
@@ -418,6 +468,11 @@ class LineWebhookHandler {
 	 * @return void
 	 */
 	public function handleImageUpload( $event, $line_uid, $user_id, $message_id ) {
+		// Phase 29: 身份過濾 - 買家和未綁定用戶靜默不回應
+		if ( ! $this->shouldBotRespond( $line_uid, $user_id, 'image' ) ) {
+			return;
+		}
+
 		// 檢查是否為圖片訊息（雙重確認）
 		if ( isset( $event['message']['type'] ) && $event['message']['type'] !== 'image' ) {
 			return;
@@ -437,16 +492,13 @@ class LineWebhookHandler {
 		if ( ! $user_id || $user_id === 0 ) {
 			$user = \BuyGoPlus\Core\BuyGoPlus_Core::line()->get_user_by_line_uid( $line_uid );
 			if ( ! $user ) {
-				// 用戶未綁定
+				// 用戶未綁定 - 這種情況不應該發生，因為 shouldBotRespond 已經過濾
+				// 但保留此檢查以防萬一
 				$this->logger->log( 'error', array(
-					'message' => 'User not bound',
+					'message' => 'User not bound (should not reach here after shouldBotRespond)',
 					'line_uid' => $line_uid,
 					'step' => 'user_lookup',
 				), null, $line_uid );
-
-				$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_account_not_bound', [] );
-				$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '請先使用 LINE Login 綁定您的帳號。';
-				$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
 				return;
 			}
 			$user_id = $user->ID;
