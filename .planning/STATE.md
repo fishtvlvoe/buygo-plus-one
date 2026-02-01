@@ -1,53 +1,44 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-01
-**專案版本:** v1.2 實作完成（待測試）
+**最後更新:** 2026-02-02
+**專案版本:** v1.3 milestone 初始化
 
 ---
 
 ## 當前位置
 
-**Status:** ✅ Phase 28-31 已完成
-**Last activity:** 2026-02-01 - 完成 v1.2 所有 Phase 實作
-
-**Progress:**
-```
-Phase 28: █████ 100% (基礎架構與整合) — ✅ 完成
-Phase 29: █████ 100% (Bot 回應邏輯) — ✅ 完成
-Phase 30: █████ 100% (商品上架通知) — ✅ 完成
-Phase 31: █████ 100% (訂單通知) — ✅ 完成
-```
+**Phase:** 未開始（定義需求中）
+**Plan:** —
+**Status:** 定義 v1.3 milestone 需求
+**Last activity:** 2026-02-02 — Milestone v1.3 started
 
 **所有已完成的 Milestones:**
 
 - **v1.0** — 設計系統遷移與核心功能 (Phase 10-22)
 - **v1.1** — 部署優化與會員權限 (Phase 23-27)
-- **v1.2** — LINE 通知觸發機制整合 (Phase 28-31) — ✅ 完成
+- **v1.2** — LINE 通知觸發機制整合 (Phase 28-31)
+
+**當前 Milestone:**
+- **v1.3** — 出貨通知與 FluentCart 同步系統
 
 ---
 
-## v1.2 實作摘要
+## v1.3 Milestone 目標
 
-### Phase 28: 基礎架構與整合 ✅
-- IdentityService: 身份識別服務（賣家/小幫手/買家/未綁定）
-- NotificationService: 通知發送服務（整合 buygo-line-notify）
-- NotificationTemplates: 模板系統
+### 資料模型擴充
+- 新增 `estimated_delivery_at` 欄位到 `buygo_shipments` 表
+- 賣家可在建立/編輯出貨單時輸入預計送達時間
 
-### Phase 29: Bot 回應邏輯 ✅
-- LineResponseProvider: 監聽 buygo-line-notify 的 filter
-- 賣家/小幫手可與 bot 互動
-- 買家/未綁定用戶發訊息時 bot 靜默
+### LINE 出貨通知
+- 賣家標記出貨單為「已出貨」→ 觸發 LINE 通知給買家
+- 一張出貨單 → 一次通知（即使包含多個子訂單）
+- 通知內容：商品清單、數量、物流方式、預計送達時間
+- 僅通知買家（賣家和小幫手不收通知）
 
-### Phase 30: 商品上架通知 ✅
-- ProductNotificationHandler: 監聽 `buygo/product/created`
-- 透過 LINE 上架商品 → 賣家 + 小幫手收到通知
-- FluentCart 後台新增不觸發通知
-
-### Phase 31: 訂單通知 ✅
-- LineOrderNotifier 擴展：
-  - 新訂單 → 賣家 + 小幫手 + 買家 收到通知
-  - 訂單狀態變更 → 僅買家收到通知
-- 模板：seller_order_created, order_created, order_shipped
+### 通知模板管理
+- 後台 Settings 頁面新增「通知模板」設定區塊
+- 預設出貨通知模板
+- 客戶可自訂模板內容
 
 ---
 
@@ -87,24 +78,25 @@ Phase 31: █████ 100% (訂單通知) — ✅ 完成
 ## 對齊狀態
 
 **與使用者對齊:** ✅ 良好
-- LINE 通知觸發需求已實作完成
-- 身份識別邏輯已驗證
+- v1.3 出貨通知需求已明確定義
+- 資料流程已確認
 
 **與技術棧對齊:** ✅ 良好
-- 已與 buygo-line-notify 正確整合
-- 使用 Filter Hook 進行跨外掛通訊
+- 使用現有 buygo-line-notify 整合模式
+- 資料庫升級機制已建立
 
 **與計畫對齊:** ✅ 完美
-- v1.2 所有 Phase 已完成
+- 準備進入 requirements 定義階段
 
 ---
 
 ## 會話連續性
 
-**Last session:** 2026-02-01
-**Stopped at:** v1.2 所有 Phase 完成
+**Last session:** 2026-02-02
+**Stopped at:** v1.3 milestone 初始化，準備定義 requirements
 **Resume file:** 無
 
 **下一步:**
-- 測試完整流程
-- 準備 v1.2 Release
+- 定義詳細 requirements (REQUIREMENTS.md)
+- 建立 roadmap (ROADMAP.md)
+- 開始 Phase planning
