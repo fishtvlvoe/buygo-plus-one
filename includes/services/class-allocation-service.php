@@ -631,13 +631,16 @@ class AllocationService
             // 7. 觸發 Hook
             do_action('buygo/child_order_created', $child_order_id, $parent_order_id);
 
+            // 8. 複製父訂單地址到子訂單
+            $this->copy_parent_addresses_to_child($parent_order_id, $child_order_id);
+
             $this->debugService->log('AllocationService', '子訂單建立成功', [
                 'child_order_id' => $child_order_id,
                 'child_invoice_no' => $child_invoice_no,
                 'parent_order_id' => $parent_order_id
             ]);
 
-            // 8. 返回子訂單資訊
+            // 9. 返回子訂單資訊
             return [
                 'id' => $child_order_id,
                 'invoice_no' => $child_invoice_no,
@@ -654,5 +657,64 @@ class AllocationService
             ], 'error');
             return new WP_Error('CHILD_ORDER_CREATION_FAILED', '建立子訂單失敗：' . $e->getMessage());
         }
+    }
+
+    /**
+     * 複製父訂單地址到子訂單
+     *
+     * @param int $parent_order_id 父訂單 ID
+     * @param int $child_order_id 子訂單 ID
+     * @return void
+     */
+    private function copy_parent_addresses_to_child($parent_order_id, $child_order_id)
+    {
+        global $wpdb;
+        $table_addresses = $wpdb->prefix . 'fct_order_addresses';
+
+        // 查詢父訂單的所有地址
+        $parent_addresses = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table_addresses} WHERE order_id = %d",
+            $parent_order_id
+        ), ARRAY_A);
+
+        $this->debugService->log('AllocationService', '開始複製父訂單地址', [
+            'parent_order_id' => $parent_order_id,
+            'child_order_id' => $child_order_id,
+            'parent_addresses_count' => count($parent_addresses)
+        ]);
+
+        if (empty($parent_addresses)) {
+            $this->debugService->log('AllocationService', '父訂單沒有地址資料', [
+                'parent_order_id' => $parent_order_id
+            ], 'warning');
+            return;
+        }
+
+        $addresses_copied = 0;
+        foreach ($parent_addresses as $address) {
+            // 移除 ID 欄位，建立新的地址記錄
+            unset($address['id']);
+            $address['order_id'] = $child_order_id;
+            $address['created_at'] = current_time('mysql');
+            $address['updated_at'] = current_time('mysql');
+
+            $result = $wpdb->insert($table_addresses, $address);
+
+            if ($result === false) {
+                $this->debugService->log('AllocationService', '地址複製失敗', [
+                    'address_type' => $address['type'] ?? 'unknown',
+                    'error' => $wpdb->last_error
+                ], 'error');
+            } else {
+                $addresses_copied++;
+            }
+        }
+
+        $this->debugService->log('AllocationService', '複製父訂單地址完成', [
+            'parent_order_id' => $parent_order_id,
+            'child_order_id' => $child_order_id,
+            'addresses_copied' => $addresses_copied,
+            'total_addresses' => count($parent_addresses)
+        ]);
     }
 }
