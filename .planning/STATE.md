@@ -17,53 +17,57 @@
 
 ## 當前位置
 
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
-**Last activity:** 2026-02-02 — Milestone v1.4 started
+**Phase:** 32-database-foundation
+**Plan:** 01 of 03 (completed)
+**Status:** In progress
+**Last activity:** 2026-02-02 — Completed 32-01-PLAN.md
 
 **所有已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
 - **v1.1** — 部署優化與會員權限 (Phases 23-27) — Shipped 2026-02-01
 - **v1.2** — LINE 通知觸發機制整合 (Phases 28-31) — Shipped 2026-02-01
 
-**待執行 Milestone:**
-- **v1.3** — 出貨通知與 FluentCart 同步系統 (Phases 32-34) — Planned
-
 **當前 Milestone:**
+- **v1.3** — 出貨通知與 FluentCart 同步系統 (Phases 32-34) — In progress
+
+**待執行 Milestone:**
 - **v1.4** — 會員前台子訂單顯示功能 (Phases TBD)
 
-**Progress:** [░░░░░░░░░░] 0% (定義需求階段)
+**Progress (v1.3):** [███░░░░░░░] 33% (Phase 32: 1/3 plans complete)
 
 ---
 
 ## 效能指標
 
-**Velocity:**
-- Total plans completed: 未開始（v1.3 是新 milestone）
-- Average duration: N/A
-- Total execution time: 0 hours
+**Velocity (v1.3):**
+- Total plans completed: 1/9
+- Average duration: 1 min
+- Total execution time: 1 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 32-database-foundation | 1/3 | 1min | 1min |
 
-**Recent Trend:** 尚未開始執行
+**Recent Trend:** 開始執行 v1.3 milestone
 
 ---
 
 ## 累積決策
 
-最近影響 v1.4 的決策（詳見 PROJECT.md Key Decisions）：
+最近影響當前開發的決策（詳見 PROJECT.md 和 SUMMARY 檔案）：
 
-- **子訂單顯示僅做購物者前台** — 賣家後台目前不需要，避免過度開發
-- **使用 Hook 整合而非修改 FluentCart** — 確保升級相容性，降低維護成本
-- **展開/折疊 UI 交互** — 減少頁面初始載入量，提升 UX
+**Phase 32-01 決策:**
+- **使用 DATETIME NULL 無預設值** — 符合 MySQL 8.0 最佳實踐，允許賣家不設定預計送達時間
+- **雙路徑升級機制** — create_tables() 新安裝 + upgrade_tables() 升級，確保結構一致
+- **idempotent 升級邏輯** — 使用 in_array 檢查避免重複執行 ALTER TABLE
 
-**先前 Milestones:**
-- v1.3: 預計送達時間由賣家手動輸入、出貨通知僅發給買家、一張出貨單 = 一次通知、模板可由客戶自訂
+**v1.3 Milestone 決策:**
+- 預計送達時間由賣家手動輸入、出貨通知僅發給買家、一張出貨單 = 一次通知、模板可由客戶自訂
+
+**v1.4 Milestone 決策（待執行）:**
+- 子訂單顯示僅做購物者前台、使用 Hook 整合而非修改 FluentCart、展開/折疊 UI 交互
 
 ---
 
@@ -111,10 +115,10 @@
 ## 會話連續性
 
 **Last session:** 2026-02-02
-**Stopped at:** v1.4 Milestone 初始化（PROJECT.md 和 STATE.md 已更新）
+**Stopped at:** 完成 Phase 32-01 (Database Foundation)
 **Resume file:** 無
 
 **下一步:**
-- 繼續定義 v1.4 需求（REQUIREMENTS.md）
-- 建立 v1.4 Roadmap（ROADMAP.md）
-- 確定起始 Phase 編號（延續 v1.3 的 Phase 34，從 Phase 35 開始）
+- 執行 Phase 32-02 (API 層實作)
+- 執行 Phase 32-03 (UI 層實作)
+- 繼續 v1.3 milestone 其他 phases
