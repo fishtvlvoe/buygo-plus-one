@@ -35,14 +35,13 @@ class DashboardService
     /**
      * 計算儀表板統計數據（最近 30 天）
      *
-     * @param string $currency 幣別 (預設 JPY)
-     * @return array 統計數據陣列
+     * 不做幣別篩選，回傳各幣別的分組統計，由前端做匯率換算
+     *
+     * @return array 統計數據陣列（含各幣別分組）
      */
-    public function calculateStats(string $currency = 'JPY'): array
+    public function calculateStats(): array
     {
-        $this->debugService->log('DashboardService', '開始計算儀表板統計', [
-            'currency' => $currency
-        ]);
+        $this->debugService->log('DashboardService', '開始計算儀表板統計（全幣別）', []);
 
         try {
             // 最近 30 天 (今天往前推 30 天)
@@ -51,90 +50,91 @@ class DashboardService
             $last_period_start = date('Y-m-d 00:00:00', strtotime('-60 days'));
             $last_period_end = date('Y-m-d 23:59:59', strtotime('-31 days'));
 
-            // 最近 30 天統計（移除 payment_status 篩選,計算所有已下單訂單）
+            // 最近 30 天統計（按幣別分組）
             $current_query = $this->wpdb->prepare(
                 "SELECT
+                    currency,
                     COUNT(*) as order_count,
                     COALESCE(SUM(total_amount), 0) as total_revenue,
                     COUNT(DISTINCT customer_id) as customer_count
                  FROM {$this->table_orders}
                  WHERE created_at >= %s
-                     AND currency = %s
-                     AND mode = 'live'",
-                $current_period_start,
-                $currency
+                     AND mode = 'live'
+                 GROUP BY currency",
+                $current_period_start
             );
-            $current_stats = $this->executeWithMonitoring($current_query, 'calculateStats:current');
+            $current_results = $this->executeResultsWithMonitoring($current_query, 'calculateStats:current');
 
-            // 前 30 天統計（移除 payment_status 篩選）
+            // 前 30 天統計（按幣別分組）
             $last_query = $this->wpdb->prepare(
                 "SELECT
+                    currency,
                     COUNT(*) as order_count,
                     COALESCE(SUM(total_amount), 0) as total_revenue,
                     COUNT(DISTINCT customer_id) as customer_count
                  FROM {$this->table_orders}
                  WHERE created_at BETWEEN %s AND %s
-                     AND currency = %s
-                     AND mode = 'live'",
+                     AND mode = 'live'
+                 GROUP BY currency",
                 $last_period_start,
-                $last_period_end,
-                $currency
+                $last_period_end
             );
-            $last_stats = $this->executeWithMonitoring($last_query, 'calculateStats:last');
+            $last_results = $this->executeResultsWithMonitoring($last_query, 'calculateStats:last');
 
-            // 計算變化百分比
-            $revenue_change = $this->calculateChangePercent(
-                $current_stats['total_revenue'],
-                $last_stats['total_revenue']
-            );
+            // 整理成以幣別為 key 的陣列
+            $current_by_currency = [];
+            foreach ($current_results as $row) {
+                $current_by_currency[$row['currency']] = [
+                    'order_count' => (int)$row['order_count'],
+                    'total_revenue' => (int)$row['total_revenue'],
+                    'customer_count' => (int)$row['customer_count']
+                ];
+            }
 
-            $order_change = $this->calculateChangePercent(
-                $current_stats['order_count'],
-                $last_stats['order_count']
-            );
+            $last_by_currency = [];
+            foreach ($last_results as $row) {
+                $last_by_currency[$row['currency']] = [
+                    'order_count' => (int)$row['order_count'],
+                    'total_revenue' => (int)$row['total_revenue'],
+                    'customer_count' => (int)$row['customer_count']
+                ];
+            }
 
-            $customer_change = $this->calculateChangePercent(
-                $current_stats['customer_count'],
-                $last_stats['customer_count']
-            );
+            // 計算總計（不分幣別）
+            $total_orders = 0;
+            $total_customers = 0;
+            foreach ($current_by_currency as $stats) {
+                $total_orders += $stats['order_count'];
+                $total_customers += $stats['customer_count'];
+            }
 
-            // 平均訂單價值
-            $avg_order_value = $current_stats['order_count'] > 0
-                ? round($current_stats['total_revenue'] / $current_stats['order_count'])
-                : 0;
+            $last_total_orders = 0;
+            $last_total_customers = 0;
+            foreach ($last_by_currency as $stats) {
+                $last_total_orders += $stats['order_count'];
+                $last_total_customers += $stats['customer_count'];
+            }
 
-            $last_avg_order_value = $last_stats['order_count'] > 0
-                ? round($last_stats['total_revenue'] / $last_stats['order_count'])
-                : 0;
-
-            $avg_change = $this->calculateChangePercent($avg_order_value, $last_avg_order_value);
-
-            $this->debugService->log('DashboardService', '統計計算完成', [
-                'current_revenue' => $current_stats['total_revenue'],
-                'current_orders' => $current_stats['order_count']
+            $this->debugService->log('DashboardService', '統計計算完成（全幣別）', [
+                'currencies' => array_keys($current_by_currency),
+                'total_orders' => $total_orders
             ]);
 
             return [
-                'total_revenue' => [
-                    'value' => (int)$current_stats['total_revenue'],
-                    'currency' => $currency,
-                    'change_percent' => $revenue_change,
-                    'period' => '最近 30 天'
+                // 各幣別的原始數據（供前端做匯率換算）
+                'by_currency' => [
+                    'current' => $current_by_currency,
+                    'last' => $last_by_currency
                 ],
+                // 訂單數和客戶數（不需要幣別換算）
                 'total_orders' => [
-                    'value' => (int)$current_stats['order_count'],
-                    'change_percent' => $order_change,
+                    'value' => $total_orders,
+                    'change_percent' => $this->calculateChangePercent($total_orders, $last_total_orders),
                     'period' => '最近 30 天'
                 ],
                 'total_customers' => [
-                    'value' => (int)$current_stats['customer_count'],
-                    'change_percent' => $customer_change,
-                    'period' => '最近 30 天'
-                ],
-                'avg_order_value' => [
-                    'value' => $avg_order_value,
-                    'currency' => $currency,
-                    'change_percent' => $avg_change,
+                    'value' => $total_customers,
+                    'change_percent' => $this->calculateChangePercent($total_customers, $last_total_customers),
                     'period' => '最近 30 天'
                 ]
             ];
@@ -151,69 +151,73 @@ class DashboardService
     /**
      * 取得營收趨勢資料（過去 N 天）
      *
+     * 不做幣別篩選，回傳各幣別的每日營收，由前端做匯率換算
+     *
      * @param int $days 天數 (預設 30，支援 7, 30, 90)
-     * @param string $currency 幣別 (預設 TWD，支援 USD, CNY)
-     * @return array Chart.js 格式的資料
+     * @return array 各幣別的每日營收資料
      */
-    public function getRevenueTrend(int $days = 30, string $currency = 'TWD'): array
+    public function getRevenueTrend(int $days = 30): array
     {
-        $this->debugService->log('DashboardService', '取得營收趨勢', [
-            'days' => $days,
-            'currency' => $currency
+        $this->debugService->log('DashboardService', '取得營收趨勢（全幣別）', [
+            'days' => $days
         ]);
 
         try {
             $start_date = date('Y-m-d 00:00:00', strtotime("-{$days} days"));
 
+            // 按日期和幣別分組查詢
             $query = $this->wpdb->prepare(
                 "SELECT
                     DATE(created_at) as date,
+                    currency,
                     COALESCE(SUM(total_amount), 0) as daily_revenue
                  FROM {$this->table_orders}
                  WHERE created_at >= %s
-                     AND currency = %s
                      AND mode = 'live'
-                 GROUP BY DATE(created_at)
+                 GROUP BY DATE(created_at), currency
                  ORDER BY date ASC",
-                $start_date,
-                $currency
+                $start_date
             );
             $results = $this->executeResultsWithMonitoring($query, 'getRevenueTrend');
 
-            // 建立日期對營收的映射
+            // 建立日期和幣別的映射: { '2026-02-01': { 'JPY': 100000, 'TWD': 50000 } }
             $revenue_map = [];
             foreach ($results as $row) {
-                $revenue_map[$row['date']] = (int)$row['daily_revenue'];
+                if (!isset($revenue_map[$row['date']])) {
+                    $revenue_map[$row['date']] = [];
+                }
+                $revenue_map[$row['date']][$row['currency']] = (int)$row['daily_revenue'];
             }
 
-            // 填補缺失日期 (沒有訂單的日期顯示 0)
+            // 建立日期標籤和各幣別的每日資料
             $labels = [];
-            $data = [];
+            $data_by_currency = [];
 
             for ($i = $days - 1; $i >= 0; $i--) {
                 $date = date('Y-m-d', strtotime("-{$i} days"));
                 $labels[] = date('m/d', strtotime($date));
 
-                // 從映射中取得該日期的營收，如果不存在則為 0
-                $data[] = $revenue_map[$date] ?? 0;
+                // 該日期各幣別的營收
+                $daily_data = $revenue_map[$date] ?? [];
+                foreach ($daily_data as $currency => $amount) {
+                    if (!isset($data_by_currency[$currency])) {
+                        // 初始化該幣別的陣列（填入 0）
+                        $data_by_currency[$currency] = array_fill(0, $days, 0);
+                    }
+                    // 計算陣列索引（從第一天開始）
+                    $index = $days - 1 - $i;
+                    $data_by_currency[$currency][$index] = $amount;
+                }
             }
 
             $this->debugService->log('DashboardService', '營收趨勢查詢完成', [
-                'data_points' => count($data)
+                'data_points' => count($labels),
+                'currencies' => array_keys($data_by_currency)
             ]);
 
             return [
                 'labels' => $labels,
-                'datasets' => [
-                    [
-                        'label' => '營收',
-                        'data' => $data,
-                        'borderColor' => '#3b82f6',
-                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-                        'tension' => 0.4
-                    ]
-                ],
-                'currency' => $currency
+                'by_currency' => $data_by_currency  // { 'JPY': [100, 200, ...], 'TWD': [50, 60, ...] }
             ];
 
         } catch (\Exception $e) {
@@ -267,6 +271,8 @@ class DashboardService
     /**
      * 取得最近活動（訂單 + 客戶註冊）
      *
+     * 包含訂單的原始幣別，供前端做匯率換算
+     *
      * @param int $limit 活動數量限制 (預設 10)
      * @return array 活動列表
      */
@@ -279,11 +285,12 @@ class DashboardService
         try {
             $table_order_addresses = $this->wpdb->prefix . 'fct_order_addresses';
 
-            // 查詢最近的訂單（從訂單地址表取得收件人真實姓名）
+            // 查詢最近的訂單（從訂單地址表取得收件人真實姓名，含幣別）
             $query = $this->wpdb->prepare(
                 "SELECT
                     o.id,
                     o.total_amount,
+                    o.currency,
                     o.created_at,
                     oa.name as recipient_name,
                     c.email
@@ -315,13 +322,13 @@ class DashboardService
                     $customer_name = $row['email'] ?? '訪客';
                 }
 
-                $amount = round($row['total_amount'] / 100, 0);
-
+                // 金額保持「分」單位，讓前端統一處理
                 $activities[] = [
                     'type' => 'order',
                     'order_id' => '#' . $row['id'],
                     'customer_name' => $customer_name,
-                    'amount' => $amount,
+                    'amount' => (int)$row['total_amount'],  // 「分」單位
+                    'currency' => $row['currency'] ?? 'JPY',  // 原始幣別
                     'timestamp' => $row['created_at'],
                     'icon' => 'shopping-cart',
                     'url' => '/buygo-portal/orders/?id=' . $row['id']

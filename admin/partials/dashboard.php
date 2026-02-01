@@ -145,7 +145,7 @@ $dashboard_component_template = <<<'HTML'
                             <div class="activity-content">
                                 <div class="activity-title">訂單 {{ activity.order_id }}</div>
                                 <div class="activity-description">
-                                    {{ activity.customer_name }} · {{ formatCurrency(activity.amount * 100) }}
+                                    {{ activity.customer_name }} · {{ formatCurrency(activity.convertedAmount) }}
                                 </div>
                             </div>
                             <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>
@@ -176,24 +176,27 @@ const DashboardPageComponent = {
             // 當前顯示幣別（從 useCurrency composable 同步）
             currentCurrency: 'JPY',
 
-            // 幣別符號對照表
-            currencySymbols: {
-                'JPY': '¥',
-                'TWD': 'NT$',
-                'USD': '$',
-                'CNY': '¥',
-                'THB': '฿'
-            },
+            // 幣別符號對照表（從 useCurrency 取得）
+            currencySymbols: {},
 
-            // 統計數據
+            // useCurrency composable 方法
+            currencyHelper: null,
+
+            // 原始統計數據（各幣別分組）
+            rawStats: null,
+
+            // 計算後的統計數據（已換算成目標幣別）
             stats: {
-                total_revenue: { value: 0, change_percent: 0, currency: 'JPY' },
+                total_revenue: { value: 0, change_percent: 0 },
                 total_orders: { value: 0, change_percent: 0 },
                 total_customers: { value: 0, change_percent: 0 },
-                avg_order_value: { value: 0, change_percent: 0, currency: 'JPY' }
+                avg_order_value: { value: 0, change_percent: 0 }
             },
 
-            // 營收趨勢資料
+            // 原始營收趨勢資料（各幣別分組）
+            rawRevenueData: null,
+
+            // 營收趨勢資料（已換算）
             revenueData: null,
             revenueChart: null, // Chart.js 實例
 
@@ -204,15 +207,19 @@ const DashboardPageComponent = {
                 draft: 0
             },
 
-            // 活動列表
+            // 原始活動列表（含原始幣別）
+            rawActivities: [],
+
+            // 活動列表（已換算）
             activities: []
         };
     },
 
     async mounted() {
-        // 從 useCurrency composable 取得當前系統幣別
-        const { systemCurrency } = useCurrency();
-        this.currentCurrency = systemCurrency.value;
+        // 從 useCurrency composable 取得方法和狀態
+        this.currencyHelper = useCurrency();
+        this.currentCurrency = this.currencyHelper.systemCurrency.value;
+        this.currencySymbols = this.currencyHelper.currencySymbols;
         console.log('[Dashboard] 初始幣別:', this.currentCurrency);
 
         await this.loadAllData();
@@ -247,8 +254,8 @@ const DashboardPageComponent = {
         },
 
         async loadStats() {
-            // 使用 BuyGo 自己的 Dashboard API（支援幣別篩選）
-            const response = await fetch(`/wp-json/buygo-plus-one/v1/dashboard/stats?currency=${this.currentCurrency}`, {
+            // API 現在回傳全幣別的原始數據
+            const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/stats', {
                 headers: { 'X-WP-Nonce': window.buygoWpNonce }
             });
 
@@ -259,15 +266,80 @@ const DashboardPageComponent = {
             const result = await response.json();
 
             if (result.success && result.data) {
-                // 直接使用 BuyGo API 回傳的資料
-                this.stats = result.data;
+                this.rawStats = result.data;
+                // 計算換算後的統計數據
+                this.calculateConvertedStats();
             } else {
                 console.error('BuyGo Dashboard API 回傳格式不正確:', result);
             }
         },
 
+        // 計算換算後的統計數據
+        calculateConvertedStats() {
+            if (!this.rawStats || !this.currencyHelper) return;
+
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+
+            // 計算當期營收（換算後加總）
+            let currentRevenue = 0;
+            const currentByCurrency = this.rawStats.by_currency?.current || {};
+            for (const [currency, data] of Object.entries(currentByCurrency)) {
+                const converted = convertCurrency(data.total_revenue, currency, targetCurrency);
+                currentRevenue += converted;
+            }
+
+            // 計算前期營收（換算後加總）
+            let lastRevenue = 0;
+            const lastByCurrency = this.rawStats.by_currency?.last || {};
+            for (const [currency, data] of Object.entries(lastByCurrency)) {
+                const converted = convertCurrency(data.total_revenue, currency, targetCurrency);
+                lastRevenue += converted;
+            }
+
+            // 計算營收變化百分比
+            const revenueChange = lastRevenue === 0
+                ? (currentRevenue > 0 ? 100 : 0)
+                : ((currentRevenue - lastRevenue) / lastRevenue) * 100;
+
+            // 訂單數和客戶數直接從 API 取得（不需要換算）
+            const totalOrders = this.rawStats.total_orders?.value || 0;
+            const totalCustomers = this.rawStats.total_customers?.value || 0;
+            const orderChange = this.rawStats.total_orders?.change_percent || 0;
+            const customerChange = this.rawStats.total_customers?.change_percent || 0;
+
+            // 計算平均訂單價值
+            const avgOrderValue = totalOrders > 0 ? Math.round(currentRevenue / totalOrders) : 0;
+            const lastAvgOrderValue = this.rawStats.total_orders?.value > 0 && lastRevenue > 0
+                ? Math.round(lastRevenue / (this.rawStats.by_currency?.last ? Object.values(this.rawStats.by_currency.last).reduce((sum, d) => sum + d.order_count, 0) : 1))
+                : 0;
+            const avgChange = lastAvgOrderValue === 0
+                ? (avgOrderValue > 0 ? 100 : 0)
+                : ((avgOrderValue - lastAvgOrderValue) / lastAvgOrderValue) * 100;
+
+            this.stats = {
+                total_revenue: {
+                    value: Math.round(currentRevenue),
+                    change_percent: Math.round(revenueChange * 10) / 10
+                },
+                total_orders: {
+                    value: totalOrders,
+                    change_percent: orderChange
+                },
+                total_customers: {
+                    value: totalCustomers,
+                    change_percent: customerChange
+                },
+                avg_order_value: {
+                    value: avgOrderValue,
+                    change_percent: Math.round(avgChange * 10) / 10
+                }
+            };
+        },
+
         async loadRevenue() {
-            const response = await fetch(`/wp-json/buygo-plus-one/v1/dashboard/revenue?period=30&currency=${this.currentCurrency}`, {
+            // API 現在回傳全幣別的原始數據
+            const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/revenue?period=30', {
                 headers: { 'X-WP-Nonce': window.buygoWpNonce }
             });
 
@@ -276,7 +348,41 @@ const DashboardPageComponent = {
             }
 
             const result = await response.json();
-            this.revenueData = result.data;
+            this.rawRevenueData = result.data;
+            // 計算換算後的營收趨勢
+            this.calculateConvertedRevenue();
+        },
+
+        // 計算換算後的營收趨勢
+        calculateConvertedRevenue() {
+            if (!this.rawRevenueData || !this.currencyHelper) return;
+
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+            const labels = this.rawRevenueData.labels || [];
+            const byCurrency = this.rawRevenueData.by_currency || {};
+
+            // 計算每天的換算後營收
+            const convertedData = labels.map((_, index) => {
+                let dailyTotal = 0;
+                for (const [currency, dailyAmounts] of Object.entries(byCurrency)) {
+                    const amount = dailyAmounts[index] || 0;
+                    dailyTotal += convertCurrency(amount, currency, targetCurrency);
+                }
+                return Math.round(dailyTotal);
+            });
+
+            // 轉換成 Chart.js 格式
+            this.revenueData = {
+                labels: labels,
+                datasets: [{
+                    label: '營收',
+                    data: convertedData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                }]
+            };
         },
 
         async loadProducts() {
@@ -302,7 +408,23 @@ const DashboardPageComponent = {
             }
 
             const result = await response.json();
-            this.activities = result.data;
+            this.rawActivities = result.data || [];
+            // 計算換算後的活動列表
+            this.calculateConvertedActivities();
+        },
+
+        // 計算換算後的活動列表金額
+        calculateConvertedActivities() {
+            if (!this.currencyHelper) return;
+
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+
+            this.activities = this.rawActivities.map(activity => ({
+                ...activity,
+                // 換算金額（保持「分」單位，因為 formatCurrency 會除以 100）
+                convertedAmount: Math.round(convertCurrency(activity.amount, activity.currency || 'JPY', targetCurrency))
+            }));
         },
 
         renderRevenueChart() {
@@ -385,30 +507,23 @@ const DashboardPageComponent = {
             return date.toLocaleDateString('zh-TW');
         },
 
-        // 覆寫 HeaderMixin 的 cycleCurrency，加上 Dashboard 特定邏輯
+        // 幣別切換時，只需要重新計算換算值，不需要重新載入資料
         async onCurrencyChange(newCurrency) {
             console.log('[Dashboard] 幣別切換:', newCurrency);
             // 更新當前幣別
             this.currentCurrency = newCurrency;
-            // 當幣別切換時，重新載入統計資料、營收資料和活動列表
-            this.loading = true;
-            try {
-                await Promise.all([
-                    this.loadStats(),
-                    this.loadRevenue(),
-                    this.loadActivities()  // 新增：重新載入活動列表
-                ]);
-                // 重新渲染圖表
-                this.$nextTick(() => {
-                    if (this.revenueData && this.$refs.revenueChart) {
-                        this.renderRevenueChart();
-                    }
-                });
-            } catch (err) {
-                console.error('切換幣別時載入資料失敗:', err);
-            } finally {
-                this.loading = false;
-            }
+
+            // 重新計算換算後的數據（不需要重新載入 API）
+            this.calculateConvertedStats();
+            this.calculateConvertedRevenue();
+            this.calculateConvertedActivities();
+
+            // 重新渲染圖表
+            this.$nextTick(() => {
+                if (this.revenueData && this.$refs.revenueChart) {
+                    this.renderRevenueChart();
+                }
+            });
         },
 
         handleActivityClick(activity) {

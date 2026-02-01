@@ -52,20 +52,14 @@ class Dashboard_API {
      * @return void
      */
     public function register_routes() {
-        // GET /dashboard/stats - 總覽統計
+        // GET /dashboard/stats - 總覽統計（全幣別，前端做換算）
         register_rest_route($this->namespace, '/dashboard/stats', [
             'methods' => 'GET',
             'callback' => [$this, 'get_stats'],
-            'permission_callback' => [API::class, 'check_permission'],
-            'args' => [
-                'currency' => [
-                    'default' => 'JPY',
-                    'sanitize_callback' => 'sanitize_text_field'
-                ]
-            ]
+            'permission_callback' => [API::class, 'check_permission']
         ]);
 
-        // GET /dashboard/revenue - 營收趨勢
+        // GET /dashboard/revenue - 營收趨勢（全幣別，前端做換算）
         register_rest_route($this->namespace, '/dashboard/revenue', [
             'methods' => 'GET',
             'callback' => [$this, 'get_revenue'],
@@ -74,10 +68,6 @@ class Dashboard_API {
                 'period' => [
                     'default' => 30,
                     'sanitize_callback' => 'absint'
-                ],
-                'currency' => [
-                    'default' => 'TWD',
-                    'sanitize_callback' => 'sanitize_text_field'
                 ]
             ]
         ]);
@@ -106,11 +96,10 @@ class Dashboard_API {
     /**
      * 取得總覽統計
      *
-     * 回傳 4 個統計數據:
-     * - total_revenue: 總營收
-     * - total_orders: 訂單數
-     * - total_customers: 客戶數
-     * - avg_order_value: 平均訂單金額
+     * 回傳各幣別的統計數據，由前端做匯率換算:
+     * - by_currency: 各幣別的營收、訂單數、客戶數
+     * - total_orders: 總訂單數（不分幣別）
+     * - total_customers: 總客戶數（不分幣別）
      *
      * 使用快取機制（5 分鐘）
      *
@@ -119,11 +108,8 @@ class Dashboard_API {
      */
     public function get_stats($request) {
         try {
-            // 取得幣別參數
-            $currency = $request->get_param('currency') ?? 'JPY';
-
-            // 定義快取鍵（包含幣別參數）
-            $cache_key = "buygo_dashboard_stats_{$currency}";
+            // 定義快取鍵（全幣別統計，不含幣別參數）
+            $cache_key = "buygo_dashboard_stats_all";
 
             // 嘗試從 transient 讀取快取
             $cached = get_transient($cache_key);
@@ -139,8 +125,8 @@ class Dashboard_API {
                 ], 200);
             }
 
-            // 快取不存在，調用 DashboardService 計算統計（傳入幣別參數）
-            $stats = $this->dashboardService->calculateStats($currency);
+            // 快取不存在，調用 DashboardService 計算統計（全幣別）
+            $stats = $this->dashboardService->calculateStats();
 
             // 快取 5 分鐘
             set_transient($cache_key, $stats, 5 * MINUTE_IN_SECONDS);
@@ -165,7 +151,7 @@ class Dashboard_API {
     /**
      * 取得營收趨勢
      *
-     * 回傳指定期間的營收趨勢資料（Chart.js 格式）
+     * 回傳各幣別的每日營收資料，由前端做匯率換算
      *
      * 使用快取機制（15 分鐘）
      *
@@ -176,10 +162,9 @@ class Dashboard_API {
         try {
             // 取得參數
             $period = $request->get_param('period') ?? 30;
-            $currency = $request->get_param('currency') ?? 'TWD';
 
-            // 定義快取鍵（包含參數）
-            $cache_key = "buygo_dashboard_revenue_{$period}_{$currency}";
+            // 定義快取鍵（全幣別，不含幣別參數）
+            $cache_key = "buygo_dashboard_revenue_{$period}_all";
 
             // 嘗試從 transient 讀取快取
             $cached = get_transient($cache_key);
@@ -191,8 +176,8 @@ class Dashboard_API {
                 ], 200);
             }
 
-            // 快取不存在，調用 DashboardService 取得營收趨勢
-            $revenue_data = $this->dashboardService->getRevenueTrend($period, $currency);
+            // 快取不存在，調用 DashboardService 取得營收趨勢（全幣別）
+            $revenue_data = $this->dashboardService->getRevenueTrend($period);
 
             // 快取 15 分鐘
             set_transient($cache_key, $revenue_data, 15 * MINUTE_IN_SECONDS);
