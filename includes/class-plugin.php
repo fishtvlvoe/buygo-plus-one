@@ -185,6 +185,20 @@ class Plugin {
         // 初始化訂單項目標題修復服務
         \BuyGoPlus\Services\OrderItemTitleFixer::instance();
 
+        // 初始化 LINE Response Provider
+        // 透過 filter hook 向 buygo-line-notify 提供回覆模板內容
+        // 參考架構：buygo-line-notify 發送訊息，buygo-plus-one 提供模板
+        \BuyGoPlus\Services\LineResponseProvider::init();
+
+        // 初始化商品上架通知（Phase 30）
+        // 當賣家透過 LINE 上架商品時，通知賣家和小幫手
+        new \BuyGoPlus\Services\ProductNotificationHandler();
+
+        // 初始化訂單通知（Phase 31）
+        // 新訂單：通知賣家 + 小幫手 + 買家
+        // 訂單狀態變更：僅通知買家
+        new \BuyGoPlus\Services\LineOrderNotifier();
+
         // 阻擋 Cloudflare Beacon 以修復效能問題
         add_action('wp_footer', function() {
             ?>
