@@ -20,7 +20,7 @@ class Plugin {
      *
      * @var string
      */
-    const DB_VERSION = '1.2.0';
+    const DB_VERSION = '1.3.0';
 
     /**
      * 單例實例
