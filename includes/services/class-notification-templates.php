@@ -879,6 +879,13 @@ class NotificationTemplates {
                     'message' => "📦 商品上架成功！\n\n商品名稱：{product_name}\n\n查看商品：\n{product_url}"
                 ]
             ],
+
+            // 小幫手上架通知（通知非上架者：賣家上架時通知小幫手，小幫手上架時通知賣家）
+            'helper_product_created' => [
+                'line' => [
+                    'message' => "📦 有新商品上架！\n\n商品名稱：{product_name}\n價格：{currency_symbol} {price}{original_price_section}\n數量：{quantity} 個{category_section}{arrival_date_section}{preorder_date_section}\n\n直接下單連結：\n{product_url}"
+                ]
+            ],
             
             // 系統通知
             'system_line_follow' => [
@@ -908,7 +915,7 @@ class NotificationTemplates {
             ],
             'system_product_published' => [
                 'line' => [
-                    'message' => "商品名稱：{product_name}\n價格：{currency_symbol} {price}{original_price_section}\n數量：{quantity} 個{category_section}{arrival_date_section}{preorder_date_section}\n\n直接下單連結：\n{product_url}{community_url_section}"
+                    'message' => "商品名稱：{product_name}\n價格：{currency_symbol} {price}{original_price_section}\n數量：{quantity} 個{category_section}{arrival_date_section}{preorder_date_section}\n\n直接下單連結：\n{product_url}"
                 ]
             ],
             'system_product_publish_failed' => [

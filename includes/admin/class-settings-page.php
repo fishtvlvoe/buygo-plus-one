@@ -1877,6 +1877,11 @@ LIMIT 10`,
                     'name' => '訂單已取消',
                     'description' => '訂單取消時發送給賣家',
                     'variables' => ['order_id', 'buyer_name', 'note', 'order_url']
+                ],
+                'helper_product_created' => [
+                    'name' => '小幫手上架通知',
+                    'description' => '商品上架時發送給非上架者（賣家上架→通知小幫手，小幫手上架→通知賣家）',
+                    'variables' => ['product_name', 'price', 'quantity', 'product_url', 'currency_symbol', 'original_price_section', 'category_section', 'arrival_date_section', 'preorder_date_section']
                 ]
             ],
             'system' => [
@@ -1899,7 +1904,7 @@ LIMIT 10`,
                 'system_product_published' => [
                     'name' => '商品上架成功',
                     'description' => '商品上架成功時發送',
-                    'variables' => ['product_name', 'price', 'quantity', 'product_url', 'currency_symbol', 'original_price_section', 'category_section', 'arrival_date_section', 'preorder_date_section', 'community_url_section']
+                    'variables' => ['product_name', 'price', 'quantity', 'product_url', 'currency_symbol', 'original_price_section', 'category_section', 'arrival_date_section', 'preorder_date_section']
                 ],
                 'system_product_publish_failed' => [
                     'name' => '商品上架失敗',
