@@ -169,28 +169,18 @@ class LineOrderNotifier {
  
 	/**
 	 * Attempt to send notification. If missing binding, schedule next attempt.
+	 *
+	 * Phase 31 更新：
+	 * - 新訂單建立時：通知賣家 + 小幫手 + 買家
+	 * - 訂單狀態變更時：僅通知買家
 	 */
 	private function attemptSend( int $orderId, string $event, int $attempt ): void {
 		$order = Order::find( $orderId );
 		if ( ! $order ) {
 			return;
 		}
- 
+
 		if ( self::isSent( $order, $event ) ) {
-			return;
-		}
- 
-		$userId = $this->resolveWpUserIdFromOrder( $order );
-		if ( ! $userId ) {
-			$this->recordAttempt( $order, $event, $attempt, 'no_wp_user', '找不到對應的 WP 使用者（可能尚未建立帳號）' );
-			$this->maybeScheduleNextAttempt( $order, $event, $attempt );
-			return;
-		}
- 
-		$lineUid = \BuyGoPlus\Core\BuyGoPlus_Core::line()->get_line_uid( (int) $userId );
-		if ( empty( $lineUid ) ) {
-			$this->recordAttempt( $order, $event, $attempt, 'no_line_uid', '使用者尚未綁定 LINE UID' );
-			$this->maybeScheduleNextAttempt( $order, $event, $attempt );
 			return;
 		}
 
@@ -200,27 +190,208 @@ class LineOrderNotifier {
 			return;
 		}
 
-		// 只串接既有模板系統：找不到模板就不送（避免硬編碼預設文案）
-		$message = $this->buildLineMessageFromTemplates( $order, $event );
+		// 根據事件類型決定通知對象
+		if ( $event === 'order_created' ) {
+			// 新訂單：通知賣家 + 小幫手 + 買家
+			$this->notifyOnOrderCreated( $order, $attempt );
+		} else {
+			// 訂單狀態變更（如 order_shipped）：僅通知買家
+			$this->notifyBuyerOnly( $order, $event, $attempt );
+		}
+	}
 
-		if ( empty( $message ) ) {
-			$this->recordAttempt( $order, $event, $attempt, 'empty_message', '模板內容為空，略過推播' );
-			return;
+	/**
+	 * 新訂單建立時的通知邏輯
+	 *
+	 * Phase 31 需求：
+	 * - ORD-01: 新訂單建立時，通知賣家
+	 * - ORD-02: 新訂單建立時，通知所有已綁定 LINE 的小幫手
+	 * - ORD-03: 新訂單建立時，通知買家（如果買家有 LINE 綁定）
+	 *
+	 * @param Order $order
+	 * @param int $attempt
+	 */
+	private function notifyOnOrderCreated( Order $order, int $attempt ): void {
+		$event = 'order_created';
+		$notifiedAny = false;
+
+		// 1. 取得訂單中的商品，找出賣家
+		$sellerId = $this->getSellerIdFromOrder( $order );
+
+		if ( $sellerId ) {
+			// 準備賣家通知的模板參數
+			$buyerName = $this->getBuyerNameFromOrder( $order );
+			$sellerArgs = [
+				'order_id' => (string) $order->id,
+				'buyer_name' => $buyerName,
+				'order_total' => $this->formatOrderTotal( $order ),
+			];
+
+			// 發送給賣家和小幫手
+			$result = NotificationService::sendToSellerAndHelpers( $sellerId, 'seller_order_created', $sellerArgs );
+
+			$this->debugService->log( 'LineOrderNotifier', '賣家/小幫手通知結果', [
+				'order_id' => (int) $order->id,
+				'seller_id' => $sellerId,
+				'result' => $result,
+			] );
+
+			if ( $result['success'] > 0 ) {
+				$notifiedAny = true;
+			}
 		}
 
-		// 使用 buygo-line-notify 的 LineMessagingService
-		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
-		$pushResult = $messaging->push_message( $lineUid, $message );
- 
-		if ( \is_wp_error( $pushResult ) ) {
-			$this->recordAttempt( $order, $event, $attempt, 'push_failed', $pushResult->get_error_message() );
+		// 2. 通知買家
+		$buyerNotified = $this->notifyBuyer( $order, $event, $attempt );
+		if ( $buyerNotified ) {
+			$notifiedAny = true;
+		}
+
+		// 如果有任何人被通知，標記為已發送
+		if ( $notifiedAny ) {
+			self::markSent( $order, $event );
+			$this->recordAttempt( $order, $event, $attempt, 'sent', '推播成功（賣家/小幫手/買家）' );
+		} else {
+			// 沒有人被通知（可能都沒有綁定 LINE）
+			$this->recordAttempt( $order, $event, $attempt, 'no_recipients', '沒有可通知的對象（都未綁定 LINE）' );
+			// 不需要重試，標記為完成
+			self::markSent( $order, $event );
+		}
+	}
+
+	/**
+	 * 僅通知買家（用於狀態變更通知）
+	 *
+	 * Phase 31 需求：
+	 * - ORD-04: 訂單狀態變更時，僅通知買家
+	 *
+	 * @param Order $order
+	 * @param string $event
+	 * @param int $attempt
+	 */
+	private function notifyBuyerOnly( Order $order, string $event, int $attempt ): void {
+		$buyerNotified = $this->notifyBuyer( $order, $event, $attempt );
+
+		if ( $buyerNotified ) {
+			self::markSent( $order, $event );
+			$this->recordAttempt( $order, $event, $attempt, 'sent', '推播成功（買家）' );
+		} else {
+			// 買家沒有綁定 LINE，可能需要重試
 			$this->maybeScheduleNextAttempt( $order, $event, $attempt );
-			return;
 		}
- 
-		self::markSent( $order, $event );
- 
-		$this->recordAttempt( $order, $event, $attempt, 'sent', '推播成功' );
+	}
+
+	/**
+	 * 通知買家
+	 *
+	 * @param Order $order
+	 * @param string $event
+	 * @param int $attempt
+	 * @return bool 是否成功發送
+	 */
+	private function notifyBuyer( Order $order, string $event, int $attempt ): bool {
+		$userId = $this->resolveWpUserIdFromOrder( $order );
+		if ( ! $userId ) {
+			$this->recordAttempt( $order, $event, $attempt, 'no_wp_user', '找不到買家對應的 WP 使用者' );
+			return false;
+		}
+
+		// 檢查買家是否有 LINE 綁定
+		if ( ! IdentityService::hasLineBinding( $userId ) ) {
+			$this->recordAttempt( $order, $event, $attempt, 'buyer_no_line', '買家尚未綁定 LINE' );
+			return false;
+		}
+
+		// 取得買家用的模板
+		$templateKey = $event === 'order_shipped' ? 'order_shipped' : 'order_created';
+		$args = [
+			'order_id' => (string) $order->id,
+			'total' => $this->formatOrderTotal( $order ),
+		];
+
+		// 發送通知
+		$result = NotificationService::send( $userId, $templateKey, $args );
+
+		$this->debugService->log( 'LineOrderNotifier', '買家通知結果', [
+			'order_id' => (int) $order->id,
+			'user_id' => $userId,
+			'template_key' => $templateKey,
+			'result' => $result,
+		] );
+
+		return $result;
+	}
+
+	/**
+	 * 從訂單取得賣家 ID
+	 *
+	 * 邏輯：取得訂單中第一個商品的 post_author
+	 *
+	 * @param Order $order
+	 * @return int|null
+	 */
+	private function getSellerIdFromOrder( Order $order ): ?int {
+		try {
+			$order->load( 'items' );
+		} catch ( \Exception $e ) {
+			// ignore
+		}
+
+		$items = $order->items ?? [];
+		if ( empty( $items ) ) {
+			return null;
+		}
+
+		// 取得第一個訂單項目的商品 ID
+		foreach ( $items as $item ) {
+			$productId = $item->product_id ?? 0;
+			if ( $productId > 0 ) {
+				$post = get_post( $productId );
+				if ( $post && $post->post_author ) {
+					return (int) $post->post_author;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * 從訂單取得買家名稱
+	 *
+	 * @param Order $order
+	 * @return string
+	 */
+	private function getBuyerNameFromOrder( Order $order ): string {
+		try {
+			$order->load( 'customer' );
+		} catch ( \Exception $e ) {
+			// ignore
+		}
+
+		$customer = $order->customer ?? null;
+		if ( $customer ) {
+			$name = trim( ( $customer->first_name ?? '' ) . ' ' . ( $customer->last_name ?? '' ) );
+			if ( ! empty( $name ) ) {
+				return $name;
+			}
+			if ( ! empty( $customer->email ) ) {
+				return explode( '@', $customer->email )[0];
+			}
+		}
+
+		return '顧客';
+	}
+
+	/**
+	 * 格式化訂單金額
+	 *
+	 * @param Order $order
+	 * @return string
+	 */
+	private function formatOrderTotal( Order $order ): string {
+		$totalAmount = isset( $order->total_amount ) ? (float) $order->total_amount : 0;
+		return number_format( $totalAmount / 100, 0, '.', ',' );
 	}
  
 	/**
