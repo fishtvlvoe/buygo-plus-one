@@ -346,6 +346,9 @@ class ShipmentService
             if ($result !== false) {
                 $shipped_count++;
 
+                // 觸發出貨通知事件（Phase 33: 出貨通知）
+                do_action('buygo/shipment/marked_as_shipped', $shipment_id);
+
                 // 【新增】更新此出貨單關聯的訂單 shipping_status 為 shipped
                 $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
                 $table_orders = $wpdb->prefix . 'fct_orders';
