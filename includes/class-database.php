@@ -89,6 +89,7 @@ class Database
                 shipping_method varchar(100),
                 tracking_number varchar(100),
                 shipped_at datetime,
+                estimated_delivery_at datetime,
                 created_at datetime DEFAULT CURRENT_TIMESTAMP,
                 updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
@@ -121,6 +122,11 @@ class Database
         if (!in_array('seller_id', $columns)) {
             $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN seller_id bigint(20) UNSIGNED NOT NULL DEFAULT 0 AFTER customer_id");
             $wpdb->query("ALTER TABLE {$table_name} ADD KEY idx_seller_id (seller_id)");
+        }
+
+        // 添加 estimated_delivery_at 欄位 (v1.3.0)
+        if (!in_array('estimated_delivery_at', $columns)) {
+            $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN estimated_delivery_at datetime NULL AFTER shipped_at");
         }
     }
 
@@ -186,6 +192,7 @@ class Database
             shipping_method varchar(100),
             tracking_number varchar(100),
             shipped_at datetime,
+            estimated_delivery_at datetime,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
