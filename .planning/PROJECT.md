@@ -8,26 +8,21 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 
 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，**每個賣家只能看到自己的商品和訂單**，同時支援小幫手協作。
 
-## Current Milestone: v1.3 出貨通知與 FluentCart 同步系統
+## Current Milestone: v1.4 會員前台子訂單顯示功能
 
-**Goal:** 完善出貨流程，實作 LINE 出貨通知功能，讓買家在商品出貨時收到即時通知
+**Goal:** 在 FluentCart 會員前台訂單頁面中，讓購物者能查看該主訂單包含的所有子訂單詳細資訊
 
 **Target features:**
 
-### 資料模型擴充
-- 新增 `estimated_delivery_at` 欄位到 `buygo_shipments` 表
-- 賣家可在建立/編輯出貨單時輸入預計送達時間
+### 子訂單顯示區塊
+- 在主訂單下方新增「查看子訂單」展開按鈕
+- 展開後顯示該主訂單的所有子訂單列表
+- 每個子訂單顯示：編號、商品清單、狀態、金額
 
-### LINE 出貨通知
-- 賣家標記出貨單為「已出貨」→ 觸發 LINE 通知給買家
-- 一張出貨單 → 一次通知（即使包含多個子訂單）
-- 通知內容：商品清單、數量、物流方式、預計送達時間
-- 僅通知買家（賣家和小幫手不收通知）
-
-### 通知模板管理
-- 後台 Settings 頁面新增「通知模板」設定區塊
-- 預設出貨通知模板
-- 客戶可自訂模板內容（變數：商品清單、物流方式、預計送達時間）
+### UI 整合方式
+- 使用 WordPress Hook 注入 UI（不修改 FluentCart 原始碼）
+- 類似 LINE 登入按鈕的整合模式
+- 折疊/展開交互功能
 
 ## Requirements
 
@@ -66,37 +61,41 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 - ✓ 出貨單資料模型（buygo_shipments、buygo_shipment_items）— v1.2 前
 - ✓ 標記出貨時更新子訂單 shipping_status = 'shipped' — v1.2 前
 
-### Active - v1.3 Milestone
+### Active - v1.4 Milestone
 
-#### 資料模型擴充 (DATA)
+#### FluentCart 訂單頁面整合 (INTEG)
 
-- [ ] **DATA-01**: 新增 estimated_delivery_at 欄位到 buygo_shipments 表
-- [ ] **DATA-02**: 資料庫升級腳本（Database::upgrade_shipments_table）
-- [ ] **DATA-03**: 後台出貨單建立/編輯表單新增「預計送達時間」輸入欄位
+- [ ] **INTEG-01**: 找出 FluentCart 會員訂單詳情頁的 Hook 點
+- [ ] **INTEG-02**: 透過 Hook 在主訂單下方注入「查看子訂單」按鈕
+- [ ] **INTEG-03**: 注入子訂單列表容器（初始隱藏）
 
-#### LINE 出貨通知 (NOTIF)
+#### 子訂單查詢服務 (QUERY)
 
-- [ ] **NOTIF-01**: ShipmentNotificationHandler 監聽出貨單標記為「已出貨」事件
-- [ ] **NOTIF-02**: 收集出貨單資訊（商品清單、數量、物流方式、預計送達時間）
-- [ ] **NOTIF-03**: 套用出貨通知模板（NotificationTemplates::shipment_shipped）
-- [ ] **NOTIF-04**: 透過 NotificationService 發送 LINE 通知給買家
-- [ ] **NOTIF-05**: 確保一張出貨單只發送一次通知（即使包含多個子訂單）
+- [ ] **QUERY-01**: ChildOrderService 查詢指定主訂單的所有子訂單
+- [ ] **QUERY-02**: 查詢每個子訂單的商品清單（從 order_items 表）
+- [ ] **QUERY-03**: 整合子訂單狀態資訊（付款、出貨、處理狀態）
 
-#### 通知模板管理 (TMPL)
+#### REST API 端點 (API)
 
-- [ ] **TMPL-01**: Settings 頁面新增「通知模板」設定區塊
-- [ ] **TMPL-02**: 出貨通知模板編輯器（支援變數：{product_list}、{shipping_method}、{estimated_delivery}）
-- [ ] **TMPL-03**: 預設出貨通知模板
-- [ ] **TMPL-04**: 模板儲存到 wp_options（buygo_notification_template_shipment_shipped）
-- [ ] **TMPL-05**: 模板變數替換邏輯
+- [ ] **API-01**: GET /child-orders/{parent_order_id} 端點
+- [ ] **API-02**: 權限驗證（僅訂單所屬顧客可查詢）
+- [ ] **API-03**: 回傳格式化的子訂單資料（含商品、狀態、金額）
 
-### Out of Scope (v1.3)
+#### 前端 UI 元件 (UI)
 
-- **追蹤編號顯示** — 模板中暫不顯示追蹤編號
-- **出貨單編號顯示** — 模板中暫不顯示出貨單編號
-- **賣家/小幫手出貨通知** — 僅通知買家，賣家和小幫手不收通知
-- **多語系支援** — 僅支援繁體中文
-- **進階模板編輯器** — 基礎文字編輯即可，不需要視覺化編輯器
+- [ ] **UI-01**: 「查看子訂單」按鈕樣式（使用 BuyGo+1 設計系統）
+- [ ] **UI-02**: 子訂單列表卡片樣式
+- [ ] **UI-03**: 折疊/展開交互邏輯（Vue 3 或原生 JS）
+- [ ] **UI-04**: 狀態標籤顯示（使用 .status-tag 元件）
+- [ ] **UI-05**: RWD 響應式設計
+
+### Out of Scope (v1.4)
+
+- **賣家後台子訂單顯示** — 目前僅做購物者前台，賣家後台未來再考慮
+- **子訂單編輯功能** — 僅顯示，不提供編輯
+- **子訂單搜尋/篩選** — 單純列表顯示即可
+- **子訂單匯出功能** — 目前不需要
+- **FluentCart 原始碼修改** — 必須透過 Hook 整合
 
 ## Context
 
@@ -121,26 +120,37 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 - buygo-line-notify — LINE 登入和 Webhook（v0.2 已完成）
 - FluentCart — 電商平台（商品、訂單資料）
 
-**出貨單資料模型（已完成）：**
+**FluentCart 資料結構（v1.4 相關）：**
 
-`buygo_shipments` 表：
+`wp_fct_orders` 主訂單表：
 ```
-id, shipment_number, customer_id, seller_id, status,
-shipping_method, tracking_number, shipped_at,
+id, invoice_no, customer_id, total_amount, currency,
+payment_status, status, created_at, updated_at
+```
+
+`wp_fct_child_orders` 子訂單表：
+```
+id, parent_order_id, seller_id, invoice_no,
+total_amount, payment_status, shipping_status,
+fulfillment_status, created_at, updated_at
+```
+
+`wp_fct_order_items` 訂單商品表：
+```
+id, order_id, product_id, quantity, price,
 created_at, updated_at
 ```
 
-`buygo_shipment_items` 表：
-```
-id, shipment_id, order_id, order_item_id,
-product_id, quantity, created_at
-```
+**已知訂單關係：**
+- 1 個主訂單（parent_order） → N 個子訂單（child_orders）
+- 每個子訂單對應一個賣家（seller_id）
+- 每個子訂單有獨立的商品清單（order_items）
+- 每個子訂單有獨立的狀態（付款、出貨、處理）
 
-**現有出貨流程：**
-1. 賣家建立出貨單（包含多個子訂單的商品）
-2. 賣家標記為「已出貨」
-3. `ShipmentService::markAsShipped()` 自動更新相關子訂單 `shipping_status = 'shipped'`
-4. ❌ 缺少：LINE 通知買家
+**目前問題：**
+- FluentCart 會員前台訂單頁面僅顯示主訂單
+- 購物者無法查看子訂單的詳細資訊
+- 需要透過 Hook 注入 UI 元件來展示子訂單
 
 ### 權限模型
 
@@ -180,10 +190,13 @@ product_id, quantity, created_at
 | LINE 通知只觸發於 LINE 上架 | FluentCart 後台操作不需通知 | ✅ Good 2026-02-01 |
 | 未綁定用戶完全靜默忽略 | 不要發送任何訊息給未綁定用戶 | ✅ Good 2026-02-01 |
 | 買家只收推播不回應 bot 訊息 | 買家身份明確區分於賣家/小幫手 | ✅ Good 2026-02-01 |
-| 預計送達時間由賣家手動輸入 | 簡化邏輯，客戶可彈性填寫 | — Pending |
-| 出貨通知僅發給買家 | 賣家/小幫手不需收到出貨確認 | — Pending |
-| 一張出貨單 = 一次通知 | 即使包含多個子訂單也只發一次 | — Pending |
-| 模板可由客戶自訂 | 提供基礎架構，客戶可客製化內容 | — Pending |
+| 預計送達時間由賣家手動輸入 | 簡化邏輯，客戶可彈性填寫 | — Pending (v1.3) |
+| 出貨通知僅發給買家 | 賣家/小幫手不需收到出貨確認 | — Pending (v1.3) |
+| 一張出貨單 = 一次通知 | 即使包含多個子訂單也只發一次 | — Pending (v1.3) |
+| 模板可由客戶自訂 | 提供基礎架構，客戶可客製化內容 | — Pending (v1.3) |
+| 子訂單顯示僅做購物者前台 | 賣家後台目前不需要，避免過度開發 | — Pending (v1.4) |
+| 使用 Hook 整合而非修改 FluentCart | 確保升級相容性，降低維護成本 | — Pending (v1.4) |
+| 展開/折疊 UI 交互 | 減少頁面初始載入量，提升 UX | — Pending (v1.4) |
 
 ---
-*Last updated: 2026-02-02 after v1.3 Milestone initialization*
+*Last updated: 2026-02-02 after v1.4 Milestone initialization*
