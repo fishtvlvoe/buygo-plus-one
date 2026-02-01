@@ -112,8 +112,8 @@ class NotificationHandler
                 'items_count' => count($shipment_data['items']),
             ]);
 
-            // TODO: Phase 33-02 - 使用模板引擎生成通知內容
-            // TODO: Phase 33-03 - 調用 NotificationService 發送通知
+            // Phase 33-03: 調用通知發送邏輯
+            $this->send_shipment_notification($shipment_id);
 
         } catch (\Exception $e) {
             // 通知失敗不影響出貨流程，僅記錄錯誤
@@ -121,6 +121,112 @@ class NotificationHandler
                 'shipment_id' => $shipment_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+            ], 'error');
+        }
+    }
+
+    /**
+     * 檢查通知是否已發送（Idempotency 機制）
+     *
+     * 使用 WordPress transient 記錄短期內已處理的出貨單
+     * 防止同一張出貨單重複發送通知
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @return bool 是否已發送通知
+     */
+    private function is_notification_already_sent($shipment_id)
+    {
+        $transient_key = 'buygo_shipment_notified_' . $shipment_id;
+        return get_transient($transient_key) !== false;
+    }
+
+    /**
+     * 標記通知已發送
+     *
+     * 設置 transient 記錄，有效期 5 分鐘
+     * 足以防止短期內的重複觸發，過期後自動清理
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @return void
+     */
+    private function mark_notification_sent($shipment_id)
+    {
+        $transient_key = 'buygo_shipment_notified_' . $shipment_id;
+        set_transient($transient_key, time(), 5 * MINUTE_IN_SECONDS);
+    }
+
+    /**
+     * 發送出貨通知
+     *
+     * 完整的通知發送流程：
+     * 1. Idempotency 檢查
+     * 2. 收集出貨單資料
+     * 3. 檢查買家 LINE 綁定
+     * 4. 準備模板變數
+     * 5. 發送通知給買家（不發給賣家和小幫手）
+     * 6. 標記通知已發送
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @return void
+     */
+    private function send_shipment_notification($shipment_id)
+    {
+        // 1. Idempotency 檢查
+        if ($this->is_notification_already_sent($shipment_id)) {
+            $this->debugService->log('NotificationHandler', '通知已發送，跳過', [
+                'shipment_id' => $shipment_id
+            ]);
+            return;
+        }
+
+        try {
+            // 2. 收集出貨單資料
+            $shipment_data = $this->collect_shipment_data($shipment_id);
+            if (!$shipment_data) {
+                return;
+            }
+
+            // 3. 取得買家 WordPress User ID
+            $customer_id = $shipment_data['customer_id'];
+
+            // 4. 檢查買家是否有 LINE 綁定
+            if (!IdentityService::hasLineBinding($customer_id)) {
+                $this->debugService->log('NotificationHandler', '買家未綁定 LINE，跳過通知', [
+                    'shipment_id' => $shipment_id,
+                    'customer_id' => $customer_id
+                ]);
+                return;
+            }
+
+            // 5. 準備模板變數
+            $template_args = [
+                'product_list' => NotificationTemplates::format_product_list($shipment_data['items']),
+                'shipping_method' => NotificationTemplates::format_shipping_method($shipment_data['shipping_method']),
+                'estimated_delivery' => NotificationTemplates::format_estimated_delivery($shipment_data['estimated_delivery_at'])
+            ];
+
+            // 6. 發送通知（僅發給買家，不發給賣家和小幫手）
+            $result = NotificationService::sendText($customer_id, 'shipment_shipped', $template_args);
+
+            if ($result) {
+                // 7. 標記通知已發送
+                $this->mark_notification_sent($shipment_id);
+                $this->debugService->log('NotificationHandler', '出貨通知發送成功', [
+                    'shipment_id' => $shipment_id,
+                    'customer_id' => $customer_id
+                ]);
+            } else {
+                $this->debugService->log('NotificationHandler', '出貨通知發送失敗', [
+                    'shipment_id' => $shipment_id,
+                    'customer_id' => $customer_id
+                ], 'error');
+            }
+
+        } catch (\Exception $e) {
+            // 確保通知失敗不影響出貨流程
+            $this->debugService->log('NotificationHandler', '出貨通知異常', [
+                'shipment_id' => $shipment_id,
+                'error' => $e->getMessage()
             ], 'error');
         }
     }
@@ -138,20 +244,21 @@ class NotificationHandler
         global $wpdb;
 
         try {
-            // 1. 查詢出貨單基本資訊
+            // 1. 查詢出貨單基本資訊（僅 shipped 狀態）
             $shipment = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}buygo_shipments WHERE id = %d",
+                "SELECT * FROM {$wpdb->prefix}buygo_shipments WHERE id = %d AND status = 'shipped'",
                 $shipment_id
             ));
 
             if (!$shipment) {
-                $this->debugService->log('NotificationHandler', '出貨單不存在', [
+                $this->debugService->log('NotificationHandler', '出貨單不存在或狀態不是 shipped', [
                     'shipment_id' => $shipment_id,
-                ], 'error');
+                ], 'warning');
                 return null;
             }
 
             // 2. 查詢出貨單商品清單（JOIN 產品資料）
+            // 欄位名稱使用 product_name 以對應 NotificationTemplates::format_product_list()
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT
                     si.id,
@@ -159,9 +266,7 @@ class NotificationHandler
                     si.order_item_id,
                     si.product_id,
                     si.quantity,
-                    p.title as product_title,
-                    p.price as product_price,
-                    p.image_url as product_image
+                    COALESCE(p.title, '未知商品') as product_name
                 FROM {$wpdb->prefix}buygo_shipment_items si
                 LEFT JOIN {$wpdb->prefix}buygo_products p ON si.product_id = p.id
                 WHERE si.shipment_id = %d",
