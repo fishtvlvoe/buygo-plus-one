@@ -145,7 +145,7 @@ $dashboard_component_template = <<<'HTML'
                             <div class="activity-content">
                                 <div class="activity-title">訂單 {{ activity.order_id }}</div>
                                 <div class="activity-description">
-                                    {{ activity.customer_name }} · NT$ {{ Math.round(activity.amount).toLocaleString() }}
+                                    {{ activity.customer_name }} · {{ formatCurrency(activity.amount * 100) }}
                                 </div>
                             </div>
                             <div class="activity-time">{{ formatTimeAgo(activity.timestamp) }}</div>

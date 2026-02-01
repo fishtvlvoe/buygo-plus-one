@@ -33,7 +33,7 @@ class DashboardService
     }
 
     /**
-     * 計算儀表板統計數據（本月總覽）
+     * 計算儀表板統計數據（最近 30 天）
      *
      * @param string $currency 幣別 (預設 JPY)
      * @return array 統計數據陣列
@@ -45,11 +45,13 @@ class DashboardService
         ]);
 
         try {
-            $current_month_start = date('Y-m-01 00:00:00');
-            $last_month_start = date('Y-m-01 00:00:00', strtotime('-1 month'));
-            $last_month_end = date('Y-m-t 23:59:59', strtotime('-1 month'));
+            // 最近 30 天 (今天往前推 30 天)
+            $current_period_start = date('Y-m-d 00:00:00', strtotime('-30 days'));
+            // 前 30 天 (31-60 天前)
+            $last_period_start = date('Y-m-d 00:00:00', strtotime('-60 days'));
+            $last_period_end = date('Y-m-d 23:59:59', strtotime('-31 days'));
 
-            // 本月統計（使用慢查詢監控，按幣別篩選）
+            // 最近 30 天統計（移除 payment_status 篩選,計算所有已下單訂單）
             $current_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
@@ -57,15 +59,14 @@ class DashboardService
                     COUNT(DISTINCT customer_id) as customer_count
                  FROM {$this->table_orders}
                  WHERE created_at >= %s
-                     AND payment_status = 'paid'
                      AND currency = %s
                      AND mode = 'live'",
-                $current_month_start,
+                $current_period_start,
                 $currency
             );
             $current_stats = $this->executeWithMonitoring($current_query, 'calculateStats:current');
 
-            // 上月統計（使用慢查詢監控，按幣別篩選）
+            // 前 30 天統計（移除 payment_status 篩選）
             $last_query = $this->wpdb->prepare(
                 "SELECT
                     COUNT(*) as order_count,
@@ -73,11 +74,10 @@ class DashboardService
                     COUNT(DISTINCT customer_id) as customer_count
                  FROM {$this->table_orders}
                  WHERE created_at BETWEEN %s AND %s
-                     AND payment_status = 'paid'
                      AND currency = %s
                      AND mode = 'live'",
-                $last_month_start,
-                $last_month_end,
+                $last_period_start,
+                $last_period_end,
                 $currency
             );
             $last_stats = $this->executeWithMonitoring($last_query, 'calculateStats:last');
@@ -119,23 +119,23 @@ class DashboardService
                     'value' => (int)$current_stats['total_revenue'],
                     'currency' => $currency,
                     'change_percent' => $revenue_change,
-                    'period' => '本月'
+                    'period' => '最近 30 天'
                 ],
                 'total_orders' => [
                     'value' => (int)$current_stats['order_count'],
                     'change_percent' => $order_change,
-                    'period' => '本月'
+                    'period' => '最近 30 天'
                 ],
                 'total_customers' => [
                     'value' => (int)$current_stats['customer_count'],
                     'change_percent' => $customer_change,
-                    'period' => '本月'
+                    'period' => '最近 30 天'
                 ],
                 'avg_order_value' => [
                     'value' => $avg_order_value,
                     'currency' => $currency,
                     'change_percent' => $avg_change,
-                    'period' => '本月'
+                    'period' => '最近 30 天'
                 ]
             ];
 
@@ -171,7 +171,6 @@ class DashboardService
                     COALESCE(SUM(total_amount), 0) as daily_revenue
                  FROM {$this->table_orders}
                  WHERE created_at >= %s
-                     AND payment_status = 'paid'
                      AND currency = %s
                      AND mode = 'live'
                  GROUP BY DATE(created_at)
