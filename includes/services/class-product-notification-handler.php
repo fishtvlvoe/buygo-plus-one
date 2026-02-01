@@ -54,8 +54,16 @@ class ProductNotificationHandler
      */
     public function onProductCreated($product_id, $product_data, $line_uid)
     {
-        // 只處理透過 LINE 建立的商品（有 line_uid）
-        if (empty($line_uid)) {
+        // Debug: 確認 action 被觸發
+        $webhookLogger = WebhookLogger::get_instance();
+        $webhookLogger->log('product_notification_handler_start', [
+            'product_id' => $product_id,
+            'line_uid' => $line_uid,
+        ], $product_data['user_id'] ?? null, $line_uid);
+
+        try {
+            // 只處理透過 LINE 建立的商品（有 line_uid）
+            if (empty($line_uid)) {
             $this->debug_service->log('ProductNotificationHandler', '跳過通知：非 LINE 建立的商品', [
                 'product_id' => $product_id,
             ]);
@@ -152,6 +160,22 @@ class ProductNotificationHandler
             'failed' => $result['failed'] ?? 0,
             'skipped' => $result['skipped'] ?? 0,
         ]);
+
+        } catch (\Exception $e) {
+            // 捕獲異常，記錄錯誤但不中斷流程
+            $webhookLogger->log('product_notification_handler_error', [
+                'product_id' => $product_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], $product_data['user_id'] ?? null, $line_uid);
+        } catch (\Error $e) {
+            // 捕獲 PHP Error（如 TypeError）
+            $webhookLogger->log('product_notification_handler_fatal', [
+                'product_id' => $product_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], $product_data['user_id'] ?? null, $line_uid);
+        }
     }
 
     /**

@@ -49,6 +49,12 @@ class FluentCartService {
 	 * @return int|\WP_Error Product ID or error
 	 */
 	public function create_product( $product_data, $image_ids = array() ) {
+		// Debug: 確認方法有被呼叫
+		$this->webhookLogger->log( 'fluentcart_create_product_start', array(
+			'product_name' => $product_data['name'] ?? '',
+			'user_id' => $product_data['user_id'] ?? null,
+		), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+
 		if ( ! class_exists( 'FluentCart\App\App' ) ) {
 			$error_message = 'FluentCart 未安裝';
 			$this->debugService->log( 'FluentCartService', $error_message, array(
@@ -97,6 +103,12 @@ class FluentCartService {
 				'product_id' => $product_id,
 			), 'info' );
 
+			// Debug: 確認 Post 建立成功
+			$this->webhookLogger->log( 'fluentcart_post_created', array(
+				'product_id' => $product_id,
+				'product_name' => $product_data['name'] ?? '',
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+
 		// 建立 FluentCart 商品詳情
 		// 檢查是否為多樣式產品
 		if ( ! empty( $product_data['variations'] ) && is_array( $product_data['variations'] ) ) {
@@ -116,6 +128,12 @@ class FluentCartService {
 			}
 		} else {
 			// 單一商品：建立單一變體
+			// Debug: 確認進入單一商品建立
+			$this->webhookLogger->log( 'fluentcart_create_details_start', array(
+				'product_id' => $product_id,
+				'type' => 'simple',
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+
 			$details_result = $this->create_product_details( $product_id, $product_data );
 			if ( is_wp_error( $details_result ) ) {
 				// 如果建立失敗，刪除已建立的 post
@@ -169,12 +187,24 @@ class FluentCartService {
 				'payment_term' => 'one_time',
 			), 'info' );
 
+			// Debug: 確認即將觸發 action
+			$this->webhookLogger->log( 'fluentcart_before_action', array(
+				'product_id' => $product_id,
+				'action' => 'buygo/product/created',
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
+
 			do_action( 'buygo/product/created', $product_id, $product_data, $line_uid );
 
 			$this->debugService->log( 'FluentCartService', '商品建立成功', array(
 				'product_id' => $product_id,
 				'product_name' => $product_data['name'] ?? '',
 			), 'info' );
+
+			// Debug: 確認商品建立完成
+			$this->webhookLogger->log( 'fluentcart_product_complete', array(
+				'product_id' => $product_id,
+				'product_name' => $product_data['name'] ?? '',
+			), $product_data['user_id'] ?? null, $product_data['line_uid'] ?? null );
 
 			return $product_id;
 
