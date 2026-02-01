@@ -218,7 +218,22 @@ class LineOrderNotifier {
 		// 1. 取得訂單中的商品，找出賣家
 		$sellerId = $this->getSellerIdFromOrder( $order );
 
+		// Debug: 記錄賣家 ID 取得結果
+		$webhookLogger = WebhookLogger::get_instance();
+		$webhookLogger->log( 'order_notify_seller_lookup', [
+			'order_id' => (int) $order->id,
+			'seller_id' => $sellerId,
+			'seller_id_found' => $sellerId ? 'yes' : 'no',
+		], null, null );
+
 		if ( $sellerId ) {
+			// Debug: 檢查賣家 LINE 綁定狀態
+			$sellerHasLine = IdentityService::hasLineBinding( $sellerId );
+			$webhookLogger->log( 'order_notify_seller_line_check', [
+				'order_id' => (int) $order->id,
+				'seller_id' => $sellerId,
+				'has_line_binding' => $sellerHasLine ? 'yes' : 'no',
+			], $sellerId, null );
 			// 準備賣家通知的模板參數
 			$buyerName = $this->getBuyerNameFromOrder( $order );
 			$orderUrl = admin_url( 'admin.php?page=buygo-orders&id=' . $order->id );
