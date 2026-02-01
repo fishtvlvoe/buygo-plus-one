@@ -342,8 +342,61 @@ class OrderService
     }
 
     /**
+     * 更新付款狀態
+     *
+     * @param int $orderId 訂單 ID
+     * @param string $payment_status 付款狀態 (pending, paid, failed, refunded)
+     * @return bool
+     */
+    public function updatePaymentStatus(int $orderId, string $payment_status): bool
+    {
+        $this->debugService->log('OrderService', '更新付款狀態', [
+            'order_id' => $orderId,
+            'payment_status' => $payment_status
+        ]);
+
+        try {
+            $order = Order::find($orderId);
+
+            if (!$order) {
+                return false;
+            }
+
+            $old_status = $order->payment_status;
+            $order->payment_status = $payment_status;
+
+            // 如果狀態變更為已付款，記錄付款時間
+            if ($payment_status === 'paid' && empty($order->paid_at)) {
+                $order->paid_at = current_time('mysql');
+            }
+
+            $result = $order->save();
+
+            $this->debugService->log('OrderService', '付款狀態更新成功', [
+                'order_id' => $orderId,
+                'old_status' => $old_status,
+                'new_status' => $payment_status
+            ]);
+
+            // 觸發付款狀態變更事件（會觸發子訂單同步）
+            do_action('buygo/order_payment_status_changed', $orderId, $old_status, $payment_status);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('OrderService', '更新付款狀態失敗', [
+                'order_id' => $orderId,
+                'payment_status' => $payment_status,
+                'error' => $e->getMessage()
+            ], 'error');
+
+            return false;
+        }
+    }
+
+    /**
      * 更新運送狀態（使用新的 ShippingStatusService）
-     * 
+     *
      * @param string $orderId 訂單 ID
      * @param string $status 新狀態
      * @param string $reason 變更原因
