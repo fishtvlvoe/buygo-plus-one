@@ -316,37 +316,34 @@ class ProductNotificationHandler
         ];
 
         // 檢查 LINE Messaging API 是否可用
-        if (!class_exists('\BuygoLineNotify\BuygoLineNotify') || !\BuygoLineNotify\BuygoLineNotify::is_active()) {
+        if (!class_exists('\BuygoLineNotify\Services\MessagingService')) {
             $this->debug_service->log('ProductNotificationHandler', 'LINE Messaging API 不可用', [], 'warning');
             $result['skipped'] = count($user_ids);
             return $result;
         }
 
-        $messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
-
         foreach ($user_ids as $user_id) {
-            // 取得用戶的 LINE UID
-            $line_uid = IdentityService::getLineUid($user_id);
+            // 使用 MessagingService::pushText() 發送訊息
+            // 該方法會自動檢查 LINE 綁定狀態並取得 LINE UID
+            $send_result = \BuygoLineNotify\Services\MessagingService::pushText((int) $user_id, $message);
 
-            if (empty($line_uid)) {
-                $this->debug_service->log('ProductNotificationHandler', '用戶未綁定 LINE，跳過', [
-                    'user_id' => $user_id,
-                ]);
-                $result['skipped']++;
-                continue;
-            }
-
-            // 發送推播訊息
-            $send_result = $messaging->pushText($line_uid, $message);
-
-            if ($send_result) {
-                $result['success']++;
+            if (is_wp_error($send_result)) {
+                $error_code = $send_result->get_error_code();
+                if ($error_code === 'user_not_linked' || $error_code === 'line_uid_not_found') {
+                    $this->debug_service->log('ProductNotificationHandler', '用戶未綁定 LINE，跳過', [
+                        'user_id' => $user_id,
+                        'error' => $send_result->get_error_message(),
+                    ]);
+                    $result['skipped']++;
+                } else {
+                    $this->debug_service->log('ProductNotificationHandler', '發送失敗', [
+                        'user_id' => $user_id,
+                        'error' => $send_result->get_error_message(),
+                    ], 'error');
+                    $result['failed']++;
+                }
             } else {
-                $result['failed']++;
-                $this->debug_service->log('ProductNotificationHandler', '發送失敗', [
-                    'user_id' => $user_id,
-                    'line_uid' => $line_uid,
-                ], 'error');
+                $result['success']++;
             }
         }
 
