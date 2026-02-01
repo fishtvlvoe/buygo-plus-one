@@ -593,7 +593,14 @@ class Orders_API {
                 $order_id
             ), ARRAY_A);
 
+            $debugService->log('Orders_API', '開始複製父訂單地址', [
+                'parent_order_id' => $order_id,
+                'child_order_id' => $new_order_id,
+                'parent_addresses_count' => count($parent_addresses)
+            ]);
+
             if (!empty($parent_addresses)) {
+                $addresses_copied = 0;
                 foreach ($parent_addresses as $address) {
                     // 移除 ID 欄位，建立新的地址記錄
                     unset($address['id']);
@@ -601,14 +608,28 @@ class Orders_API {
                     $address['created_at'] = current_time('mysql');
                     $address['updated_at'] = current_time('mysql');
 
-                    $wpdb->insert($table_addresses, $address);
+                    $result = $wpdb->insert($table_addresses, $address);
+
+                    if ($result === false) {
+                        $debugService->log('Orders_API', '地址複製失敗', [
+                            'address_type' => $address['type'] ?? 'unknown',
+                            'error' => $wpdb->last_error
+                        ], 'error');
+                    } else {
+                        $addresses_copied++;
+                    }
                 }
 
-                $debugService->log('Orders_API', '複製父訂單地址到子訂單', [
+                $debugService->log('Orders_API', '複製父訂單地址完成', [
                     'parent_order_id' => $order_id,
                     'child_order_id' => $new_order_id,
-                    'addresses_copied' => count($parent_addresses)
+                    'addresses_copied' => $addresses_copied,
+                    'total_addresses' => count($parent_addresses)
                 ]);
+            } else {
+                $debugService->log('Orders_API', '父訂單沒有地址資料', [
+                    'parent_order_id' => $order_id
+                ], 'warning');
             }
 
             // 同步更新父訂單項目的 _allocated_qty（重新計算而非遞增，確保與實際子訂單同步）
