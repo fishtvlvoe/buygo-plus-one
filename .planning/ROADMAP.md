@@ -1,162 +1,212 @@
-# Roadmap: BuyGo+1 v1.2
+# Roadmap: BuyGo+1 v1.3
 
-**Created:** 2026-02-01
-**Milestone:** v1.2 LINE 通知觸發機制整合
-**Starting Phase:** 28（延續 v1.1 的 Phase 27）
+**Created:** 2026-02-02
+**Milestone:** v1.3 - 出貨通知與 FluentCart 同步系統
+**Starting Phase:** 32（延續 v1.2 的 Phase 31）
+
+## Milestones
+
+- ✅ **v1.0 MVP** - Phases 1-22 (shipped 2026-01-29)
+- ✅ **v1.1 部署優化與會員權限** - Phases 23-27 (shipped 2026-02-01)
+- ✅ **v1.2 LINE 通知觸發機制整合** - Phases 28-31 (shipped 2026-02-01)
+- 🚧 **v1.3 出貨通知與 FluentCart 同步系統** - Phases 32-34 (in progress)
 
 ## Phase Overview
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 28 | 基礎架構與整合 | 建立身份識別和 buygo-line-notify 整合基礎 | IDENT-01~03, INTEG-01~03 | 4 |
-| 29 | Bot 回應邏輯 | 實作 bot 對不同身份的回應規則 | BOT-01~04 | 4 |
-| 30 | 商品上架通知 | 透過 LINE 上架商品時發送通知 | PROD-01~03 | 3 |
-| 31 | 訂單通知 | 訂單建立和狀態變更通知 | ORD-01~04 | 4 |
+| 32 | 資料庫基礎升級 | 擴充出貨單資料模型支援預計送達時間 | DATA-01, DATA-02 | 3 |
+| 33 | 通知觸發與模板引擎 | 實作出貨通知邏輯和模板變數替換 | NOTIF-01~05, TMPL-03, TMPL-05 | 5 |
+| 34 | 模板管理介面 | 提供後台 UI 讓賣家自訂通知模板 | DATA-03, TMPL-01, TMPL-02, TMPL-04 | 4 |
 
 ---
 
-## Phase 28: 基礎架構與整合
+<details>
+<summary>✅ v1.0 MVP (Phases 1-22) - SHIPPED 2026-01-29</summary>
 
-**Goal:** 建立身份識別服務和 buygo-line-notify 整合基礎，為後續通知功能打下基礎
+**Milestone Goal:** 完成設計系統遷移與核心功能
 
-**Requirements:**
-- IDENT-01: 查詢 LINE UID 對應的 WordPress User ID
-- IDENT-02: 判斷用戶角色（賣家/小幫手/買家）
-- IDENT-03: 判斷用戶是否有 LINE 綁定
-- INTEG-01: 監聽 buygo-line-notify 發出的 WordPress hooks
-- INTEG-02: 呼叫 MessagingService 發送 LINE 推播
-- INTEG-03: 移植並使用 NotificationTemplates 模板系統
+### Phase 10-22: [詳細內容見 v1.0 ROADMAP.md]
 
+</details>
+
+<details>
+<summary>✅ v1.1 部署優化與會員權限 (Phases 23-27) - SHIPPED 2026-02-01</summary>
+
+**Milestone Goal:** 實作 GitHub Releases 自動更新機制與多賣家權限系統
+
+### Phase 23-27: [詳細內容見 v1.1 ROADMAP.md]
+
+</details>
+
+<details>
+<summary>✅ v1.2 LINE 通知觸發機制整合 (Phases 28-31) - SHIPPED 2026-02-01</summary>
+
+**Milestone Goal:** 整合 buygo-line-notify，實作商品上架和訂單通知
+
+### Phase 28: 基礎架構與整合
+**Goal:** 建立身份識別服務和 buygo-line-notify 整合基礎
+**Requirements:** IDENT-01~03, INTEG-01~03
 **Success Criteria:**
-1. IdentityService 可以根據 LINE UID 查詢並返回用戶角色
-2. NotificationService 可以成功呼叫 buygo-line-notify 的 MessagingService
-3. NotificationTemplates 模板系統可以產生格式化的通知訊息
-4. 單元測試通過
+  1. IdentityService 可以根據 LINE UID 查詢並返回用戶角色
+  2. NotificationService 可以成功呼叫 buygo-line-notify 的 MessagingService
+  3. NotificationTemplates 模板系統可以產生格式化的通知訊息
+  4. 單元測試通過
 
-**Technical Notes:**
-- 建立 `IdentityService` 類別處理身份識別
-- 建立 `NotificationService` 類別處理通知發送
-- 移植 `NotificationTemplates` 從舊外掛
-- 使用 WordPress hooks 監聽 buygo-line-notify 事件
-- Soft dependency：buygo-line-notify 未啟用時優雅降級
-
-**Dependencies:**
-- buygo-line-notify 外掛（soft dependency）
-- v1.1 完成的 wp_buygo_helpers 資料表
-
----
-
-## Phase 29: Bot 回應邏輯
-
+### Phase 29: Bot 回應邏輯
 **Goal:** 根據用戶身份決定 bot 是否回應訊息
-
-**Requirements:**
-- BOT-01: 賣家發送訊息時，bot 正常回應
-- BOT-02: 小幫手發送訊息時，bot 正常回應
-- BOT-03: 買家發送訊息時，bot 不回應（靜默）
-- BOT-04: 未綁定用戶發送訊息時，bot 不回應（靜默）
-
+**Requirements:** BOT-01~04
 **Success Criteria:**
-1. 賣家傳訊息給 bot，bot 能正常處理並回應
-2. 小幫手傳訊息給 bot，bot 能正常處理並回應
-3. 買家傳訊息給 bot，bot 不發送任何訊息
-4. 未綁定用戶傳訊息給 bot，bot 不發送任何訊息
+  1. 賣家傳訊息給 bot，bot 能正常處理並回應
+  2. 小幫手傳訊息給 bot，bot 能正常處理並回應
+  3. 買家傳訊息給 bot，bot 不發送任何訊息
+  4. 未綁定用戶傳訊息給 bot，bot 不發送任何訊息
 
-**Technical Notes:**
-- 在 buygo-line-notify 的 webhook handler 加入 filter hook
-- buygo-plus-one 監聽 filter 並根據身份決定是否繼續處理
-- 返回 `false` 表示不處理（靜默）
-- 使用 Phase 28 建立的 IdentityService
-
-**Dependencies:**
-- Phase 28 完成（IdentityService）
-
----
-
-## Phase 30: 商品上架通知
-
+### Phase 30: 商品上架通知
 **Goal:** 當賣家透過 LINE 上架商品時，通知相關人員
-
-**Requirements:**
-- PROD-01: 當賣家透過 LINE 上架商品時，觸發通知事件
-- PROD-02: 發送通知給商品擁有者（賣家）
-- PROD-03: 發送通知給所有已綁定 LINE 的小幫手
-
+**Requirements:** PROD-01~03
 **Success Criteria:**
-1. 透過 LINE 上架商品後，賣家收到「商品上架成功」通知
-2. 透過 LINE 上架商品後，所有已綁定 LINE 的小幫手收到通知
-3. FluentCart 後台新增商品時，不發送通知
+  1. 透過 LINE 上架商品後，賣家收到「商品上架成功」通知
+  2. 透過 LINE 上架商品後，所有已綁定 LINE 的小幫手收到通知
+  3. FluentCart 後台新增商品時，不發送通知
 
-**Technical Notes:**
-- 監聽 `buygo_product_created_via_line` hook（或類似）
-- 使用 SettingsService.get_helpers() 取得小幫手列表
-- 使用 IdentityService 判斷誰有 LINE 綁定
-- 使用 NotificationService 發送通知
-- 通知模板：product_created
+### Phase 31: 訂單通知
+**Goal:** 訂單建立和狀態變更時發送通知給相關人員
+**Requirements:** ORD-01~04
+**Success Criteria:**
+  1. 新訂單建立時，賣家收到「新訂單」通知
+  2. 新訂單建立時，小幫手收到「新訂單」通知
+  3. 新訂單建立時，買家收到「訂單已建立」通知（如有 LINE 綁定）
+  4. 訂單狀態變更（如：已出貨、已完成），僅買家收到通知
 
-**Dependencies:**
-- Phase 28 完成（NotificationService, IdentityService）
-- buygo-line-notify 的商品建立 hook
+</details>
 
 ---
 
-## Phase 31: 訂單通知
+## 🚧 v1.3 出貨通知與 FluentCart 同步系統 (In Progress)
 
-**Goal:** 訂單建立和狀態變更時發送通知給相關人員
+**Milestone Goal:** 完善出貨流程，實作 LINE 出貨通知功能，讓買家在商品出貨時收到即時通知
+
+**Context:**
+- 現有出貨單資料模型已完成（buygo_shipments, buygo_shipment_items）
+- 標記出貨時會自動更新子訂單 shipping_status = 'shipped'
+- buygo-line-notify 整合基礎已建立（v1.2）
+- 缺少：出貨通知觸發器、預計送達時間欄位、模板管理 UI
+
+---
+
+### Phase 32: 資料庫基礎升級
+
+**Goal:** 擴充 buygo_shipments 資料表，支援預計送達時間欄位
+
+**Depends on:** v1.2 Phase 31 完成
 
 **Requirements:**
-- ORD-01: 新訂單建立時，通知賣家
-- ORD-02: 新訂單建立時，通知所有已綁定 LINE 的小幫手
-- ORD-03: 新訂單建立時，通知買家（如果買家有 LINE 綁定）
-- ORD-04: 訂單狀態變更時，僅通知買家
+- DATA-01: 新增 estimated_delivery_at 欄位到 buygo_shipments 表
+- DATA-02: 資料庫升級腳本
 
-**Success Criteria:**
-1. 新訂單建立時，賣家收到「新訂單」通知
-2. 新訂單建立時，小幫手收到「新訂單」通知
-3. 新訂單建立時，買家收到「訂單已建立」通知（如有 LINE 綁定）
-4. 訂單狀態變更（如：已出貨、已完成），僅買家收到通知
+**Success Criteria** (what must be TRUE):
+1. buygo_shipments 表包含 estimated_delivery_at 欄位（DATETIME, NULL allowed）
+2. 從舊版本升級到新版本時，dbDelta 自動新增欄位而不影響現有資料
+3. Plugin::DB_VERSION 版本號正確更新，確保升級邏輯不重複執行
 
-**Technical Notes:**
-- 監聽 FluentCart 訂單 hooks：
-  - `fluent_cart/order/created` — 新訂單
-  - `fluent_cart/order/status_changed` — 狀態變更
-- 訂單通知需要找出商品的 post_author（賣家）
-- 使用 SettingsService.get_helpers() 取得小幫手
-- 通知模板：
-  - seller_order_created
-  - helper_order_created
-  - buyer_order_created
-  - buyer_order_status_changed
+**Plans:** TBD
 
-**Dependencies:**
-- Phase 28 完成（NotificationService, IdentityService）
-- Phase 30 完成（商品通知模式可複用）
+Plans:
+- [ ] 32-01: TBD
+
+---
+
+### Phase 33: 通知觸發與模板引擎
+
+**Goal:** 實作出貨通知觸發邏輯、模板變數替換，和買家 LINE 通知發送
+
+**Depends on:** Phase 32（需要 estimated_delivery_at 欄位）
+
+**Requirements:**
+- NOTIF-01: NotificationHandler 監聽出貨單標記為「已出貨」事件
+- NOTIF-02: 收集出貨單資訊（商品清單、數量、物流方式、預計送達時間）
+- NOTIF-03: 套用出貨通知模板（NotificationTemplates::shipment_shipped）
+- NOTIF-04: 透過 NotificationService 發送 LINE 通知給買家
+- NOTIF-05: 確保一張出貨單只發送一次通知（即使包含多個子訂單）
+- TMPL-03: 預設出貨通知模板
+- TMPL-05: 模板變數替換邏輯
+
+**Success Criteria** (what must be TRUE):
+1. 賣家標記出貨單為「已出貨」時，自動觸發 buygo/shipment/marked_as_shipped 事件
+2. NotificationHandler 正確收集出貨單資訊（商品清單、物流方式、預計送達時間）
+3. 出貨通知使用預設模板，變數 {product_list}、{shipping_method}、{estimated_delivery} 正確替換為實際資料
+4. 僅買家收到 LINE 通知，賣家和小幫手不收到
+5. 同一張出貨單不會重複發送通知（idempotency 機制）
+
+**Plans:** TBD
+
+Plans:
+- [ ] 33-01: TBD
+
+---
+
+### Phase 34: 模板管理介面
+
+**Goal:** 提供後台 UI 讓賣家自訂出貨通知模板，並在出貨單建立/編輯表單中新增預計送達時間輸入欄位
+
+**Depends on:** Phase 33（需要通知邏輯完成以測試模板）
+
+**Requirements:**
+- DATA-03: 後台出貨單建立/編輯表單新增「預計送達時間」輸入欄位
+- TMPL-01: Settings 頁面新增「通知模板」設定區塊
+- TMPL-02: 出貨通知模板編輯器（支援變數：{product_list}、{shipping_method}、{estimated_delivery}）
+- TMPL-04: 模板儲存到 wp_options（buygo_notification_template_shipment_shipped）
+
+**Success Criteria** (what must be TRUE):
+1. Settings 頁面顯示「通知模板管理」區塊，列出所有可用通知類型（商品上架、新訂單、訂單狀態變更、出貨通知）
+2. 賣家可以編輯出貨通知模板，系統顯示可用變數列表，並提供「重設為預設值」按鈕
+3. 模板儲存到 wp_options（key: buygo_notification_template_shipment_shipped），使用多層快取（static cache + wp_cache）
+4. 出貨單建立/編輯頁面顯示「預計送達時間」日期選擇器（選填），儲存時格式化為 MySQL DATETIME 格式
+
+**Plans:** TBD
+
+Plans:
+- [ ] 34-01: TBD
+
+---
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 32 → 33 → 34
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 32. 資料庫基礎升級 | 0/TBD | Not started | - |
+| 33. 通知觸發與模板引擎 | 0/TBD | Not started | - |
+| 34. 模板管理介面 | 0/TBD | Not started | - |
 
 ---
 
 ## Milestone Success Criteria
 
-v1.2 完成時，系統應具備：
+v1.3 完成時，系統應具備：
 
-1. **身份識別**
-   - 可根據 LINE UID 識別用戶身份
-   - 可判斷用戶是賣家、小幫手、買家或未綁定
+1. **資料模型擴充**
+   - buygo_shipments 表包含 estimated_delivery_at 欄位
+   - 賣家可在建立/編輯出貨單時輸入預計送達時間
 
-2. **Bot 回應邏輯**
-   - 賣家/小幫手可與 bot 互動
-   - 買家/未綁定用戶發訊息時 bot 靜默
+2. **LINE 出貨通知**
+   - 賣家標記出貨單為「已出貨」→ 自動通知買家
+   - 通知內容包含：商品清單、數量、物流方式、預計送達時間
+   - 一張出貨單只發送一次通知（即使包含多個子訂單）
+   - 僅通知買家（賣家和小幫手不收通知）
 
-3. **商品上架通知**
-   - LINE 上架商品 → 賣家 + 小幫手收到通知
-   - FluentCart 後台操作不觸發通知
+3. **通知模板管理**
+   - Settings 頁面提供模板管理 UI
+   - 預設出貨通知模板清晰易懂
+   - 賣家可自訂模板內容（變數替換功能）
 
-4. **訂單通知**
-   - 新訂單 → 賣家 + 小幫手 + 買家 收到通知
-   - 狀態變更 → 僅買家收到通知
-
-5. **整合**
-   - 與 buygo-line-notify 正確整合
-   - 模板系統可自訂訊息內容
+4. **整合與相容性**
+   - 與 buygo-line-notify 整合（Soft Dependency 模式）
+   - 資料庫升級平滑，不影響現有功能
+   - 向後相容，未填寫預計送達時間時優雅降級
 
 ---
 
@@ -164,11 +214,12 @@ v1.2 完成時，系統應具備：
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| buygo-line-notify API 變更 | Low | High | 使用版本檢查，soft dependency |
-| LINE API 限制（發送頻率） | Medium | Medium | 實作佇列機制，批次發送 |
-| 通知太頻繁造成用戶困擾 | Medium | Low | 提供通知設定選項（未來功能）|
+| dbDelta 語法錯誤導致升級失敗 | Low | High | 嚴格遵循 WordPress 官方文件格式，測試升級流程 |
+| 重複發送通知（idempotency 失敗） | Medium | Medium | 使用 notification_sent_at 欄位和嚴格檢查 |
+| 模板變數替換錯誤（XSS 漏洞） | Low | High | 使用 esc_html() 防止 XSS，單元測試覆蓋變數替換邏輯 |
+| buygo-line-notify 未啟用 | Low | Low | 已實作 Soft Dependency 模式，優雅降級 |
 
 ---
 
-*Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01 after initial creation*
+*Roadmap created: 2026-02-02*
+*Last updated: 2026-02-02 after initial creation*

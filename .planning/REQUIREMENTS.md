@@ -148,24 +148,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| NOTIF-01 | TBD | Pending |
-| NOTIF-02 | TBD | Pending |
-| NOTIF-03 | TBD | Pending |
-| NOTIF-04 | TBD | Pending |
-| NOTIF-05 | TBD | Pending |
-| TMPL-01 | TBD | Pending |
-| TMPL-02 | TBD | Pending |
-| TMPL-03 | TBD | Pending |
-| TMPL-04 | TBD | Pending |
-| TMPL-05 | TBD | Pending |
+| DATA-01 | Phase 32 | Pending |
+| DATA-02 | Phase 32 | Pending |
+| DATA-03 | Phase 34 | Pending |
+| NOTIF-01 | Phase 33 | Pending |
+| NOTIF-02 | Phase 33 | Pending |
+| NOTIF-03 | Phase 33 | Pending |
+| NOTIF-04 | Phase 33 | Pending |
+| NOTIF-05 | Phase 33 | Pending |
+| TMPL-01 | Phase 34 | Pending |
+| TMPL-02 | Phase 34 | Pending |
+| TMPL-03 | Phase 33 | Pending |
+| TMPL-04 | Phase 34 | Pending |
+| TMPL-05 | Phase 33 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 13 total
-- Mapped to phases: 0 (待 roadmap 建立後更新)
-- Unmapped: 13
+- Mapped to phases: 13/13 (100% coverage)
+- Phase 32 (資料庫基礎升級): 2 requirements
+- Phase 33 (通知觸發與模板引擎): 7 requirements
+- Phase 34 (模板管理介面): 4 requirements
 
 ---
 
@@ -208,4 +210,4 @@
 
 ---
 
-*Last updated: 2026-02-02 after v1.3 milestone research and requirements definition*
+*Last updated: 2026-02-02 after v1.3 roadmap creation and traceability mapping*
