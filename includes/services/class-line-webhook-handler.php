@@ -1049,15 +1049,23 @@ class LineWebhookHandler {
 		), $user->ID, $line_uid );
 
 		// Prepare template arguments
-		// 根據幣別設定符號（日幣用 JPY，台幣用 NT$）
+		// 根據幣別設定符號（支援多種貨幣）
 		$currency = $product_data['currency'] ?? 'TWD';
-		if ( $currency === 'JPY' || $currency === '日幣' ) {
-			$currency_symbol = 'JPY';
-		} elseif ( $currency === 'TWD' || $currency === '台幣' ) {
-			$currency_symbol = 'NT$';
-		} else {
-			$currency_symbol = $currency;
-		}
+		$currency_map = array(
+			'JPY' => 'JPY',
+			'日幣' => 'JPY',
+			'TWD' => 'NT$',
+			'台幣' => 'NT$',
+			'USD' => 'US$',
+			'美金' => 'US$',
+			'CNY' => '¥',
+			'人民幣' => '¥',
+			'EUR' => '€',
+			'歐元' => '€',
+			'KRW' => '₩',
+			'韓幣' => '₩',
+		);
+		$currency_symbol = isset( $currency_map[ $currency ] ) ? $currency_map[ $currency ] : $currency;
 		
 		// 產生原價區塊（如果有原價）
 		// 支援多樣式產品的多個原價（用斜線分隔顯示）
@@ -1124,12 +1132,6 @@ class LineWebhookHandler {
 			$preorder_date_section = "\n預購日期：{$preorder_date}";
 		}
 		
-		// 產生社群連結區塊（如果有社群連結）
-		$community_url_section = '';
-		if ( ! empty( $product_data['community_url'] ) ) {
-			$community_url_section = "\n\n社群討論：\n{$product_data['community_url']}";
-		}
-		
 		// 處理多樣式產品的價格和數量顯示
 		$price_display = '';
 		$quantity_display = '';
@@ -1172,7 +1174,6 @@ class LineWebhookHandler {
 			'category_section' => $category_section,
 			'arrival_date_section' => $arrival_date_section,
 			'preorder_date_section' => $preorder_date_section,
-			'community_url_section' => $community_url_section,
 		);
 
 		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_published', $template_args );
