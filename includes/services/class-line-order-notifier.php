@@ -236,7 +236,8 @@ class LineOrderNotifier {
 			], $sellerId, null );
 			// 準備賣家通知的模板參數
 			$buyerName = $this->getBuyerNameFromOrder( $order );
-			$orderUrl = admin_url( 'admin.php?page=buygo-orders&id=' . $order->id );
+			// 使用前台訂單頁面網址（buygo-portal 子分頁格式）
+			$orderUrl = home_url( '/buygo-portal/orders/?view=detail&id=' . $order->id );
 			$sellerArgs = [
 				'order_id' => (string) $order->id,
 				'buyer_name' => $buyerName,
