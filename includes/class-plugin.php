@@ -210,6 +210,11 @@ class Plugin {
         // 訂單狀態變更：僅通知買家
         new \BuyGoPlus\Services\LineOrderNotifier();
 
+        // 初始化出貨通知處理器（Phase 33）
+        // 監聽 ShipmentService 出貨事件，觸發出貨通知
+        $notification_handler = \BuyGoPlus\Services\NotificationHandler::get_instance();
+        $notification_handler->register_hooks();
+
         // 初始化 LINE 關鍵字回覆功能
         // 用戶可在 LINE 中輸入 /ID、/綁定、/help 等指令查詢狀態
         \BuyGoPlus\Services\LineKeywordResponder::instance()->init();
