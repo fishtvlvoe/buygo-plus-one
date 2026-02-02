@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-02
-**專案版本:** v1.4 Phase 36 Plan 01 完成
+**專案版本:** v1.4 Phase 36 Plan 02 完成
 
 ---
 
@@ -19,8 +19,8 @@
 
 **Milestone:** v1.4 - 會員前台子訂單顯示功能
 **Phase:** 36 (子訂單查詢與 API 服務)
-**Plan:** 01 of TBD
-**Status:** 完成 (36-01-PLAN.md 執行完畢)
+**Plan:** 02 of TBD
+**Status:** 完成 (36-02-PLAN.md 執行完畢)
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -34,7 +34,7 @@
 **下一個 Milestone:**
 - **v1.5** — TBD
 
-**Progress (v1.4 Phase 36):** [███░░░░░░░] 33% (1 of 3 phases started)
+**Progress (v1.4 Phase 36):** [██████░░░░] 66% (2 of 3 plans in Phase 36 complete)
 
 ---
 
@@ -54,16 +54,20 @@
 | 37 - 前端 UI 元件與互動 | 6 (UI-01~06) | TBD | Not started |
 
 **Recent Activity:**
+- 2026-02-02: Phase 36 Plan 02 完成 - ChildOrders_API REST 端點
 - 2026-02-02: Phase 36 Plan 01 完成 - ChildOrderService 子訂單查詢服務
 - 2026-02-02: Phase 35 完成 - FluentCart Hook 整合
 - 2026-02-02: Phase 34 Plan 01 完成 - 模板管理介面（TMPL-01 通知類型和重設為預設值功能）
-- 2026-02-02: v1.4 ROADMAP.md 建立完成
 
 ---
 
 ## 累積決策
 
 最近影響當前開發的決策（詳見 PROJECT.md 和 ROADMAP.md）：
+
+**Phase 36-02 決策:**
+- **使用 is_user_logged_in() 權限驗證**: 顧客前台 API 不需後台權限，搭配 Service 層 customer_id 驗證實現雙層安全
+- **require_once 在 __construct() 中**: 符合現有 API 類別模式
 
 **Phase 36-01 決策:**
 - **getCustomerIdFromUserId 為靜態方法**: 方便在 API 層直接呼叫，無需實例化 Service
@@ -114,7 +118,7 @@
 
 - [x] Phase 35: FluentCart Hook 探索與注入點設定
 - [x] Phase 36-01: ChildOrderService 子訂單查詢服務
-- [ ] Phase 36-02: ChildOrders_API REST 端點
+- [x] Phase 36-02: ChildOrders_API REST 端點
 - [ ] Phase 37: 前端 UI 元件與互動
 
 ---
@@ -157,23 +161,23 @@
 ## 會話連續性
 
 **Last session:** 2026-02-02
-**Stopped at:** Phase 36 Plan 01 完成（ChildOrderService 子訂單查詢服務）
+**Stopped at:** Phase 36 Plan 02 完成（ChildOrders_API REST 端點）
 **Resume file:** 無
 
 **下一步:**
-1. 執行 Phase 36-02（ChildOrders_API REST 端點）
-2. 完成 Phase 36 後進入 Phase 37（前端 UI）
+1. 確認 Phase 36 是否還有其他計畫（如 36-03）
+2. 若 Phase 36 完成，進入 Phase 37（前端 UI 元件與互動）
 3. 完成 v1.4 milestone
 
 **Resume command:**
 ```bash
-# 檢查 Phase 36 下一個計畫
+# 檢查 Phase 36 剩餘計畫
 ls -la .planning/phases/36-子訂單查詢與api服務/
 
-# 執行 36-02-PLAN.md
-/gsd:execute-plan .planning/phases/36-子訂單查詢與api服務/36-02-PLAN.md
+# 若 Phase 36 完成，開始 Phase 37
+ls -la .planning/phases/37-前端UI元件與互動/
 ```
 
 ---
 
-*State updated: 2026-02-02 after Phase 36 Plan 01 completion*
+*State updated: 2026-02-02 after Phase 36 Plan 02 completion*
