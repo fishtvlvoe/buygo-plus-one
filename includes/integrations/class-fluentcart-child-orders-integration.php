@@ -40,24 +40,55 @@ class FluentCartChildOrdersIntegration {
 			return;
 		}
 
-		// 從 URL 解析訂單 ID
+		// 從 URL 解析訂單 ID（用於訂單詳情頁）
 		$order_id = self::get_order_id_from_url();
 
-		// 如果沒有訂單 ID（例如在訂單列表頁），不顯示 widget
-		if ( ! $order_id ) {
+		// 檢查是否為購買歷史列表頁
+		$is_purchase_history = self::is_purchase_history_page();
+
+		// 如果不在訂單詳情頁也不在購買歷史頁，不顯示
+		if ( ! $order_id && ! $is_purchase_history ) {
 			return;
 		}
 
 		?>
 		<div id="buygo-child-orders-widget" class="buygo-child-orders-widget">
-			<button id="buygo-view-child-orders-btn" class="buygo-btn buygo-btn-primary" data-expanded="false" data-order-id="<?php echo \esc_attr( $order_id ); ?>">
-				查看子訂單
-			</button>
+			<?php if ( $order_id ) : ?>
+				<!-- 訂單詳情頁模式：直接顯示該訂單的子訂單 -->
+				<button id="buygo-view-child-orders-btn" class="buygo-btn buygo-btn-primary" data-expanded="false" data-order-id="<?php echo \esc_attr( $order_id ); ?>">
+					查看子訂單
+				</button>
+			<?php else : ?>
+				<!-- 購買歷史頁模式：使用 MutationObserver 動態注入按鈕到訂單列表 -->
+				<div class="buygo-child-orders-header">
+					<h3>子訂單查詢</h3>
+					<p>點擊訂單列表中的「子訂單」按鈕查看詳情</p>
+				</div>
+			<?php endif; ?>
 			<div id="buygo-child-orders-container" class="buygo-child-orders-container" style="display: none;">
 				<!-- 內容由 JavaScript 動態載入 -->
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * 檢查是否為購買歷史列表頁（非訂單詳情頁）
+	 *
+	 * @return bool
+	 */
+	private static function is_purchase_history_page(): bool {
+		$current_url = $_SERVER['REQUEST_URI'] ?? '';
+
+		// 購買歷史列表頁 URL
+		if ( strpos( $current_url, '/my-account/purchase-history' ) !== false ) {
+			// 排除訂單詳情頁（URL 包含 /order/）
+			if ( strpos( $current_url, '/order/' ) === false ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -415,6 +446,57 @@ class FluentCartChildOrdersIntegration {
 
 		.buygo-error-state .buygo-empty-icon {
 			color: #ef4444;
+		}
+
+		/* 購買歷史頁面 - 標題區塊 */
+		.buygo-child-orders-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 16px;
+		}
+
+		.buygo-child-orders-header h3 {
+			margin: 0;
+			font-size: 16px;
+			font-weight: 600;
+			color: #111827;
+		}
+
+		.buygo-child-orders-header p {
+			margin: 4px 0 0;
+			font-size: 13px;
+			color: #6b7280;
+		}
+
+		/* 關閉按鈕 */
+		.buygo-close-btn {
+			background: transparent;
+			border: none;
+			padding: 8px;
+			cursor: pointer;
+			color: #6b7280;
+			border-radius: 4px;
+			transition: all 0.2s ease;
+		}
+
+		.buygo-close-btn:hover {
+			background: #f3f4f6;
+			color: #111827;
+		}
+
+		/* 小型按鈕 - 用於訂單列表中的內聯按鈕 */
+		.buygo-btn-sm {
+			padding: 6px 12px;
+			font-size: 12px;
+			min-height: 32px;
+			border-radius: 4px;
+		}
+
+		/* 內聯子訂單按鈕 */
+		.buygo-child-orders-inline-btn {
+			margin-left: 8px;
+			vertical-align: middle;
 		}
 
 		/* 響應式設計 - 桌面版 */
