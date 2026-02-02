@@ -154,10 +154,10 @@ Plans:
 5. 在手機（< 768px）和桌面（>= 768px）都能正確顯示，手機版自動切換為垂直佈局
 6. 錯誤情況顯示友善提示（訂單無子訂單、API 錯誤、權限不足）
 
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 37-01: TBD
+- [ ] 37-01-PLAN.md — 前端 UI 元件完整實作（JavaScript API 呼叫、CSS 樣式、訂單 ID 傳遞）
 
 ---
 
@@ -168,9 +168,9 @@ Phases execute in numeric order: 35 → 36 → 37
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 35. FluentCart Hook 探索與注入點設定 | 0/TBD | Not started | - |
-| 36. 子訂單查詢與 API 服務 | 0/TBD | Not started | - |
-| 37. 前端 UI 元件與互動 | 0/TBD | Not started | - |
+| 35. FluentCart Hook 探索與注入點設定 | 1/1 | Complete | 2026-02-02 |
+| 36. 子訂單查詢與 API 服務 | 2/2 | Complete | 2026-02-02 |
+| 37. 前端 UI 元件與互動 | 0/1 | Not started | - |
 
 ---
 
