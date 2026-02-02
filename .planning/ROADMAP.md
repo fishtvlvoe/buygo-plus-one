@@ -94,10 +94,10 @@
 2. 在主訂單詳情頁面可以看到「查看子訂單」按鈕（位於主訂單資訊下方）
 3. 按鈕下方存在隱藏的 div 容器（id="buygo-child-orders-container"），點擊按鈕時容器展開
 
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 35-01: TBD
+- [ ] 35-01-PLAN.md — FluentCart Hook 整合基礎，注入按鈕和容器
 
 ---
 
