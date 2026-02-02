@@ -64,24 +64,28 @@ class FluentCartChildOrdersIntegration {
 	 * 從 URL 解析訂單 ID
 	 *
 	 * FluentCart 訂單詳情頁面 URL 格式：
+	 * - /my-account/order/{order_hash}
 	 * - /my-account/purchase-history/order/{order_id}
 	 * - /customer-profile/orders/{order_id}
 	 *
-	 * @return int|null 訂單 ID，或 null 如果無法解析
+	 * @return string|null 訂單 ID（數字或 hash），或 null 如果無法解析
 	 */
-	private static function get_order_id_from_url(): ?int {
+	private static function get_order_id_from_url(): ?string {
 		$current_url = $_SERVER['REQUEST_URI'] ?? '';
 
-		// 嘗試匹配多種 URL 格式
+		// 嘗試匹配多種 URL 格式（支援數字和 hash 格式）
 		$patterns = [
-			'/\/order\/(\d+)/',              // /order/123
+			'/\/order\/([a-f0-9]{32})/',     // /order/{32字元hash}（FluentCart hash 格式）
+			'/\/order\/(\d+)/',              // /order/123（數字格式）
+			'/\/orders\/([a-f0-9]{32})/',    // /orders/{32字元hash}
 			'/\/orders\/(\d+)/',             // /orders/123
-			'/[?&]order_id=(\d+)/',          // ?order_id=123 或 &order_id=123
+			'/[?&]order_id=([a-f0-9]{32})/', // ?order_id={hash}
+			'/[?&]order_id=(\d+)/',          // ?order_id=123
 		];
 
 		foreach ( $patterns as $pattern ) {
 			if ( preg_match( $pattern, $current_url, $matches ) ) {
-				return (int) $matches[1];
+				return $matches[1];
 			}
 		}
 
