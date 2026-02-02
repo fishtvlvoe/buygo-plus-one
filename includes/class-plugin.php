@@ -124,6 +124,9 @@ class Plugin {
         // 載入 FluentCart/FluentCommunity 整合
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
+
+        // FluentCart 整合
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-child-orders-integration.php';
     }
     
     /**
@@ -178,6 +181,11 @@ class Plugin {
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
             new FluentCommunity();
+        }
+
+        // 初始化 FluentCart 整合（只在 FluentCart 啟用時）
+        if (class_exists('FluentCart\\App\\App')) {
+            \BuygoPlus\Integrations\FluentCartChildOrdersIntegration::register_hooks();
         }
 
         // 初始化結帳頁面自訂服務（身分證字號等）
