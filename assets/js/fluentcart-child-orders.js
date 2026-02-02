@@ -261,15 +261,21 @@
 	}
 
 	/**
-	 * 初始化訂單詳情頁模式
+	 * 綁定按鈕事件
 	 */
-	function init() {
+	function bindButtonEvents() {
 		var button = document.getElementById('buygo-view-child-orders-btn');
 		var container = document.getElementById('buygo-child-orders-container');
 
 		if (!button || !container) {
-			return;
+			return false;
 		}
+
+		// 避免重複綁定
+		if (button.dataset.bound === 'true') {
+			return true;
+		}
+		button.dataset.bound = 'true';
 
 		// 取得訂單 ID
 		var orderId = button.dataset.orderId;
@@ -295,9 +301,37 @@
 				}
 			}
 		});
+
+		return true;
 	}
 
-	// 等待 DOM 載入完成
-	document.addEventListener('DOMContentLoaded', init);
+	/**
+	 * 初始化 - 使用輪詢等待 DOM 元素出現
+	 * 因為 Vue 是動態渲染，DOMContentLoaded 時元素可能還不存在
+	 */
+	function init() {
+		// 嘗試立即綁定
+		if (bindButtonEvents()) {
+			return;
+		}
+
+		// 如果元素還不存在，使用輪詢等待（最多等 5 秒）
+		var attempts = 0;
+		var maxAttempts = 50; // 50 * 100ms = 5 秒
+		var interval = setInterval(function() {
+			attempts++;
+			if (bindButtonEvents() || attempts >= maxAttempts) {
+				clearInterval(interval);
+			}
+		}, 100);
+	}
+
+	// 等待 DOM 載入完成後開始初始化
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		// DOM 已經載入完成
+		init();
+	}
 
 })();
