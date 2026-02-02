@@ -56,10 +56,11 @@ class FluentCartChildOrdersIntegration {
 	 * 載入 JavaScript 和 CSS
 	 */
 	public static function enqueue_assets(): void {
-		// 只在客戶檔案頁面載入
-		if ( ! self::is_customer_profile_page() ) {
-			return;
-		}
+		// 暫時移除頁面檢查，讓腳本在所有頁面載入以便測試
+		// TODO: 恢復頁面檢查或使用更可靠的檢測方式
+		// if ( ! self::is_customer_profile_page() ) {
+		// 	return;
+		// }
 
 		// 註冊 JavaScript
 		\wp_enqueue_script(
