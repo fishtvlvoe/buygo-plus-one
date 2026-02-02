@@ -569,7 +569,7 @@ class Shipments_API
 
     /**
      * 批次標記為已出貨
-     * 
+     *
      * @param WP_REST_Request $request
      * @return WP_REST_Response|WP_Error
      */
@@ -577,12 +577,23 @@ class Shipments_API
     {
         $params = $request->get_json_params();
         $shipment_ids = $params['shipment_ids'] ?? [];
+        $estimated_delivery_at = isset($params['estimated_delivery_at'])
+            ? sanitize_text_field($params['estimated_delivery_at'])
+            : null;
 
         if (empty($shipment_ids)) {
             return new WP_Error('missing_shipment_ids', '請選擇要標記的出貨單', ['status' => 400]);
         }
 
-        $result = $this->shipmentService->mark_shipped($shipment_ids);
+        // 驗證日期格式（如果有值）
+        if ($estimated_delivery_at && !strtotime($estimated_delivery_at)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => '預計送達時間格式錯誤'
+            ], 400);
+        }
+
+        $result = $this->shipmentService->mark_shipped($shipment_ids, $estimated_delivery_at);
 
         if (is_wp_error($result)) {
             return $result;
