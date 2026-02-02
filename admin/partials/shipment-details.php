@@ -525,13 +525,61 @@ $shipment_details_template .= <<<'HTML'
                         <span class="text-sm text-slate-600 w-20 shrink-0">追蹤號碼</span>
                         <span class="text-sm text-slate-900">{{ detailModal.shipment?.tracking_number || '-' }}</span>
                     </div>
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">預計送達</span>
+                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.estimated_delivery_at ? formatDate(detailModal.shipment.estimated_delivery_at) : '-' }}</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div><!-- 子分頁視圖結束 -->
 
+    <!-- 標記已出貨 Modal -->
+    <div
+        v-if="markShippedModal.show"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        @click.self="closeMarkShippedModal"
+    >
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">標記已出貨</h3>
+                <div class="mb-4">
+                    <p class="text-sm text-slate-600 mb-2">出貨單號：{{ markShippedModal.shipment?.shipment_number }}</p>
+                    <p class="text-sm text-slate-600 mb-4">客戶姓名：{{ markShippedModal.shipment?.customer_name }}</p>
+                </div>
+
+                <!-- 預計送達時間（選填） -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">預計送達時間（選填）</label>
+                    <input
+                        type="date"
+                        v-model="markShippedModal.estimated_delivery_date"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
+                        :min="getTodayDate()"
+                    />
+                    <p class="text-xs text-slate-500 mt-1">此資訊會顯示在出貨通知中</p>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="closeMarkShippedModal"
+                        class="btn btn-secondary"
+                    >
+                        取消
+                    </button>
+                    <button
+                        @click="confirmMarkShipped"
+                        class="btn btn-primary"
+                    >
+                        確認出貨
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 確認 Modal -->
-    <div 
+    <div
         v-if="confirmModal.show"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
         @click.self="closeConfirmModal"
