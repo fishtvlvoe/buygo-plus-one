@@ -2,9 +2,7 @@
  * FluentCart 子訂單展開/折疊功能
  *
  * 使用 Vanilla JavaScript 實作，避免與 FluentCart Vue 3 衝突
- * 支援兩種模式：
- * 1. 訂單詳情頁：直接顯示按鈕
- * 2. 購買歷史列表頁：動態注入按鈕到每一行訂單
+ * 只在訂單詳情頁運作，不嘗試在購買歷史列表中注入按鈕
  *
  * @package BuygoPlus
  */
@@ -83,7 +81,7 @@
 	function renderLoading() {
 		return '<div class="buygo-loading">' +
 			'<div class="buygo-loading-spinner"></div>' +
-			'<p>載入中...</p>' +
+			'<p>載入子訂單中...</p>' +
 		'</div>';
 	}
 
@@ -263,165 +261,14 @@
 	}
 
 	/**
-	 * 從訂單連結取得訂單 hash
-	 *
-	 * @param {HTMLElement} row - 訂單列表行元素
-	 * @return {string|null} 訂單 hash
-	 */
-	function getOrderHashFromRow(row) {
-		// 嘗試找到連結到訂單詳情頁的 <a> 標籤
-		var links = row.querySelectorAll('a[href*="/order/"]');
-		for (var i = 0; i < links.length; i++) {
-			var href = links[i].getAttribute('href');
-			var match = href.match(/\/order\/([a-f0-9]{32})/);
-			if (match) {
-				return match[1];
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * 在訂單列表行中注入子訂單按鈕
-	 *
-	 * @param {HTMLElement} row - 訂單列表行元素
-	 * @param {string} orderHash - 訂單 hash
-	 */
-	function injectButtonToRow(row, orderHash) {
-		// 檢查是否已經注入過
-		if (row.querySelector('.buygo-child-orders-inline-btn')) {
-			return;
-		}
-
-		// 建立按鈕
-		var btn = document.createElement('button');
-		btn.className = 'buygo-child-orders-inline-btn buygo-btn buygo-btn-sm';
-		btn.textContent = '子訂單';
-		btn.dataset.orderId = orderHash;
-		btn.type = 'button';
-
-		// 找到適合的位置注入（通常在最後一個 cell 或 action 區域）
-		var actionCell = row.querySelector('td:last-child, .actions, .order-actions');
-		if (actionCell) {
-			actionCell.appendChild(btn);
-		} else {
-			// 如果找不到特定位置，直接加到行尾
-			row.appendChild(btn);
-		}
-
-		// 綁定點擊事件
-		btn.addEventListener('click', function(e) {
-			e.preventDefault();
-			e.stopPropagation();
-			showChildOrdersModal(orderHash);
-		});
-	}
-
-	/**
-	 * 顯示子訂單 Modal
-	 *
-	 * @param {string} orderId - 訂單 hash
-	 */
-	function showChildOrdersModal(orderId) {
-		var container = document.getElementById('buygo-child-orders-container');
-		var widget = document.getElementById('buygo-child-orders-widget');
-
-		if (!container || !widget) {
-			return;
-		}
-
-		// 顯示容器
-		container.style.display = 'block';
-
-		// 滾動到容器位置
-		widget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-		// 載入子訂單資料
-		container.dataset.loaded = '';
-		loadChildOrders(orderId, container);
-
-		// 更新標題
-		var header = widget.querySelector('.buygo-child-orders-header h3');
-		if (header) {
-			header.textContent = '子訂單詳情';
-		}
-
-		// 添加關閉按鈕（如果沒有的話）
-		if (!widget.querySelector('.buygo-close-btn')) {
-			var closeBtn = document.createElement('button');
-			closeBtn.className = 'buygo-btn buygo-btn-secondary buygo-close-btn';
-			closeBtn.textContent = '關閉';
-			closeBtn.type = 'button';
-			closeBtn.addEventListener('click', function() {
-				container.style.display = 'none';
-				container.innerHTML = '';
-				// 恢復標題
-				if (header) {
-					header.textContent = '子訂單查詢';
-				}
-			});
-
-			var headerDiv = widget.querySelector('.buygo-child-orders-header');
-			if (headerDiv) {
-				headerDiv.appendChild(closeBtn);
-			}
-		}
-	}
-
-	/**
-	 * 使用 MutationObserver 監聽訂單列表渲染
-	 */
-	function observeOrderList() {
-		// 找到可能包含訂單列表的容器
-		var targetNode = document.querySelector('#app, .fct-customer-app, [data-v-app], body');
-
-		if (!targetNode) {
-			return;
-		}
-
-		var observer = new MutationObserver(function(mutations) {
-			// 延遲執行，等待 Vue 渲染完成
-			setTimeout(function() {
-				injectButtonsToOrderList();
-			}, 100);
-		});
-
-		observer.observe(targetNode, {
-			childList: true,
-			subtree: true
-		});
-
-		// 初始執行一次
-		setTimeout(function() {
-			injectButtonsToOrderList();
-		}, 500);
-	}
-
-	/**
-	 * 在訂單列表中注入按鈕
-	 */
-	function injectButtonsToOrderList() {
-		// 嘗試找到訂單列表的行
-		// FluentCart 可能使用 table 或其他結構
-		var rows = document.querySelectorAll('tr[class*="order"], .order-row, [data-order], table tbody tr');
-
-		rows.forEach(function(row) {
-			var orderHash = getOrderHashFromRow(row);
-			if (orderHash) {
-				injectButtonToRow(row, orderHash);
-			}
-		});
-	}
-
-	/**
 	 * 初始化訂單詳情頁模式
 	 */
-	function initDetailPageMode() {
+	function init() {
 		var button = document.getElementById('buygo-view-child-orders-btn');
 		var container = document.getElementById('buygo-child-orders-container');
 
 		if (!button || !container) {
-			return false;
+			return;
 		}
 
 		// 取得訂單 ID
@@ -435,12 +282,12 @@
 				// 收合
 				container.style.display = 'none';
 				button.setAttribute('data-expanded', 'false');
-				button.textContent = '查看子訂單';
+				button.querySelector('.buygo-btn-text').textContent = '查看子訂單';
 			} else {
 				// 展開
 				container.style.display = 'block';
 				button.setAttribute('data-expanded', 'true');
-				button.textContent = '隱藏子訂單';
+				button.querySelector('.buygo-btn-text').textContent = '隱藏子訂單';
 
 				// 只在第一次展開時載入資料
 				if (!container.dataset.loaded && orderId) {
@@ -448,40 +295,6 @@
 				}
 			}
 		});
-
-		return true;
-	}
-
-	/**
-	 * 初始化購買歷史頁模式
-	 */
-	function initPurchaseHistoryMode() {
-		var widget = document.getElementById('buygo-child-orders-widget');
-		var header = widget ? widget.querySelector('.buygo-child-orders-header') : null;
-
-		if (!header) {
-			return false;
-		}
-
-		// 啟動 MutationObserver 監聽訂單列表
-		observeOrderList();
-
-		return true;
-	}
-
-	/**
-	 * 初始化函式
-	 */
-	function init() {
-		// 嘗試初始化訂單詳情頁模式
-		if (initDetailPageMode()) {
-			return;
-		}
-
-		// 嘗試初始化購買歷史頁模式
-		if (initPurchaseHistoryMode()) {
-			return;
-		}
 	}
 
 	// 等待 DOM 載入完成
