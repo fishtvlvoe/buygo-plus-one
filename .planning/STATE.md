@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-02
-**專案版本:** v1.3 Phase 34 Plan 02 完成
+**專案版本:** v1.3 Phase 34 Plan 01 完成
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v1.3 出貨通知與 FluentCart 同步系統（Phase 34 完成）
+**當前焦點:** v1.3 出貨通知與 FluentCart 同步系統（Phase 34）
 
 **PROJECT.md 最後更新:** 2026-02-02
 
@@ -19,8 +19,8 @@
 
 **Milestone:** v1.3 - 出貨通知與 FluentCart 同步系統
 **Phase:** 34 (模板管理介面)
-**Plan:** 02 of 03
-**Status:** 完成 (34-02-PLAN.md 執行完畢)
+**Plan:** 01 of 03
+**Status:** 完成 (34-01-PLAN.md 執行完畢)
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -33,7 +33,7 @@
 **下一個 Milestone:**
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Planning
 
-**Progress (v1.3 Phase 34):** [████████░░] 67% (2 of 3 plans completed)
+**Progress (v1.3 Phase 34):** [███░░░░░░░] 33% (1 of 3 plans completed)
 
 ---
 
@@ -53,7 +53,7 @@
 | 37 - 前端 UI 元件與互動 | 6 (UI-01~06) | TBD | Not started |
 
 **Recent Activity:**
-- 2026-02-02: Phase 34 Plan 02 完成 - 出貨單預計送達時間欄位實作
+- 2026-02-02: Phase 34 Plan 01 完成 - 模板管理介面（TMPL-01 通知類型和重設為預設值功能）
 - 2026-02-02: v1.4 ROADMAP.md 建立完成
 - 2026-02-02: Phases 32-33 完成
 
@@ -63,11 +63,10 @@
 
 最近影響當前開發的決策（詳見 PROJECT.md 和 ROADMAP.md）：
 
-**Phase 34-02 決策:**
-- **HTML5 date input**: 使用原生日期選擇器，無需額外 JavaScript 函式庫
-- **日期格式轉換**: 前端 YYYY-MM-DD，API 轉換為 MySQL DATETIME（YYYY-MM-DD 00:00:00）
-- **可選欄位設計**: estimated_delivery_at 為選填，不影響出貨流程
-- **Modal 取代 confirm**: 改善標記出貨 UX，未來可擴充其他欄位
+**Phase 34-01 決策:**
+- **所有 TMPL-01 通知類型一次新增**: 避免未來重複修改，確保 100% 需求覆蓋
+- **DELETE 端點用於重設資源**: RESTful 語義，刪除 wp_option 單一 key 而非整個選項
+- **確認對話框保護誤操作**: 重設前顯示 confirm()，成功後重新載入並顯示 toast
 
 **v1.4 Milestone 核心決策:**
 - **子訂單顯示僅做購物者前台** — 賣家後台目前不需要，避免過度開發
@@ -105,9 +104,9 @@
 
 - [x] Phase 32: FluentCart 同步機制
 - [x] Phase 33: 通知觸發與模板引擎
-- [x] Phase 34-01: 通知模板變數
-- [x] Phase 34-02: 預計送達時間欄位
-- [ ] Phase 34-03: （待確認是否存在）
+- [x] Phase 34-01: 模板管理介面（TMPL-01 通知類型 + 重設為預設值功能）
+- [ ] Phase 34-02: （待執行）
+- [ ] Phase 34-03: （待執行）
 - [ ] v1.3 整合測試與發佈
 
 ### 待辦清單（v1.4）
@@ -156,23 +155,23 @@
 ## 會話連續性
 
 **Last session:** 2026-02-02
-**Stopped at:** Phase 34 Plan 02 完成（出貨單預計送達時間欄位實作）
+**Stopped at:** Phase 34 Plan 01 完成（模板管理介面）
 **Resume file:** 無
 
 **下一步:**
-1. 檢查是否有 Phase 34 Plan 03
-2. 如果 Phase 34 已完成，進入 v1.3 整合測試
+1. 繼續執行 Phase 34 剩餘計畫（34-02, 34-03）
+2. 完成 Phase 34 後進入 v1.3 整合測試
 3. 準備開始 v1.4 milestone
 
 **Resume command:**
 ```bash
-# 檢查 Phase 34 是否還有其他計畫
+# 檢查 Phase 34 下一個計畫
 ls -la .planning/phases/34-模板管理介面/
 
-# 如果有 34-03-PLAN.md，執行它
-/gsd:execute-plan .planning/phases/34-模板管理介面/34-03-PLAN.md
+# 執行 34-02-PLAN.md
+/gsd:execute-plan .planning/phases/34-模板管理介面/34-02-PLAN.md
 ```
 
 ---
 
-*State updated: 2026-02-02 after Phase 34 Plan 02 completion*
+*State updated: 2026-02-02 after Phase 34 Plan 01 completion*
