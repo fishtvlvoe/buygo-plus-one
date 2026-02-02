@@ -123,6 +123,21 @@ class Settings_API {
             'callback' => [$this, 'test_line_connection'],
             'permission_callback' => [$this, 'check_permission_for_admin'],
         ]);
+
+        // DELETE /settings/templates/{template_key} - 重設模板為預設值
+        register_rest_route($this->namespace, '/settings/templates/(?P<key>[a-z_]+)', [
+            'methods' => 'DELETE',
+            'callback' => [$this, 'delete_template'],
+            'permission_callback' => [$this, 'check_permission'],
+            'args' => [
+                'key' => [
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return preg_match('/^[a-z_]+$/', $param);
+                    }
+                ]
+            ]
+        ]);
     }
     
     /**
@@ -150,7 +165,7 @@ class Settings_API {
     public function update_templates($request) {
         try {
             $body = json_decode($request->get_body(), true);
-            
+
             // 新的格式：接收完整的模板資料結構
             if (isset($body['templates']) && is_array($body['templates'])) {
                 // 使用新的統一格式
@@ -158,7 +173,7 @@ class Settings_API {
             } elseif (isset($body['buyer_template']) || isset($body['seller_template'])) {
                 // 舊格式：向後兼容（遷移舊資料）
                 $templates = [];
-                
+
                 if (isset($body['buyer_template'])) {
                     // 遷移到 order_created 模板
                     $templates['order_created'] = [
@@ -167,7 +182,7 @@ class Settings_API {
                         ]
                     ];
                 }
-                
+
                 if (isset($body['seller_template'])) {
                     // 遷移到 seller_order_created 模板
                     $templates['seller_order_created'] = [
@@ -176,7 +191,7 @@ class Settings_API {
                         ]
                     ];
                 }
-                
+
                 SettingsService::update_templates($templates);
             } else {
                 return new \WP_REST_Response([
@@ -184,7 +199,7 @@ class Settings_API {
                     'message' => '缺少必要參數'
                 ], 400);
             }
-            
+
             return new \WP_REST_Response([
                 'success' => true,
                 'message' => '模板設定已更新'
@@ -196,7 +211,38 @@ class Settings_API {
             ], 500);
         }
     }
-    
+
+    /**
+     * 刪除自訂模板（重設為預設值）
+     */
+    public function delete_template($request) {
+        try {
+            $key = $request->get_param('key');
+
+            // 從 wp_options 取得所有自訂模板
+            $templates = get_option('buygo_notification_templates', []);
+
+            // 如果該模板存在，移除它
+            if (isset($templates[$key])) {
+                unset($templates[$key]);
+                update_option('buygo_notification_templates', $templates);
+
+                // 清除快取
+                \BuyGoPlus\Services\NotificationTemplates::clear_cache();
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '模板已重設為預設值'
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '重設模板失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * 取得小幫手列表（含 LINE 綁定狀態）
      *
