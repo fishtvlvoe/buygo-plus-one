@@ -40,16 +40,52 @@ class FluentCartChildOrdersIntegration {
 			return;
 		}
 
+		// 從 URL 解析訂單 ID
+		$order_id = self::get_order_id_from_url();
+
+		// 如果沒有訂單 ID（例如在訂單列表頁），不顯示 widget
+		if ( ! $order_id ) {
+			return;
+		}
+
 		?>
 		<div id="buygo-child-orders-widget" class="buygo-child-orders-widget">
-			<button id="buygo-view-child-orders-btn" class="buygo-btn buygo-btn-primary" data-expanded="false">
+			<button id="buygo-view-child-orders-btn" class="buygo-btn buygo-btn-primary" data-expanded="false" data-order-id="<?php echo \esc_attr( $order_id ); ?>">
 				查看子訂單
 			</button>
 			<div id="buygo-child-orders-container" class="buygo-child-orders-container" style="display: none;">
-				<p class="buygo-child-orders-loading">載入中...</p>
+				<!-- 內容由 JavaScript 動態載入 -->
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * 從 URL 解析訂單 ID
+	 *
+	 * FluentCart 訂單詳情頁面 URL 格式：
+	 * - /my-account/purchase-history/order/{order_id}
+	 * - /customer-profile/orders/{order_id}
+	 *
+	 * @return int|null 訂單 ID，或 null 如果無法解析
+	 */
+	private static function get_order_id_from_url(): ?int {
+		$current_url = $_SERVER['REQUEST_URI'] ?? '';
+
+		// 嘗試匹配多種 URL 格式
+		$patterns = [
+			'/\/order\/(\d+)/',              // /order/123
+			'/\/orders\/(\d+)/',             // /orders/123
+			'/[?&]order_id=(\d+)/',          // ?order_id=123 或 &order_id=123
+		];
+
+		foreach ( $patterns as $pattern ) {
+			if ( preg_match( $pattern, $current_url, $matches ) ) {
+				return (int) $matches[1];
+			}
+		}
+
+		return null;
 	}
 
 	/**
