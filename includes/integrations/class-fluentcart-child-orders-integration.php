@@ -56,11 +56,10 @@ class FluentCartChildOrdersIntegration {
 	 * 載入 JavaScript 和 CSS
 	 */
 	public static function enqueue_assets(): void {
-		// 暫時移除頁面檢查，讓腳本在所有頁面載入以便測試
-		// TODO: 恢復頁面檢查或使用更可靠的檢測方式
-		// if ( ! self::is_customer_profile_page() ) {
-		// 	return;
-		// }
+		// 只在客戶檔案頁面載入（僅檢查 URL，登入檢查由 render 方法處理）
+		if ( ! self::is_customer_profile_page() ) {
+			return;
+		}
 
 		// 註冊 JavaScript
 		\wp_enqueue_script(
@@ -100,13 +99,13 @@ class FluentCartChildOrdersIntegration {
 	 */
 	private static function is_customer_profile_page(): bool {
 		// 檢查是否為 FluentCart 客戶檔案頁面
-		// URL 檢測方式：/my-account/ 或 /customer-profile/
+		// 僅檢查 URL，不檢查登入狀態（登入檢查由 render 方法處理）
+		// 這樣可以避免 wp_enqueue_scripts 執行時登入狀態尚未初始化的問題
 		$current_url = $_SERVER['REQUEST_URI'] ?? '';
 
 		return (
-			\is_user_logged_in() &&
-			( strpos( $current_url, '/my-account/' ) !== false ||
-			  strpos( $current_url, '/customer-profile/' ) !== false )
+			strpos( $current_url, '/my-account/' ) !== false ||
+			strpos( $current_url, '/customer-profile/' ) !== false
 		);
 	}
 
