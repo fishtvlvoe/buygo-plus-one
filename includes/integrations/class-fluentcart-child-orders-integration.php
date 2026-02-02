@@ -86,7 +86,7 @@ class FluentCartChildOrdersIntegration {
 	 * @return string|null 訂單 ID（數字或 hash），或 null 如果無法解析
 	 */
 	private static function get_order_id_from_url(): ?string {
-		$current_url = $_SERVER['REQUEST_URI'] ?? '';
+		$current_url = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL ) ?? '';
 
 		// 嘗試匹配多種 URL 格式（支援數字和 hash 格式）
 		$patterns = [
@@ -156,7 +156,7 @@ class FluentCartChildOrdersIntegration {
 		// 檢查是否為 FluentCart 客戶檔案頁面
 		// 僅檢查 URL，不檢查登入狀態（登入檢查由 render 方法處理）
 		// 這樣可以避免 wp_enqueue_scripts 執行時登入狀態尚未初始化的問題
-		$current_url = $_SERVER['REQUEST_URI'] ?? '';
+		$current_url = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL ) ?? '';
 
 		return (
 			strpos( $current_url, '/my-account/' ) !== false ||
