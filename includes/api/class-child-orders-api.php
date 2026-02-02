@@ -38,7 +38,8 @@ class ChildOrders_API
     public function register_routes()
     {
         // GET /child-orders/{parent_order_id} - 取得子訂單列表
-        register_rest_route($this->namespace, '/child-orders/(?P<parent_order_id>\d+)', [
+        // 支援數字 ID 或 hash 格式（FluentCart 使用 32 字元 hex hash）
+        register_rest_route($this->namespace, '/child-orders/(?P<parent_order_id>[a-f0-9]+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_child_orders'],
             'permission_callback' => [$this, 'check_customer_permission'],
@@ -46,9 +47,10 @@ class ChildOrders_API
                 'parent_order_id' => [
                     'required' => true,
                     'validate_callback' => function ($param) {
-                        return is_numeric($param) && $param > 0;
+                        // 支援數字 ID 或 32 字元 hex hash
+                        return (is_numeric($param) && $param > 0) || preg_match('/^[a-f0-9]{32}$/', $param);
                     },
-                    'sanitize_callback' => 'absint'
+                    'sanitize_callback' => 'sanitize_text_field'
                 ]
             ]
         ]);
@@ -77,8 +79,14 @@ class ChildOrders_API
      */
     public function get_child_orders(\WP_REST_Request $request): \WP_REST_Response
     {
-        // 取得 parent_order_id
-        $parent_order_id = (int) $request->get_param('parent_order_id');
+        // 取得 parent_order_id（可能是數字或 hash）
+        $parent_order_id = $request->get_param('parent_order_id');
+
+        // 如果是數字格式，轉為整數
+        if (is_numeric($parent_order_id)) {
+            $parent_order_id = (int) $parent_order_id;
+        }
+        // hash 格式保持字串
 
         // 取得當前用戶的 customer_id
         $current_user_id = get_current_user_id();

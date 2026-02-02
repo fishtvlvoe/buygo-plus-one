@@ -46,12 +46,12 @@ class ChildOrderService
     /**
      * 取得指定父訂單的所有子訂單
      *
-     * @param int $parent_order_id 父訂單 ID
+     * @param int|string $parent_order_id 父訂單 ID（數字）或 hash（32 字元 hex）
      * @param int $customer_id FluentCart customer_id（非 WordPress user_id）
      * @return array 格式化的子訂單資料
      * @throws \Exception 訂單不存在（code: 404）或無權限（code: 403）
      */
-    public function getChildOrdersByParentId(int $parent_order_id, int $customer_id): array
+    public function getChildOrdersByParentId($parent_order_id, int $customer_id): array
     {
         $this->debugService->log('ChildOrderService', '開始取得子訂單', [
             'parent_order_id' => $parent_order_id,
@@ -59,8 +59,14 @@ class ChildOrderService
         ]);
 
         try {
-            // 1. 驗證父訂單存在
-            $parent_order = Order::find($parent_order_id);
+            // 1. 驗證父訂單存在（支援數字 ID 或 hash）
+            if (is_numeric($parent_order_id)) {
+                $parent_order = Order::find($parent_order_id);
+            } else {
+                // hash 格式，使用 hash 欄位查詢
+                $parent_order = Order::where('hash', $parent_order_id)->first();
+            }
+
             if (!$parent_order) {
                 $this->debugService->log('ChildOrderService', '父訂單不存在', [
                     'parent_order_id' => $parent_order_id
@@ -78,8 +84,8 @@ class ChildOrderService
                 throw new \Exception('無權限存取此訂單', 403);
             }
 
-            // 3. 使用 Eager Loading 查詢子訂單和商品
-            $child_orders = Order::where('parent_id', $parent_order_id)
+            // 3. 使用 Eager Loading 查詢子訂單和商品（使用父訂單的數字 ID）
+            $child_orders = Order::where('parent_id', $parent_order->id)
                 ->with(['order_items'])
                 ->orderBy('created_at', 'desc')
                 ->get();
