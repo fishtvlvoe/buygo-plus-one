@@ -59,12 +59,12 @@ class ChildOrderService
         ]);
 
         try {
-            // 1. 驗證父訂單存在（支援數字 ID 或 hash）
+            // 1. 驗證父訂單存在（支援數字 ID 或 uuid/hash）
             if (is_numeric($parent_order_id)) {
                 $parent_order = Order::find($parent_order_id);
             } else {
-                // hash 格式，使用 hash 欄位查詢
-                $parent_order = Order::where('hash', $parent_order_id)->first();
+                // hash 格式，FluentCart 使用 uuid 欄位
+                $parent_order = Order::where('uuid', $parent_order_id)->first();
             }
 
             if (!$parent_order) {
