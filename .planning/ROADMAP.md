@@ -124,10 +124,11 @@ Plans:
 4. 回傳資料包含：子訂單編號、商品清單（名稱、數量、價格）、狀態標籤（付款、出貨、處理）、金額小計、賣家名稱
 5. 錯誤情況正確處理：訂單不存在回傳 404、無權限回傳 403、系統錯誤回傳 500 + 錯誤訊息
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 36-01: TBD
+- [ ] 36-01-PLAN.md — ChildOrderService 子訂單查詢服務（QUERY-01~04）
+- [ ] 36-02-PLAN.md — ChildOrders_API REST 端點（API-01~04）
 
 ---
 
