@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-02
-**專案版本:** v1.4 milestone roadmap 完成
+**專案版本:** v1.3 Phase 34 Plan 02 完成
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v1.4 會員前台子訂單顯示功能
+**當前焦點:** v1.3 出貨通知與 FluentCart 同步系統（Phase 34 完成）
 
 **PROJECT.md 最後更新:** 2026-02-02
 
@@ -17,21 +17,23 @@
 
 ## 當前位置
 
-**Milestone:** v1.4 - 會員前台子訂單顯示功能
-**Phase:** 35 (FluentCart Hook 探索與注入點設定)
-**Plan:** Pending (roadmap 已建立，待開始 planning)
-**Status:** Ready to plan
+**Milestone:** v1.3 - 出貨通知與 FluentCart 同步系統
+**Phase:** 34 (模板管理介面)
+**Plan:** 02 of 03
+**Status:** 完成 (34-02-PLAN.md 執行完畢)
 
-**所有已完成的 Milestones:**
+**已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
 - **v1.1** — 部署優化與會員權限 (Phases 23-27) — Shipped 2026-02-01
 - **v1.2** — LINE 通知觸發機制整合 (Phases 28-31) — Shipped 2026-02-01
-- **v1.3** — 出貨通知與 FluentCart 同步系統 (Phases 32-34) — Shipped 2026-02-02
 
 **當前 Milestone:**
+- **v1.3** — 出貨通知與 FluentCart 同步系統 (Phases 32-34) — In Progress
+
+**下一個 Milestone:**
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Planning
 
-**Progress (v1.4):** [░░░░░░░░░░] 0% (Roadmap created, ready to start Phase 35)
+**Progress (v1.3 Phase 34):** [████████░░] 67% (2 of 3 plans completed)
 
 ---
 
@@ -51,14 +53,21 @@
 | 37 - 前端 UI 元件與互動 | 6 (UI-01~06) | TBD | Not started |
 
 **Recent Activity:**
+- 2026-02-02: Phase 34 Plan 02 完成 - 出貨單預計送達時間欄位實作
 - 2026-02-02: v1.4 ROADMAP.md 建立完成
-- 2026-02-02: v1.3 milestone 完成 (Phases 32-34)
+- 2026-02-02: Phases 32-33 完成
 
 ---
 
 ## 累積決策
 
 最近影響當前開發的決策（詳見 PROJECT.md 和 ROADMAP.md）：
+
+**Phase 34-02 決策:**
+- **HTML5 date input**: 使用原生日期選擇器，無需額外 JavaScript 函式庫
+- **日期格式轉換**: 前端 YYYY-MM-DD，API 轉換為 MySQL DATETIME（YYYY-MM-DD 00:00:00）
+- **可選欄位設計**: estimated_delivery_at 為選填，不影響出貨流程
+- **Modal 取代 confirm**: 改善標記出貨 UX，未來可擴充其他欄位
 
 **v1.4 Milestone 核心決策:**
 - **子訂單顯示僅做購物者前台** — 賣家後台目前不需要，避免過度開發
@@ -84,23 +93,28 @@
 
 ### 立即執行
 
-1. **開始 Phase 35 planning**
-   - 探索 FluentCart 會員訂單詳情頁的 Hook 點
-   - 建立 UI 注入機制（按鈕 + 容器）
-   - 產出 35-01-PLAN.md
+1. **完成 Phase 34 剩餘計畫**
+   - 執行 34-03-PLAN.md（如果存在）
+   - 完成 Phase 34 milestone
 
-2. **確認技術可行性**
-   - 檢查 FluentCart 原始碼或文件
-   - 測試 WordPress Action Hook
-   - 如無合適 Hook，考慮 Shortcode 或其他整合方式
+2. **準備 v1.4 開始**
+   - 確認 v1.3 所有功能完整
+   - 開始 Phase 35 planning（FluentCart Hook 探索）
+
+### 待辦清單（v1.3）
+
+- [x] Phase 32: FluentCart 同步機制
+- [x] Phase 33: 通知觸發與模板引擎
+- [x] Phase 34-01: 通知模板變數
+- [x] Phase 34-02: 預計送達時間欄位
+- [ ] Phase 34-03: （待確認是否存在）
+- [ ] v1.3 整合測試與發佈
 
 ### 待辦清單（v1.4）
 
 - [ ] Phase 35: FluentCart Hook 探索與注入點設定
 - [ ] Phase 36: 子訂單查詢與 API 服務
 - [ ] Phase 37: 前端 UI 元件與互動
-- [ ] v1.4 整合測試
-- [ ] v1.4 發佈準備
 
 ---
 
@@ -142,20 +156,23 @@
 ## 會話連續性
 
 **Last session:** 2026-02-02
-**Stopped at:** v1.4 ROADMAP 建立完成
+**Stopped at:** Phase 34 Plan 02 完成（出貨單預計送達時間欄位實作）
 **Resume file:** 無
 
 **下一步:**
-1. 執行 `/gsd:plan-phase 35` — 開始規劃 FluentCart Hook 探索
-2. 探索 FluentCart 會員訂單詳情頁的 Hook 點
-3. 建立 UI 注入機制
+1. 檢查是否有 Phase 34 Plan 03
+2. 如果 Phase 34 已完成，進入 v1.3 整合測試
+3. 準備開始 v1.4 milestone
 
 **Resume command:**
 ```bash
-# 開始 Phase 35 planning
-/gsd:plan-phase 35
+# 檢查 Phase 34 是否還有其他計畫
+ls -la .planning/phases/34-模板管理介面/
+
+# 如果有 34-03-PLAN.md，執行它
+/gsd:execute-plan .planning/phases/34-模板管理介面/34-03-PLAN.md
 ```
 
 ---
 
-*State updated: 2026-02-02 after v1.4 ROADMAP creation*
+*State updated: 2026-02-02 after Phase 34 Plan 02 completion*
