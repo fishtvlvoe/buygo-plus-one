@@ -45,7 +45,12 @@ const ShipmentDetailsPageComponent = {
         // Modal 狀態
         const confirmModal = ref({ show: false, title: '', message: '', onConfirm: null });
         const toastMessage = ref({ show: false, message: '', type: 'success' });
-        
+        const markShippedModal = ref({
+            show: false,
+            shipment: null,
+            estimated_delivery_date: ''
+        });
+
         // 詳情 Modal 狀態
         const detailModal = ref({
             show: false,
@@ -119,47 +124,69 @@ const ShipmentDetailsPageComponent = {
             }
         };
         
-        // 顯示標記已出貨確認對話框（含出貨單詳細資訊）
+        // 顯示標記已出貨 Modal
         const showMarkShippedConfirm = (shipment) => {
-            const formattedDate = formatDate(shipment.created_at || shipment.shipped_at);
-            const message = `
-                出貨單號: ${shipment.shipment_number}
-                客戶姓名: ${shipment.customer_name || '未知客戶'}
-                商品數量: ${shipment.total_quantity || 0} 件
-                出貨日期: ${formattedDate}
+            markShippedModal.value = {
+                show: true,
+                shipment: shipment,
+                estimated_delivery_date: ''
+            };
+        };
 
-                ⚠️ 此操作無法撤銷
-            `;
+        // 關閉標記已出貨 Modal
+        const closeMarkShippedModal = () => {
+            markShippedModal.value = {
+                show: false,
+                shipment: null,
+                estimated_delivery_date: ''
+            };
+        };
 
-            showConfirm(
-                '⚠️ 確認出貨',
-                message.trim(),
-                async () => {
-                    try {
-                        const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-WP-Nonce': wpNonce
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({ shipment_ids: [shipment.id] })
-                        });
-                        const result = await response.json();
+        // 確認標記已出貨
+        const confirmMarkShipped = async () => {
+            const shipment = markShippedModal.value.shipment;
+            const estimatedDeliveryDate = markShippedModal.value.estimated_delivery_date;
 
-                        if (result.success) {
-                            showToast('✓ 出貨單已標記為已出貨', 'success');
-                            selectedShipments.value = [];
-                            await loadShipments();
-                            await loadStats();
-                        } else {
-                            showToast('✗ 操作失敗：' + result.message, 'error');
-                        }
-                    } catch (err) {
-                        showToast('✗ 操作失敗，請稍後再試', 'error');
-                    }
+            if (!shipment) {
+                closeMarkShippedModal();
+                return;
+            }
+
+            try {
+                // 準備 API 請求資料
+                const requestData = {
+                    shipment_ids: [shipment.id]
+                };
+
+                // 如果有設定預計送達時間，加入請求資料（轉換為 MySQL DATETIME 格式）
+                if (estimatedDeliveryDate) {
+                    requestData.estimated_delivery_at = estimatedDeliveryDate + ' 00:00:00';
                 }
-            );
+
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(requestData)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✓ 出貨單已標記為已出貨', 'success');
+                    selectedShipments.value = [];
+                    closeMarkShippedModal();
+                    await loadShipments();
+                    await loadStats();
+                } else {
+                    showToast('✗ 操作失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('標記出貨失敗:', err);
+                showToast('✗ 操作失敗，請稍後再試', 'error');
+            }
         };
 
         // 標記已出貨（保留原有函數供批次操作使用）
@@ -459,9 +486,15 @@ const ShipmentDetailsPageComponent = {
                 const result = await response.json();
 
                 if (result.success) {
+                    // 將 estimated_delivery_at 轉換為 date input 格式
+                    const shipmentData = result.data.shipment;
+                    if (shipmentData.estimated_delivery_at) {
+                        shipmentData.estimated_delivery_date = formatDateForInput(shipmentData.estimated_delivery_at);
+                    }
+
                     detailModal.value = {
                         show: true,
-                        shipment: result.data.shipment,
+                        shipment: shipmentData,
                         items: result.data.items,
                         total: result.data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
                     };
@@ -517,6 +550,18 @@ const ShipmentDetailsPageComponent = {
             if (!dateString) return '-';
             const date = new Date(dateString);
             return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        };
+
+        // 取得今天日期（YYYY-MM-DD 格式，用於 date input 的 min 屬性）
+        const getTodayDate = () => {
+            const today = new Date();
+            return today.toISOString().split('T')[0]; // 返回 YYYY-MM-DD 格式
+        };
+
+        // 將 MySQL datetime 轉換為 date input 可用格式（YYYY-MM-DD）
+        const formatDateForInput = (datetime) => {
+            if (!datetime) return '';
+            return datetime.split(' ')[0]; // 取 YYYY-MM-DD 部分
         };
 
         // 智慧搜尋處理
@@ -584,13 +629,18 @@ const ShipmentDetailsPageComponent = {
             confirmModal,
             toastMessage,
             detailModal,
+            markShippedModal,
             showMarkShippedConfirm,
+            closeMarkShippedModal,
+            confirmMarkShipped,
             markShipped,
             archiveShipment,
             viewDetail,
             closeConfirmModal,
             handleConfirm,
             formatDate,
+            getTodayDate,
+            formatDateForInput,
             toggleSelectAll,
             clearSelection,
             batchMarkShipped,
