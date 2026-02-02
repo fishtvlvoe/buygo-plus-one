@@ -161,11 +161,19 @@ $settings_component_template .= <<<'HTML'
                                                     </div>
                                                 </div>
                                             </div>
-                                            <textarea 
+                                            <textarea
                                                 v-model="templateEdits[template.key].line.message"
                                                 rows="8"
                                                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
                                                 placeholder="輸入模板內容..."></textarea>
+                                            <!-- 重設為預設值按鈕 -->
+                                            <div class="mt-2 flex justify-end">
+                                                <button
+                                                    @click="resetTemplate(template.key)"
+                                                    class="text-xs text-slate-600 hover:text-primary transition">
+                                                    重設為預設值
+                                                </button>
+                                            </div>
                                         </div>
                                         
                                         <!-- 卡片式訊息編輯器 -->
@@ -233,6 +241,14 @@ $settings_component_template .= <<<'HTML'
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <!-- 重設為預設值按鈕（Flex Message） -->
+                                            <div class="mt-4 flex justify-end">
+                                                <button
+                                                    @click="resetTemplate(template.key)"
+                                                    class="text-xs text-slate-600 hover:text-primary transition">
+                                                    重設為預設值
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1048,6 +1064,38 @@ const SettingsPageComponent = {
                     category: '客戶',
                     type: 'text',
                     variables: ['product_name', 'quantity', 'total']
+                },
+                {
+                    key: 'product_available',
+                    name: '商品上架通知',
+                    description: '商品上架或補貨時發送給預購買家',
+                    category: '客戶',
+                    type: 'text',
+                    variables: ['product_name', 'product_url', 'shop_name']
+                },
+                {
+                    key: 'new_order',
+                    name: '新訂單通知',
+                    description: '買家下單後發送確認通知',
+                    category: '客戶',
+                    type: 'text',
+                    variables: ['order_id', 'order_total', 'product_list', 'shop_name']
+                },
+                {
+                    key: 'order_status_changed',
+                    name: '訂單狀態變更通知',
+                    description: '訂單狀態變更時發送給買家',
+                    category: '客戶',
+                    type: 'text',
+                    variables: ['order_id', 'old_status', 'new_status', 'shop_name']
+                },
+                {
+                    key: 'shipment_shipped',
+                    name: '出貨通知',
+                    description: '出貨單標記為「已出貨」時發送給買家',
+                    category: '客戶',
+                    type: 'text',
+                    variables: ['product_list', 'shipping_method', 'estimated_delivery']
                 }
             ],
             seller: [
@@ -1417,7 +1465,13 @@ const SettingsPageComponent = {
             'arrival_date_section': '到貨日期區塊',
             'preorder_date_section': '預購日期區塊',
             'community_url_section': '社群連結區塊',
-            'missing_fields': '缺少欄位'
+            'missing_fields': '缺少欄位',
+            'product_list': '商品清單',
+            'shipping_method': '物流方式',
+            'estimated_delivery': '預計送達',
+            'shop_name': '賣場名稱',
+            'old_status': '原狀態',
+            'new_status': '新狀態'
         };
         
         // 取得變數說明
@@ -1660,7 +1714,37 @@ const SettingsPageComponent = {
                 savingTemplates.value = false;
             }
         };
-        
+
+        // 重設模板為預設值
+        const resetTemplate = async (templateKey) => {
+            if (!confirm('確定要重設為預設值嗎？自訂內容將會被清除。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/settings/templates/${templateKey}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-WP-Nonce': wpNonce
+                    },
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 重新載入模板
+                    await loadTemplates();
+                    showToast('已重設為預設值', 'success');
+                } else {
+                    showToast('重設失敗：' + result.message, 'error');
+                }
+            } catch (err) {
+                console.error('重設模板錯誤:', err);
+                showToast('重設失敗', 'error');
+            }
+        };
+
         // 載入小幫手列表
         const loadHelpers = async () => {
             loadingHelpers.value = true;
@@ -2122,6 +2206,7 @@ const SettingsPageComponent = {
             getVariableDescription,
             loadTemplates,
             saveTemplates,
+            resetTemplate,
             helpers,
             loadingHelpers,
             isAdmin,
