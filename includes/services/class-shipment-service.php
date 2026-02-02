@@ -297,49 +297,61 @@ class ShipmentService
 
     /**
      * 標記出貨單為已出貨
-     * 
-     * @param array $shipment_ids
+     *
+     * @param array $shipment_ids 出貨單 ID 陣列
+     * @param string|null $estimated_delivery_at 預計送達時間（MySQL DATETIME 格式，選填）
      * @return int|WP_Error 成功標記的數量或錯誤
      */
-    public function mark_shipped($shipment_ids)
+    public function mark_shipped($shipment_ids, $estimated_delivery_at = null)
     {
         global $wpdb;
 
         // 【Debug Log】記錄標記出貨的輸入參數
         $this->debugService->log('ShipmentService', '開始標記出貨單為已出貨', [
-            'shipment_ids' => $shipment_ids
+            'shipment_ids' => $shipment_ids,
+            'estimated_delivery_at' => $estimated_delivery_at
         ]);
 
         if (empty($shipment_ids)) {
             return new WP_Error('INVALID_INPUT', '請選擇要標記的出貨單');
         }
-        
+
         $shipped_count = 0;
         $errors = [];
-        
+
         foreach ($shipment_ids as $shipment_id) {
             $shipment = $this->get_shipment($shipment_id);
-            
+
             if (!$shipment) {
                 $errors[] = "出貨單 #{$shipment_id} 不存在";
                 continue;
             }
-            
+
             if ($shipment->status === 'shipped' || $shipment->status === 'delivered') {
                 $errors[] = "出貨單 {$shipment->shipment_number} 已經出貨";
                 continue;
             }
-            
+
+            // 準備更新資料
+            $update_data = [
+                'status' => 'shipped',
+                'shipped_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ];
+            $update_format = ['%s', '%s', '%s'];
+
+            // 如果有提供預計送達時間，加入更新資料
+            if ($estimated_delivery_at !== null) {
+                $update_data['estimated_delivery_at'] = $estimated_delivery_at;
+                $update_format[] = '%s';
+            }
+
             // 更新出貨單狀態
             $result = $wpdb->update(
                 $wpdb->prefix . 'buygo_shipments',
-                [
-                    'status' => 'shipped',
-                    'shipped_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                ],
+                $update_data,
                 ['id' => $shipment_id],
-                ['%s', '%s', '%s'],
+                $update_format,
                 ['%d']
             );
 
