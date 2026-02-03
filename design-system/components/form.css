@@ -126,3 +126,45 @@ input[type="date"]::-webkit-datetime-edit {
 input[type="date"]::-webkit-calendar-picker-indicator {
   margin-left: auto;
 }
+
+/* Flatpickr 手機優化 */
+.flatpickr-calendar {
+  width: 100% !important;
+  max-width: 320px !important;
+  box-sizing: border-box !important;
+}
+
+/* 手機版：確保輸入框內的文字靠左 */
+input.flatpickr-input[readonly] {
+  text-align: left !important;
+  cursor: pointer;
+  background-color: white;
+}
+
+/* 手機版：Flatpickr 彈窗不超出容器 */
+@media (max-width: 767px) {
+  .flatpickr-calendar {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 9999 !important;
+    max-width: 90vw !important;
+  }
+
+  .flatpickr-calendar.open {
+    display: block;
+  }
+
+  /* 背景遮罩 */
+  .flatpickr-calendar::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+  }
+}
