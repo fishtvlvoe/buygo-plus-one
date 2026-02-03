@@ -268,7 +268,23 @@ class NotificationHandler
                 return null;
             }
 
-            // 2. 查詢出貨單商品清單（JOIN 產品資料）
+            // 2. 將 FluentCart customer_id 轉換為 WordPress user_id
+            $fct_customer = $wpdb->get_row($wpdb->prepare(
+                "SELECT user_id FROM {$wpdb->prefix}fct_customers WHERE id = %d",
+                $shipment->customer_id
+            ));
+
+            if (!$fct_customer || !$fct_customer->user_id) {
+                $this->debugService->log('NotificationHandler', 'FluentCart 客戶未連結 WordPress 帳號', [
+                    'shipment_id' => $shipment_id,
+                    'fct_customer_id' => $shipment->customer_id,
+                ], 'warning');
+                return null;
+            }
+
+            $wp_user_id = $fct_customer->user_id;
+
+            // 3. 查詢出貨單商品清單（JOIN 產品資料）
             // 欄位名稱使用 product_name 以對應 NotificationTemplates::format_product_list()
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT
@@ -284,7 +300,7 @@ class NotificationHandler
                 $shipment_id
             ), ARRAY_A);
 
-            // 3. 從出貨單取得物流方式和預計送達時間
+            // 4. 從出貨單取得物流方式和預計送達時間
             $shipping_method = $shipment->shipping_method ?? null;
             $estimated_delivery_at = $shipment->estimated_delivery_at ?? null;
 
@@ -292,7 +308,8 @@ class NotificationHandler
             return [
                 'shipment_id' => $shipment->id,
                 'shipment_number' => $shipment->shipment_number,
-                'customer_id' => $shipment->customer_id,
+                'customer_id' => $wp_user_id, // 修正：使用 WordPress user ID
+                'fct_customer_id' => $shipment->customer_id, // 保留原始 FluentCart customer ID 供參考
                 'seller_id' => $shipment->seller_id,
                 'status' => $shipment->status,
                 'shipped_at' => $shipment->shipped_at,
