@@ -139,6 +139,7 @@ input.flatpickr-input[readonly] {
   text-align: left !important;
   cursor: pointer;
   background-color: white;
+  font-size: 16px !important;  /* 防止 iOS 自動放大（最小 16px）*/
 }
 
 /* 手機版：Flatpickr 彈窗不超出容器 */

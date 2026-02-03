@@ -11,7 +11,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BuyGo+1 賣場後台</title>
     
     <!-- Tailwind CSS CDN -->
