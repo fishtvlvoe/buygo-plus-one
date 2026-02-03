@@ -299,7 +299,7 @@ class SettingsService
 
         // 從資料表查詢
         $helper_records = $wpdb->get_results($wpdb->prepare(
-            "SELECT helper_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
+            "SELECT helper_id, seller_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
             $seller_id
         ));
 
@@ -313,12 +313,18 @@ class SettingsService
                     $avatar_url = get_avatar_url($user->user_email, ['size' => 100]);
                 }
 
+                // 取得賣家資訊
+                $seller = get_userdata($record->seller_id);
+                $seller_name = $seller ? $seller->display_name : '未知';
+
                 $helpers[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $user->user_email,
                     'avatar' => $avatar_url,
                     'created_at' => $record->created_at,
+                    'seller_id' => $record->seller_id,
+                    'seller_name' => $seller_name,
                 ];
             }
         }
