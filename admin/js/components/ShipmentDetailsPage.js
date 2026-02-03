@@ -51,6 +51,7 @@ const ShipmentDetailsPageComponent = {
             items: [],
             total: 0,
             estimated_delivery_date: '',
+            shipping_method: '',
             loading: false
         });
 
@@ -171,6 +172,7 @@ const ShipmentDetailsPageComponent = {
         const confirmMarkShipped = async () => {
             const shipment = markShippedData.value.shipment;
             const estimatedDeliveryDate = markShippedData.value.estimated_delivery_date;
+            const shippingMethod = markShippedData.value.shipping_method;
 
             if (!shipment) {
                 navigateTo('list');
@@ -188,6 +190,11 @@ const ShipmentDetailsPageComponent = {
                 // 如果有設定預計送達時間，加入請求資料（轉換為 MySQL DATETIME 格式）
                 if (estimatedDeliveryDate) {
                     requestData.estimated_delivery_at = estimatedDeliveryDate + ' 00:00:00';
+                }
+
+                // 如果有設定物流方式，加入請求資料
+                if (shippingMethod) {
+                    requestData.shipping_method = shippingMethod;
                 }
 
                 const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/batch-mark-shipped`, {
@@ -600,6 +607,18 @@ const ShipmentDetailsPageComponent = {
             return today.toISOString().split('T')[0]; // 返回 YYYY-MM-DD 格式
         };
 
+        // 取得當前日期時間（用於出貨時間顯示）
+        const getCurrentDateTime = () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        };
+
         // 將 MySQL datetime 轉換為 date input 可用格式（YYYY-MM-DD）
         const formatDateForInput = (datetime) => {
             if (!datetime) return '';
@@ -682,6 +701,7 @@ const ShipmentDetailsPageComponent = {
             handleConfirm,
             formatDate,
             getTodayDate,
+            getCurrentDateTime,
             formatDateForInput,
             toggleSelectAll,
             clearSelection,

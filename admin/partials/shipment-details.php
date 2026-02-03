@@ -630,15 +630,48 @@ $shipment_details_template .= <<<'HTML'
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
                 <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-green-500 pl-3">出貨設定</h4>
                 <div class="space-y-4">
+                    <!-- 出貨時間（自動填入，唯讀） -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">預計送達時間（選填）</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">📦 出貨時間</label>
+                        <input
+                            type="text"
+                            :value="getCurrentDateTime()"
+                            readonly
+                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 text-sm cursor-not-allowed"
+                        />
+                        <p class="text-xs text-slate-500 mt-2">系統自動填入（確認出貨時的當下時間）</p>
+                    </div>
+
+                    <!-- 到貨時間（手動選擇） -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">📅 到貨時間（選填）</label>
                         <input
                             type="date"
                             v-model="markShippedData.estimated_delivery_date"
                             class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm"
                             :min="getTodayDate()"
                         />
-                        <p class="text-xs text-slate-500 mt-2">此資訊會顯示在出貨通知中，通知買家預計收貨日期</p>
+                        <p class="text-xs text-slate-500 mt-2">買家預計收貨日期，會顯示在出貨通知中</p>
+                    </div>
+
+                    <!-- 物流方式（下拉選單） -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">🚚 物流方式（選填）</label>
+                        <select
+                            v-model="markShippedData.shipping_method"
+                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white"
+                        >
+                            <option value="">請選擇物流方式</option>
+                            <option value="易利">易利</option>
+                            <option value="千森">千森</option>
+                            <option value="OMI">OMI</option>
+                            <option value="多賀">多賀</option>
+                            <option value="賀來">賀來</option>
+                            <option value="神奈川">神奈川</option>
+                            <option value="新日本">新日本</option>
+                            <option value="EMS">EMS</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-2">請選擇使用的物流公司</p>
                     </div>
                 </div>
             </div>

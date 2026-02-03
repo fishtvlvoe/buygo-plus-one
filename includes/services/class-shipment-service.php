@@ -302,14 +302,15 @@ class ShipmentService
      * @param string|null $estimated_delivery_at 預計送達時間（MySQL DATETIME 格式，選填）
      * @return int|WP_Error 成功標記的數量或錯誤
      */
-    public function mark_shipped($shipment_ids, $estimated_delivery_at = null)
+    public function mark_shipped($shipment_ids, $estimated_delivery_at = null, $shipping_method = null)
     {
         global $wpdb;
 
         // 【Debug Log】記錄標記出貨的輸入參數
         $this->debugService->log('ShipmentService', '開始標記出貨單為已出貨', [
             'shipment_ids' => $shipment_ids,
-            'estimated_delivery_at' => $estimated_delivery_at
+            'estimated_delivery_at' => $estimated_delivery_at,
+            'shipping_method' => $shipping_method
         ]);
 
         if (empty($shipment_ids)) {
@@ -343,6 +344,12 @@ class ShipmentService
             // 如果有提供預計送達時間，加入更新資料
             if ($estimated_delivery_at !== null) {
                 $update_data['estimated_delivery_at'] = $estimated_delivery_at;
+                $update_format[] = '%s';
+            }
+
+            // 如果有提供物流方式，加入更新資料
+            if ($shipping_method !== null) {
+                $update_data['shipping_method'] = $shipping_method;
                 $update_format[] = '%s';
             }
 
