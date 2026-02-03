@@ -928,15 +928,16 @@ class LineWebhookHandler {
 			return; // 不處理，讓 filter 機制處理
 		}
 
-		// 如果關鍵字回應系統沒有匹配，再檢查是否為命令
-		if ( $this->product_data_parser->is_command( $text ) ) {
-			$this->handle_command( $text, $reply_token );
-			return;
-		}
-
-		// Get WordPress user from LINE UID
+		// Get WordPress user from LINE UID（提前取得，供後續命令和商品資訊處理使用）
 		// 使用新外掛的 BuyGoPlus_Core（不再依賴舊外掛）
 		$user = \BuyGoPlus\Core\BuyGoPlus_Core::line()->get_user_by_line_uid( $line_uid );
+
+		// 如果關鍵字回應系統沒有匹配，再檢查是否為命令
+		if ( $this->product_data_parser->is_command( $text ) ) {
+			$user_id = $user ? $user->ID : 0;
+			$this->handle_command( $text, $reply_token, $line_uid, $user_id );
+			return;
+		}
 
 		if ( ! $user ) {
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_account_not_bound', [] );
@@ -1270,16 +1271,26 @@ class LineWebhookHandler {
 	 *
 	 * @param string $command Command text
 	 * @param string $reply_token Reply token
+	 * @param string $line_uid LINE UID
+	 * @param int    $user_id WordPress user ID
 	 */
-	private function handle_command( $command, $reply_token ) {
+	private function handle_command( $command, $reply_token, $line_uid = null, $user_id = 0 ) {
 		$command = trim( $command );
-		$line_uid = null; // 命令處理時可能沒有 line_uid，先設為 null
 
 		// Handle /one command - 從模板系統讀取
 		if ( $command === '/one' ) {
+			// 設定商品類型為單一商品
+			if ( $user_id > 0 ) {
+				update_user_meta( $user_id, 'pending_product_type', 'simple' );
+				$this->logger->log( 'product_type_set_by_command', array(
+					'command' => '/one',
+					'type'    => 'simple',
+				), $user_id, $line_uid );
+			}
+
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_command_one_template', [] );
-			$message = $template && isset( $template['line']['text'] ) 
-				? $template['line']['text'] 
+			$message = $template && isset( $template['line']['text'] )
+				? $template['line']['text']
 				: "📋 複製以下格式發送：\n\n商品名稱\n價格：\n數量：";
 			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
@@ -1287,9 +1298,18 @@ class LineWebhookHandler {
 
 		// Handle /many command - 從模板系統讀取
 		if ( $command === '/many' ) {
+			// 設定商品類型為多樣式商品
+			if ( $user_id > 0 ) {
+				update_user_meta( $user_id, 'pending_product_type', 'variable' );
+				$this->logger->log( 'product_type_set_by_command', array(
+					'command' => '/many',
+					'type'    => 'variable',
+				), $user_id, $line_uid );
+			}
+
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_command_many_template', [] );
-			$message = $template && isset( $template['line']['text'] ) 
-				? $template['line']['text'] 
+			$message = $template && isset( $template['line']['text'] )
+				? $template['line']['text']
 				: "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2：";
 			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
