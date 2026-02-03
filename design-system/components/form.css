@@ -143,17 +143,15 @@ input.flatpickr-input[readonly] {
 
 /* 手機版：Flatpickr 彈窗不超出容器 */
 @media (max-width: 767px) {
-  .flatpickr-calendar {
+  body > .flatpickr-calendar,
+  .flatpickr-calendar.open {
     position: fixed !important;
     left: 50% !important;
     top: 50% !important;
     transform: translate(-50%, -50%) !important;
-    z-index: 9999 !important;
+    z-index: 99999 !important;
     max-width: 90vw !important;
-  }
-
-  .flatpickr-calendar.open {
-    display: block;
+    margin: 0 !important;
   }
 
   /* 背景遮罩 */
@@ -164,6 +162,8 @@ input.flatpickr-input[readonly] {
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.5);
     z-index: -1;
   }
