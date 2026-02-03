@@ -279,7 +279,7 @@ $orders_component_template .= <<<'HTML'
                                                 order.shipping_status === status.value ? 'font-bold' : ''
                                             ]"
                                         >
-                                            <span :class="status.color" class="px-2 py-0.5 rounded-full">
+                                            <span :class="status.color" class="px-1.5 py-0.5 rounded-full">
                                                 {{ status.label }}
                                             </span>
                                         </button>
