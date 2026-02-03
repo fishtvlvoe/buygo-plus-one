@@ -66,6 +66,9 @@ class Database
 
         // 修復 buygo_shipment_items 資料表
         self::upgrade_shipment_items_table($wpdb, $charset_collate);
+
+        // 修復 buygo_helpers 資料表（user_id -> helper_id）
+        self::upgrade_helpers_table($wpdb, $charset_collate);
     }
 
     /**
@@ -168,6 +171,50 @@ class Database
         if (!in_array('order_id', $columns)) {
             $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN order_id bigint(20) UNSIGNED NOT NULL DEFAULT 0 AFTER shipment_id");
             $wpdb->query("ALTER TABLE {$table_name} ADD KEY idx_order_id (order_id)");
+        }
+    }
+
+    /**
+     * 升級 helpers 資料表（user_id -> helper_id）
+     *
+     * 修復欄位名稱不一致的問題：
+     * - 舊的表結構使用 user_id
+     * - 新的程式碼使用 helper_id
+     */
+    private static function upgrade_helpers_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 檢查表格是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            return; // 表不存在，create_helpers_table() 會建立正確的結構
+        }
+
+        // 檢查是否已經升級過
+        if (get_option('buygo_helpers_table_upgraded', false)) {
+            return;
+        }
+
+        // 檢查欄位
+        $columns = $wpdb->get_col("DESCRIBE {$table_name}", 0);
+
+        // 如果有 user_id 欄位但沒有 helper_id，需要重命名
+        if (in_array('user_id', $columns) && !in_array('helper_id', $columns)) {
+            // 1. 刪除舊的唯一索引
+            $wpdb->query("ALTER TABLE {$table_name} DROP INDEX unique_helper");
+            $wpdb->query("ALTER TABLE {$table_name} DROP INDEX idx_user");
+
+            // 2. 重命名欄位
+            $wpdb->query("ALTER TABLE {$table_name} CHANGE COLUMN user_id helper_id bigint(20) UNSIGNED NOT NULL");
+
+            // 3. 重新建立索引
+            $wpdb->query("ALTER TABLE {$table_name} ADD UNIQUE KEY unique_helper (helper_id, seller_id)");
+            $wpdb->query("ALTER TABLE {$table_name} ADD KEY idx_helper (helper_id)");
+
+            // 標記升級完成
+            update_option('buygo_helpers_table_upgraded', true);
+
+            error_log('[BuyGo] Successfully upgraded buygo_helpers table: user_id -> helper_id');
         }
     }
 
@@ -363,7 +410,7 @@ class Database
      *
      * 用於記錄 BuyGo 管理員與小幫手的關聯關係
      * seller_id: 管理員的 WordPress user ID
-     * user_id: 小幫手的 WordPress user ID
+     * helper_id: 小幫手的 WordPress user ID
      */
     private static function create_helpers_table($wpdb, $charset_collate): void
     {
@@ -376,14 +423,14 @@ class Database
 
         $sql = "CREATE TABLE {$table_name} (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) UNSIGNED NOT NULL,
+            helper_id bigint(20) UNSIGNED NOT NULL,
             seller_id bigint(20) UNSIGNED NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            UNIQUE KEY unique_helper (user_id, seller_id),
+            UNIQUE KEY unique_helper (helper_id, seller_id),
             KEY idx_seller (seller_id),
-            KEY idx_user (user_id)
+            KEY idx_helper (helper_id)
         ) {$charset_collate};";
 
         dbDelta($sql);
@@ -421,11 +468,11 @@ class Database
             $default_seller_id = !empty($wp_admins) ? $wp_admins[0]->ID : 1;
         }
 
-        foreach ($old_helpers as $user_id) {
+        foreach ($old_helpers as $helper_id) {
             // 檢查是否已存在
             $exists = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND seller_id = %d",
-                $user_id,
+                "SELECT COUNT(*) FROM {$table_name} WHERE helper_id = %d AND seller_id = %d",
+                $helper_id,
                 $default_seller_id
             ));
 
@@ -433,7 +480,7 @@ class Database
                 $wpdb->insert(
                     $table_name,
                     [
-                        'user_id' => $user_id,
+                        'helper_id' => $helper_id,
                         'seller_id' => $default_seller_id,
                     ],
                     ['%d', '%d']
