@@ -237,17 +237,29 @@ class LineOrderNotifier {
 			// 準備賣家通知的模板參數
 			$buyerName = $this->getBuyerNameFromOrder( $order );
 
-			// 取得第一個訂單項目的商品 ID (post_id)
-			$productId = null;
-			$items = $order->items ?? [];
-			if ( ! empty( $items ) ) {
-				$firstItem = reset( $items );
-				$productId = $firstItem->post_id ?? null;
+			// 取得第一個訂單項目的 ProductVariation ID
+			// fct_order_items.object_id 就是 ProductVariation ID (fluent_product_variations.id)
+			$productVariationId = null;
+
+			// 載入訂單項目（FluentCart 使用 order_items 關聯，不是 items）
+			try {
+				$order->load( 'order_items' );
+				$items = $order->order_items;
+
+				// 使用 Collection 的 first() 方法取得第一個項目
+				if ( $items && method_exists( $items, 'first' ) ) {
+					$firstItem = $items->first();
+					if ( $firstItem ) {
+						$productVariationId = $firstItem->object_id ?? null;
+					}
+				}
+			} catch ( \Exception $e ) {
+				// ignore
 			}
 
 			// 如果有商品 ID，連結到商品編輯頁；否則連結到訂單詳情頁
-			if ( $productId ) {
-				$orderUrl = home_url( '/buygo-portal/products/?view=edit&id=' . $productId );
+			if ( $productVariationId ) {
+				$orderUrl = home_url( '/buygo-portal/products/?view=edit&id=' . $productVariationId );
 			} else {
 				$orderUrl = home_url( '/buygo-portal/orders/?view=detail&id=' . $order->id );
 			}
