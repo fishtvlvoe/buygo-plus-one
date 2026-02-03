@@ -67,25 +67,37 @@ class NotificationHandler
      *
      * 監聽 ShipmentService 觸發的出貨事件
      *
+     * MVP 策略：採用「1個出貨單 = 1則通知」的簡化邏輯
+     * 理由：避免客戶收到重複或混淆的通知，降低 LINE 推播成本
+     *
      * @return void
      */
     public function register_hooks()
     {
-        // 監聽出貨單標記為已出貨事件
+        // 監聽出貨單標記為已出貨事件（唯一啟用的通知）
         add_action('buygo/shipment/marked_as_shipped', [$this, 'handle_shipment_marked_shipped'], 10, 1);
 
-        // 監聽父訂單完成事件（所有子訂單都已出貨）
-        add_action('buygo/parent_order_completed', [$this, 'handle_parent_order_completed'], 10, 1);
-
-        // 監聽訂單出貨事件
-        add_action('buygo_order_shipped', [$this, 'handle_order_shipped'], 10, 1);
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 以下通知暫時停用，保留程式碼以備未來需求
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //
+        // 未來如果客戶需要「訂單完成統計」功能，可取消以下註解：
+        //
+        // 父訂單完成通知（當所有子訂單都已出貨時觸發）
+        // add_action('buygo/parent_order_completed', [$this, 'handle_parent_order_completed'], 10, 1);
+        //
+        // 單一訂單出貨通知（當不拆單的訂單出貨時觸發）
+        // add_action('buygo_order_shipped', [$this, 'handle_order_shipped'], 10, 1);
 
         $this->debugService->log('NotificationHandler', 'Hooks registered', [
-            'hooks' => [
-                'buygo/shipment/marked_as_shipped',
+            'active_hooks' => [
+                'buygo/shipment/marked_as_shipped'
+            ],
+            'disabled_hooks' => [
                 'buygo/parent_order_completed',
                 'buygo_order_shipped'
             ],
+            'strategy' => '1 shipment = 1 notification'
         ]);
     }
 
@@ -284,7 +296,7 @@ class NotificationHandler
 
             $wp_user_id = $fct_customer->user_id;
 
-            // 3. 查詢出貨單商品清單（JOIN 產品資料）
+            // 3. 查詢出貨單商品清單（JOIN FluentCart 訂單項目取得商品名稱）
             // 欄位名稱使用 product_name 以對應 NotificationTemplates::format_product_list()
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT
@@ -293,9 +305,9 @@ class NotificationHandler
                     si.order_item_id,
                     si.product_id,
                     si.quantity,
-                    COALESCE(p.title, '未知商品') as product_name
+                    COALESCE(oi.title, '未知商品') as product_name
                 FROM {$wpdb->prefix}buygo_shipment_items si
-                LEFT JOIN {$wpdb->prefix}buygo_products p ON si.product_id = p.id
+                LEFT JOIN {$wpdb->prefix}fct_order_items oi ON si.order_item_id = oi.id
                 WHERE si.shipment_id = %d",
                 $shipment_id
             ), ARRAY_A);
