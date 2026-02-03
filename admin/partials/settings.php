@@ -646,6 +646,7 @@ $settings_component_template .= <<<'HTML'
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">使用者</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">賣家</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">LINE 綁定</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
                                 </tr>
@@ -659,6 +660,9 @@ $settings_component_template .= <<<'HTML'
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-600">{{ helper.email }}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-900 font-medium">
+                                        {{ helper.seller_name || '未知' }}
+                                    </td>
                                     <td class="px-4 py-3">
                                         <!-- LINE 綁定狀態（Phase 26 UI-05） -->
                                         <span v-if="helper.line_linked" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -686,7 +690,7 @@ $settings_component_template .= <<<'HTML'
                                     </td>
                                 </tr>
                                 <tr v-if="helpers.length === 0">
-                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">
+                                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">
                                         尚無小幫手
                                     </td>
                                 </tr>
@@ -708,6 +712,11 @@ $settings_component_template .= <<<'HTML'
                                     <div class="text-base font-semibold text-slate-900 truncate">{{ helper.name }}</div>
                                     <div class="text-sm text-slate-600 truncate">{{ helper.email }}</div>
                                 </div>
+                            </div>
+                            <!-- 賣家資訊 -->
+                            <div class="flex items-center justify-between mb-4 px-1">
+                                <span class="text-sm text-slate-600">賣家</span>
+                                <span class="text-sm font-medium text-slate-900">{{ helper.seller_name || '未知' }}</span>
                             </div>
                             <!-- LINE 綁定狀態（Phase 26 UI-05） -->
                             <div class="flex items-center justify-between mb-4 px-1">
