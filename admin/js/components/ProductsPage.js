@@ -879,23 +879,28 @@ const ProductsPageComponent = {
             loadProducts();
         };
 
-        onMounted(() => {
-            loadProducts();
+        onMounted(async () => {
+            await loadProducts();
+            // 頁面載入後立即檢查 URL 參數
+            await checkUrlParams();
+
             // 使用 BuyGoRouter 核心模組的 popstate 監聯
             window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
             // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
-            window.addEventListener('pageshow', (e) => {
+            window.addEventListener('pageshow', async (e) => {
                 if (e.persisted) {
-                    loadProducts();
+                    await loadProducts();
+                    await checkUrlParams();
                 }
             });
 
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
             // 只要頁面變為可見就重新載入，確保資料永遠是最新的
-            document.addEventListener('visibilitychange', () => {
+            document.addEventListener('visibilitychange', async () => {
                 if (document.visibilityState === 'visible') {
-                    loadProducts();
+                    await loadProducts();
+                    await checkUrlParams();
                 }
             });
         });
