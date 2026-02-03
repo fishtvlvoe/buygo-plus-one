@@ -21,7 +21,7 @@ const ShipmentDetailsPageComponent = {
     },
     template: '#shipment-details-page-template',
     setup() {
-        const { ref, computed, watch, onMounted } = Vue;
+        const { ref, computed, watch, onMounted, nextTick } = Vue;
 
         // WordPress Nonce for API authentication
         const wpNonce = window.buygoWpNonce || '';
@@ -87,6 +87,10 @@ const ShipmentDetailsPageComponent = {
         // 搜尋狀態
         const searchQuery = ref(null);
         const searchFilter = ref(null);
+
+        // Flatpickr ref
+        const estimatedDeliveryInput = ref(null);
+        let flatpickrInstance = null;
 
         // 載入出貨單列表
         const loadShipments = async () => {
@@ -689,10 +693,49 @@ const ShipmentDetailsPageComponent = {
             loadShipments();
         };
 
+        // Header 幣別切換處理（避免 Vue 警告）
+        const onCurrencyChange = (newCurrency) => {
+            // 出貨頁面不需要幣別切換功能，此方法僅為滿足 header-component 需求
+            console.log('Currency change event received:', newCurrency);
+        };
+
         // 監聽分頁切換，清除勾選
         watch(() => activeTab.value, () => {
             selectedShipments.value = [];
             loadShipments();
+        });
+
+        // 監聽標記出貨頁面切換，初始化 Flatpickr
+        watch(() => currentView.value, (newView) => {
+            if (newView === 'shipment-mark') {
+                // 延遲初始化，確保 DOM 已渲染
+                nextTick(() => {
+                    // 銷毀舊的 Flatpickr 實例
+                    if (flatpickrInstance) {
+                        flatpickrInstance.destroy();
+                    }
+
+                    // 初始化新的 Flatpickr 實例
+                    if (estimatedDeliveryInput.value && typeof flatpickr !== 'undefined') {
+                        flatpickrInstance = flatpickr(estimatedDeliveryInput.value, {
+                            dateFormat: "Y-m-d",
+                            minDate: "today",
+                            locale: typeof flatpickr.l10ns !== 'undefined' && flatpickr.l10ns.zh_tw ? flatpickr.l10ns.zh_tw : "default",
+                            static: true,  // 修正手機定位問題
+                            position: "auto",  // 自動選擇最佳位置
+                            onChange: (selectedDates, dateStr) => {
+                                markShippedData.value.estimated_delivery_date = dateStr;
+                            }
+                        });
+                    }
+                });
+            } else {
+                // 離開標記出貨頁面時銷毀 Flatpickr
+                if (flatpickrInstance) {
+                    flatpickrInstance.destroy();
+                    flatpickrInstance = null;
+                }
+            }
         });
         
         onMounted(() => {
@@ -796,7 +839,11 @@ const ShipmentDetailsPageComponent = {
             shippingMethods,
             toggleShippingMethodDropdown,
             selectShippingMethod,
-            getShippingMethodColor
+            getShippingMethodColor,
+            // Flatpickr ref
+            estimatedDeliveryInput,
+            // Header 事件處理
+            onCurrencyChange
         };
     }
 };

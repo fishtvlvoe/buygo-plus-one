@@ -656,10 +656,12 @@ $shipment_details_template .= <<<'HTML'
                             到貨時間（選填）
                         </label>
                         <input
-                            type="date"
+                            type="text"
+                            ref="estimatedDeliveryInput"
                             v-model="markShippedData.estimated_delivery_date"
-                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white"
-                            :min="getTodayDate()"
+                            placeholder="選擇日期"
+                            readonly
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white cursor-pointer"
                         />
                         <p class="text-xs text-slate-500 mt-2">買家預計收貨日期，會顯示在出貨通知中</p>
                     </div>
@@ -801,6 +803,9 @@ HTML;
 // Vue Component
 ?>
 
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <!-- Shipment Details Page Template -->
 <script type="text/x-template" id="shipment-details-page-template">
     <?php echo $shipment_details_template; ?>
@@ -810,5 +815,8 @@ HTML;
 <script>
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
 <script src="<?php echo esc_url(plugins_url('js/components/ShipmentDetailsPage.js', dirname(__FILE__))); ?>"></script>
 
