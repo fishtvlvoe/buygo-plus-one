@@ -100,10 +100,10 @@ class ExportService
                 continue;
             }
 
-            // 取得 LINE 名稱（從 wp_usermeta 的 buygo_line_display_name）
+            // 取得 LINE 名稱（按優先級查詢多個來源）
             $line_display_name = '';
             if (!empty($shipment['wp_user_id'])) {
-                $line_display_name = get_user_meta($shipment['wp_user_id'], 'buygo_line_display_name', true);
+                $line_display_name = $this->get_line_display_name($shipment['wp_user_id']);
             }
 
             // 取得出貨單商品項目（包含 order_id 以查詢身分證字號和訂單地址）
@@ -329,6 +329,59 @@ class ExportService
 
             return new \WP_Error('csv_generation_failed', $e->getMessage());
         }
+    }
+
+    /**
+     * 取得 LINE 顯示名稱（按優先級從多個來源查詢）
+     *
+     * @param int $user_id WordPress User ID
+     * @return string LINE 顯示名稱
+     */
+    private function get_line_display_name($user_id)
+    {
+        global $wpdb;
+
+        if (empty($user_id)) {
+            return '';
+        }
+
+        // 優先級 1: wp_buygo_line_users.display_name（buygo-line-notify 新表）
+        $table_line_users = $wpdb->prefix . 'buygo_line_users';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_line_users}'") === $table_line_users) {
+            $display_name = $wpdb->get_var($wpdb->prepare(
+                "SELECT display_name FROM {$table_line_users} WHERE user_id = %d LIMIT 1",
+                $user_id
+            ));
+            if (!empty($display_name)) {
+                return $display_name;
+            }
+        }
+
+        // 優先級 2: wp_usermeta.buygo_line_display_name（舊表）
+        $display_name = get_user_meta($user_id, 'buygo_line_display_name', true);
+        if (!empty($display_name)) {
+            return $display_name;
+        }
+
+        // 優先級 3: wp_usermeta.line_display_name（NSL 外掛）
+        $display_name = get_user_meta($user_id, 'line_display_name', true);
+        if (!empty($display_name)) {
+            return $display_name;
+        }
+
+        // 優先級 4: wp_social_users.display_name（NSL 外掛）
+        $table_social_users = $wpdb->prefix . 'social_users';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_social_users}'") === $table_social_users) {
+            $display_name = $wpdb->get_var($wpdb->prepare(
+                "SELECT display_name FROM {$table_social_users} WHERE user_id = %d AND type = 'line' LIMIT 1",
+                $user_id
+            ));
+            if (!empty($display_name)) {
+                return $display_name;
+            }
+        }
+
+        return '';
     }
 
     /**
