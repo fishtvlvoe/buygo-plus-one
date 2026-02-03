@@ -54,6 +54,11 @@ started: 這些是已知的功能缺失，需要增強現有功能
   found: wp_buygo_shipments 表已有 shipping_method (varchar(100)) 和 estimated_delivery_at (datetime) 欄位
   implication: 不需要資料庫遷移，只需修改前端 UI 和 API 邏輯
 
+- timestamp: 2026-02-03T00:20:00Z
+  checked: class-export-service.php Excel 匯出邏輯
+  found: 欄位順序已調整，新增到貨日期欄位，LINE 名稱已存在但順序需調整
+  implication: 調整欄位順序為：出貨單號、客戶姓名、客戶電話、客戶地址、Email、身分證字號、LINE 名稱、商品名稱、數量、單價、小計、出貨日期、到貨日期、物流方式、追蹤號碼、狀態、備註
+
 ## Resolution
 
 root_cause:
