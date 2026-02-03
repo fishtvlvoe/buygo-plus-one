@@ -105,7 +105,8 @@ class NotificationTemplates {
                     'type' => 'text',
                     'line' => [
                         'type' => 'text',
-                        'text' => $line_message
+                        'text' => $line_message,
+                        'message' => $line_message  // 同時提供 message 鍵，向後相容
                     ]
                 ];
             }
