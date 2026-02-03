@@ -63,19 +63,21 @@ class ExportService
         $csv_data[] = [
             '出貨單號',
             '客戶姓名',
-            'LINE 名稱',
             '客戶電話',
             '客戶地址',
             'Email',
             '身分證字號',
+            'LINE 名稱',
             '商品名稱',
             '數量',
             '單價',
             '小計',
             '出貨日期',
+            '到貨日期',
             '物流方式',
             '追蹤號碼',
-            '狀態'
+            '狀態',
+            '備註'
         ];
 
         // 定義 FluentCart 訂單 meta 表
@@ -163,19 +165,21 @@ class ExportService
                 $csv_data[] = [
                     $shipment['shipment_number'] ?? '',
                     trim($customer_name),
-                    $line_display_name,
                     $customer_phone,
                     $customer_address,
                     $shipment['customer_email'] ?? '',
                     $taiwan_id_number,
+                    $line_display_name,
                     '',
                     '',
                     '',
                     '',
                     $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
+                    $shipment['estimated_delivery_at'] ? date('Y-m-d', strtotime($shipment['estimated_delivery_at'])) : '',
                     $shipment['shipping_method'] ?? '',
                     $shipment['tracking_number'] ?? '',
-                    $this->get_status_label($shipment['status'] ?? 'pending')
+                    $this->get_status_label($shipment['status'] ?? 'pending'),
+                    ''  // 備註
                 ];
             } else {
                 // 每個商品一行
@@ -189,44 +193,48 @@ class ExportService
                         $csv_data[] = [
                             $shipment['shipment_number'] ?? '',
                             trim($customer_name),
-                            $line_display_name,
                             $customer_phone,
                             $customer_address,
                             $shipment['customer_email'] ?? '',
                             $taiwan_id_number,
+                            $line_display_name,
                             $item['product_name'] ?? '未知商品',
                             $quantity,
                             $price,
                             $subtotal,
                             $shipment['shipped_at'] ?? $shipment['created_at'] ?? '',
+                            $shipment['estimated_delivery_at'] ? date('Y-m-d', strtotime($shipment['estimated_delivery_at'])) : '',
                             $shipment['shipping_method'] ?? '',
                             $shipment['tracking_number'] ?? '',
-                            $this->get_status_label($shipment['status'] ?? 'pending')
+                            $this->get_status_label($shipment['status'] ?? 'pending'),
+                            ''  // 備註
                         ];
                     } else {
                         $csv_data[] = [
                             '', // 出貨單號 (空白，避免重複)
                             '', // 客戶姓名
-                            '', // LINE 名稱
                             '', // 客戶電話
                             '', // 客戶地址
                             '', // Email
                             '', // 身分證字號
+                            '', // LINE 名稱
                             $item['product_name'] ?? '未知商品',
                             $quantity,
                             $price,
                             $subtotal,
                             '', // 出貨日期
+                            '', // 到貨日期
                             '', // 物流方式
                             '', // 追蹤號碼
-                            ''  // 狀態
+                            '', // 狀態
+                            ''  // 備註
                         ];
                     }
                 }
             }
 
-                // 每個出貨單後加一個空行（15 欄位）
-                $csv_data[] = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+                // 每個出貨單後加一個空行（17 欄位）
+                $csv_data[] = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
             }
 
             // 生成 CSV 檔案
