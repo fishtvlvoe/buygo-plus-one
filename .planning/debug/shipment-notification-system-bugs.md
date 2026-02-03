@@ -1,16 +1,16 @@
 ---
-status: investigating
+status: resolved
 trigger: "出貨頁面、Excel 報表和 LINE 通知訊息模板有多個問題需要修復"
 created: 2026-02-03T00:00:00Z
-updated: 2026-02-03T00:00:00Z
+updated: 2026-02-03T00:35:00Z
 ---
 
 ## Current Focus
 
-hypothesis: Commit 2 完成。開始 Commit 3：Excel 報表修正
-test: 修正 Excel 報表的 LINE 名稱取值邏輯，新增身分證字號、到貨日期、物流方式欄位
-expecting: Excel 報表包含所有需要的欄位，且順序正確
-next_action: 修改 class-export-service.php，修正 LINE 名稱並新增欄位
+hypothesis: Commit 3 完成。開始 Commit 4：更新 LINE 訊息模板
+test: 更新 shipment_shipped 模板，新增商品清單、物流方式、預計送達時間
+expecting: 出貨通知包含完整資訊，且佔位符能正確替換
+next_action: 檢查通知發送邏輯，確保傳遞正確的參數
 
 ## Symptoms
 
@@ -59,7 +59,27 @@ started: 這些是已知的功能缺失，需要增強現有功能
   found: 欄位順序已調整，新增到貨日期欄位，LINE 名稱已存在但順序需調整
   implication: 調整欄位順序為：出貨單號、客戶姓名、客戶電話、客戶地址、Email、身分證字號、LINE 名稱、商品名稱、數量、單價、小計、出貨日期、到貨日期、物流方式、追蹤號碼、狀態、備註
 
+- timestamp: 2026-02-03T00:30:00Z
+  checked: class-notification-handler.php 通知發送邏輯
+  found: shipment_shipped 模板已存在且完整，通知發送邏輯已實作
+  implication: 修正 collect_shipment_data 從 shipments 表取得 shipping_method 和 estimated_delivery_at（而非從 orders 表）
+
 ## Resolution
+
+root_cause: 四個功能缺失：1) 出貨頁面缺少身分證字號 2) 出貨頁面缺少物流方式和到貨日期欄位 3) Excel 報表缺少欄位和順序錯誤 4) LINE 通知取值邏輯錯誤
+fix:
+- Commit 1: 新增身分證字號顯示
+- Commit 2: 新增物流方式和到貨日期欄位（含前端 UI、API、Service）
+- Commit 3: 修正 Excel 報表欄位順序，新增到貨日期和備註欄位
+- Commit 4: 修正通知發送邏輯，從 shipments 表取得資料
+verification: 功能已完整實作，需要手動測試出貨流程和 LINE 通知
+files_changed:
+- admin/partials/shipment-details.php
+- admin/js/components/ShipmentDetailsPage.js
+- includes/api/class-shipments-api.php
+- includes/services/class-shipment-service.php
+- includes/services/class-export-service.php
+- includes/services/class-notification-handler.php
 
 root_cause:
 fix:
