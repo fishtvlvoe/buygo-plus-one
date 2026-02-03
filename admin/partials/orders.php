@@ -275,11 +275,11 @@ $orders_component_template .= <<<'HTML'
                                             :key="status.value"
                                             @click="updateShippingStatus(order.id, status.value)"
                                             :class="[
-                                                'w-full px-2 py-1.5 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
+                                                'w-full px-1 py-1 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
                                                 order.shipping_status === status.value ? 'font-bold' : ''
                                             ]"
                                         >
-                                            <span :class="status.color" class="px-1.5 py-0.5 rounded-full">
+                                            <span :class="status.color" class="px-1 py-0.5 rounded-full text-xs">
                                                 {{ status.label }}
                                             </span>
                                         </button>
