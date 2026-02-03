@@ -532,51 +532,136 @@ $shipment_details_template .= <<<'HTML'
                 </div>
             </div>
         </div>
-    </div><!-- 子分頁視圖結束 -->
+    </div><!-- 詳情子分頁視圖結束 -->
 
-    <!-- 標記已出貨 Modal -->
-    <div
-        v-if="markShippedModal.show"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-        @click.self="closeMarkShippedModal"
-    >
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-slate-900 mb-4">標記已出貨</h3>
-                <div class="mb-4">
-                    <p class="text-sm text-slate-600 mb-2">出貨單號：{{ markShippedModal.shipment?.shipment_number }}</p>
-                    <p class="text-sm text-slate-600 mb-4">客戶姓名：{{ markShippedModal.shipment?.customer_name }}</p>
-                </div>
-
-                <!-- 預計送達時間（選填） -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">預計送達時間（選填）</label>
-                    <input
-                        type="date"
-                        v-model="markShippedModal.estimated_delivery_date"
-                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm"
-                        :min="getTodayDate()"
-                    />
-                    <p class="text-xs text-slate-500 mt-1">此資訊會顯示在出貨通知中</p>
-                </div>
-
-                <div class="flex justify-end gap-3">
-                    <button
-                        @click="closeMarkShippedModal"
-                        class="btn btn-secondary"
-                    >
-                        取消
-                    </button>
-                    <button
-                        @click="confirmMarkShipped"
-                        class="btn btn-primary"
-                    >
-                        確認出貨
-                    </button>
+    <!-- 標記出貨子頁面 -->
+    <div v-show="currentView === 'shipment-mark'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
+                <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
+                    <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    <span class="text-sm font-medium">返回</span>
+                </button>
+                <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
+                <div class="truncate">
+                    <h2 class="text-base md:text-xl font-bold text-slate-900 truncate">
+                        標記出貨 - {{ markShippedData.shipment?.shipment_number }}
+                    </h2>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- 標記出貨內容 -->
+        <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
+            <!-- 客戶資訊 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-orange-500 pl-3">客戶資訊</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">姓名</span>
+                        <span class="text-sm text-slate-900 font-medium">{{ markShippedData.shipment?.customer_name || '-' }}</span>
+                    </div>
+                    <div class="flex" v-if="markShippedData.shipment?.line_display_name">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">LINE 名稱</span>
+                        <span class="text-sm text-slate-900">{{ markShippedData.shipment?.line_display_name }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">電話</span>
+                        <span class="text-sm text-slate-900">{{ markShippedData.shipment?.customer_phone || '-' }}</span>
+                    </div>
+                    <div class="flex" v-if="markShippedData.shipment?.taiwan_id_number">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">身分證字號</span>
+                        <span class="text-sm text-slate-900 font-mono">{{ markShippedData.shipment?.taiwan_id_number }}</span>
+                    </div>
+                    <div class="flex md:col-span-2">
+                        <span class="text-sm text-slate-600 w-20 shrink-0">地址</span>
+                        <span class="text-sm text-slate-900">{{ markShippedData.shipment?.customer_address || '-' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品明細 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 md:p-6 border-b border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
+                </div>
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500">商品名稱</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">數量</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">單價</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-slate-500">小計</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        <tr v-if="!markShippedData.items || markShippedData.items.length === 0">
+                            <td colspan="4" class="px-4 py-8 text-sm text-slate-500 text-center">
+                                <div class="flex flex-col items-center gap-2">
+                                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                    <span>載入中...</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-for="item in markShippedData.items" :key="item.id" class="hover:bg-slate-50">
+                            <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="bg-slate-50">
+                        <tr>
+                            <td colspan="3" class="px-4 py-4 text-sm font-bold text-slate-900 text-right">總計</td>
+                            <td class="px-4 py-4 text-sm font-bold text-orange-600 text-right">
+                                {{ formatPrice(markShippedData.total) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- 出貨設定 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-green-500 pl-3">出貨設定</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">預計送達時間（選填）</label>
+                        <input
+                            type="date"
+                            v-model="markShippedData.estimated_delivery_date"
+                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm"
+                            :min="getTodayDate()"
+                        />
+                        <p class="text-xs text-slate-500 mt-2">此資訊會顯示在出貨通知中，通知買家預計收貨日期</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按鈕 -->
+            <div class="flex justify-end gap-3 pb-8">
+                <button
+                    @click="navigateTo('list')"
+                    class="btn btn-secondary"
+                >
+                    取消
+                </button>
+                <button
+                    @click="confirmMarkShipped"
+                    class="btn btn-primary"
+                    :disabled="markShippedData.loading"
+                >
+                    <span v-if="markShippedData.loading">處理中...</span>
+                    <span v-else>確認出貨</span>
+                </button>
+            </div>
+        </div>
+    </div><!-- 標記出貨子頁面結束 -->
 
     <!-- 確認 Modal -->
     <div

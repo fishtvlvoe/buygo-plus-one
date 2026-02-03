@@ -1067,29 +1067,6 @@ const SettingsPageComponent = {
                 },
                 {
                     key: 'product_available',
-                    name: '商品上架通知',
-                    description: '商品上架或補貨時發送給預購買家',
-                    category: '客戶',
-                    type: 'text',
-                    variables: ['product_name', 'product_url', 'shop_name']
-                },
-                {
-                    key: 'new_order',
-                    name: '新訂單通知',
-                    description: '買家下單後發送確認通知',
-                    category: '客戶',
-                    type: 'text',
-                    variables: ['order_id', 'order_total', 'product_list', 'shop_name']
-                },
-                {
-                    key: 'order_status_changed',
-                    name: '訂單狀態變更通知',
-                    description: '訂單狀態變更時發送給買家',
-                    category: '客戶',
-                    type: 'text',
-                    variables: ['order_id', 'old_status', 'new_status', 'shop_name']
-                },
-                {
                     key: 'shipment_shipped',
                     name: '出貨通知',
                     description: '出貨單標記為「已出貨」時發送給買家',
