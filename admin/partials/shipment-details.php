@@ -659,7 +659,6 @@ $shipment_details_template .= <<<'HTML'
                             type="date"
                             v-model="markShippedData.estimated_delivery_date"
                             class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white"
-                            style="text-align: left !important; direction: ltr; max-width: 100%; box-sizing: border-box;"
                             :min="getTodayDate()"
                         />
                         <p class="text-xs text-slate-500 mt-2">買家預計收貨日期，會顯示在出貨通知中</p>

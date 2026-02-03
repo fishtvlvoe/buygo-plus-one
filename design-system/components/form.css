@@ -108,3 +108,21 @@
   border-color: transparent;
   box-shadow: 0 0 0 2px var(--color-primary);
 }
+
+/* Date Input - 修正瀏覽器預設樣式 */
+input[type="date"] {
+  text-align: left !important;
+  direction: ltr;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 確保 date input 的內部元素也靠左對齊 */
+input[type="date"]::-webkit-datetime-edit {
+  text-align: left;
+  padding-left: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}
