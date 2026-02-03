@@ -263,11 +263,11 @@ $orders_component_template .= <<<'HTML'
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </button>
-                                    <!-- 下拉選單（fixed 定位，不受容器限制） -->
+                                    <!-- 下拉選單（fixed 定位，緊湊樣式） -->
                                     <div
                                         v-if="isStatusDropdownOpen(order.id)"
                                         @click.stop
-                                        class="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-[120px]"
+                                        class="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 w-auto"
                                         :style="{ top: dropdownPosition.top + 'px', left: dropdownPosition.left + 'px', transform: 'translateY(-100%)' }"
                                     >
                                         <button
@@ -275,7 +275,7 @@ $orders_component_template .= <<<'HTML'
                                             :key="status.value"
                                             @click="updateShippingStatus(order.id, status.value)"
                                             :class="[
-                                                'w-full px-3 py-2 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
+                                                'w-full px-2 py-1.5 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
                                                 order.shipping_status === status.value ? 'font-bold' : ''
                                             ]"
                                         >
