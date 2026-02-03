@@ -717,12 +717,15 @@ const ShipmentDetailsPageComponent = {
 
                     // 初始化新的 Flatpickr 實例
                     if (estimatedDeliveryInput.value && typeof flatpickr !== 'undefined') {
+                        // 檢測是否為手機裝置
+                        const isMobile = window.innerWidth < 768;
+
                         flatpickrInstance = flatpickr(estimatedDeliveryInput.value, {
                             dateFormat: "Y-m-d",
                             minDate: "today",
                             locale: typeof flatpickr.l10ns !== 'undefined' && flatpickr.l10ns.zh_tw ? flatpickr.l10ns.zh_tw : "default",
-                            static: true,  // 修正手機定位問題
-                            position: "auto",  // 自動選擇最佳位置
+                            appendTo: document.body,  // 附加到 body，讓 CSS 生效
+                            positionElement: isMobile ? undefined : estimatedDeliveryInput.value,  // 手機版不固定位置
                             onChange: (selectedDates, dateStr) => {
                                 markShippedData.value.estimated_delivery_date = dateStr;
                             }
