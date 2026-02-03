@@ -517,6 +517,11 @@ const SearchPageComponent = {
                 // 使用 URL 參數傳遞 ID
                 window.location.href = `${basePath}?id=${result.id}`;
             }
+        },
+
+        // 幣別切換處理（Header 元件會呼叫此方法）
+        onCurrencyChange(newCurrency) {
+            console.log('[SearchPage] 幣別變更:', newCurrency);
         }
     }
 };

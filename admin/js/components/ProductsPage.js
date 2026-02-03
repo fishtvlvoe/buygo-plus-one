@@ -905,6 +905,12 @@ const ProductsPageComponent = {
             });
         });
 
+        // 幣別切換處理（Header 元件會呼叫此方法）
+        const onCurrencyChange = (newCurrency) => {
+            console.log('[ProductsPage] 幣別變更:', newCurrency);
+            currentCurrency.value = newCurrency;
+        };
+
         return {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
@@ -950,7 +956,9 @@ const ProductsPageComponent = {
                      currentCurrency.value = 'TWD';
                      showToast(`已切換為 ${currencySymbols['TWD']} TWD`);
                  }
-             }
+             },
+             // 幣別切換
+             onCurrencyChange
         };
     }
 };

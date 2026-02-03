@@ -364,6 +364,7 @@ $shipment_products_component_template .= <<<'HTML'
             </div>
         </div>
     </div>
+    </div>
 
     <!-- 確認 Modal -->
     <div

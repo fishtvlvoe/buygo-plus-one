@@ -23,7 +23,7 @@ $show_currency_toggle = $show_currency_toggle ?? false;
 
 <page-header-component
     title="<?php echo esc_attr($header_title); ?>"
-    breadcrumb='<?php echo $header_breadcrumb; // 已在各頁面 escape ?>'
+    breadcrumb="<?php echo esc_attr($header_breadcrumb); ?>"
     :show-currency-toggle="<?php echo $show_currency_toggle ? 'true' : 'false'; ?>"
     @currency-changed="onCurrencyChange"
 ></page-header-component>
