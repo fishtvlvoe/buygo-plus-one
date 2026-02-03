@@ -11,9 +11,7 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 $header_title = '客戶';
 $header_breadcrumb = '<a href="/buygo-portal/dashboard" class="">首頁</a>
 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-<span class="active">客戶</span>
-<span v-if="currentView === \'detail\'" class="text-slate-300">/</span>
-<span v-if="currentView === \'detail\'" class="text-primary font-medium truncate">詳情 #{{ currentCustomerId }}</span>';
+<span class="active">客戶</span>';
 $show_currency_toggle = true;
 
 // 載入共用 Header

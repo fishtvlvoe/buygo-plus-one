@@ -62,10 +62,26 @@ class ProductService
                     $accessible_seller_ids = SettingsService::get_accessible_seller_ids($user->ID);
 
                     if (!empty($accessible_seller_ids)) {
-                        // 只顯示可存取賣家的商品
-                        $query->whereHas('product', function($q) use ($accessible_seller_ids) {
-                            $q->whereIn('post_author', $accessible_seller_ids);
-                        });
+                        // 使用原生 SQL 查詢（與 OrderService 一致）
+                        // 這比 whereHas 更穩定，因為直接查詢 wp_posts.post_author
+                        $table_posts = $wpdb->posts;
+                        $seller_ids_placeholder = implode(',', array_map('intval', $accessible_seller_ids));
+
+                        // 取得這些賣家的商品 post_id
+                        $post_ids = $wpdb->get_col(
+                            "SELECT DISTINCT p.ID
+                             FROM {$table_posts} p
+                             WHERE p.post_author IN ({$seller_ids_placeholder})
+                             AND p.post_type = 'fct_product'
+                             AND p.post_status != 'trash'"
+                        );
+
+                        if (!empty($post_ids)) {
+                            $query->whereIn('post_id', $post_ids);
+                        } else {
+                            // 沒有符合的商品
+                            $query->whereRaw('1 = 0');
+                        }
                     } else {
                         // 沒有授權的賣場，返回空結果
                         $query->whereRaw('1 = 0');
