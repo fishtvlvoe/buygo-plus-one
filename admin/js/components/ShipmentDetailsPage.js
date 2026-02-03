@@ -45,10 +45,13 @@ const ShipmentDetailsPageComponent = {
         // Modal 狀態
         const confirmModal = ref({ show: false, title: '', message: '', onConfirm: null });
         const toastMessage = ref({ show: false, message: '', type: 'success' });
-        const markShippedModal = ref({
-            show: false,
+        // 標記出貨子頁面資料
+        const markShippedData = ref({
             shipment: null,
-            estimated_delivery_date: ''
+            items: [],
+            total: 0,
+            estimated_delivery_date: '',
+            loading: false
         });
 
         // 詳情 Modal 狀態
@@ -124,33 +127,57 @@ const ShipmentDetailsPageComponent = {
             }
         };
         
-        // 顯示標記已出貨 Modal
+        // 顯示標記出貨子頁面
         const showMarkShippedConfirm = (shipment) => {
-            markShippedModal.value = {
-                show: true,
-                shipment: shipment,
-                estimated_delivery_date: ''
-            };
+            navigateTo('shipment-mark', shipment.id);
         };
 
-        // 關閉標記已出貨 Modal
-        const closeMarkShippedModal = () => {
-            markShippedModal.value = {
-                show: false,
-                shipment: null,
-                estimated_delivery_date: ''
-            };
+        // 載入標記出貨子頁面資料
+        const loadMarkShippedData = async (shipmentId) => {
+            markShippedData.value.loading = true;
+            try {
+                const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'X-WP-Nonce': wpNonce
+                    }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    markShippedData.value = {
+                        shipment: result.data.shipment,
+                        items: result.data.items,
+                        total: result.data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0),
+                        estimated_delivery_date: '',
+                        loading: false
+                    };
+                } else {
+                    showToast('載入出貨單資料失敗：' + result.message, 'error');
+                    navigateTo('list');
+                }
+            } catch (err) {
+                console.error('載入出貨單資料失敗:', err);
+                showToast('載入出貨單資料失敗', 'error');
+                navigateTo('list');
+            }
         };
 
-        // 確認標記已出貨
+        // 確認標記已出貨（從子頁面執行）
         const confirmMarkShipped = async () => {
-            const shipment = markShippedModal.value.shipment;
-            const estimatedDeliveryDate = markShippedModal.value.estimated_delivery_date;
+            const shipment = markShippedData.value.shipment;
+            const estimatedDeliveryDate = markShippedData.value.estimated_delivery_date;
 
             if (!shipment) {
-                closeMarkShippedModal();
+                navigateTo('list');
                 return;
             }
+
+            markShippedData.value.loading = true;
 
             try {
                 // 準備 API 請求資料
@@ -177,7 +204,8 @@ const ShipmentDetailsPageComponent = {
                 if (result.success) {
                     showToast('✓ 出貨單已標記為已出貨', 'success');
                     selectedShipments.value = [];
-                    closeMarkShippedModal();
+                    // 返回列表頁
+                    navigateTo('list');
                     await loadShipments();
                     await loadStats();
                 } else {
@@ -186,6 +214,8 @@ const ShipmentDetailsPageComponent = {
             } catch (err) {
                 console.error('標記出貨失敗:', err);
                 showToast('✗ 操作失敗，請稍後再試', 'error');
+            } finally {
+                markShippedData.value.loading = false;
             }
         };
 
@@ -443,6 +473,10 @@ const ShipmentDetailsPageComponent = {
                 currentView.value = 'detail';
                 currentShipmentId.value = id;
                 loadShipmentDetail(id);
+            } else if (view === 'shipment-mark' && id) {
+                currentView.value = 'shipment-mark';
+                currentShipmentId.value = id;
+                loadMarkShippedData(id);
             } else {
                 currentView.value = 'list';
                 currentShipmentId.value = null;
@@ -453,7 +487,14 @@ const ShipmentDetailsPageComponent = {
         const navigateTo = (view, shipmentId = null, updateUrl = true) => {
             currentView.value = view;
 
-            if (shipmentId) {
+            if (view === 'shipment-mark' && shipmentId) {
+                currentShipmentId.value = shipmentId;
+                loadMarkShippedData(shipmentId);
+
+                if (updateUrl) {
+                    window.BuyGoRouter.navigateTo(view, shipmentId);
+                }
+            } else if (view === 'detail' && shipmentId) {
                 currentShipmentId.value = shipmentId;
                 loadShipmentDetail(shipmentId);
 
@@ -463,6 +504,7 @@ const ShipmentDetailsPageComponent = {
             } else {
                 currentShipmentId.value = null;
                 detailModal.value = { show: false, shipment: null, items: [], total: 0 };
+                markShippedData.value = { shipment: null, items: [], total: 0, estimated_delivery_date: '', loading: false };
 
                 if (updateUrl) {
                     window.BuyGoRouter.goToList();
@@ -629,9 +671,9 @@ const ShipmentDetailsPageComponent = {
             confirmModal,
             toastMessage,
             detailModal,
-            markShippedModal,
+            markShippedData,
             showMarkShippedConfirm,
-            closeMarkShippedModal,
+            loadMarkShippedData,
             confirmMarkShipped,
             markShipped,
             archiveShipment,

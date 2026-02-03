@@ -315,6 +315,41 @@ if (!defined('ARRAY_N')) {
     define('ARRAY_N', 'ARRAY_N');
 }
 
+// Mock get_transient and set_transient for NotificationHandler tests
+if (!function_exists('get_transient')) {
+    // 全域快取儲存
+    $GLOBALS['mock_transients'] = [];
+
+    function get_transient($transient) {
+        return isset($GLOBALS['mock_transients'][$transient]) ? $GLOBALS['mock_transients'][$transient] : false;
+    }
+}
+
+if (!function_exists('set_transient')) {
+    function set_transient($transient, $value, $expiration = 0) {
+        $GLOBALS['mock_transients'][$transient] = $value;
+        return true;
+    }
+}
+
+if (!function_exists('delete_transient')) {
+    function delete_transient($transient) {
+        unset($GLOBALS['mock_transients'][$transient]);
+        return true;
+    }
+}
+
+// Mock MINUTE_IN_SECONDS constant
+if (!defined('MINUTE_IN_SECONDS')) {
+    define('MINUTE_IN_SECONDS', 60);
+}
+
+if (!function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field($str) {
+        return htmlspecialchars(strip_tags($str), ENT_QUOTES, 'UTF-8');
+    }
+}
+
 // 載入需要測試的類別
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
@@ -322,3 +357,5 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.p
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-identity-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-handler.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
