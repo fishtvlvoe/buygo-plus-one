@@ -925,7 +925,7 @@ class NotificationTemplates {
             // 賣家通知
             'seller_order_created' => [
                 'line' => [
-                    'message' => "🛒 您有新的訂單！\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快處理訂單。"
+                    'message' => "🛒 您有新的訂單！\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快處理訂單。\n{order_url}"
                 ]
             ],
             'seller_order_cancelled' => [

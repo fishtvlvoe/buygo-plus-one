@@ -236,8 +236,22 @@ class LineOrderNotifier {
 			], $sellerId, null );
 			// 準備賣家通知的模板參數
 			$buyerName = $this->getBuyerNameFromOrder( $order );
-			// 使用前台訂單頁面網址（buygo-portal 子分頁格式）
-			$orderUrl = home_url( '/buygo-portal/orders/?view=detail&id=' . $order->id );
+
+			// 取得第一個訂單項目的商品 ID (post_id)
+			$productId = null;
+			$items = $order->items ?? [];
+			if ( ! empty( $items ) ) {
+				$firstItem = reset( $items );
+				$productId = $firstItem->post_id ?? null;
+			}
+
+			// 如果有商品 ID，連結到商品編輯頁；否則連結到訂單詳情頁
+			if ( $productId ) {
+				$orderUrl = home_url( '/buygo-portal/products/?view=edit&id=' . $productId );
+			} else {
+				$orderUrl = home_url( '/buygo-portal/orders/?view=detail&id=' . $order->id );
+			}
+
 			$sellerArgs = [
 				'order_id' => (string) $order->id,
 				'buyer_name' => $buyerName,
