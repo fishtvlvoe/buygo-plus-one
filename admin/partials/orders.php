@@ -263,11 +263,11 @@ $orders_component_template .= <<<'HTML'
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </button>
-                                    <!-- 下拉選單 -->
+                                    <!-- 下拉選單（向上展開，避免被表格底部遮擋） -->
                                     <div
                                         v-if="isStatusDropdownOpen(order.id)"
                                         @click.stop
-                                        class="absolute z-50 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[120px]"
+                                        class="absolute z-50 bottom-full mb-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[120px]"
                                     >
                                         <button
                                             v-for="status in shippingStatuses"
