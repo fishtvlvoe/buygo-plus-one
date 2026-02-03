@@ -105,7 +105,7 @@ class LineWebhookHandler {
 		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) === $table_name ) {
 			// 查詢資料表，檢查該用戶是否為任何賣家的小幫手
 			$is_helper = $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
+				"SELECT COUNT(*) FROM {$table_name} WHERE helper_id = %d",
 				$user->ID
 			) );
 
@@ -121,6 +121,52 @@ class LineWebhookHandler {
 		}
 
 		return false;
+	}
+
+	/**
+	 * 取得商品擁有者（賣家 ID）
+	 *
+	 * 根據使用者身份判斷商品的真正擁有者：
+	 * - 如果是賣家本人 → 返回賣家 ID
+	 * - 如果是小幫手 → 從 wp_buygo_helpers 表查詢對應的賣家 ID
+	 * - 如果是管理員 → 返回管理員 ID（作為賣家）
+	 *
+	 * @param \WP_User $user WordPress 使用者物件
+	 * @return int 商品擁有者的 User ID（0 表示無法判斷）
+	 */
+	private function get_product_owner( $user ) {
+		if ( ! $user || ! $user->ID ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'buygo_helpers';
+
+		// 檢查資料表是否存在
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) === $table_name ) {
+			// 查詢該使用者是否為小幫手（從 helper_id 欄位查詢對應的 seller_id）
+			$seller_id = $wpdb->get_var( $wpdb->prepare(
+				"SELECT seller_id FROM {$table_name} WHERE helper_id = %d LIMIT 1",
+				$user->ID
+			) );
+
+			if ( $seller_id ) {
+				$this->logger->log( 'product_owner_identified', array(
+					'helper_id' => $user->ID,
+					'seller_id' => $seller_id,
+					'source' => 'buygo_helpers_table',
+				) );
+				return (int) $seller_id;
+			}
+		}
+
+		// 如果不是小幫手，則該使用者就是賣家本人
+		$this->logger->log( 'product_owner_identified', array(
+			'user_id' => $user->ID,
+			'is_seller' => true,
+			'source' => 'user_self',
+		) );
+		return $user->ID;
 	}
 
 	/**
@@ -982,8 +1028,13 @@ class LineWebhookHandler {
 			return;
 		}
 
-		// Add user_id and line_uid to product data
-		$product_data['user_id'] = $user->ID;
+		// 判斷商品擁有者（賣家 ID）
+		// 如果是小幫手上架，商品擁有者應該是賣家，而不是小幫手
+		$seller_id = $this->get_product_owner( $user );
+
+		// Add user_id (seller_id), uploader_id, and line_uid to product data
+		$product_data['user_id'] = $seller_id;  // 商品擁有者（賣家 ID）
+		$product_data['uploader_id'] = $user->ID;  // 實際上架者（可能是小幫手）
 		$product_data['line_uid'] = $line_uid;
 
 		// Get temporary images
