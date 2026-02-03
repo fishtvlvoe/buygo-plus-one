@@ -299,13 +299,13 @@ class SettingsService
 
         // 從資料表查詢
         $helper_records = $wpdb->get_results($wpdb->prepare(
-            "SELECT user_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
+            "SELECT helper_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
             $seller_id
         ));
 
         $helpers = [];
         foreach ($helper_records as $record) {
-            $user = get_userdata($record->user_id);
+            $user = get_userdata($record->helper_id);
             if ($user) {
                 // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
                 $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
@@ -377,7 +377,7 @@ class SettingsService
     public static function add_helper(int $user_id, string $role = 'buygo_helper', ?int $seller_id = null): bool
     {
         self::get_debug_service()->log('SettingsService', '開始新增小幫手/管理員', array(
-            'user_id' => $user_id,
+            'helper_id' => $user_id,
             'role' => $role,
             'seller_id' => $seller_id,
         ));
@@ -389,7 +389,7 @@ class SettingsService
             $user = get_userdata($user_id);
             if (!$user) {
                 self::get_debug_service()->log('SettingsService', '使用者不存在', array(
-                    'user_id' => $user_id,
+                    'helper_id' => $user_id,
                 ), 'warning');
                 return false;
             }
@@ -404,7 +404,7 @@ class SettingsService
             if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
                 // 檢查是否已存在
                 $exists = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND seller_id = %d",
+                    "SELECT COUNT(*) FROM {$table_name} WHERE helper_id = %d AND seller_id = %d",
                     $user_id,
                     $seller_id
                 ));
@@ -414,7 +414,7 @@ class SettingsService
                     $wpdb->insert(
                         $table_name,
                         [
-                            'user_id' => $user_id,
+                            'helper_id' => $user_id,
                             'seller_id' => $seller_id,
                         ],
                         ['%d', '%d']
@@ -440,7 +440,7 @@ class SettingsService
         }
 
             self::get_debug_service()->log('SettingsService', '新增小幫手/管理員成功', array(
-                'user_id' => $user_id,
+                'helper_id' => $user_id,
                 'role' => $role,
             ));
 
@@ -448,7 +448,7 @@ class SettingsService
 
         } catch (\Exception $e) {
             self::get_debug_service()->log('SettingsService', '新增小幫手/管理員失敗', array(
-                'user_id' => $user_id,
+                'helper_id' => $user_id,
                 'role' => $role,
                 'error' => $e->getMessage(),
             ), 'error');
@@ -479,7 +479,7 @@ class SettingsService
             $wpdb->delete(
                 $table_name,
                 [
-                    'user_id' => $user_id,
+                    'helper_id' => $user_id,
                     'seller_id' => $seller_id,
                 ],
                 ['%d', '%d']
@@ -501,7 +501,7 @@ class SettingsService
         $remaining = 0;
         if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
             $remaining = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
+                "SELECT COUNT(*) FROM {$table_name} WHERE helper_id = %d",
                 $user_id
             ));
         }
@@ -595,7 +595,7 @@ class SettingsService
 
         if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
             $authorized_sellers = $wpdb->get_col($wpdb->prepare(
-                "SELECT seller_id FROM {$table_name} WHERE user_id = %d",
+                "SELECT seller_id FROM {$table_name} WHERE helper_id = %d",
                 $user_id
             ));
 

@@ -208,7 +208,7 @@ class IdentityService
         }
 
         $result = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_name} WHERE user_id = %d LIMIT 1",
+            "SELECT * FROM {$table_name} WHERE helper_id = %d LIMIT 1",
             $user_id
         ), ARRAY_A);
 
