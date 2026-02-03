@@ -727,6 +727,39 @@ class SettingsPage
                 $product_limit = 2; // 預設為 2 個商品
             }
 
+            // 取得綁定關係
+            global $wpdb;
+            $helpers_table = $wpdb->prefix . 'buygo_helpers';
+            $binding_info = '';
+
+            if ($has_buygo_helper_role || $is_in_helpers_list) {
+                // 小幫手：查詢綁定的賣家
+                $seller = $wpdb->get_row($wpdb->prepare(
+                    "SELECT s.ID, s.display_name
+                     FROM {$helpers_table} h
+                     JOIN {$wpdb->users} s ON h.seller_id = s.ID
+                     WHERE h.helper_id = %d
+                     LIMIT 1",
+                    $user->ID
+                ));
+                if ($seller) {
+                    $binding_info = '綁定賣家：' . $seller->display_name;
+                } else {
+                    $binding_info = '<span style="color: #d63638;">未綁定賣家</span>';
+                }
+            } elseif ($has_buygo_admin_role || $is_wp_admin) {
+                // 賣家：查詢小幫手數量
+                $helper_count = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$helpers_table} WHERE seller_id = %d",
+                    $user->ID
+                ));
+                if ($helper_count > 0) {
+                    $binding_info = "小幫手數量：{$helper_count} 個";
+                } else {
+                    $binding_info = '無小幫手';
+                }
+            }
+
             $all_users[] = [
                 'id' => $user->ID,
                 'name' => $user->display_name,
@@ -739,7 +772,8 @@ class SettingsPage
                 'has_buygo_helper_role' => $has_buygo_helper_role,
                 'is_in_helpers_list' => $is_in_helpers_list,
                 'seller_type' => $seller_type,
-                'product_limit' => intval($product_limit)
+                'product_limit' => intval($product_limit),
+                'binding_info' => $binding_info
             ];
         }
         
@@ -766,6 +800,7 @@ class SettingsPage
                             <th>Email</th>
                             <th>LINE ID</th>
                             <th>角色</th>
+                            <th>綁定關係</th>
                             <th>賣家類型</th>
                             <th>商品限制</th>
                             <th>操作</th>
@@ -793,6 +828,9 @@ class SettingsPage
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html($user['role']); ?></td>
+                                <td style="font-size: 12px; color: #2271b1;">
+                                    <?php echo $user['binding_info']; ?>
+                                </td>
                                 <td>
                                     <select class="seller-type-select" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px;">
                                         <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家</option>
