@@ -284,30 +284,9 @@ class NotificationHandler
                 $shipment_id
             ), ARRAY_A);
 
-            // 3. 查詢物流方式（從訂單或出貨單設定）
-            // 目前從第一個訂單項目取得物流方式
-            $shipping_method = null;
-            $estimated_delivery_at = null;
-
-            if (!empty($items)) {
-                $first_order_id = $items[0]['order_id'];
-                $order_data = $wpdb->get_row($wpdb->prepare(
-                    "SELECT shipping_method, estimated_delivery_at
-                     FROM {$wpdb->prefix}fct_orders
-                     WHERE id = %d",
-                    $first_order_id
-                ));
-
-                if ($order_data) {
-                    $shipping_method = $order_data->shipping_method;
-                    $estimated_delivery_at = $order_data->estimated_delivery_at;
-                }
-            }
-
-            // 4. 如果訂單沒有 estimated_delivery_at，從出貨單取得（Phase 32 新增的欄位）
-            if (!$estimated_delivery_at && isset($shipment->estimated_delivery_at)) {
-                $estimated_delivery_at = $shipment->estimated_delivery_at;
-            }
+            // 3. 從出貨單取得物流方式和預計送達時間
+            $shipping_method = $shipment->shipping_method ?? null;
+            $estimated_delivery_at = $shipment->estimated_delivery_at ?? null;
 
             // 5. 組合完整資訊
             return [
