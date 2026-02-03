@@ -271,6 +271,7 @@ const OrdersPageComponent = {
 
         // 狀態下拉選單狀態
         const openStatusDropdown = ref(null);
+        const dropdownPosition = ref({ top: 0, left: 0 });
         
         // 確認 Modal 狀態
         const confirmModal = ref({
@@ -772,11 +773,24 @@ const OrdersPageComponent = {
         };
 
         // 切換狀態下拉選單
-        const toggleStatusDropdown = (orderId) => {
+        const toggleStatusDropdown = (orderId, event) => {
             if (openStatusDropdown.value === orderId) {
                 openStatusDropdown.value = null;
             } else {
                 openStatusDropdown.value = orderId;
+
+                // 計算下拉選單位置（fixed 定位）
+                if (event && event.target) {
+                    const button = event.target.closest('button');
+                    if (button) {
+                        const rect = button.getBoundingClientRect();
+                        // 向上展開：選單底部對齊按鈕頂部
+                        dropdownPosition.value = {
+                            top: rect.top - 8, // 減去 mb-1 的間距
+                            left: rect.left
+                        };
+                    }
+                }
             }
         };
 
@@ -1309,6 +1323,7 @@ const OrdersPageComponent = {
             isStatusDropdownOpen,
             updateShippingStatus,
             openStatusDropdown,
+            dropdownPosition,
             // 狀態篩選相關
             filterStatus,
             stats,
