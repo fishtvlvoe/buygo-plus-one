@@ -297,11 +297,24 @@ class SettingsService
             return self::get_helpers_from_option();
         }
 
+        // 檢查當前用戶角色，判斷查詢方式
+        $current_user = wp_get_current_user();
+        $is_helper = in_array('buygo_helper', $current_user->roles);
+
         // 從資料表查詢
-        $helper_records = $wpdb->get_results($wpdb->prepare(
-            "SELECT helper_id, seller_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
-            $seller_id
-        ));
+        if ($is_helper) {
+            // Helper 身份：查詢自己被哪個 seller 綁定
+            $helper_records = $wpdb->get_results($wpdb->prepare(
+                "SELECT helper_id, seller_id, created_at FROM {$table_name} WHERE helper_id = %d ORDER BY created_at DESC",
+                $seller_id
+            ));
+        } else {
+            // Seller 身份：查詢自己綁定了哪些 helper
+            $helper_records = $wpdb->get_results($wpdb->prepare(
+                "SELECT helper_id, seller_id, created_at FROM {$table_name} WHERE seller_id = %d ORDER BY created_at DESC",
+                $seller_id
+            ));
+        }
 
         $helpers = [];
         foreach ($helper_records as $record) {
