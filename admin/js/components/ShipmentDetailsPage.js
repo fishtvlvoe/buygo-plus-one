@@ -724,6 +724,7 @@ const ShipmentDetailsPageComponent = {
                             dateFormat: "Y-m-d",
                             minDate: "today",
                             locale: typeof flatpickr.l10ns !== 'undefined' && flatpickr.l10ns.zh_tw ? flatpickr.l10ns.zh_tw : "default",
+                            disableMobile: true,  // 🔑 關鍵：禁用原生日期選擇器，強制使用 Flatpickr
                             appendTo: document.body,  // 附加到 body，讓 CSS 生效
                             positionElement: isMobile ? undefined : estimatedDeliveryInput.value,  // 手機版不固定位置
                             onChange: (selectedDates, dateStr) => {
