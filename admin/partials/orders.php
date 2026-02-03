@@ -267,7 +267,7 @@ $orders_component_template .= <<<'HTML'
                                     <div
                                         v-if="isStatusDropdownOpen(order.id)"
                                         @click.stop
-                                        class="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 w-auto"
+                                        class="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1"
                                         :style="{ top: dropdownPosition.top + 'px', left: dropdownPosition.left + 'px', transform: 'translateY(-100%)' }"
                                     >
                                         <button
@@ -275,7 +275,7 @@ $orders_component_template .= <<<'HTML'
                                             :key="status.value"
                                             @click="updateShippingStatus(order.id, status.value)"
                                             :class="[
-                                                'w-full px-1 py-1 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
+                                                'block px-1 py-1 text-left text-xs hover:bg-slate-50 transition whitespace-nowrap',
                                                 order.shipping_status === status.value ? 'font-bold' : ''
                                             ]"
                                         >
