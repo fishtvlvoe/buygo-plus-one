@@ -580,6 +580,9 @@ class Shipments_API
         $estimated_delivery_at = isset($params['estimated_delivery_at'])
             ? sanitize_text_field($params['estimated_delivery_at'])
             : null;
+        $shipping_method = isset($params['shipping_method'])
+            ? sanitize_text_field($params['shipping_method'])
+            : null;
 
         if (empty($shipment_ids)) {
             return new WP_Error('missing_shipment_ids', '請選擇要標記的出貨單', ['status' => 400]);
@@ -593,7 +596,7 @@ class Shipments_API
             ], 400);
         }
 
-        $result = $this->shipmentService->mark_shipped($shipment_ids, $estimated_delivery_at);
+        $result = $this->shipmentService->mark_shipped($shipment_ids, $estimated_delivery_at, $shipping_method);
 
         if (is_wp_error($result)) {
             return $result;

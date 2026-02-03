@@ -7,10 +7,10 @@ updated: 2026-02-03T00:00:00Z
 
 ## Current Focus
 
-hypothesis: 功能增強需求已分析完成。開始 Commit 1：出貨頁面新增身分證字號顯示
-test: 檢查標記出貨頁面的客戶資訊區塊，新增身分證字號顯示
-expecting: 身分證字號會顯示在客戶資訊區塊中（taiwan_id_number 欄位）
-next_action: 修改 shipment-details.php 第 558-580 行標記出貨頁面的客戶資訊區塊
+hypothesis: Commit 2 完成。開始 Commit 3：Excel 報表修正
+test: 修正 Excel 報表的 LINE 名稱取值邏輯，新增身分證字號、到貨日期、物流方式欄位
+expecting: Excel 報表包含所有需要的欄位，且順序正確
+next_action: 修改 class-export-service.php，修正 LINE 名稱並新增欄位
 
 ## Symptoms
 
@@ -48,6 +48,11 @@ started: 這些是已知的功能缺失，需要增強現有功能
   checked: 標記出貨頁面客戶資訊區塊
   found: 目前只顯示姓名、LINE 名稱、電話、地址，缺少身分證字號
   implication: 在電話欄位後新增身分證字號欄位（與詳情檢視一致）
+
+- timestamp: 2026-02-03T00:10:00Z
+  checked: class-database.php 資料表結構
+  found: wp_buygo_shipments 表已有 shipping_method (varchar(100)) 和 estimated_delivery_at (datetime) 欄位
+  implication: 不需要資料庫遷移，只需修改前端 UI 和 API 邏輯
 
 ## Resolution
 
