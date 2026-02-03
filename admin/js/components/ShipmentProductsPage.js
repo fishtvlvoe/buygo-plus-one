@@ -507,6 +507,12 @@ const ShipmentProductsPageComponent = {
             });
         });
 
+        // 幣別切換處理（Header 元件會呼叫此方法）
+        const onCurrencyChange = (newCurrency) => {
+            console.log('[ShipmentProductsPage] 幣別變更:', newCurrency);
+            currentCurrency.value = newCurrency;
+        };
+
         return {
             // 狀態
             shipments,
@@ -559,7 +565,10 @@ const ShipmentProductsPageComponent = {
             executeConfirm,
             cancelConfirm,
             toastMessage,
-            showToast
+            showToast,
+
+            // 幣別切換
+            onCurrencyChange
         };
     }
 };

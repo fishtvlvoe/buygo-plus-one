@@ -105,6 +105,7 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-management-page.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-type-field.php';
 
         // 載入 Database
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';

@@ -491,6 +491,13 @@ const CustomersPageComponent = {
             }
         };
 
+        // 幣別切換處理（Header 元件會呼叫此方法）
+        const onCurrencyChange = (newCurrency) => {
+            console.log('[CustomersPage] 幣別變更:', newCurrency);
+            currentCurrency.value = newCurrency;
+            displayCurrency.value = newCurrency;
+        };
+
         // 初始化
         onMounted(() => {
             loadCustomers();
@@ -505,7 +512,7 @@ const CustomersPageComponent = {
                 displayCurrency.value = savedCurrency;
             }
         });
-        
+
         return {
             customers,
             loading,
@@ -563,7 +570,9 @@ const CustomersPageComponent = {
             loadCustomerDetail,
             handleGlobalSearch,
             toggleCurrency,
-            navigateToOrder
+            navigateToOrder,
+            // 幣別切換
+            onCurrencyChange
         };
     }
 };
