@@ -629,26 +629,36 @@ $shipment_details_template .= <<<'HTML'
             <!-- 出貨設定 -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
                 <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-green-500 pl-3">出貨設定</h4>
-                <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- 出貨時間（自動填入，唯讀） -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">📦 出貨時間</label>
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                            出貨時間
+                        </label>
                         <input
                             type="text"
                             :value="getCurrentDateTime()"
                             readonly
-                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 text-sm cursor-not-allowed"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600 text-sm cursor-not-allowed"
                         />
                         <p class="text-xs text-slate-500 mt-2">系統自動填入（確認出貨時的當下時間）</p>
                     </div>
 
                     <!-- 到貨時間（手動選擇） -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">📅 到貨時間（選填）</label>
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            到貨時間（選填）
+                        </label>
                         <input
                             type="date"
                             v-model="markShippedData.estimated_delivery_date"
-                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm text-left bg-white"
                             :min="getTodayDate()"
                         />
                         <p class="text-xs text-slate-500 mt-2">買家預計收貨日期，會顯示在出貨通知中</p>
@@ -656,21 +666,61 @@ $shipment_details_template .= <<<'HTML'
 
                     <!-- 物流方式（下拉選單） -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">🚚 物流方式（選填）</label>
-                        <select
-                            v-model="markShippedData.shipping_method"
-                            class="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white"
-                        >
-                            <option value="">請選擇物流方式</option>
-                            <option value="易利">易利</option>
-                            <option value="千森">千森</option>
-                            <option value="OMI">OMI</option>
-                            <option value="多賀">多賀</option>
-                            <option value="賀來">賀來</option>
-                            <option value="神奈川">神奈川</option>
-                            <option value="新日本">新日本</option>
-                            <option value="EMS">EMS</option>
-                        </select>
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                            </svg>
+                            物流方式（選填）
+                        </label>
+                        <div class="relative">
+                            <button
+                                type="button"
+                                @click="toggleShippingMethodDropdown"
+                                class="w-full rounded-lg border border-slate-300 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 py-2 px-3 bg-white shadow-sm text-left flex items-center justify-between"
+                            >
+                                <span v-if="markShippedData.shipping_method" :class="getShippingMethodColor(markShippedData.shipping_method)" class="px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap">
+                                    {{ markShippedData.shipping_method }}
+                                </span>
+                                <span v-else class="text-slate-400">
+                                    請選擇物流方式
+                                </span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+
+                            <!-- 下拉選單（智慧展開：向上或向下） -->
+                            <div
+                                v-if="showShippingMethodDropdown"
+                                @click.stop
+                                :class="[
+                                    'absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg py-1 max-h-60 overflow-auto',
+                                    dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+                                ]"
+                            >
+                                <button
+                                    type="button"
+                                    @click="selectShippingMethod('')"
+                                    class="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 transition text-slate-400"
+                                >
+                                    請選擇物流方式
+                                </button>
+                                <button
+                                    v-for="method in shippingMethods"
+                                    :key="method.value"
+                                    type="button"
+                                    @click="selectShippingMethod(method.value)"
+                                    :class="[
+                                        'w-full px-3 py-2 text-left text-xs hover:bg-slate-50 transition',
+                                        markShippedData.shipping_method === method.value ? 'bg-slate-100' : ''
+                                    ]"
+                                >
+                                    <span :class="method.color" class="px-3 py-1 rounded-full whitespace-nowrap inline-block">
+                                        {{ method.label }}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
                         <p class="text-xs text-slate-500 mt-2">請選擇使用的物流公司</p>
                     </div>
                 </div>

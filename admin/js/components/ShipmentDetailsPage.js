@@ -55,6 +55,22 @@ const ShipmentDetailsPageComponent = {
             loading: false
         });
 
+        // 物流下拉選單狀態
+        const showShippingMethodDropdown = ref(false);
+        const dropdownPosition = ref('bottom'); // 'bottom' 向下展開 | 'top' 向上展開
+
+        // 物流方式選項（8 個物流公司 + 彩虹配色）
+        const shippingMethods = [
+            { value: '易利', label: '易利', color: 'bg-red-100 text-red-800 border border-red-300' },
+            { value: '千森', label: '千森', color: 'bg-orange-100 text-orange-800 border border-orange-300' },
+            { value: 'OMI', label: 'OMI', color: 'bg-yellow-100 text-yellow-800 border border-yellow-300' },
+            { value: '多賀', label: '多賀', color: 'bg-green-100 text-green-800 border border-green-300' },
+            { value: '賀來', label: '賀來', color: 'bg-blue-100 text-blue-800 border border-blue-300' },
+            { value: '神奈川', label: '神奈川', color: 'bg-indigo-100 text-indigo-800 border border-indigo-300' },
+            { value: '新日本', label: '新日本', color: 'bg-purple-100 text-purple-800 border border-purple-300' },
+            { value: 'EMS', label: 'EMS', color: 'bg-pink-100 text-pink-800 border border-pink-300' }
+        ];
+
         // 詳情 Modal 狀態
         const detailModal = ref({
             show: false,
@@ -625,6 +641,32 @@ const ShipmentDetailsPageComponent = {
             return datetime.split(' ')[0]; // 取 YYYY-MM-DD 部分
         };
 
+        // 物流下拉選單控制（智慧展開：判斷向上或向下）
+        const toggleShippingMethodDropdown = (event) => {
+            if (!showShippingMethodDropdown.value) {
+                // 計算空間決定展開方向
+                const button = event.currentTarget;
+                const rect = button.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                const dropdownHeight = 8 * 48; // 8 個選項 × 每個約 48px
+
+                // 決定展開方向：優先向下，空間不足才向上
+                dropdownPosition.value = spaceBelow >= dropdownHeight ? 'bottom' : 'top';
+            }
+            showShippingMethodDropdown.value = !showShippingMethodDropdown.value;
+        };
+
+        const selectShippingMethod = (value) => {
+            markShippedData.value.shipping_method = value;
+            showShippingMethodDropdown.value = false;
+        };
+
+        const getShippingMethodColor = (method) => {
+            const methodObj = shippingMethods.find(m => m.value === method);
+            return methodObj ? methodObj.color : 'bg-slate-100 text-slate-800 border border-slate-300';
+        };
+
         // 智慧搜尋處理
         const handleSearchInput = (query) => {
             // 本地搜尋處理函數（輸入時過濾列表）
@@ -676,6 +718,13 @@ const ShipmentDetailsPageComponent = {
                 if (document.visibilityState === 'visible') {
                     loadShipments();
                     loadStats();
+                }
+            });
+
+            // 點擊外部關閉物流下拉選單
+            document.addEventListener('click', (e) => {
+                if (showShippingMethodDropdown.value && !e.target.closest('.relative')) {
+                    showShippingMethodDropdown.value = false;
                 }
             });
         });
@@ -740,7 +789,14 @@ const ShipmentDetailsPageComponent = {
             checkUrlParams,
             openShipmentDetail,
             closeShipmentDetail,
-            loadShipmentDetail
+            loadShipmentDetail,
+            // 物流下拉選單相關
+            showShippingMethodDropdown,
+            dropdownPosition,
+            shippingMethods,
+            toggleShippingMethodDropdown,
+            selectShippingMethod,
+            getShippingMethodColor
         };
     }
 };
