@@ -677,6 +677,15 @@ $products_component_template .= <<<'HTML'
                                         <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
                                     </div>
                                     <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                    <div>
+                                        <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" :value="editingProduct.ordered || 0" readonly class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                            <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
+                                                查看
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

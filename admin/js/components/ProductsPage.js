@@ -470,6 +470,11 @@ const ProductsPageComponent = {
             finally { buyersLoading.value = false; }
         };
 
+        // 切換到下單名單檢視
+        const viewBuyers = (product) => {
+            handleNavigation('buyers', product, true);
+        };
+
         // 一鍵分配：將單筆訂單分配
         const allocateOrder = async (order) => {
             if (!currentId.value || !order.order_item_id) return;
@@ -911,7 +916,7 @@ const ProductsPageComponent = {
 
             // Methods
             navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
-            loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete, allocateOrder, formatDate,
+            loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete, allocateOrder, viewBuyers, formatDate,
             getStatusClass, getStatusText,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
             toggleSelectAll, formatPriceDisplay, getTWDPrice, calculateReserved, handleSearchInput: (e) => { globalSearchQuery.value = e.target.value; loadProducts(); },
