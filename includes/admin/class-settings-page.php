@@ -727,23 +727,25 @@ class SettingsPage
                 $product_limit = 2; // 預設為 2 個商品
             }
 
-            // 取得綁定關係
+            // 取得綁定關係和 BuyGo ID
             global $wpdb;
             $helpers_table = $wpdb->prefix . 'buygo_helpers';
             $binding_info = '';
+            $buygo_id = null;
 
             if ($has_buygo_helper_role || $is_in_helpers_list) {
-                // 小幫手：查詢綁定的賣家
-                $seller = $wpdb->get_row($wpdb->prepare(
-                    "SELECT s.ID, s.display_name
+                // 小幫手：查詢綁定的賣家和 BuyGo ID
+                $helper_data = $wpdb->get_row($wpdb->prepare(
+                    "SELECT h.id as buygo_id, s.ID as seller_wp_id, s.display_name as seller_name
                      FROM {$helpers_table} h
                      JOIN {$wpdb->users} s ON h.seller_id = s.ID
                      WHERE h.helper_id = %d
                      LIMIT 1",
                     $user->ID
                 ));
-                if ($seller) {
-                    $binding_info = '綁定賣家：' . $seller->display_name;
+                if ($helper_data) {
+                    $buygo_id = $helper_data->buygo_id;
+                    $binding_info = '綁定賣家：' . $helper_data->seller_name;
                 } else {
                     $binding_info = '<span style="color: #d63638;">未綁定賣家</span>';
                 }
@@ -773,7 +775,8 @@ class SettingsPage
                 'is_in_helpers_list' => $is_in_helpers_list,
                 'seller_type' => $seller_type,
                 'product_limit' => intval($product_limit),
-                'binding_info' => $binding_info
+                'binding_info' => $binding_info,
+                'buygo_id' => $buygo_id
             ];
         }
         
@@ -809,7 +812,10 @@ class SettingsPage
                     <tbody>
                         <?php foreach ($all_users as $user): ?>
                             <tr>
-                                <td><?php echo esc_html($user['name']); ?></td>
+                                <td>
+                                    <?php echo esc_html($user['name']); ?><br>
+                                    <small style="color: #666;">WP-<?php echo esc_html($user['id']); ?></small>
+                                </td>
                                 <td><?php echo esc_html($user['email']); ?></td>
                                 <td>
                                     <?php if ($user['is_bound']): ?>
@@ -827,7 +833,18 @@ class SettingsPage
                                         </svg>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo esc_html($user['role']); ?></td>
+                                <td>
+                                    <?php echo esc_html($user['role']); ?><br>
+                                    <small style="color: #666;">
+                                        <?php
+                                        if ($user['buygo_id']) {
+                                            echo 'BuyGo-' . esc_html($user['buygo_id']);
+                                        } else {
+                                            echo '（無 BuyGo ID）';
+                                        }
+                                        ?>
+                                    </small>
+                                </td>
                                 <td style="font-size: 12px; color: #2271b1;">
                                     <?php echo $user['binding_info']; ?>
                                 </td>
