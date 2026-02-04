@@ -49,6 +49,9 @@ class Database
 
         // 建立訂單狀態歷史表
         self::create_order_status_history_table($wpdb, $charset_collate);
+
+        // 建立賣家賦予記錄表（Phase 39）
+        self::create_seller_grants_table($wpdb, $charset_collate);
     }
 
     /**
@@ -545,6 +548,40 @@ class Database
             KEY idx_order_id (order_id),
             KEY idx_created_at (created_at),
             KEY idx_is_abnormal (is_abnormal)
+        ) {$charset_collate};";
+
+        dbDelta($sql);
+    }
+
+    /**
+     * 建立賣家賦予記錄表（Phase 39）
+     * 記錄每次自動賦予賣家權限的歷史
+     */
+    private static function create_seller_grants_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_seller_grants';
+
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) UNSIGNED NOT NULL,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            product_id bigint(20) UNSIGNED NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'success',
+            error_message text,
+            granted_role varchar(50) DEFAULT 'buygo_admin',
+            granted_quota int(11) DEFAULT 3,
+            notification_sent tinyint(1) DEFAULT 0,
+            notification_channel varchar(20),
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_order (order_id),
+            KEY idx_user_id (user_id),
+            KEY idx_status (status),
+            KEY idx_created_at (created_at)
         ) {$charset_collate};";
 
         dbDelta($sql);
