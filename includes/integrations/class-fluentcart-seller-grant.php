@@ -238,6 +238,103 @@ class FluentCartSellerGrantIntegration {
 	}
 
 	/**
+	 * 處理訂單退款事件
+	 *
+	 * @param array $data FluentCart 事件資料陣列
+	 */
+	public static function handle_order_refunded( $data ): void {
+		$order = $data['order'] ?? null;
+		$type  = $data['type'] ?? 'unknown'; // 'full' or 'partial'
+
+		if ( ! $order ) {
+			error_log( '[BuyGo+1][SellerGrant] order_refunded: no order data' );
+			return;
+		}
+
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] order_refunded: Order #%d (type: %s, refunded_amount: %d)',
+			$order->id,
+			$type,
+			$data['refunded_amount'] ?? 0
+		) );
+
+		// 檢查訂單是否包含賣家商品
+		$seller_product_id = self::get_seller_product_id();
+		if ( ! $seller_product_id ) {
+			error_log( '[BuyGo+1][SellerGrant] No seller product configured, skipping' );
+			return;
+		}
+
+		if ( ! self::order_contains_product( $order, $seller_product_id ) ) {
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d does not contain seller product (ID: %d)',
+				$order->id,
+				$seller_product_id
+			) );
+			return;
+		}
+
+		// 查詢原始賦予記錄
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'buygo_seller_grants';
+
+		$grant_record = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM {$table_name} WHERE order_id = %d AND status = 'success' ORDER BY created_at DESC LIMIT 1",
+			$order->id
+		) );
+
+		if ( ! $grant_record ) {
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: No successful grant record found, nothing to revoke',
+				$order->id
+			) );
+			return;
+		}
+
+		$user_id = $grant_record->user_id;
+		$user = get_user_by( 'ID', $user_id );
+
+		if ( ! $user ) {
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: WordPress user not found (ID: %d)',
+				$order->id,
+				$user_id
+			) );
+			return;
+		}
+
+		// 移除 buygo_admin 角色
+		if ( in_array( 'buygo_admin', $user->roles, true ) ) {
+			$user->remove_role( 'buygo_admin' );
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: Removed buygo_admin role from user #%d',
+				$order->id,
+				$user_id
+			) );
+		}
+
+		// 移除相關 user meta
+		delete_user_meta( $user_id, 'buygo_product_limit' );
+		delete_user_meta( $user_id, 'buygo_seller_type' );
+
+		// 記錄撤銷
+		self::record_grant(
+			$order->id,
+			$user_id,
+			$seller_product_id,
+			'revoked',
+			sprintf( 'Order refunded (%s refund)', $type )
+		);
+
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] Order #%d: Successfully revoked seller role from user #%d (email: %s)',
+			$order->id,
+			$user_id,
+			$user->user_email
+		) );
+	}
+
+	/**
 	 * 記錄賦予歷史
 	 *
 	 * @param int $order_id 訂單 ID
