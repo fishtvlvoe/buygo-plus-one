@@ -143,10 +143,13 @@ Plans:
 4. 該顧客自動獲得 `buygo_product_limit` = 3 和 `buygo_seller_type` = 'test' user meta（如果不存在才寫入）
 5. 整個流程記錄 debug log（包含訂單 ID、用戶 ID、商品 ID、賦予結果）
 
-**Plans:** TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 39-01: [待規劃]
+- [ ] 39-01-PLAN.md — 後台設定介面（賣家商品 ID 輸入框 + 驗證）
+- [ ] 39-02-PLAN.md — Hook 監聯與賦予邏輯（整合類別 + 資料表）
+- [ ] 39-03-PLAN.md — 通知系統（LINE/Email 通知 + 管理員失敗通知）
+- [ ] 39-04-PLAN.md — 退款處理與驗證（退款 Hook + 功能驗證）
 
 ---
 
