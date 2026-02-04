@@ -804,7 +804,6 @@ class SettingsPage
                             <th>LINE ID</th>
                             <th>角色</th>
                             <th>綁定關係</th>
-                            <th>賣家類型</th>
                             <th>商品限制</th>
                             <th>操作</th>
                         </tr>
@@ -849,12 +848,6 @@ class SettingsPage
                                     <?php echo $user['binding_info']; ?>
                                 </td>
                                 <td>
-                                    <select class="seller-type-select" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px;">
-                                        <option value="test" <?php selected($user['seller_type'], 'test'); ?>>測試賣家</option>
-                                        <option value="real" <?php selected($user['seller_type'], 'real'); ?>>真實賣家</option>
-                                    </select>
-                                </td>
-                                <td>
                                     <div style="display: flex; align-items: center; gap: 5px;">
                                         <input
                                             type="number"
@@ -864,10 +857,9 @@ class SettingsPage
                                             min="0"
                                             step="1"
                                             style="width: 60px; font-size: 12px;"
-                                            <?php echo ($user['seller_type'] === 'real') ? 'disabled' : ''; ?>
                                         />
                                         <span style="font-size: 11px; color: #666;">
-                                            <?php echo ($user['seller_type'] === 'real') ? '(無限制)' : '個商品'; ?>
+                                            <?php echo ($user['product_limit'] == 0) ? '(無限制)' : '個商品'; ?>
                                         </span>
                                     </div>
                                 </td>
