@@ -145,47 +145,9 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // 發送綁定連結
-    $(document).on('click', '.send-binding-link', function() {
-        const userId = $(this).data('user-id');
-        const button = $(this);
-        
-        if (!confirm('確定要發送綁定連結給這個使用者嗎？')) {
-            return;
-        }
-        
-        const originalText = button.text();
-        button.prop('disabled', true).text('發送中...');
-        
-        $.ajax({
-            url: buygoSettings.restUrl + '/settings/binding/send',
-            type: 'POST',
-            headers: {
-                'X-WP-Nonce': buygoSettings.restNonce,
-                'Content-Type': 'application/json'
-            },
-            data: JSON.stringify({
-                user_id: parseInt(userId)
-            }),
-            success: function(response) {
-                if (response.success) {
-                    alert('綁定連結已發送：' + (response.message || ''));
-                } else {
-                    alert('發送失敗：' + (response.message || '未知錯誤'));
-                }
-            },
-            error: function(xhr) {
-                let errorMsg = '發送失敗';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg += '：' + xhr.responseJSON.message;
-                }
-                alert(errorMsg);
-            },
-            complete: function() {
-                button.prop('disabled', false).text(originalText);
-            }
-        });
-    });
+    // 發送綁定連結 - 已移除（UI 重構）
+    // 功能已停用，相關按鈕已從 UI 移除
+    // 保留註解以記錄歷史功能
     
     // 移除角色
     $(document).on('click', '.remove-role', function() {
