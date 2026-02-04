@@ -3,7 +3,7 @@
  * Plugin Name:       BuyGo 開發版
  * Plugin URI:        https://buygo.me
  * Description:       BuyGo 獨立賣場後台系統
- * Version:           0.2.3
+ * Version:           0.2.4
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 // 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
 
 if (!defined('BUYGO_PLUS_ONE_VERSION')) {
-    define('BUYGO_PLUS_ONE_VERSION', '0.2.3');
+    define('BUYGO_PLUS_ONE_VERSION', '0.2.4');
 }
 
 // 新版專用的常數（舊版不會定義這些）
