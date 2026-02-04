@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-04
-**專案版本:** v1.5 Phase 39 進行中（Plan 39-01, 39-02 已完成）
+**最後更新:** 2026-02-05
+**專案版本:** v1.5 Phase 39 已完成，準備 Phase 40
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** Phase 39 - FluentCart 自動賦予賣家權限
+**當前焦點:** Phase 40 - 小幫手共享配額驗證
 
 **PROJECT.md 最後更新:** 2026-02-04
 
@@ -18,9 +18,9 @@
 ## 當前位置
 
 **Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
-**Phase:** 39 of 40（FluentCart 自動賦予賣家權限 - 🔄 In Progress）
-**Plan:** 39-01, 39-02 已完成
-**Status:** Phase 39 Plan 01-02 已完成（設定介面 + Hook 整合）
+**Phase:** 40 of 40（小幫手共享配額驗證 - 準備開始）
+**Plan:** Phase 39 全部完成（4/4 Plans）
+**Status:** Phase 39 已完成並等待生產環境驗證
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -32,9 +32,9 @@
 **當前 Milestone:**
 - **v1.5** — 賣家商品數量限制與 ID 對應系統（Phases 38-40，進行中）
 
-**Progress (v1.5):** [██████░░░░] 60% (Phase 38 完成，Phase 39 進行中，1 個 phase 待執行)
+**Progress (v1.5):** [█████████░] 90% (Phase 38-39 完成，Phase 40 待執行)
 
-**Last activity:** 2026-02-04 — 完成 Phase 39 Plan 02（FluentCart Hook 整合與賦予邏輯）
+**Last activity:** 2026-02-05 — 完成 Phase 39 全部 4 個 Plans（通知系統 + 退款撤銷）
 
 ---
 
@@ -57,15 +57,15 @@
 - Phase 40: 3 requirements (QUOTA-01 ~ QUOTA-03)
 
 **Recent Activity:**
+- 2026-02-05: ✅ 完成 Phase 39 全部 Plans（39-01 ~ 39-04）
+- 2026-02-05: ✅ 完成 39-04-PLAN（退款撤銷權限機制）
+- 2026-02-05: ✅ 完成 39-03-PLAN（LINE/Email 通知系統）
 - 2026-02-04: ✅ 完成 39-02-PLAN（FluentCart Hook 整合與賦予邏輯）
 - 2026-02-04: ✅ 完成 39-01-PLAN（賣家商品 ID 設定介面）
 - 2026-02-04: ✅ Phase 38 完成並通過驗證（12/12 must-haves verified）
 - 2026-02-04: 完成 38-03-PLAN（商品限制邏輯統一與預設值調整）
 - 2026-02-04: 完成 38-02-PLAN（隱藏賣家類型和移除發送綁定按鈕）
 - 2026-02-04: 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
-- 2026-02-04: Phase 38 規劃完成（3 個計畫，通過驗證）
-- 2026-02-04: v1.5 路線圖建立完成
-- 2026-02-04: v1.5 需求定義完成（12 個需求）
 
 ---
 
@@ -88,6 +88,10 @@
 - **賦予邏輯去重機制** — 使用 UNIQUE KEY + is_order_processed() 雙重保護 ✅ 已實作
 - **Hook 選擇策略** — order_created 記錄，order_paid 執行賦予 ✅ 已實作
 - **已有角色處理** — 跳過賦予但記錄 status='skipped' ✅ 已實作
+- **通知優先順序** — LINE 優先（3 次重試），失敗 fallback 到 Email ✅ 已實作
+- **通知時機** — 同步發送（非排程），在賦予成功後立即執行 ✅ 已實作
+- **退款撤銷範圍** — 移除角色 + 刪除所有相關 user meta ✅ 已實作
+- **不使用 NotificationTemplates** — 目前只有 1 個模板，直接實作避免過度設計 ✅ 已實作
 
 **Phase 策略:**
 - Phase 38 先完成 UI 重構（基礎）
@@ -106,8 +110,8 @@
 - [x] 移除發送綁定按鈕（Plan 38-02）
 - [x] 統一商品限制編輯體驗（Plan 38-03）
 
-**Phase 39（FluentCart 自動賦予賣家權限）:** 🔄 進行中
-- [x] 規劃 Phase 39 執行計畫
+**Phase 39（FluentCart 自動賦予賣家權限）:** ✅ 完成
+- [x] 規劃 Phase 39 執行計畫（4 個計畫）
 - [x] 後台設定頁面新增賣家商品 ID 輸入框（Plan 39-01）
 - [x] 商品驗證 AJAX handler（Plan 39-01）
 - [x] 前端驗證邏輯（Plan 39-01）
@@ -117,6 +121,10 @@
 - [x] 自動賦予 buygo_admin 角色（Plan 39-02）
 - [x] 自動設定預設配額（Plan 39-02）
 - [x] 實作去重機制和賦予記錄（Plan 39-02）
+- [x] 實作 LINE/Email 通知系統（Plan 39-03）
+- [x] 實作管理員失敗通知（Plan 39-03）
+- [x] 實作退款撤銷機制（Plan 39-04）
+- [x] 建立 39-03-SUMMARY.md 和 39-04-SUMMARY.md
 
 **Phase 40（小幫手共享配額驗證）:**
 - [ ] 規劃 Phase 40 執行計畫
@@ -168,15 +176,14 @@
 
 ## 會話連續性
 
-**Last session:** 2026-02-04
-**Stopped at:** 完成 Phase 39 Plan 02（FluentCart Hook 整合與賦予邏輯）
+**Last session:** 2026-02-05
+**Stopped at:** 完成 Phase 39 全部 4 個 Plans，建立 SUMMARY 文件，更新 STATE.md
 **Resume file:** 無
 
 **下一步:**
-1. Phase 39 已完成基礎功能（設定 + Hook 整合 + 自動賦予）
-2. 可選：實作 LINE 通知（賦予成功後通知顧客）
-3. 可選：實作退款撤銷機制（refund 時自動撤銷角色）
-4. 開始 Phase 40（小幫手共享配額驗證）
+1. ✅ Phase 39 已完成所有功能（設定 + 賦予 + 通知 + 退款）
+2. 建議：在生產環境驗證 Phase 39 功能（購買/退款流程測試）
+3. 準備開始 Phase 40（小幫手共享配額驗證）
 
 **Ready to execute:** Phase 40 規劃 - 小幫手共享配額驗證
 
@@ -186,10 +193,51 @@
 - ✅ 38-03-PLAN.md (商品限制邏輯統一)
 - ✅ 39-01-PLAN.md (賣家商品 ID 設定介面)
 - ✅ 39-02-PLAN.md (FluentCart Hook 整合與賦予邏輯)
+- ✅ 39-03-PLAN.md (LINE/Email 通知系統)
+- ✅ 39-04-PLAN.md (退款撤銷機制)
 
 ---
 
 ## 最近完成的計畫
+
+### 39-04: 退款撤銷機制
+
+**完成時間:** 2026-02-05
+**Commit:** bc44df4（與 39-03 同一次提交）
+
+**成果:**
+- ✅ 註冊 `fluent_cart/order_refunded` hook
+- ✅ 實作 `handle_order_refunded()` 方法（91 行程式碼）
+- ✅ 自動移除 `buygo_admin` 角色
+- ✅ 刪除 `buygo_product_limit` 和 `buygo_seller_type` user meta
+- ✅ 記錄撤銷到資料庫（`status = 'revoked'`）
+- ✅ 區分 full/partial refund 類型
+- ✅ 完整的防禦性檢查和錯誤日誌
+
+**決策:**
+- REFUND-ALL-OR-NOTHING: 只撤銷有成功賦予記錄的訂單
+- REFUND-COMPLETE-CLEANUP: 角色 + user meta 全部移除
+- REFUND-TYPE-TRACKING: 記錄退款類型到 error_message 欄位
+
+### 39-03: LINE/Email 通知系統
+
+**完成時間:** 2026-02-05
+**Commit:** bc44df4
+
+**成果:**
+- ✅ 實作 `send_seller_grant_notification()` - 主通知邏輯
+- ✅ LINE 通知優先（3 次重試，500ms 延遲）
+- ✅ Email fallback（未綁定或 LINE 失敗時）
+- ✅ 通知內容模板（恭喜訊息、權限說明、連結）
+- ✅ 管理員失敗通知（`notify_admin_failure()`）
+- ✅ 資料庫通知狀態追蹤（`notification_sent`, `notification_channel`）
+- ✅ 可重用的 `execute_with_retry()` 重試機制
+
+**決策:**
+- NOTIFICATION-PRIORITY: LINE 優先，Email fallback
+- NOTIFICATION-SYNC: 同步發送（非排程），確保即時性
+- NOTIFICATION-RETRY: 3 次重試處理暫時性網路錯誤
+- NO-TEMPLATE-CLASS: 不建立 NotificationTemplates 類別（YAGNI）
 
 ### 39-02: FluentCart Hook 整合與賦予邏輯
 
