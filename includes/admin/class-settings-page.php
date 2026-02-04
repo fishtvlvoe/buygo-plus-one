@@ -721,11 +721,15 @@ class SettingsPage
                 $seller_type = 'test'; // 預設為測試賣家
             }
 
-            // 取得商品限制數量 (0 = 無限制)
+            // 商品限制邏輯：
+            // - 預設值：3 個商品
+            // - 0 = 無限制
+            // - 所有賣家都可以編輯此欄位
             $product_limit = get_user_meta($user->ID, 'buygo_product_limit', true);
-            if ($product_limit === '') {
-                $product_limit = 2; // 預設為 2 個商品
+            if ($product_limit === '' || $product_limit === false) {
+                $product_limit = 3; // 預設為 3 個商品（根據用戶反饋調整）
             }
+            // 注意：0 值不會被視為空值，代表無限制
 
             // 取得綁定關係和 BuyGo ID
             global $wpdb;
@@ -857,6 +861,8 @@ class SettingsPage
                                             min="0"
                                             step="1"
                                             style="width: 60px; font-size: 12px;"
+                                            placeholder="3"
+                                            title="0 = 無限制，預設 = 3"
                                         />
                                         <span style="font-size: 11px; color: #666;">
                                             <?php echo ($user['product_limit'] == 0) ? '(無限制)' : '個商品'; ?>
