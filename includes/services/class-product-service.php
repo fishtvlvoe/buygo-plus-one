@@ -72,7 +72,7 @@ class ProductService
                             "SELECT DISTINCT p.ID
                              FROM {$table_posts} p
                              WHERE p.post_author IN ({$seller_ids_placeholder})
-                             AND p.post_type = 'fct_product'
+                             AND p.post_type = 'fluent-products'
                              AND p.post_status != 'trash'"
                         );
 
