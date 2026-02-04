@@ -16,11 +16,11 @@ $new_sidebar_template = <<<HTML
 <div>
     <!-- 桌面版側邊欄 -->
     <aside class="bg-white border-r border-slate-200 hidden md:flex flex-col transition-all duration-300 z-20 shrink-0 fixed left-0 top-0 h-screen"
-        :class="isSidebarCollapsed ? 'w-20' : 'w-20 lg:w-64'">
+        :class="collapsed ? 'w-20' : 'w-48 lg:w-64'">
 
         <!-- Logo -->
         <div class="h-16 flex items-center justify-center border-b border-slate-100 p-2">
-            <a href="/buygo-portal/dashboard" class="flex items-center gap-2 font-bold text-primary text-xl overflow-hidden whitespace-nowrap" v-if="!isSidebarCollapsed">
+            <a href="/buygo-portal/dashboard" class="flex items-center gap-2 font-bold text-primary text-xl overflow-hidden whitespace-nowrap" v-if="!collapsed">
                 <div class="hidden lg:flex items-center gap-2">
                     <svg class="w-8 h-8 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
@@ -50,8 +50,8 @@ $new_sidebar_template = <<<HTML
                ]"
                :title="item.label">
                 <span v-html="item.icon" class="w-6 h-6 shrink-0"></span>
-                <span class="ml-3 font-medium whitespace-nowrap transition-opacity duration-200 hidden lg:block"
-                    :class="isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">
+                <span class="ml-3 font-medium whitespace-nowrap transition-opacity duration-200 hidden md:block"
+                    :class="collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">
                     {{ item.label }}
                 </span>
             </a>
@@ -66,17 +66,17 @@ $new_sidebar_template = <<<HTML
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
-            <span class="ml-3 font-medium whitespace-nowrap transition-opacity duration-200 hidden lg:block text-sm"
-                  :class="isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">
+            <span class="ml-3 font-medium whitespace-nowrap transition-opacity duration-200 hidden md:block text-sm"
+                  :class="collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">
                 前往社群
             </span>
         </a>
 
         <!-- 收合按鈕 -->
-        <button @click="isSidebarCollapsed = !isSidebarCollapsed"
-            class="hidden lg:flex p-4 border-t border-slate-100 text-slate-400 hover:text-slate-600 justify-center transition-colors">
+        <button @click="toggleSidebar"
+            class="hidden md:flex p-4 border-t border-slate-100 text-slate-400 hover:text-slate-600 justify-center transition-colors">
             <svg class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                :class="{'rotate-180': isSidebarCollapsed}">
+                :class="{'rotate-180': collapsed}">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
             </svg>
         </button>
@@ -196,14 +196,23 @@ const NewSidebarComponent = {
         currentPage: {
             type: String,
             default: 'dashboard'
+        },
+        collapsed: {
+            type: Boolean,
+            default: false
         }
     },
-    setup(props) {
+    emits: ['toggle'],
+    setup(props, { emit }) {
         const { ref, onMounted, onUnmounted } = Vue;
 
-        const isSidebarCollapsed = ref(false);
         const showMobileMenu = ref(false);
         const menuItems = <?php echo json_encode($new_menu_items); ?>;
+
+        // 切換側邊欄狀態（向父元件發送事件）
+        const toggleSidebar = () => {
+            emit('toggle');
+        };
 
         // 監聽視窗大小變化
         const handleResize = () => {
@@ -230,10 +239,9 @@ const NewSidebarComponent = {
         });
 
         return {
-            isSidebarCollapsed,
             showMobileMenu,
             menuItems,
-            currentPage: props.currentPage
+            toggleSidebar
         };
     }
 };

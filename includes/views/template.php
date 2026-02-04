@@ -124,7 +124,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
         },
         data() {
             return {
-                currentPage: '<?php echo esc_js($current_page); ?>'
+                currentPage: '<?php echo esc_js($current_page); ?>',
+                isSidebarCollapsed: false
             }
         },
         methods: {
@@ -133,12 +134,20 @@ $current_page = get_query_var('buygo_page', 'dashboard');
                 if (item.url) {
                     window.location.href = item.url;
                 }
+            },
+            toggleSidebar() {
+                this.isSidebarCollapsed = !this.isSidebarCollapsed;
             }
         },
         template: `
             <div>
-                <NewSidebar :currentPage="currentPage" />
-                <div class="md:ml-20 lg:ml-64 min-h-screen transition-all duration-300">
+                <NewSidebar
+                    :currentPage="currentPage"
+                    :collapsed="isSidebarCollapsed"
+                    @toggle="toggleSidebar"
+                />
+                <div class="min-h-screen transition-all duration-300"
+                    :class="isSidebarCollapsed ? 'md:ml-20' : 'md:ml-48 lg:ml-64'">
                     <!-- 頁面內容 -->
                     <?php if ($page_component_name): ?>
                     <PageContent />
