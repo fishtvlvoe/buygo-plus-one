@@ -14,8 +14,15 @@ if (!defined('ABSPATH')) {
  *
  * Phase 27: 提供 WP 後台的賣家申請管理和賣家列表功能
  *
+ * ⚠️ 已棄用 (2026-02-04)：
+ * 此頁面功能已統一整合到「角色權限設定」頁面 (buygo-settings&tab=roles)。
+ * 新流程：用戶從 FluentCart 購買「0 元賣家商品」後自動賦予 buygo_admin 角色。
+ *
+ * 保留此檔案僅供參考，但已從 Plugin::register_hooks() 中移除註冊。
+ *
  * @package BuyGoPlus\Admin
  * @version 1.0.0
+ * @deprecated 2026-02-04
  */
 class SellerManagementPage
 {
