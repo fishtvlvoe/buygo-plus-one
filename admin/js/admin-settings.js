@@ -298,4 +298,214 @@ jQuery(document).ready(function($) {
     $(document).on('input', '#buygo-seller-product-id', function() {
         $('#seller-product-validation-result').html('');
     });
+
+    // ========================================
+    // 賣家商品搜尋式下拉選單
+    // ========================================
+
+    let searchTimeout;
+    let $dropdown = null;
+
+    /**
+     * 建立下拉選單元素
+     */
+    function createDropdown() {
+        if ($dropdown) {
+            return $dropdown;
+        }
+
+        $dropdown = $('<div>')
+            .attr('id', 'seller-product-dropdown')
+            .css({
+                position: 'absolute',
+                backgroundColor: '#fff',
+                border: '1px solid #ccc',
+                borderTop: 'none',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                width: '100%',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                display: 'none'
+            });
+
+        // 插入到輸入框的父元素
+        $('#buygo-seller-product-id').parent().css('position', 'relative').append($dropdown);
+
+        return $dropdown;
+    }
+
+    /**
+     * 搜尋虛擬商品
+     */
+    function searchVirtualProducts(searchTerm) {
+        $.ajax({
+            url: buygoSettings.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'buygo_search_virtual_products',
+                nonce: buygoSettings.nonce,
+                search: searchTerm
+            },
+            success: function(response) {
+                if (response.success && response.data.products) {
+                    showDropdown(response.data.products);
+                } else {
+                    hideDropdown();
+                }
+            },
+            error: function() {
+                console.error('搜尋失敗');
+                hideDropdown();
+            }
+        });
+    }
+
+    /**
+     * 顯示下拉選單
+     */
+    function showDropdown(products) {
+        const $dd = createDropdown();
+
+        if (products.length === 0) {
+            $dd.html('<div style="padding: 10px; color: #666; text-align: center;">沒有找到虛擬商品</div>').show();
+            return;
+        }
+
+        $dd.empty();
+
+        products.forEach(function(product) {
+            const $item = $('<div>')
+                .addClass('dropdown-item')
+                .attr('data-product-id', product.id)
+                .css({
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f0f0f0',
+                    transition: 'background-color 0.2s'
+                })
+                .hover(
+                    function() { $(this).css('backgroundColor', '#f0f0f0'); },
+                    function() { $(this).css('backgroundColor', '#fff'); }
+                )
+                .html(
+                    '<div><strong>#' + product.id + '</strong> - ' + product.title + '</div>' +
+                    '<div style="font-size: 12px; color: #666; margin-top: 4px;">NT$ ' + product.price + '</div>'
+                )
+                .on('click', function() {
+                    selectProduct(product);
+                });
+
+            $dd.append($item);
+        });
+
+        $dd.show();
+    }
+
+    /**
+     * 隱藏下拉選單
+     */
+    function hideDropdown() {
+        if ($dropdown) {
+            $dropdown.hide();
+        }
+    }
+
+    /**
+     * 選擇商品
+     */
+    function selectProduct(product) {
+        $('#buygo-seller-product-id').val(product.id);
+        hideDropdown();
+
+        // 自動觸發驗證
+        $('#validate-seller-product').click();
+    }
+
+    // 監聽輸入事件
+    $('#buygo-seller-product-id').on('input', function() {
+        const searchTerm = $(this).val().trim();
+
+        // 清除之前的 timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        // 如果輸入為空，隱藏下拉選單
+        if (searchTerm.length === 0) {
+            hideDropdown();
+            return;
+        }
+
+        // 延遲 300ms 後搜尋（避免每次輸入都送請求）
+        searchTimeout = setTimeout(function() {
+            searchVirtualProducts(searchTerm);
+        }, 300);
+    });
+
+    // 點擊輸入框時，如果有值就觸發搜尋
+    $('#buygo-seller-product-id').on('focus', function() {
+        const searchTerm = $(this).val().trim();
+        if (searchTerm.length > 0) {
+            searchVirtualProducts(searchTerm);
+        }
+    });
+
+    // 點擊外部時隱藏下拉選單
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#buygo-seller-product-id, #seller-product-dropdown').length) {
+            hideDropdown();
+        }
+    });
+
+    // 鍵盤導航（上下鍵選擇）
+    $('#buygo-seller-product-id').on('keydown', function(e) {
+        const $dd = $('#seller-product-dropdown');
+
+        if (!$dd.is(':visible')) {
+            return;
+        }
+
+        const $items = $dd.find('.dropdown-item');
+        const $selected = $dd.find('.dropdown-item.selected');
+        let index = $items.index($selected);
+
+        // 移除舊的選中狀態
+        $items.removeClass('selected').css('backgroundColor', '#fff');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            index = (index + 1) % $items.length;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            index = (index - 1 + $items.length) % $items.length;
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if ($selected.length) {
+                $selected.click();
+            }
+            return;
+        } else if (e.key === 'Escape') {
+            hideDropdown();
+            return;
+        } else {
+            return;
+        }
+
+        // 設定新的選中狀態
+        const $newSelected = $items.eq(index);
+        $newSelected.addClass('selected').css('backgroundColor', '#e0f0ff');
+
+        // 自動捲動到可視區域
+        const ddTop = $dd.scrollTop();
+        const ddHeight = $dd.height();
+        const itemTop = $newSelected.position().top;
+        const itemHeight = $newSelected.outerHeight();
+
+        if (itemTop < 0) {
+            $dd.scrollTop(ddTop + itemTop);
+        } else if (itemTop + itemHeight > ddHeight) {
+            $dd.scrollTop(ddTop + itemTop + itemHeight - ddHeight);
+        }
+    });
 });
