@@ -93,23 +93,25 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| FC-01 | TBD | Pending |
-| FC-02 | TBD | Pending |
-| FC-03 | TBD | Pending |
-| FC-04 | TBD | Pending |
-| QUOTA-01 | TBD | Pending |
-| QUOTA-02 | TBD | Pending |
-| QUOTA-03 | TBD | Pending |
+| UI-01 | Phase 38 | ✅ Complete |
+| UI-02 | Phase 38 | ✅ Complete |
+| UI-03 | Phase 38 | ✅ Complete |
+| UI-04 | Phase 38 | ✅ Complete |
+| UI-05 | Phase 38 | ✅ Complete |
+| FC-01 | Phase 39 | Pending |
+| FC-02 | Phase 39 | Pending |
+| FC-03 | Phase 39 | Pending |
+| FC-04 | Phase 39 | Pending |
+| QUOTA-01 | Phase 40 | Pending |
+| QUOTA-02 | Phase 40 | Pending |
+| QUOTA-03 | Phase 40 | Pending |
 
 **Coverage:**
 - v1.5 requirements: 12 total
-- Mapped to phases: 0/12 (roadmap pending)
-- Will be mapped during roadmap creation
+- Mapped to phases: 12/12 (100% coverage) ✅
+- Phase 38 (角色權限頁面 UI 重構): 5 requirements
+- Phase 39 (FluentCart 自動賦予賣家權限): 4 requirements
+- Phase 40 (小幫手共享配額驗證): 3 requirements
 
 ---
 
@@ -399,4 +401,4 @@
 
 ---
 
-*Last updated: 2026-02-02 after v1.4 roadmap creation*
+*Last updated: 2026-02-04 after v1.5 roadmap creation*
