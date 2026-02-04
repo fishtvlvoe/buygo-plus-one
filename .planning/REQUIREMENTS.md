@@ -4,39 +4,149 @@
 
 ---
 
-## v1.4 Requirements (Active)
+## v1.5 Requirements (Active)
+
+**Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
+**Defined:** 2026-02-04
+
+**Goal:** 重構賣家管理功能，移除「賣家類型」概念，改用統一的「商品數量限制」機制，並整合 FluentCart 自動賦予權限。
+
+**Context:** 現有的「賣家類型」（測試/真實）系統過於複雜，且小幫手配額未與賣家共享。本 milestone 簡化為單一商品數量限制，並整合 FluentCart 購買流程自動賦予權限。
+
+### 角色權限頁面 UI 改造 (UI)
+
+- [ ] **UI-01**: 使用者欄位顯示 WordPress User ID
+  - 格式：`張三\nWP-5`（兩行顯示）
+  - 所有使用者都顯示 WP ID
+
+- [ ] **UI-02**: 角色欄位顯示 BuyGo ID
+  - 小幫手顯示：`BuyGo 小幫手\nBuyGo-15`
+  - 賣家顯示：`BuyGo 管理員\n（無 BuyGo ID）`
+  - BuyGo ID 來源：`wp_buygo_helpers.id`
+
+- [ ] **UI-03**: 完全隱藏賣家類型欄位
+  - 移除整個「賣家類型」欄位（包含標題和內容）
+  - 保留 `buygo_seller_type` user meta 但不顯示
+  - 新用戶不再寫入此 meta
+
+- [ ] **UI-04**: 移除發送綁定按鈕
+  - 「操作」欄位只保留「移除」按鈕
+  - 完全移除「發送綁定」功能
+  - 用戶自行從前台綁定 LINE
+
+- [ ] **UI-05**: 商品限制欄位全部可編輯
+  - 移除「真實賣家時 disabled」的邏輯
+  - 所有賣家都可以編輯商品限制
+  - 預設值改為 3（目前是 2）
+  - 0 = 無限制
+
+### FluentCart 自動賦予權限 (FC)
+
+- [ ] **FC-01**: 後台設定賣家商品 ID
+  - 在「角色權限設定」頁面新增設定區塊
+  - 輸入框標籤：「賣家商品 ID（FluentCart）」
+  - 儲存到 `buygo_seller_product_id` option
+  - 支援空值（未設定時不自動賦予）
+
+- [ ] **FC-02**: 監聽訂單付款完成事件
+  - Hook: `fluent_cart/order_paid`
+  - 檢查訂單中是否包含指定的商品 ID
+  - 只在包含該商品時執行賦予流程
+
+- [ ] **FC-03**: 自動賦予賣家角色
+  - 賦予 WordPress 角色：`buygo_admin`
+  - 取得訂單的 customer 並轉換為 WordPress User ID
+  - 記錄 debug log（包含訂單 ID、用戶 ID、商品 ID）
+
+- [ ] **FC-04**: 設定預設商品限制
+  - 自動設定 user meta：`buygo_product_limit` = 3
+  - 自動設定 user meta：`buygo_seller_type` = 'test'（保留但不顯示）
+  - 如果用戶已有這些 meta，不覆蓋
+
+### 小幫手共享配額驗證 (QUOTA)
+
+- [ ] **QUOTA-01**: 小幫手上架計入賣家配額
+  - 商品上架時檢查上架者是否為小幫手
+  - 如果是小幫手，統計賣家和所有小幫手的總上架數
+  - 實作位置：`ProductService` 或商品上架相關服務
+
+- [ ] **QUOTA-02**: 配額驗證邏輯
+  - 查詢 `wp_buygo_helpers` 表取得賣家關係
+  - 統計公式：`賣家商品數 + SUM(所有小幫手商品數) <= 賣家商品限制`
+  - 支援小幫手同時屬於多個賣家的情況
+
+- [ ] **QUOTA-03**: 阻止超限上架
+  - 超限時拋出錯誤（不允許上架）
+  - 錯誤訊息：「商品數量已達上限（X/Y），無法上架」
+  - 前端顯示錯誤提示
+
+### Out of Scope (v1.5)
+
+- **刪除舊資料** — 保留 `buygo_seller_type` user meta，避免資料遷移風險
+- **後台發送 LINE 綁定** — 完全移除「發送綁定」按鈕，用戶自行綁定
+- **FluentCart 提前實作** — 如果 UI 改造複雜，FluentCart 整合可延後到 v1.6
+- **多層級配額系統** — 維持簡單的單一數字限制，不引入複雜層級
+- **配額歷史記錄** — 只計算當前上架商品數量
+- **配額報表** — 簡化功能範圍
+
+### Traceability (v1.5)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| UI-01 | TBD | Pending |
+| UI-02 | TBD | Pending |
+| UI-03 | TBD | Pending |
+| UI-04 | TBD | Pending |
+| UI-05 | TBD | Pending |
+| FC-01 | TBD | Pending |
+| FC-02 | TBD | Pending |
+| FC-03 | TBD | Pending |
+| FC-04 | TBD | Pending |
+| QUOTA-01 | TBD | Pending |
+| QUOTA-02 | TBD | Pending |
+| QUOTA-03 | TBD | Pending |
+
+**Coverage:**
+- v1.5 requirements: 12 total
+- Mapped to phases: 0/12 (roadmap pending)
+- Will be mapped during roadmap creation
+
+---
+
+## v1.4 Requirements (Completed)
 
 **Milestone:** v1.4 - 會員前台子訂單顯示功能
 **Defined:** 2026-02-02
+**Completed:** 2026-02-02
 
 ### FluentCart 訂單頁面整合 (INTEG)
 
-- [ ] **INTEG-01**: 找出 FluentCart 會員訂單詳情頁的 Hook 點位置
-- [ ] **INTEG-02**: 透過 WordPress Hook 在主訂單下方注入「查看子訂單」按鈕
-- [ ] **INTEG-03**: 注入子訂單列表容器（初始隱藏，點擊按鈕展開）
+- [x] **INTEG-01**: 找出 FluentCart 會員訂單詳情頁的 Hook 點位置 — Phase 35
+- [x] **INTEG-02**: 透過 WordPress Hook 在主訂單下方注入「查看子訂單」按鈕 — Phase 35
+- [x] **INTEG-03**: 注入子訂單列表容器（初始隱藏，點擊按鈕展開） — Phase 35
 
 ### 子訂單查詢服務 (QUERY)
 
-- [ ] **QUERY-01**: ChildOrderService 查詢指定主訂單的所有子訂單（含賣家資訊）
-- [ ] **QUERY-02**: 使用 Eager Loading 查詢子訂單商品清單（避免 N+1 查詢）
-- [ ] **QUERY-03**: 整合子訂單狀態資訊（payment_status、shipping_status、fulfillment_status）
-- [ ] **QUERY-04**: 子訂單金額小計計算（含幣別資訊）
+- [x] **QUERY-01**: ChildOrderService 查詢指定主訂單的所有子訂單（含賣家資訊） — Phase 36
+- [x] **QUERY-02**: 使用 Eager Loading 查詢子訂單商品清單（避免 N+1 查詢） — Phase 36
+- [x] **QUERY-03**: 整合子訂單狀態資訊（payment_status、shipping_status、fulfillment_status） — Phase 36
+- [x] **QUERY-04**: 子訂單金額小計計算（含幣別資訊） — Phase 36
 
 ### REST API 端點 (API)
 
-- [ ] **API-01**: GET /buygo-plus-one/v1/child-orders/{parent_order_id} 端點
-- [ ] **API-02**: 三層權限驗證（API nonce + Service customer_id + SQL WHERE）
-- [ ] **API-03**: 回傳格式化的子訂單資料（編號、商品、狀態、金額、賣家）
-- [ ] **API-04**: 錯誤處理（訂單不存在、無權限、系統錯誤）
+- [x] **API-01**: GET /buygo-plus-one/v1/child-orders/{parent_order_id} 端點 — Phase 36
+- [x] **API-02**: 三層權限驗證（API nonce + Service customer_id + SQL WHERE） — Phase 36
+- [x] **API-03**: 回傳格式化的子訂單資料（編號、商品、狀態、金額、賣家） — Phase 36
+- [x] **API-04**: 錯誤處理（訂單不存在、無權限、系統錯誤） — Phase 36
 
 ### 前端 UI 元件 (UI)
 
-- [ ] **UI-01**: 「查看子訂單」按鈕樣式（使用 BuyGo+1 .btn 設計系統）
-- [ ] **UI-02**: 子訂單列表卡片樣式（復用 .data-table 和 .card）
-- [ ] **UI-03**: 折疊/展開交互邏輯（Vanilla JavaScript，使用 .buygo- 命名空間）
-- [ ] **UI-04**: 子訂單狀態標籤顯示（使用 .status-tag 元件）
-- [ ] **UI-05**: RWD 響應式設計（手機優先，60%+ 流量）
-- [ ] **UI-06**: Loading 狀態和錯誤提示
+- [x] **UI-01**: 「查看子訂單」按鈕樣式（使用 BuyGo+1 .btn 設計系統） — Phase 37
+- [x] **UI-02**: 子訂單列表卡片樣式（復用 .data-table 和 .card） — Phase 37
+- [x] **UI-03**: 折疊/展開交互邏輯（Vanilla JavaScript，使用 .buygo- 命名空間） — Phase 37
+- [x] **UI-04**: 子訂單狀態標籤顯示（使用 .status-tag 元件） — Phase 37
+- [x] **UI-05**: RWD 響應式設計（手機優先，60%+ 流量） — Phase 37
+- [x] **UI-06**: Loading 狀態和錯誤提示 — Phase 37
 
 ### Out of Scope (v1.4)
 
@@ -56,30 +166,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INTEG-01 | Phase 35 | Pending |
-| INTEG-02 | Phase 35 | Pending |
-| INTEG-03 | Phase 35 | Pending |
-| QUERY-01 | Phase 36 | Pending |
-| QUERY-02 | Phase 36 | Pending |
-| QUERY-03 | Phase 36 | Pending |
-| QUERY-04 | Phase 36 | Pending |
-| API-01 | Phase 36 | Pending |
-| API-02 | Phase 36 | Pending |
-| API-03 | Phase 36 | Pending |
-| API-04 | Phase 36 | Pending |
-| UI-01 | Phase 37 | Pending |
-| UI-02 | Phase 37 | Pending |
-| UI-03 | Phase 37 | Pending |
-| UI-04 | Phase 37 | Pending |
-| UI-05 | Phase 37 | Pending |
-| UI-06 | Phase 37 | Pending |
+| INTEG-01 | Phase 35 | ✅ Complete |
+| INTEG-02 | Phase 35 | ✅ Complete |
+| INTEG-03 | Phase 35 | ✅ Complete |
+| QUERY-01 | Phase 36 | ✅ Complete |
+| QUERY-02 | Phase 36 | ✅ Complete |
+| QUERY-03 | Phase 36 | ✅ Complete |
+| QUERY-04 | Phase 36 | ✅ Complete |
+| API-01 | Phase 36 | ✅ Complete |
+| API-02 | Phase 36 | ✅ Complete |
+| API-03 | Phase 36 | ✅ Complete |
+| API-04 | Phase 36 | ✅ Complete |
+| UI-01 | Phase 37 | ✅ Complete |
+| UI-02 | Phase 37 | ✅ Complete |
+| UI-03 | Phase 37 | ✅ Complete |
+| UI-04 | Phase 37 | ✅ Complete |
+| UI-05 | Phase 37 | ✅ Complete |
+| UI-06 | Phase 37 | ✅ Complete |
 
 **Coverage:**
-- v1.4 requirements: 18 total
-- Mapped to phases: 18/18 (100% coverage)
-- Phase 35 (FluentCart Hook 探索與注入點設定): 3 requirements
-- Phase 36 (子訂單查詢與 API 服務): 8 requirements
-- Phase 37 (前端 UI 元件與互動): 6 requirements
+- v1.4 requirements: 17 total
+- Mapped to phases: 17/17 (100% coverage) ✅ All Complete
+- Phase 35 (FluentCart Hook 探索與注入點設定): 3 requirements ✅
+- Phase 36 (子訂單查詢與 API 服務): 8 requirements ✅
+- Phase 37 (前端 UI 元件與互動): 6 requirements ✅
 
 ---
 
