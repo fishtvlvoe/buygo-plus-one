@@ -155,7 +155,8 @@ class Plugin {
 
         // 初始化 Admin Pages
         new \BuyGoPlus\Admin\SettingsPage();
-        new \BuyGoPlus\Admin\SellerManagementPage();
+        // 2026-02-04: 賣家管理頁面已移除，功能統一到「角色權限設定」頁面
+        // new \BuyGoPlus\Admin\SellerManagementPage();
         
         // 初始化 Routes
         new Routes();
