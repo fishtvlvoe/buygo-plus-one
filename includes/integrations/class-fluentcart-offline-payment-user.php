@@ -45,18 +45,53 @@ class FluentCartOfflinePaymentUser {
 	/**
 	 * 處理訂單建立事件
 	 *
-	 * @param object $order FluentCart 訂單物件
+	 * @param array $data FluentCart 事件資料陣列
+	 *                     包含 'order', 'prev_order', 'customer', 'transaction'
 	 */
-	public static function handle_order_created( $order ): void {
-		// 只處理線下付款訂單
-		if ( ! self::is_offline_payment( $order ) ) {
+	public static function handle_order_created( $data ): void {
+		// FluentCart 傳遞的是陣列，不是物件
+		$order = $data['order'] ?? null;
+
+		if ( ! $order ) {
+			error_log( '[BuyGo+1][OfflinePayment] Hook triggered but no order data' );
 			return;
 		}
 
-		// 檢查是否需要建立使用者
-		if ( ! self::should_create_user( $order ) ) {
+		// Debug: 記錄 Hook 被觸發
+		error_log( sprintf(
+			'[BuyGo+1][OfflinePayment] Hook triggered for Order #%d (payment_method: %s)',
+			$order->id ?? 'unknown',
+			$order->payment_method ?? 'unknown'
+		) );
+
+		// 只處理線下付款訂單
+		if ( ! self::is_offline_payment( $order ) ) {
+			error_log( sprintf(
+				'[BuyGo+1][OfflinePayment] Order #%d skipped: not offline payment',
+				$order->id
+			) );
 			return;
 		}
+
+		error_log( sprintf(
+			'[BuyGo+1][OfflinePayment] Order #%d is offline payment, checking if user creation needed',
+			$order->id
+		) );
+
+		// 檢查是否需要建立使用者
+		if ( ! self::should_create_user( $order ) ) {
+			error_log( sprintf(
+				'[BuyGo+1][OfflinePayment] Order #%d skipped: user creation not needed (customer may already have account)',
+				$order->id
+			) );
+			return;
+		}
+
+		error_log( sprintf(
+			'[BuyGo+1][OfflinePayment] Order #%d: creating user for customer #%d',
+			$order->id,
+			$order->customer_id
+		) );
 
 		// 建立使用者
 		self::create_user_from_order( $order );
@@ -77,28 +112,21 @@ class FluentCartOfflinePaymentUser {
 	/**
 	 * 檢查是否應該建立使用者
 	 *
-	 * 條件：
-	 * 1. 訂單設定中啟用了「付款後建立帳號」
-	 * 2. 或全局設定啟用了「自動建立使用者」
-	 * 3. 且顧客尚未連結到 WordPress 使用者
+	 * 策略：線下付款訂單「總是」建立使用者
+	 *
+	 * 原因：
+	 * 1. 線下付款訂單永遠不會觸發 OrderPaid 事件
+	 * 2. 如果不在訂單建立時建立使用者，就永遠不會建立了
+	 * 3. 顧客需要帳號來查看訂單歷史和追蹤訂單狀態
+	 * 4. 線下付款後，顧客仍需登入查看付款資訊
+	 *
+	 * 唯一例外：顧客已有 WordPress 帳號（已連結）
 	 *
 	 * @param object $order 訂單物件
 	 * @return bool
 	 */
 	private static function should_create_user( $order ): bool {
 		global $wpdb;
-
-		// 檢查訂單設定
-		$config = is_string( $order->config ) ? json_decode( $order->config, true ) : (array) $order->config;
-		$order_setting = $config['create_account_after_paid'] ?? 'no';
-
-		// 檢查全局設定
-		$global_setting = self::get_global_user_creation_setting();
-
-		// 如果訂單或全局設定都不允許建立使用者，返回 false
-		if ( $order_setting !== 'yes' && $global_setting !== 'all' ) {
-			return false;
-		}
 
 		// 檢查顧客是否已連結到 WordPress 使用者
 		$customer = $wpdb->get_row( $wpdb->prepare(
@@ -111,6 +139,8 @@ class FluentCartOfflinePaymentUser {
 			return false;
 		}
 
+		// 線下付款訂單總是建立使用者（不檢查設定）
+		// 因為這是唯一的機會建立帳號
 		return true;
 	}
 
