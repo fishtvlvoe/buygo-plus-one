@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-04
-**專案版本:** v1.5 Phase 38 完成（所有 3 個計畫已完成）
+**專案版本:** v1.5 Phase 39 進行中（Plan 39-01 已完成）
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** Phase 38 - 角色權限頁面 UI 重構
+**當前焦點:** Phase 39 - FluentCart 自動賦予賣家權限
 
 **PROJECT.md 最後更新:** 2026-02-04
 
@@ -18,9 +18,9 @@
 ## 當前位置
 
 **Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
-**Phase:** 38 of 40（角色權限頁面 UI 重構 - ✅ Complete）
-**Plan:** 所有 3 個計畫已完成
-**Status:** Phase 38 已完成並驗證（12/12 must-haves verified）
+**Phase:** 39 of 40（FluentCart 自動賦予賣家權限 - 🔄 In Progress）
+**Plan:** 39-01 已完成，準備 39-02
+**Status:** Phase 39 Plan 01 已完成（賣家商品 ID 設定介面）
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -32,9 +32,9 @@
 **當前 Milestone:**
 - **v1.5** — 賣家商品數量限制與 ID 對應系統（Phases 38-40，進行中）
 
-**Progress (v1.5):** [████░░░░░░] 33% (Phase 38 完成，2 個 phase 待執行)
+**Progress (v1.5):** [█████░░░░░] 50% (Phase 38-39 完成/進行中，1 個 phase 待執行)
 
-**Last activity:** 2026-02-04 — Phase 38 完成並通過驗證（12/12 must-haves verified）
+**Last activity:** 2026-02-04 — 完成 Phase 39 Plan 01（賣家商品 ID 設定介面）
 
 ---
 
@@ -57,6 +57,7 @@
 - Phase 40: 3 requirements (QUOTA-01 ~ QUOTA-03)
 
 **Recent Activity:**
+- 2026-02-04: ✅ 完成 39-01-PLAN（賣家商品 ID 設定介面）
 - 2026-02-04: ✅ Phase 38 完成並通過驗證（12/12 must-haves verified）
 - 2026-02-04: 完成 38-03-PLAN（商品限制邏輯統一與預設值調整）
 - 2026-02-04: 完成 38-02-PLAN（隱藏賣家類型和移除發送綁定按鈕）
@@ -64,7 +65,6 @@
 - 2026-02-04: Phase 38 規劃完成（3 個計畫，通過驗證）
 - 2026-02-04: v1.5 路線圖建立完成
 - 2026-02-04: v1.5 需求定義完成（12 個需求）
-- 2026-02-02: v1.4 Milestone 完成 (Phases 35-37)
 
 ---
 
@@ -79,6 +79,11 @@
 - **商品限制 0 值明確處理** — 使用 `=== '' || === false` 檢查，避免 0 被誤判 ✅ 已實作
 - **FluentCart 整合為中優先級** — 先完成 UI 改造，整合可延後
 - **小幫手配額必須在 v1.5 完成** — 核心功能，防止超配是高優先
+
+**Phase 39 決策:**
+- **商品驗證時機** — 點擊驗證按鈕時觸發，避免頻繁查詢資料庫 ✅ 已實作
+- **虛擬商品判斷** — 使用 `fct_products.is_shippable = 0` 判斷 ✅ 已實作
+- **設定區塊位置** — 放在角色權限頁面頂部，語意相關 ✅ 已實作
 
 **Phase 策略:**
 - Phase 38 先完成 UI 重構（基礎）
@@ -97,12 +102,14 @@
 - [x] 移除發送綁定按鈕（Plan 38-02）
 - [x] 統一商品限制編輯體驗（Plan 38-03）
 
-**Phase 39（FluentCart 自動賦予賣家權限）:**
-- [ ] 規劃 Phase 39 執行計畫
-- [ ] 後台設定頁面新增賣家商品 ID 輸入框
-- [ ] 監聽 fluent_cart/order_paid hook
-- [ ] 自動賦予 buygo_admin 角色
-- [ ] 自動設定預設配額
+**Phase 39（FluentCart 自動賦予賣家權限）:** 🔄 進行中
+- [x] 規劃 Phase 39 執行計畫
+- [x] 後台設定頁面新增賣家商品 ID 輸入框（Plan 39-01）
+- [x] 商品驗證 AJAX handler（Plan 39-01）
+- [x] 前端驗證邏輯（Plan 39-01）
+- [ ] 監聽 fluent_cart/order_paid hook（Plan 39-02）
+- [ ] 自動賦予 buygo_admin 角色（Plan 39-02）
+- [ ] 自動設定預設配額（Plan 39-02）
 
 **Phase 40（小幫手共享配額驗證）:**
 - [ ] 規劃 Phase 40 執行計畫
@@ -154,23 +161,43 @@
 ## 會話連續性
 
 **Last session:** 2026-02-04
-**Stopped at:** 完成 Phase 38（所有 3 個計畫）
+**Stopped at:** 完成 Phase 39 Plan 01（賣家商品 ID 設定介面）
 **Resume file:** 無
 
 **下一步:**
-1. 開始 Phase 39 規劃（FluentCart 整合）
-2. 開始 Phase 40 規劃（小幫手配額驗證）
+1. 執行 Phase 39 Plan 02（FluentCart order_paid hook 整合）
+2. 執行 Phase 39 Plan 03（通知與記錄系統）
+3. 執行 Phase 39 Plan 04（退款撤銷機制）
 
-**Ready to execute:** Phase 39 規劃 - FluentCart 自動賦予賣家權限
+**Ready to execute:** Phase 39 Plan 02 - FluentCart Hook 整合與角色賦予
 
 **Plans completed:**
 - ✅ 38-01-PLAN.md (WP ID + BuyGo ID 顯示)
 - ✅ 38-02-PLAN.md (隱藏賣家類型和移除發送綁定)
 - ✅ 38-03-PLAN.md (商品限制邏輯統一)
+- ✅ 39-01-PLAN.md (賣家商品 ID 設定介面)
 
 ---
 
 ## 最近完成的計畫
+
+### 39-01: 賣家商品 ID 設定介面
+
+**完成時間:** 2026-02-04
+**Duration:** 113 秒（約 2 分鐘）
+**Commit:** e3d12ad, 021f064, 87edb40
+
+**成果:**
+- ✅ 在角色權限頁面新增「FluentCart 自動賦予設定」區塊
+- ✅ 實作商品 ID 輸入框和儲存機制（`buygo_seller_product_id` option）
+- ✅ 實作 AJAX 商品驗證 handler（存在性、狀態、虛擬商品類型）
+- ✅ 實作前端驗證邏輯（即時驗證、商品資訊顯示）
+- ✅ 加入說明文字和錯誤處理
+
+**決策:**
+- SETTINGS-UI-PLACEMENT: 放在角色權限頁面頂部（語意相關）
+- VALIDATION-TIMING: 點擊驗證按鈕時觸發（避免頻繁查詢）
+- PRODUCT-TYPE-CHECK: 使用 `fct_products.is_shippable = 0` 判斷虛擬商品
 
 ### 38-03: 商品限制邏輯統一與預設值調整
 
@@ -217,4 +244,4 @@
 
 ---
 
-*State updated: 2026-02-04 after completing Phase 38 (all 3 plans)*
+*State updated: 2026-02-04 after completing Phase 39 Plan 01*
