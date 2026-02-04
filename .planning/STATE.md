@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-04
-**專案版本:** v1.5 啟動 (定義需求中)
+**專案版本:** v1.5 Phase 38 進行中（Plan 01 完成）
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v1.5 賣家商品數量限制與 ID 對應系統
+**當前焦點:** Phase 38 - 角色權限頁面 UI 重構
 
 **PROJECT.md 最後更新:** 2026-02-04
 
@@ -18,9 +18,9 @@
 ## 當前位置
 
 **Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
-**Phase:** 尚未開始（定義需求）
-**Plan:** —
-**Status:** 定義需求中
+**Phase:** 38 of 40（角色權限頁面 UI 重構）
+**Plan:** 38-01 完成（共 3 個計畫）
+**Status:** Phase 38 進行中（1/3 計畫完成）
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -30,9 +30,11 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 
 **當前 Milestone:**
-- **v1.5** — 賣家商品數量限制與 ID 對應系統（進行中）
+- **v1.5** — 賣家商品數量限制與 ID 對應系統（Phases 38-40，進行中）
 
-**Progress (v1.5):** [ ] 0% (定義需求中)
+**Progress (v1.5):** [███░░░░░░░] 33% (Phase 38 Plan 01 完成)
+
+**Last activity:** 2026-02-04 — 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
 
 ---
 
@@ -40,17 +42,30 @@
 
 **Velocity (v1.5):**
 - Milestone started: 2026-02-04
-- Current phase: 定義需求
+- Roadmap created: 2026-02-04
+- Phase 38 planned: 2026-02-04
+- Current phase: Phase 38（已規劃，準備執行）
+- Total phases: 3
+- Total requirements: 12
+- Coverage: 12/12 (100%)
+
+**Phase Breakdown:**
+- Phase 38: 5 requirements (UI-01 ~ UI-05)
+- Phase 39: 4 requirements (FC-01 ~ FC-04)
+- Phase 40: 3 requirements (QUOTA-01 ~ QUOTA-03)
 
 **Recent Activity:**
-- 2026-02-04: v1.5 Milestone 啟動 - 賣家商品數量限制與 ID 對應系統
+- 2026-02-04: 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
+- 2026-02-04: Phase 38 規劃完成（3 個計畫，通過驗證）
+- 2026-02-04: v1.5 路線圖建立完成
+- 2026-02-04: v1.5 需求定義完成（12 個需求）
 - 2026-02-02: v1.4 Milestone 完成 (Phases 35-37)
 
 ---
 
 ## 累積決策
 
-最近影響當前開發的決策（詳見 PROJECT.md）：
+最近影響當前開發的決策（詳見 PROJECT.md Key Decisions）：
 
 **v1.5 Milestone 核心決策:**
 - **保留但隱藏 buygo_seller_type** — 避免資料遷移風險，未來可能需要參考
@@ -59,13 +74,35 @@
 - **FluentCart 整合為中優先級** — 先完成 UI 改造，整合可延後
 - **小幫手配額必須在 v1.5 完成** — 核心功能，防止超配是高優先
 
+**Phase 策略:**
+- Phase 38 先完成 UI 重構（基礎）
+- Phase 39 實作 FluentCart 整合（自動化）
+- Phase 40 實作配額驗證（核心功能）
+
 ---
 
-## 待辦清單（v1.5 — 定義需求中）
+## 待辦清單（v1.5）
 
-- [ ] 完成需求定義（REQUIREMENTS.md）
-- [ ] 完成路線圖規劃（ROADMAP.md）
-- [ ] 開始執行第一個 Phase
+**Phase 38（角色權限頁面 UI 重構）:**
+- [x] 規劃 Phase 38 執行計畫（3 個計畫，通過驗證）
+- [x] 實作 WordPress User ID 顯示（Plan 38-01）
+- [x] 實作 BuyGo ID 顯示邏輯（Plan 38-01）
+- [ ] 隱藏賣家類型欄位（Plan 38-02）
+- [ ] 移除發送綁定按鈕（Plan 38-02）
+- [ ] 統一商品限制編輯體驗（Plan 38-03）
+
+**Phase 39（FluentCart 自動賦予賣家權限）:**
+- [ ] 規劃 Phase 39 執行計畫
+- [ ] 後台設定頁面新增賣家商品 ID 輸入框
+- [ ] 監聽 fluent_cart/order_paid hook
+- [ ] 自動賦予 buygo_admin 角色
+- [ ] 自動設定預設配額
+
+**Phase 40（小幫手共享配額驗證）:**
+- [ ] 規劃 Phase 40 執行計畫
+- [ ] 實作配額驗證邏輯
+- [ ] 阻止超限上架
+- [ ] 錯誤訊息顯示
 
 ---
 
@@ -73,11 +110,19 @@
 
 ### 待解決
 
-（無）
+**Phase 39 相關:**
+- 需探索 fluent_cart/order_paid hook 的參數結構
+- 需確認如何從 hook 取得購買的商品清單
+
+**Phase 40 相關:**
+- 配額計算邏輯可能複雜（特別是多賣家小幫手情況）
+- 需確認現有商品上架流程的程式碼位置
 
 ### 已解決
 
-（v1.4 及之前的阻礙已清空）
+**Phase 38 相關:**
+- ✅ 角色權限頁面程式碼位置已確認：`includes/admin/class-settings-page.php`（純 PHP 模板，非 Vue 元件）
+- ✅ BuyGo ID 查詢邏輯已確認：從 `wp_buygo_helpers.id` 表查詢
 
 ---
 
@@ -86,30 +131,58 @@
 **與使用者對齊:** ✅ 良好
 - v1.5 目標已確認
 - 核心決策已確認
+- 路線圖已建立並等待用戶批准
 
 **與技術棧對齊:** ✅ 良好
 - 遵循現有 WordPress + Vue 3 架構
 - 使用現有 Service Layer 模式
-- 向後相容
+- 向後相容（保留但隱藏舊欄位）
 
-**與計畫對齊:** ⏳ 進行中
-- 正在定義 REQUIREMENTS.md
-- 等待 ROADMAP.md 建立
+**與計畫對齊:** ✅ 完成
+- REQUIREMENTS.md 已完成（12 個需求，100% 映射）
+- ROADMAP.md 已建立（3 個 Phase，清楚的成功標準）
+- 等待執行第一個 Phase
 
 ---
 
 ## 會話連續性
 
 **Last session:** 2026-02-04
-**Stopped at:** v1.5 Milestone 啟動（定義需求中）
+**Stopped at:** 完成 38-01-PLAN
 **Resume file:** 無
 
 **下一步:**
-1. 決定是否進行研究階段
-2. 定義 REQUIREMENTS.md
-3. 建立 ROADMAP.md
-4. 開始執行第一個 Phase
+1. 執行 38-02-PLAN（隱藏欄位）
+2. 執行 38-03-PLAN（統一編輯）
+3. 開始 Phase 39 規劃（FluentCart 整合）
+
+**Ready to execute:** 38-02-PLAN - 隱藏賣家類型和移除發送綁定按鈕
+
+**Plans available:**
+- 38-02-PLAN.md (Wave 2, autonomous, ready to execute)
+- 38-03-PLAN.md (Wave 3, autonomous, depends on 38-02)
 
 ---
 
-*State updated: 2026-02-04 after v1.5 Milestone initialization*
+## 最近完成的計畫
+
+### 38-01: UI 欄位顯示改造（WP ID + BuyGo ID）
+
+**完成時間:** 2026-02-04
+**Duration:** 1.5 分鐘
+**Commit:** 47256d9
+
+**成果:**
+- ✅ 使用者欄位顯示 WP-{user_id}
+- ✅ 角色欄位顯示 BuyGo-{helpers.id}（小幫手）或「（無 BuyGo ID）」（賣家）
+- ✅ 優化資料庫查詢，一次取得 BuyGo ID 和賣家資訊
+- ✅ 統一 ID 顯示格式（兩行，主要文字 + 灰色小字）
+
+**決策:**
+- 使用 wp_buygo_helpers.id 作為 BuyGo ID（而非 helper_id）
+- 賣家顯示「（無 BuyGo ID）」明確告知預期行為
+- 優化 SQL 查詢結構，一次取得所有需要的資料
+
+---
+
+*State updated: 2026-02-04 after completing 38-01-PLAN*
