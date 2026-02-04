@@ -903,6 +903,21 @@ const ProductsPageComponent = {
                     await checkUrlParams();
                 }
             });
+
+            // 平板直向自動切換網格模式
+            const handleViewModeByWidth = () => {
+                const width = window.innerWidth;
+                // 平板直向（768px-1024px）自動切換到網格模式
+                if (width >= 768 && width < 1024 && currentView.value === 'list') {
+                    viewMode.value = 'grid';
+                }
+            };
+
+            // 初次檢查
+            handleViewModeByWidth();
+
+            // 監聽視窗尺寸變化
+            window.addEventListener('resize', handleViewModeByWidth);
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）

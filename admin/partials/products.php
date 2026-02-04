@@ -174,7 +174,7 @@ $products_component_template .= <<<'HTML'
                     </div>
 
                     <!-- Desktop Grid View -->
-                    <div v-show="viewMode === 'grid'" class="hidden md:block">
+                    <div v-show="viewMode === 'grid'">
                         <!-- Grid Header with Select All -->
                         <div class="flex items-center justify-between mb-4 px-1">
                             <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
