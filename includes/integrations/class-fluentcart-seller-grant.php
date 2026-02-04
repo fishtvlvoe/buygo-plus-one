@@ -37,6 +37,9 @@ class FluentCartSellerGrantIntegration {
 
 		// 監聽訂單付款完成事件（執行賦予）
 		\add_action( 'fluent_cart/order_paid', [ __CLASS__, 'handle_order_paid' ], 20 );
+
+		// 監聽訂單退款事件（撤銷賦予）
+		\add_action( 'fluent_cart/order_refunded', [ __CLASS__, 'handle_order_refunded' ], 20 );
 	}
 
 	/**
@@ -172,6 +175,11 @@ class FluentCartSellerGrantIntegration {
 	}
 
 	/**
+	 * 賣家賦予常數
+	 */
+	const DEFAULT_PRODUCT_LIMIT = 3;
+
+	/**
 	 * 賦予賣家角色和配額
 	 *
 	 * @param object $order 訂單物件
@@ -192,6 +200,7 @@ class FluentCartSellerGrantIntegration {
 				$order->id
 			) );
 			self::record_grant( $order->id, 0, $product_id, 'failed', 'Customer not linked to WordPress user' );
+			self::notify_admin_failure( $order->id, 0, 'Customer not linked to WordPress user' );
 			return;
 		}
 
@@ -205,6 +214,7 @@ class FluentCartSellerGrantIntegration {
 				$user_id
 			) );
 			self::record_grant( $order->id, $user_id, $product_id, 'failed', 'WordPress user not found' );
+			self::notify_admin_failure( $order->id, $user_id, 'WordPress user not found' );
 			return;
 		}
 
@@ -223,11 +233,19 @@ class FluentCartSellerGrantIntegration {
 		$user->add_role( 'buygo_admin' );
 
 		// 設定預設配額
-		update_user_meta( $user_id, 'buygo_product_limit', 3 );
+		update_user_meta( $user_id, 'buygo_product_limit', self::DEFAULT_PRODUCT_LIMIT );
 		update_user_meta( $user_id, 'buygo_seller_type', 'test' );
 
 		// 記錄成功
-		self::record_grant( $order->id, $user_id, $product_id, 'success', null );
+		$grant_id = self::record_grant( $order->id, $user_id, $product_id, 'success', null );
+
+		// 發送通知
+		$notification_result = self::send_seller_grant_notification( $user_id, $grant_id );
+
+		// 更新通知狀態
+		if ( $notification_result['sent'] ) {
+			self::update_notification_status( $grant_id, true, $notification_result['channel'] );
+		}
 
 		error_log( sprintf(
 			'[BuyGo+1][SellerGrant] Order #%d: Successfully granted buygo_admin role to user #%d (email: %s)',
@@ -235,6 +253,208 @@ class FluentCartSellerGrantIntegration {
 			$user_id,
 			$user->user_email
 		) );
+	}
+
+	/**
+	 * 發送賣家權限賦予通知
+	 *
+	 * 通知管道判斷：
+	 * - 已綁定 LINE：發送 LINE 通知（帶重試機制）
+	 * - 未綁定 LINE：發送 Email
+	 *
+	 * @param int $user_id WordPress 使用者 ID
+	 * @param int $grant_id 賦予記錄 ID
+	 * @return array ['sent' => bool, 'channel' => string|null]
+	 */
+	private static function send_seller_grant_notification( int $user_id, int $grant_id ): array {
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			error_log( sprintf( '[BuyGo+1][SellerGrant] Cannot send notification: user #%d not found', $user_id ) );
+			return [ 'sent' => false, 'channel' => null ];
+		}
+
+		// 準備通知內容
+		$message = self::get_notification_message( $user_id );
+		$dashboard_url = home_url( '/buygo-admin/' );
+		$line_official_url = 'https://line.me/ti/p/@317qvsmj'; // BuyGo LINE 官方帳號
+
+		// 檢查是否有 LINE 綁定（使用現有的 IdentityService）
+		$has_line_binding = \BuygoPlus\Services\IdentityService::hasLineBinding( $user_id );
+
+		if ( $has_line_binding ) {
+			// 發送 LINE 通知（帶重試機制）
+			try {
+				$line_message = $message . "\n\n";
+				$line_message .= "📲 後台管理：\n{$dashboard_url}\n\n";
+				$line_message .= "💬 加入 BuyGo LINE 官方帳號：\n{$line_official_url}\n\n";
+				$line_message .= "💡 提示：在 LINE 輸入 /id 可查詢您的身份";
+
+				$result = self::execute_with_retry(
+					function () use ( $user_id, $line_message ) {
+						return \BuyGoPlus\Services\NotificationService::sendRawText( $user_id, $line_message );
+					},
+					3,
+					500
+				);
+
+				if ( $result ) {
+					error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification sent to user #%d', $user_id ) );
+					return [ 'sent' => true, 'channel' => 'line' ];
+				}
+			} catch ( \Exception $e ) {
+				error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification failed after retries: %s', $e->getMessage() ) );
+			}
+		}
+
+		// Fallback 到 Email
+		if ( $user->user_email ) {
+			$email_result = self::send_seller_grant_email( $user, $dashboard_url, $line_official_url );
+			if ( $email_result ) {
+				error_log( sprintf( '[BuyGo+1][SellerGrant] Email notification sent to %s', $user->user_email ) );
+				return [ 'sent' => true, 'channel' => 'email' ];
+			}
+		}
+
+		error_log( sprintf( '[BuyGo+1][SellerGrant] Failed to send notification to user #%d', $user_id ) );
+		return [ 'sent' => false, 'channel' => null ];
+	}
+
+	/**
+	 * 執行帶重試機制的操作
+	 *
+	 * @param callable $operation 要執行的操作
+	 * @param int $max_retries 最大重試次數
+	 * @param int $delay_ms 重試延遲（毫秒）
+	 * @return mixed 操作結果
+	 * @throws \Exception 所有重試都失敗時拋出最後的例外
+	 */
+	private static function execute_with_retry( callable $operation, int $max_retries = 3, int $delay_ms = 500 ) {
+		$last_exception = null;
+
+		for ( $attempt = 1; $attempt <= $max_retries; $attempt++ ) {
+			try {
+				return $operation();
+			} catch ( \Exception $e ) {
+				$last_exception = $e;
+				error_log(
+					sprintf(
+						'[BuyGo+1][SellerGrant] Operation failed (attempt %d/%d): %s',
+						$attempt,
+						$max_retries,
+						$e->getMessage()
+					)
+				);
+
+				if ( $attempt < $max_retries ) {
+					usleep( $delay_ms * 1000 ); // 轉換為微秒
+				}
+			}
+		}
+
+		throw $last_exception;
+	}
+
+	/**
+	 * 取得通知訊息內容
+	 *
+	 * @param int $user_id 使用者 ID
+	 * @return string
+	 */
+	private static function get_notification_message( int $user_id ): string {
+		$user = get_userdata( $user_id );
+		$display_name = $user ? $user->display_name : '新賣家';
+
+		return "🎉 恭喜 {$display_name} 成為 BuyGo 賣家！\n\n" .
+			"您已獲得以下權限：\n" .
+			"✅ BuyGo 管理員角色\n" .
+			"✅ 商品配額：" . self::DEFAULT_PRODUCT_LIMIT . " 個\n\n" .
+			"您現在可以開始上架商品了！";
+	}
+
+	/**
+	 * 發送賣家權限賦予 Email
+	 *
+	 * @param \WP_User $user 使用者物件
+	 * @param string $dashboard_url 後台連結
+	 * @param string $line_official_url LINE 官方帳號連結
+	 * @return bool
+	 */
+	private static function send_seller_grant_email( $user, string $dashboard_url, string $line_official_url ): bool {
+		$subject = '🎉 恭喜成為 BuyGo 賣家！';
+
+		$message = "親愛的 {$user->display_name}，\n\n";
+		$message .= "恭喜您成為 BuyGo 賣家！\n\n";
+		$message .= "您已獲得以下權限：\n";
+		$message .= "• BuyGo 管理員角色\n";
+		$message .= "• 商品配額：" . self::DEFAULT_PRODUCT_LIMIT . " 個\n\n";
+		$message .= "開始使用：\n";
+		$message .= "• 後台管理：{$dashboard_url}\n\n";
+		$message .= "加入 BuyGo LINE 官方帳號獲得更多支援：\n";
+		$message .= "{$line_official_url}\n\n";
+		$message .= "綁定 LINE 後，您可以：\n";
+		$message .= "• 直接在 LINE 上架商品\n";
+		$message .= "• 使用 /id 指令查詢身份\n";
+		$message .= "• 接收訂單和出貨通知\n\n";
+		$message .= "祝您生意興隆！\n";
+		$message .= "BuyGo 團隊";
+
+		return wp_mail( $user->user_email, $subject, $message );
+	}
+
+	/**
+	 * 更新通知狀態
+	 *
+	 * @param int $grant_id 賦予記錄 ID
+	 * @param bool $sent 是否已發送
+	 * @param string|null $channel 通知管道
+	 */
+	private static function update_notification_status( int $grant_id, bool $sent, ?string $channel ): void {
+		global $wpdb;
+		$wpdb->update(
+			$wpdb->prefix . 'buygo_seller_grants',
+			[
+				'notification_sent' => $sent ? 1 : 0,
+				'notification_channel' => $channel,
+			],
+			[ 'id' => $grant_id ],
+			[ '%d', '%s' ],
+			[ '%d' ]
+		);
+	}
+
+	/**
+	 * 通知管理員賦予失敗
+	 *
+	 * @param int $order_id 訂單 ID
+	 * @param int $user_id 使用者 ID（可能為 0）
+	 * @param string $reason 失敗原因
+	 */
+	private static function notify_admin_failure( int $order_id, int $user_id, string $reason ): void {
+		$admin_email = get_option( 'admin_email' );
+		if ( ! $admin_email ) {
+			error_log( '[BuyGo+1][SellerGrant] Cannot notify admin: no admin email configured' );
+			return;
+		}
+
+		$subject = '[BuyGo] 賣家權限賦予失敗通知';
+
+		$message = "BuyGo 賣家權限自動賦予流程失敗\n\n";
+		$message .= "訂單 ID：{$order_id}\n";
+		$message .= "使用者 ID：" . ( $user_id ?: '（無）' ) . "\n";
+		$message .= "失敗原因：{$reason}\n\n";
+		$message .= "請登入後台檢查並手動處理：\n";
+		$message .= admin_url( 'admin.php?page=buygo-settings&tab=roles' ) . "\n\n";
+		$message .= "時間：" . current_time( 'Y-m-d H:i:s' ) . "\n";
+		$message .= "---\n";
+		$message .= "此郵件由 BuyGo+1 外掛自動發送";
+
+		$sent = wp_mail( $admin_email, $subject, $message );
+
+		if ( $sent ) {
+			error_log( sprintf( '[BuyGo+1][SellerGrant] Admin notified about failure for order #%d', $order_id ) );
+		} else {
+			error_log( sprintf( '[BuyGo+1][SellerGrant] Failed to notify admin about order #%d', $order_id ) );
+		}
 	}
 
 	/**
@@ -342,8 +562,9 @@ class FluentCartSellerGrantIntegration {
 	 * @param int $product_id 商品 ID
 	 * @param string $status 'success'|'skipped'|'failed'|'revoked'
 	 * @param string|null $error_message 錯誤訊息
+	 * @return int 插入的記錄 ID
 	 */
-	private static function record_grant( int $order_id, int $user_id, int $product_id, string $status, ?string $error_message = null ): void {
+	private static function record_grant( int $order_id, int $user_id, int $product_id, string $status, ?string $error_message = null ): int {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'buygo_seller_grants';
@@ -357,10 +578,12 @@ class FluentCartSellerGrantIntegration {
 				'status'         => $status,
 				'error_message'  => $error_message,
 				'granted_role'   => 'buygo_admin',
-				'granted_quota'  => 3,
+				'granted_quota'  => self::DEFAULT_PRODUCT_LIMIT,
 				'created_at'     => current_time( 'mysql' ),
 			],
 			[ '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s' ]
 		);
+
+		return $wpdb->insert_id;
 	}
 }
