@@ -243,4 +243,59 @@ jQuery(document).ready(function($) {
             });
         }, 1000);
     });
+
+    // 賣家商品 ID 驗證
+    $(document).on('click', '#validate-seller-product', function(e) {
+        e.preventDefault();
+
+        var $btn = $(this);
+        var $input = $('#buygo-seller-product-id');
+        var $result = $('#seller-product-validation-result');
+        var productId = $input.val().trim();
+
+        if (!productId) {
+            $result.html('<span style="color: #dc3232;">請輸入商品 ID</span>');
+            return;
+        }
+
+        $btn.prop('disabled', true).text('驗證中...');
+        $result.html('<span style="color: #666;">正在驗證商品...</span>');
+
+        $.ajax({
+            url: buygoSettings.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'buygo_validate_seller_product',
+                nonce: buygoSettings.nonce,
+                product_id: productId
+            },
+            success: function(response) {
+                if (response.success) {
+                    var p = response.data.product;
+                    var html = '<div style="background: #e7f5e7; padding: 10px; border-radius: 4px; margin-top: 10px;">';
+                    html += '<strong style="color: #00a32a;">✓ 商品驗證成功</strong><br>';
+                    html += '<table style="margin-top: 8px; font-size: 13px;">';
+                    html += '<tr><td style="padding: 2px 10px 2px 0; color: #666;">商品名稱：</td><td>' + p.title + '</td></tr>';
+                    html += '<tr><td style="padding: 2px 10px 2px 0; color: #666;">商品價格：</td><td>NT$ ' + p.price + '</td></tr>';
+                    html += '<tr><td style="padding: 2px 10px 2px 0; color: #666;">虛擬商品：</td><td>' + (p.is_virtual ? '✓ 是' : '✗ 否') + '</td></tr>';
+                    html += '<tr><td style="padding: 2px 10px 2px 0; color: #666;">後台連結：</td><td><a href="' + p.admin_url + '" target="_blank">編輯商品</a></td></tr>';
+                    html += '</table></div>';
+                    $result.html(html);
+                } else {
+                    $result.html('<span style="color: #dc3232;">✗ ' + response.data.message + '</span>');
+                }
+            },
+            error: function() {
+                $result.html('<span style="color: #dc3232;">驗證失敗，請稍後重試</span>');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).text('驗證商品');
+            }
+        });
+    });
+
+    // 商品 ID 輸入時清除驗證結果
+    $(document).on('input', '#buygo-seller-product-id', function() {
+        $('#seller-product-validation-result').html('');
+    });
 });
