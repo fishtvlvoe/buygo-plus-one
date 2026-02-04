@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-02-04
-**專案版本:** v1.5 Phase 38 進行中（Plan 01 完成）
+**專案版本:** v1.5 Phase 38 完成（所有 3 個計畫已完成）
 
 ---
 
@@ -19,8 +19,8 @@
 
 **Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
 **Phase:** 38 of 40（角色權限頁面 UI 重構）
-**Plan:** 38-01 完成（共 3 個計畫）
-**Status:** Phase 38 進行中（1/3 計畫完成）
+**Plan:** 38-03 完成（共 3 個計畫）
+**Status:** Phase 38 完成（3/3 計畫完成）
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -32,9 +32,9 @@
 **當前 Milestone:**
 - **v1.5** — 賣家商品數量限制與 ID 對應系統（Phases 38-40，進行中）
 
-**Progress (v1.5):** [███░░░░░░░] 33% (Phase 38 Plan 01 完成)
+**Progress (v1.5):** [███████████] 100% (Phase 38 完成)
 
-**Last activity:** 2026-02-04 — 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
+**Last activity:** 2026-02-04 — 完成 38-03-PLAN（商品限制邏輯統一）
 
 ---
 
@@ -55,6 +55,8 @@
 - Phase 40: 3 requirements (QUOTA-01 ~ QUOTA-03)
 
 **Recent Activity:**
+- 2026-02-04: 完成 38-03-PLAN（商品限制邏輯統一與預設值調整）
+- 2026-02-04: 完成 38-02-PLAN（隱藏賣家類型和移除發送綁定按鈕）
 - 2026-02-04: 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
 - 2026-02-04: Phase 38 規劃完成（3 個計畫，通過驗證）
 - 2026-02-04: v1.5 路線圖建立完成
@@ -68,9 +70,10 @@
 最近影響當前開發的決策（詳見 PROJECT.md Key Decisions）：
 
 **v1.5 Milestone 核心決策:**
-- **保留但隱藏 buygo_seller_type** — 避免資料遷移風險，未來可能需要參考
-- **商品限制預設從 2 改為 3** — 用戶反饋認為 2 個太少
-- **移除「發送綁定」按鈕** — 簡化 UI，用戶自行處理綁定
+- **保留但隱藏 buygo_seller_type** — 避免資料遷移風險，未來可能需要參考 ✅ 已實作
+- **商品限制預設從 2 改為 3** — 用戶反饋認為 2 個太少 ✅ 已實作
+- **移除「發送綁定」按鈕** — 簡化 UI，用戶自行處理綁定 ✅ 已實作
+- **商品限制 0 值明確處理** — 使用 `=== '' || === false` 檢查，避免 0 被誤判 ✅ 已實作
 - **FluentCart 整合為中優先級** — 先完成 UI 改造，整合可延後
 - **小幫手配額必須在 v1.5 完成** — 核心功能，防止超配是高優先
 
@@ -83,13 +86,13 @@
 
 ## 待辦清單（v1.5）
 
-**Phase 38（角色權限頁面 UI 重構）:**
+**Phase 38（角色權限頁面 UI 重構）:** ✅ 完成
 - [x] 規劃 Phase 38 執行計畫（3 個計畫，通過驗證）
 - [x] 實作 WordPress User ID 顯示（Plan 38-01）
 - [x] 實作 BuyGo ID 顯示邏輯（Plan 38-01）
-- [ ] 隱藏賣家類型欄位（Plan 38-02）
-- [ ] 移除發送綁定按鈕（Plan 38-02）
-- [ ] 統一商品限制編輯體驗（Plan 38-03）
+- [x] 隱藏賣家類型欄位（Plan 38-02）
+- [x] 移除發送綁定按鈕（Plan 38-02）
+- [x] 統一商品限制編輯體驗（Plan 38-03）
 
 **Phase 39（FluentCart 自動賦予賣家權限）:**
 - [ ] 規劃 Phase 39 執行計畫
@@ -148,23 +151,49 @@
 ## 會話連續性
 
 **Last session:** 2026-02-04
-**Stopped at:** 完成 38-01-PLAN
+**Stopped at:** 完成 Phase 38（所有 3 個計畫）
 **Resume file:** 無
 
 **下一步:**
-1. 執行 38-02-PLAN（隱藏欄位）
-2. 執行 38-03-PLAN（統一編輯）
-3. 開始 Phase 39 規劃（FluentCart 整合）
+1. 開始 Phase 39 規劃（FluentCart 整合）
+2. 開始 Phase 40 規劃（小幫手配額驗證）
 
-**Ready to execute:** 38-02-PLAN - 隱藏賣家類型和移除發送綁定按鈕
+**Ready to execute:** Phase 39 規劃 - FluentCart 自動賦予賣家權限
 
-**Plans available:**
-- 38-02-PLAN.md (Wave 2, autonomous, ready to execute)
-- 38-03-PLAN.md (Wave 3, autonomous, depends on 38-02)
+**Plans completed:**
+- ✅ 38-01-PLAN.md (WP ID + BuyGo ID 顯示)
+- ✅ 38-02-PLAN.md (隱藏賣家類型和移除發送綁定)
+- ✅ 38-03-PLAN.md (商品限制邏輯統一)
 
 ---
 
 ## 最近完成的計畫
+
+### 38-03: 商品限制邏輯統一與預設值調整
+
+**完成時間:** 2026-02-04
+**Duration:** 1 分鐘
+**Commit:** 5916ee1
+
+**成果:**
+- ✅ 確認商品限制欄位無 disabled 邏輯（所有賣家統一可編輯）
+- ✅ 預設值從 2 改為 3（根據用戶反饋）
+- ✅ 使用明確的 `=== ''` 或 `=== false` 檢查，避免 0 值被誤判
+- ✅ 加入清晰註解說明商品限制邏輯
+- ✅ 加入 placeholder 和 title 提示（"0 = 無限制，預設 = 3"）
+
+**決策:**
+- PROD-LIMIT-DEFAULT-3: 預設值從 2 改為 3（用戶反饋 2 個太少）
+- PROD-LIMIT-ZERO-EXPLICIT: 使用明確的 null/false 檢查而非 empty()
+
+### 38-02: 隱藏賣家類型和移除發送綁定按鈕
+
+**完成時間:** 2026-02-04
+**Commit:** (See previous session)
+
+**成果:**
+- ✅ 隱藏賣家類型欄位（保留資料但不顯示）
+- ✅ 移除發送綁定按鈕（簡化 UI）
 
 ### 38-01: UI 欄位顯示改造（WP ID + BuyGo ID）
 
@@ -185,4 +214,4 @@
 
 ---
 
-*State updated: 2026-02-04 after completing 38-01-PLAN*
+*State updated: 2026-02-04 after completing Phase 38 (all 3 plans)*
