@@ -663,14 +663,14 @@ class SettingsPage
         // 取得當前設定值
         $seller_product_id = get_option('buygo_seller_product_id', '');
 
-        // 查詢所有虛擬商品
+        // 查詢所有虛擬商品（fulfillment_type = 'digital'）
         global $wpdb;
         $virtual_products = $wpdb->get_results("
-            SELECT p.ID, p.post_title, fct.price
+            SELECT p.ID, p.post_title, pd.min_price as price
             FROM {$wpdb->prefix}posts AS p
-            INNER JOIN {$wpdb->prefix}fct_products AS fct ON p.ID = fct.id
-            WHERE p.post_type = 'fct_product'
-            AND fct.is_shippable = 0
+            INNER JOIN {$wpdb->prefix}fct_product_details AS pd ON p.ID = pd.post_id
+            WHERE p.post_type = 'fluent-products'
+            AND pd.fulfillment_type = 'digital'
             AND p.post_status = 'publish'
             ORDER BY p.post_modified DESC
         ");
@@ -2856,10 +2856,10 @@ LIMIT 10`,
 
         global $wpdb;
 
-        // FluentCart 商品儲存在 wp_posts（post_type = fct_product）
+        // FluentCart 商品儲存在 wp_posts（post_type = fluent-products）
         $product = $wpdb->get_row($wpdb->prepare(
             "SELECT ID, post_title, post_status FROM {$wpdb->prefix}posts
-             WHERE ID = %d AND post_type = 'fct_product'",
+             WHERE ID = %d AND post_type = 'fluent-products'",
             $product_id
         ));
 
@@ -2871,14 +2871,19 @@ LIMIT 10`,
             wp_send_json_error(['message' => "商品狀態為 {$product->post_status}，必須是 publish"]);
         }
 
-        // 取得商品價格（從 FluentCart 商品表）
-        $fct_product = $wpdb->get_row($wpdb->prepare(
-            "SELECT price, is_shippable FROM {$wpdb->prefix}fct_products WHERE id = %d",
+        // 取得商品詳細資料（從 fct_product_details）
+        $product_detail = $wpdb->get_row($wpdb->prepare(
+            "SELECT min_price, fulfillment_type FROM {$wpdb->prefix}fct_product_details
+             WHERE post_id = %d",
             $product_id
         ));
 
-        // 檢查是否為虛擬商品（is_shippable = 0）
-        if ($fct_product && $fct_product->is_shippable == 1) {
+        if (!$product_detail) {
+            wp_send_json_error(['message' => '找不到此商品的詳細資料']);
+        }
+
+        // 檢查是否為虛擬商品（fulfillment_type = 'digital'）
+        if ($product_detail->fulfillment_type !== 'digital') {
             wp_send_json_error(['message' => '賣家商品必須是虛擬商品（不需要物流）']);
         }
 
@@ -2886,8 +2891,8 @@ LIMIT 10`,
             'product' => [
                 'id' => $product->ID,
                 'title' => $product->post_title,
-                'price' => $fct_product ? $fct_product->price : 0,
-                'is_virtual' => $fct_product ? ($fct_product->is_shippable == 0) : true,
+                'price' => $product_detail->min_price ? floatval($product_detail->min_price) : 0,
+                'is_virtual' => $product_detail->fulfillment_type === 'digital',
                 'admin_url' => admin_url('post.php?post=' . $product->ID . '&action=edit')
             ]
         ]);
