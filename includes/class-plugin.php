@@ -192,6 +192,7 @@ class Plugin {
             \BuygoPlus\Integrations\FluentCartChildOrdersIntegration::register_hooks();
             \BuygoPlus\Integrations\FluentCartOfflinePaymentUser::register_hooks();
             \BuygoPlus\Integrations\FluentCartSellerGrantIntegration::register_hooks();
+            \BuygoPlus\Integrations\FluentCartHideChildOrders::register_hooks();
         }
 
         // 初始化結帳頁面自訂服務（身分證字號等）
