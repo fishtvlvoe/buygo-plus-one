@@ -865,11 +865,6 @@ class SettingsPage
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                        <?php if (!$user['is_bound']): ?>
-                                            <button type="button" class="button button-secondary send-binding-link" data-user-id="<?php echo esc_attr($user['id']); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4;">
-                                                發送綁定連結
-                                            </button>
-                                        <?php endif; ?>
                                         <?php if (!$user['is_wp_admin']): ?>
                                             <?php 
                                             // 判斷應該移除哪個角色
