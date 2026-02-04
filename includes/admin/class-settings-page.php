@@ -653,6 +653,16 @@ class SettingsPage
      */
     private function render_roles_tab(): void
     {
+        // 處理賣家商品 ID 設定儲存
+        if (isset($_POST['buygo_seller_product_submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_seller_product_settings')) {
+            $product_id = sanitize_text_field($_POST['buygo_seller_product_id'] ?? '');
+            update_option('buygo_seller_product_id', $product_id);
+            echo '<div class="notice notice-success is-dismissible"><p>賣家商品 ID 已儲存！</p></div>';
+        }
+
+        // 取得當前設定值
+        $seller_product_id = get_option('buygo_seller_product_id', '');
+
         // 取得所有小幫手（從選項中）
         $helpers = SettingsService::get_helpers();
         $helper_ids = array_map(function($h) { return $h['id']; }, $helpers);
@@ -786,6 +796,42 @@ class SettingsPage
         
         ?>
         <div class="wrap">
+            <!-- FluentCart 自動賦予設定 -->
+            <div class="card" style="max-width: 800px; margin-bottom: 20px;">
+                <h2 style="margin-top: 0;">FluentCart 自動賦予設定</h2>
+                <p class="description">設定後，顧客購買此商品並付款完成時，將自動獲得 BuyGo 管理員角色和預設商品配額（3 個）</p>
+
+                <form method="post" action="">
+                    <?php wp_nonce_field('buygo_seller_product_settings'); ?>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="buygo-seller-product-id">賣家商品 ID（FluentCart）</label>
+                            </th>
+                            <td>
+                                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                    <input
+                                        type="text"
+                                        name="buygo_seller_product_id"
+                                        id="buygo-seller-product-id"
+                                        value="<?php echo esc_attr($seller_product_id); ?>"
+                                        class="regular-text"
+                                        placeholder="輸入 FluentCart 商品 ID"
+                                    />
+                                    <button type="button" class="button" id="validate-seller-product">驗證商品</button>
+                                </div>
+                                <div id="seller-product-validation-result" style="margin-top: 10px;"></div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p class="submit">
+                        <button type="submit" name="buygo_seller_product_submit" class="button button-primary">儲存設定</button>
+                    </p>
+                </form>
+            </div>
+
             <h2>
                 角色權限設定
                 <button type="button" class="button" id="add-role-btn" style="margin-left: 10px;">
