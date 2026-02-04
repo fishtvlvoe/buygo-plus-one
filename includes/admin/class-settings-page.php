@@ -24,8 +24,6 @@ class SettingsPage
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
         add_action('wp_ajax_buygo_update_seller_type', [$this, 'ajax_update_seller_type']);
         add_action('wp_ajax_buygo_update_product_limit', [$this, 'ajax_update_product_limit']);
-        add_action('wp_ajax_buygo_validate_seller_product', [$this, 'ajax_validate_seller_product']);
-        add_action('wp_ajax_buygo_search_virtual_products', [$this, 'ajax_search_virtual_products']);
     }
 
     /**
@@ -665,6 +663,18 @@ class SettingsPage
         // 取得當前設定值
         $seller_product_id = get_option('buygo_seller_product_id', '');
 
+        // 查詢所有虛擬商品
+        global $wpdb;
+        $virtual_products = $wpdb->get_results("
+            SELECT p.ID, p.post_title, fct.price
+            FROM {$wpdb->prefix}posts AS p
+            INNER JOIN {$wpdb->prefix}fct_products AS fct ON p.ID = fct.id
+            WHERE p.post_type = 'fct_product'
+            AND fct.is_shippable = 0
+            AND p.post_status = 'publish'
+            ORDER BY p.post_modified DESC
+        ");
+
         // 取得所有小幫手（從選項中）
         $helpers = SettingsService::get_helpers();
         $helper_ids = array_map(function($h) { return $h['id']; }, $helpers);
@@ -812,18 +822,20 @@ class SettingsPage
                                 <label for="buygo-seller-product-id">賣家商品 ID（FluentCart）</label>
                             </th>
                             <td>
-                                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                                    <input
-                                        type="text"
-                                        name="buygo_seller_product_id"
-                                        id="buygo-seller-product-id"
-                                        value="<?php echo esc_attr($seller_product_id); ?>"
-                                        class="regular-text"
-                                        placeholder="輸入 FluentCart 商品 ID"
-                                    />
-                                    <button type="button" class="button" id="validate-seller-product">驗證商品</button>
-                                </div>
-                                <div id="seller-product-validation-result" style="margin-top: 10px;"></div>
+                                <select name="buygo_seller_product_id" id="buygo-seller-product-id" class="regular-text">
+                                    <option value="">-- 請選擇賣家商品 --</option>
+                                    <?php foreach ($virtual_products as $product): ?>
+                                        <option
+                                            value="<?php echo esc_attr($product->ID); ?>"
+                                            <?php selected($seller_product_id, $product->ID); ?>
+                                        >
+                                            #<?php echo esc_html($product->ID); ?> - <?php echo esc_html($product->post_title); ?> (NT$ <?php echo number_format($product->price, 0); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description">
+                                    選擇一個虛擬商品作為賣家權限商品。顧客購買此商品並付款後，將自動獲得 BuyGo 管理員角色。
+                                </p>
                             </td>
                         </tr>
                     </table>
