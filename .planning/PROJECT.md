@@ -8,21 +8,16 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 
 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，**每個賣家只能看到自己的商品和訂單**，同時支援小幫手協作。
 
-## Current Milestone: v1.4 會員前台子訂單顯示功能
+## Current Milestone: v1.5 賣家商品數量限制與 ID 對應系統
 
-**Goal:** 在 FluentCart 會員前台訂單頁面中，讓購物者能查看該主訂單包含的所有子訂單詳細資訊
+**Goal:** 重構賣家管理功能，移除「賣家類型」概念，改用統一的「商品數量限制」機制，並整合 FluentCart 自動賦予權限。
 
 **Target features:**
-
-### 子訂單顯示區塊
-- 在主訂單下方新增「查看子訂單」展開按鈕
-- 展開後顯示該主訂單的所有子訂單列表
-- 每個子訂單顯示：編號、商品清單、狀態、金額
-
-### UI 整合方式
-- 使用 WordPress Hook 注入 UI（不修改 FluentCart 原始碼）
-- 類似 LINE 登入按鈕的整合模式
-- 折疊/展開交互功能
+- 角色權限頁面 UI 改造（顯示 WP ID 和 BuyGo ID）
+- 移除「賣家類型」欄位和「發送綁定」按鈕
+- 所有賣家可編輯商品限制（預設 3）
+- FluentCart 購買指定商品自動賦予 buygo_admin 角色
+- 小幫手與賣家共享商品配額驗證
 
 ## Requirements
 
@@ -61,41 +56,45 @@ BuyGo+1 是一個 WordPress 外掛，為 LINE 社群賣家提供獨立的後台�
 - ✓ 出貨單資料模型（buygo_shipments、buygo_shipment_items）— v1.2 前
 - ✓ 標記出貨時更新子訂單 shipping_status = 'shipped' — v1.2 前
 
-### Active - v1.4 Milestone
+<!-- v1.3 已完成的功能 -->
 
-#### FluentCart 訂單頁面整合 (INTEG)
+- ✓ 出貨通知系統（NotificationHandler、buygo/parent_order_completed hook）— v1.3
+- ✓ FluentCart 子訂單同步（ChildOrdersSyncService、shipping_status 更新）— v1.3
 
-- [ ] **INTEG-01**: 找出 FluentCart 會員訂單詳情頁的 Hook 點
-- [ ] **INTEG-02**: 透過 Hook 在主訂單下方注入「查看子訂單」按鈕
-- [ ] **INTEG-03**: 注入子訂單列表容器（初始隱藏）
+<!-- v1.4 已完成的功能 -->
 
-#### 子訂單查詢服務 (QUERY)
+- ✓ FluentCart 會員前台子訂單顯示（Hook 整合、ChildOrderService、REST API）— v1.4
+- ✓ 子訂單展開/折疊 UI（Vanilla JavaScript）— v1.4
 
-- [ ] **QUERY-01**: ChildOrderService 查詢指定主訂單的所有子訂單
-- [ ] **QUERY-02**: 查詢每個子訂單的商品清單（從 order_items 表）
-- [ ] **QUERY-03**: 整合子訂單狀態資訊（付款、出貨、處理狀態）
+### Active - v1.5 Milestone
 
-#### REST API 端點 (API)
+#### 角色權限頁面 UI 改造 (UI)
 
-- [ ] **API-01**: GET /child-orders/{parent_order_id} 端點
-- [ ] **API-02**: 權限驗證（僅訂單所屬顧客可查詢）
-- [ ] **API-03**: 回傳格式化的子訂單資料（含商品、狀態、金額）
+- [ ] **UI-01**: 「使用者」欄位顯示 WordPress User ID
+- [ ] **UI-02**: 「角色」欄位顯示 BuyGo ID（小幫手）或「無 BuyGo ID」（賣家）
+- [ ] **UI-03**: 完全隱藏「賣家類型」欄位
+- [ ] **UI-04**: 移除「發送綁定」按鈕
+- [ ] **UI-05**: 「商品限制」欄位全部可編輯（預設值改為 3）
 
-#### 前端 UI 元件 (UI)
+#### FluentCart 自動賦予權限 (FC)
 
-- [ ] **UI-01**: 「查看子訂單」按鈕樣式（使用 BuyGo+1 設計系統）
-- [ ] **UI-02**: 子訂單列表卡片樣式
-- [ ] **UI-03**: 折疊/展開交互邏輯（Vue 3 或原生 JS）
-- [ ] **UI-04**: 狀態標籤顯示（使用 .status-tag 元件）
-- [ ] **UI-05**: RWD 響應式設計
+- [ ] **FC-01**: 後台設定「賣家商品 ID」輸入框
+- [ ] **FC-02**: 監聽 `fluent_cart/order_paid` hook
+- [ ] **FC-03**: 購買指定商品後自動賦予 `buygo_admin` 角色
+- [ ] **FC-04**: 自動設定 user meta（`buygo_product_limit` = 3）
 
-### Out of Scope (v1.4)
+#### 小幫手共享配額驗證 (QUOTA)
 
-- **賣家後台子訂單顯示** — 目前僅做購物者前台，賣家後台未來再考慮
-- **子訂單編輯功能** — 僅顯示，不提供編輯
-- **子訂單搜尋/篩選** — 單純列表顯示即可
-- **子訂單匯出功能** — 目前不需要
-- **FluentCart 原始碼修改** — 必須透過 Hook 整合
+- [ ] **QUOTA-01**: 小幫手上架商品計入賣家配額
+- [ ] **QUOTA-02**: 配額驗證邏輯（賣家 + 所有小幫手總數 <= 限制）
+- [ ] **QUOTA-03**: 阻止超限上架
+
+### Out of Scope (v1.5)
+
+- **刪除舊資料** — 保留 `buygo_seller_type` user meta，不刪除也不再寫入
+- **後台發送 LINE 綁定** — 完全移除按鈕，用戶自行綁定
+- **FluentCart 提前實作** — 如果 UI 改造複雜，FluentCart 整合可延後到 v1.6
+- **多層級配額系統** — 維持簡單的單一數字限制，不引入複雜層級
 
 ## Context
 
@@ -194,9 +193,14 @@ created_at, updated_at
 | 出貨通知僅發給買家 | 賣家/小幫手不需收到出貨確認 | — Pending (v1.3) |
 | 一張出貨單 = 一次通知 | 即使包含多個子訂單也只發一次 | — Pending (v1.3) |
 | 模板可由客戶自訂 | 提供基礎架構，客戶可客製化內容 | — Pending (v1.3) |
-| 子訂單顯示僅做購物者前台 | 賣家後台目前不需要，避免過度開發 | — Pending (v1.4) |
-| 使用 Hook 整合而非修改 FluentCart | 確保升級相容性，降低維護成本 | — Pending (v1.4) |
-| 展開/折疊 UI 交互 | 減少頁面初始載入量，提升 UX | — Pending (v1.4) |
+| 子訂單顯示僅做購物者前台 | 賣家後台目前不需要，避免過度開發 | ✅ Good (v1.4) |
+| 使用 Hook 整合而非修改 FluentCart | 確保升級相容性，降低維護成本 | ✅ Good (v1.4) |
+| 展開/折疊 UI 交互 | 減少頁面初始載入量，提升 UX | ✅ Good (v1.4) |
+| 保留但隱藏 buygo_seller_type | 避免資料遷移風險，未來可能需要參考 | — Pending (v1.5) |
+| 商品限制預設從 2 改為 3 | 用戶反饋認為 2 個太少 | — Pending (v1.5) |
+| 移除「發送綁定」按鈕 | 簡化 UI，用戶自行處理綁定 | — Pending (v1.5) |
+| FluentCart 整合為中優先級 | 先完成 UI 改造，整合可延後 | — Pending (v1.5) |
+| 小幫手配額必須在 v1.5 完成 | 核心功能，防止超配是高優先 | — Pending (v1.5) |
 
 ---
-*Last updated: 2026-02-02 after v1.4 Milestone initialization*
+*Last updated: 2026-02-04 after v1.5 Milestone initialization*
