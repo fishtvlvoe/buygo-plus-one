@@ -24,6 +24,7 @@ class SettingsPage
         add_action('wp_ajax_buygo_test_line_connection', [$this, 'ajax_test_line_connection']);
         add_action('wp_ajax_buygo_update_seller_type', [$this, 'ajax_update_seller_type']);
         add_action('wp_ajax_buygo_update_product_limit', [$this, 'ajax_update_product_limit']);
+        add_action('wp_ajax_buygo_validate_seller_product', [$this, 'ajax_validate_seller_product']);
     }
 
     /**
@@ -2818,5 +2819,64 @@ LIMIT 10`,
         } else {
             wp_send_json_error('更新失敗');
         }
+    }
+
+    /**
+     * AJAX 驗證賣家商品
+     */
+    public function ajax_validate_seller_product(): void
+    {
+        // 驗證 nonce
+        check_ajax_referer('buygo-settings', 'nonce');
+
+        // 權限檢查
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '權限不足']);
+        }
+
+        // 取得商品 ID
+        $product_id = sanitize_text_field($_POST['product_id'] ?? '');
+
+        if (empty($product_id)) {
+            wp_send_json_error(['message' => '請輸入商品 ID']);
+        }
+
+        global $wpdb;
+
+        // FluentCart 商品儲存在 wp_posts（post_type = fct_product）
+        $product = $wpdb->get_row($wpdb->prepare(
+            "SELECT ID, post_title, post_status FROM {$wpdb->prefix}posts
+             WHERE ID = %d AND post_type = 'fct_product'",
+            $product_id
+        ));
+
+        if (!$product) {
+            wp_send_json_error(['message' => '找不到此 FluentCart 商品 ID']);
+        }
+
+        if ($product->post_status !== 'publish') {
+            wp_send_json_error(['message' => "商品狀態為 {$product->post_status}，必須是 publish"]);
+        }
+
+        // 取得商品價格（從 FluentCart 商品表）
+        $fct_product = $wpdb->get_row($wpdb->prepare(
+            "SELECT price, is_shippable FROM {$wpdb->prefix}fct_products WHERE id = %d",
+            $product_id
+        ));
+
+        // 檢查是否為虛擬商品（is_shippable = 0）
+        if ($fct_product && $fct_product->is_shippable == 1) {
+            wp_send_json_error(['message' => '賣家商品必須是虛擬商品（不需要物流）']);
+        }
+
+        wp_send_json_success([
+            'product' => [
+                'id' => $product->ID,
+                'title' => $product->post_title,
+                'price' => $fct_product ? $fct_product->price : 0,
+                'is_virtual' => $fct_product ? ($fct_product->is_shippable == 0) : true,
+                'admin_url' => admin_url('post.php?post=' . $product->ID . '&action=edit')
+            ]
+        ]);
     }
 }
