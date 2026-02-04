@@ -904,12 +904,39 @@ const ProductsPageComponent = {
                 }
             });
 
-            // 平板直向自動切換網格模式
+            // 平板響應式視圖自動切換
+            // 記錄用戶偏好的視圖模式（桌面尺寸下的選擇）
+            let userPreferredMode = viewMode.value;
+            let isAutoSwitched = false; // 標記是否為自動切換
+
+            // 監聽用戶手動切換視圖模式
+            watch(viewMode, (newMode) => {
+                // 如果不是自動切換，則記錄為用戶偏好
+                if (!isAutoSwitched && window.innerWidth >= 1024) {
+                    userPreferredMode = newMode;
+                }
+                isAutoSwitched = false;
+            });
+
             const handleViewModeByWidth = () => {
                 const width = window.innerWidth;
-                // 平板直向（768px-1024px）自動切換到網格模式
-                if (width >= 768 && width < 1024 && currentView.value === 'list') {
-                    viewMode.value = 'grid';
+
+                // 只在列表視圖時自動切換
+                if (currentView.value !== 'list') return;
+
+                // 平板直向（768px-1024px）→ 強制網格模式
+                if (width >= 768 && width < 1024) {
+                    if (viewMode.value !== 'grid') {
+                        isAutoSwitched = true;
+                        viewMode.value = 'grid';
+                    }
+                }
+                // 桌面/平板橫向（>= 1024px）→ 恢復用戶偏好或預設表格模式
+                else if (width >= 1024) {
+                    if (viewMode.value !== userPreferredMode) {
+                        isAutoSwitched = true;
+                        viewMode.value = userPreferredMode;
+                    }
                 }
             };
 
