@@ -4,7 +4,7 @@
 需要 WordPress 最少版本：5.8
 測試至 WordPress 版本：6.4
 需要 PHP 版本：7.4
-穩定版本標籤：0.0.5
+穩定版本標籤：0.2.8
 授權條款：GPLv2 或更新版本
 授權條款網址：http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,22 +22,14 @@ BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功
 
 == Changelog ==
 
-= 0.0.5 =
-* 從開發版同步最新功能
-* 新增 LINE 訂單通知功能
-* 新增 LINE 綁定收據功能
-* 新增 LIFF 登入 API
-* 優化系統穩定性和效能
+= 0.2.8 =
+* fix: 移除硬編碼錯誤訊息，改為靜默處理無效商品資料
+* fix: 修正 /one 關鍵字無限循環問題
+* feat: 新增 build-release.sh 腳本，確保 ZIP 檔案內資料夾名稱固定為 buygo-plus-one
 
-= 0.0.4 =
-* 從開發版同步最新功能
-* 優化系統穩定性和效能
-* 更新核心功能模組
-
-= 0.0.3 =
-* 新增 GitHub Releases 自動更新機制
-* 建立更新器類別，支援自動檢查和安裝更新
-* 統一版本號格式
+= 0.2.7 =
+* fix: 修復 LINE webhook handler 狀態洩漏問題
+* fix: 修正賣家權限授予後台網址
 
 = 0.0.2 =
 * 初始版本
