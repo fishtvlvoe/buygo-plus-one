@@ -58,9 +58,44 @@ class Plugin {
      * @return void
      */
     public function init() {
+        // 檢查版本更新並自動 flush rewrite rules
+        $this->check_version_update();
+
         // 初始化外掛
         $this->load_dependencies();
         $this->register_hooks();
+    }
+
+    /**
+     * 檢查版本更新
+     *
+     * 當檢測到版本號變更時，自動執行必要的更新操作：
+     * - Flush rewrite rules（修復路由問題）
+     * - 清除快取
+     *
+     * @return void
+     */
+    private function check_version_update() {
+        $stored_version = get_option('buygo_plus_one_version');
+        $current_version = BUYGO_PLUS_ONE_VERSION;
+
+        // 如果版本號不同，表示外掛已更新
+        if ($stored_version !== $current_version) {
+            // 1. 標記需要 flush rewrite rules
+            if (class_exists('\BuyGoPlus\Routes')) {
+                \BuyGoPlus\Routes::schedule_flush();
+            }
+
+            // 2. 更新儲存的版本號
+            update_option('buygo_plus_one_version', $current_version);
+
+            // 3. 記錄更新事件（供除錯用）
+            error_log(sprintf(
+                '[BuyGo+1] Version updated from %s to %s, rewrite rules scheduled for flush',
+                $stored_version ?: 'none',
+                $current_version
+            ));
+        }
     }
     
     /**
