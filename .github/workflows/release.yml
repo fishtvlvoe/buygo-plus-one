@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允許建立 Release 和上傳檔案
 
     steps:
       - name: Checkout code
