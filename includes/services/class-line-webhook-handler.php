@@ -1018,13 +1018,6 @@ class LineWebhookHandler {
 		$validation   = $this->product_data_parser->validate( $product_data );
 
 		if ( ! $validation['valid'] ) {
-			$missing_fields = $this->get_field_names( $validation['missing'] );
-			$template_args = array(
-				'missing_fields' => implode( '、', $missing_fields ),
-			);
-			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_data_incomplete', $template_args );
-			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : "商品資料不完整，缺少：" . implode( '、', $missing_fields );
-
 			// 清除待處理狀態，避免無限循環
 			// 當用戶發送的訊息不是有效的商品資訊時，應該清除待處理狀態
 			// 讓用戶可以重新開始上架流程
@@ -1041,7 +1034,8 @@ class LineWebhookHandler {
 				'user_id' => $user->ID,
 			), $user->ID, $line_uid );
 
-			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
+			// 不發送「資料不完整」訊息 - 用戶可能只是在普通對話
+			// 狀態已清除，用戶可以重新開始上架流程
 			return;
 		}
 
