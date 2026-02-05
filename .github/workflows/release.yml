@@ -50,6 +50,14 @@ jobs:
           cd release
           zip -r buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip buygo-plus-one/
 
+          # 計算檔案大小和 SHA256
+          FILE_SIZE=$(du -h "buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip" | cut -f1)
+          FILE_SHA256=$(sha256sum "buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip" | cut -d' ' -f1)
+          echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_ENV
+          echo "FILE_SHA256=$FILE_SHA256" >> $GITHUB_ENV
+          echo "Package size: $FILE_SIZE"
+          echo "SHA256: $FILE_SHA256"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -83,3 +91,41 @@ jobs:
           asset_path: ./release/buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip
           asset_name: buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip
           asset_content_type: application/zip
+
+      - name: Notify Cloudflare Workers Update API
+        if: success()
+        run: |
+          # 通知 Cloudflare Workers 更新 API 有新版本
+          curl -X POST "${{ secrets.CLOUDFLARE_WORKER_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -H "X-Update-Token: ${{ secrets.CLOUDFLARE_UPDATE_TOKEN }}" \
+            -d '{
+              "plugin": "buygo-plus-one",
+              "version": "${{ steps.get_version.outputs.VERSION }}",
+              "download_url": "https://github.com/fishtvlvoe/buygo-plus-one/releases/download/v${{ steps.get_version.outputs.VERSION }}/buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip",
+              "sha256": "${{ env.FILE_SHA256 }}",
+              "size": "${{ env.FILE_SIZE }}",
+              "tested": "6.4",
+              "requires": "5.8",
+              "requires_php": "7.4"
+            }' || echo "⚠️ Cloudflare Workers webhook 失敗（不影響發布）"
+
+      - name: Send LINE Notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" == "success" ]; then
+            EMOJI="🎉"
+            MESSAGE="BuyGo Plus One v${{ steps.get_version.outputs.VERSION }} 發布成功！"
+          else
+            EMOJI="❌"
+            MESSAGE="BuyGo Plus One v${{ steps.get_version.outputs.VERSION }} 發布失敗"
+          fi
+
+          curl -X POST https://notify-api.line.me/api/notify \
+            -H "Authorization: Bearer ${{ secrets.LINE_NOTIFY_TOKEN }}" \
+            -F "message=${EMOJI} ${MESSAGE}
+          📦 大小: ${{ env.FILE_SIZE }}
+          🔐 SHA256: ${{ env.FILE_SHA256 }}
+          🔗 ${{ steps.create_release.outputs.html_url }}" \
+            || echo "⚠️ LINE 通知失敗（不影響發布）"

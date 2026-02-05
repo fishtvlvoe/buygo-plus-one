@@ -130,6 +130,10 @@ class Plugin {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-child-orders-integration.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-offline-payment-user.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-seller-grant.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-hide-child-orders.php';
+
+        // 自動更新
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-auto-updater.php';
     }
     
     /**
@@ -248,6 +252,15 @@ class Plugin {
             </script>
             <?php
         }, 1);
+
+        // 初始化自動更新檢測（僅在後台啟用）
+        if (is_admin()) {
+            $api_url = defined('BUYGO_UPDATE_API_URL')
+                ? BUYGO_UPDATE_API_URL
+                : 'https://buygo-plugin-updater.your-subdomain.workers.dev';
+
+            new Auto_Updater(BUYGO_PLUS_ONE_VERSION, $api_url);
+        }
     }
 
     /**
