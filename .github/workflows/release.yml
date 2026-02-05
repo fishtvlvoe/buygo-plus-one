@@ -30,18 +30,18 @@ jobs:
 
       - name: Create plugin zip
         run: |
-          mkdir -p release/buygo-plus-one
+          mkdir -p release
 
-          # 複製所有檔案
-          cp -R . release/buygo-plus-one/
+          # 使用 rsync 排除不需要的目錄
+          rsync -av --exclude='release' --exclude='.git' --exclude='.github' . release/buygo-plus-one/
 
           # 進入目錄清理開發檔案
           cd release/buygo-plus-one
 
-          # 刪除開發目錄
-          rm -rf .git .github .planning .claude .vscode .idea
-          rm -rf node_modules vendor tests release bin
-          rm -rf liff test-scripts design-system docs uploads
+          # 刪除開發目錄（保留 design-system，這是生產環境需要的）
+          rm -rf .planning .claude .vscode .idea
+          rm -rf node_modules vendor tests bin
+          rm -rf liff test-scripts docs uploads
 
           # 刪除 .md 檔案 (保留 README.md)
           find . -maxdepth 1 -name "*.md" ! -name "README.md" -exec rm -f {} \;
