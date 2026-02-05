@@ -96,27 +96,11 @@ class Line_Webhook_API {
 			}
 		}
 
-		// 立即處理事件，但使用輕量級處理避免 timeout
-		// 如果處理時間可能超過 30 秒，使用 fastcgi_finish_request 在背景處理
-		if ( function_exists( 'fastcgi_finish_request' ) ) {
-			// FastCGI 環境：先返回響應，然後在背景處理
-			// 注意：必須先返回 WP_REST_Response，讓 WordPress 處理權限和響應
-			// 然後再調用 fastcgi_finish_request 在背景處理事件
+		// 使用 WordPress Cron 在背景處理事件
+		// 這樣可以立即返回 200 給 LINE，避免觸發重送機制
+		wp_schedule_single_event( time(), 'buygo_process_line_webhook', array( $data['events'] ) );
 
-			// 使用 shutdown hook 在背景處理
-			$webhook_handler = $this->webhook_handler; // 避免閉包中 $this 上下文丟失
-			add_action( 'shutdown', function() use ( $data, $webhook_handler ) {
-				if ( function_exists( 'fastcgi_finish_request' ) ) {
-					fastcgi_finish_request();
-					$webhook_handler->process_events( $data['events'], false );
-				}
-			} );
-		} else {
-			// 非 FastCGI 環境：使用 WordPress Cron 在背景處理
-			wp_schedule_single_event( time(), 'buygo_process_line_webhook', array( $data['events'] ) );
-		}
-
-		// 立即返回 200 響應
+		// 立即返回 200 響應給 LINE
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
