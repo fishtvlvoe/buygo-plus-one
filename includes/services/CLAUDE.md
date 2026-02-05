@@ -15,6 +15,11 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #770 | 2:55 AM | 🔵 | LINE Webhook Handler Implements Role-Based Product Upload Permissions | ~517 |
+| #763 | 2:47 AM | 🔵 | LINE Order Notification System Architecture with Retry Logic and Multi-Recipient Support | ~724 |
+| #761 | 2:45 AM | 🔵 | LINE Order Notifier Uses WordPress Cron for Scheduled Notifications | ~352 |
+| #754 | 2:39 AM | ✅ | Generated MD5 Hash for Webhook Handler File Verification | ~316 |
+| #739 | 2:23 AM | ✅ | Added Debug Documentation and Keyword Template Initialization | ~398 |
 | #650 | 1:14 AM | ✅ | Staged LINE Webhook Handler Fix for Deployment | ~308 |
 | #648 | 1:12 AM | ✅ | Fixed LINE Webhook Handler Staged for Cloud Deployment | ~357 |
 | #647 | " | ✅ | Prepared Emergency Deployment of LINE Webhook Handler Fix to Production | ~396 |
