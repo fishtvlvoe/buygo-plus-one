@@ -276,7 +276,7 @@ class FluentCartSellerGrantIntegration {
 
 		// 準備通知內容
 		$message = self::get_notification_message( $user_id );
-		$dashboard_url = home_url( '/buygo-admin/' );
+		$dashboard_url = home_url( '/buygo-portal/dashboard/' );
 		$line_official_url = 'https://line.me/ti/p/@317qvsmj'; // BuyGo LINE 官方帳號
 
 		// 檢查是否有 LINE 綁定（使用現有的 IdentityService）
