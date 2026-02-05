@@ -154,19 +154,20 @@ class FluentCartSellerGrantIntegration {
 	 * 檢查訂單是否包含指定商品
 	 *
 	 * @param object $order 訂單物件
-	 * @param int $product_id 商品 ID
+	 * @param int $product_id 商品 ID (WordPress Post ID)
 	 * @return bool
 	 */
 	private static function order_contains_product( $order, int $product_id ): bool {
 		global $wpdb;
 
+		// FluentCart 使用 post_id 欄位儲存 WordPress Post ID
 		$order_items = $wpdb->get_results( $wpdb->prepare(
-			"SELECT product_id FROM {$wpdb->prefix}fct_order_items WHERE order_id = %d",
+			"SELECT post_id FROM {$wpdb->prefix}fct_order_items WHERE order_id = %d",
 			$order->id
 		) );
 
 		foreach ( $order_items as $item ) {
-			if ( (int) $item->product_id === $product_id ) {
+			if ( (int) $item->post_id === $product_id ) {
 				return true;
 			}
 		}
