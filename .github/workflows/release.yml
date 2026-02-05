@@ -30,26 +30,39 @@ jobs:
 
       - name: Create plugin zip
         run: |
-          mkdir -p release
-          rsync -av --exclude-from='.zipignore' \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='tests' \
-            --exclude='phpunit*.xml' \
-            --exclude='composer.json' \
-            --exclude='composer.lock' \
-            --exclude='.gitignore' \
-            --exclude='.zipignore' \
-            --exclude='release' \
-            --exclude='*.md' \
-            --exclude='CLAUDE.md' \
-            --exclude='BUILD-REPORT.md' \
-            --exclude='CUMULATIVE_BUG_FIX.md' \
-            --exclude='HANDOFF-NOTES.md' \
-            --exclude='SECURITY-OPTIMIZATION-TODO.md' \
-            . release/buygo-plus-one/
-          cd release
+          mkdir -p release/buygo-plus-one
+
+          # 複製所有檔案
+          cp -R . release/buygo-plus-one/
+
+          # 進入目錄清理開發檔案
+          cd release/buygo-plus-one
+
+          # 刪除開發目錄
+          rm -rf .git .github .planning .claude .vscode .idea
+          rm -rf node_modules vendor tests release bin
+          rm -rf liff test-scripts design-system docs uploads
+
+          # 刪除 .md 檔案 (保留 README.md)
+          find . -maxdepth 1 -name "*.md" ! -name "README.md" -exec rm -f {} \;
+
+          # 刪除開發腳本
+          find . -maxdepth 1 \( -name "test-*.php" -o -name "check-*.php" -o -name "debug-*.php" -o -name "verify-*.php" -o -name "simple-*.php" \) -exec rm -f {} \;
+
+          # 刪除建置工具
+          rm -f build-release.sh release.sh composer.json composer.lock
+          rm -f phpunit.xml phpunit-unit.xml phpunit.xml.dist .phpunit.result.cache
+          rm -f .zipignore .gitignore
+
+          # 刪除 .DS_Store
+          find . -name ".DS_Store" -exec rm -f {} \;
+
+          # 刪除特定開發檔案
+          rm -f includes/admin/check-compare-price.php
+          rm -f includes/CLAUDE.md
+
+          # 建立 ZIP
+          cd ..
           zip -r buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip buygo-plus-one/
 
           # 計算檔案大小和 SHA256
