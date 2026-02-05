@@ -128,9 +128,9 @@ register_deactivation_hook(__FILE__, function () {
  * 優先級設為 20，確保在其他外掛（如 FluentCRM）載入後才初始化
  */
 add_action('plugins_loaded', function () {
-    // 運行時兼容性檢查 - 偵測舊外掛是否被啟用
-    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
-    \BuyGoPlus\PluginCompatibility::runtime_check();
+    // 開發版不需要 runtime_check，因為已在檔案開頭處理衝突檢查
+    // runtime_check 是給正式版用的，用來偵測舊外掛
+    // 開發版呼叫 runtime_check 會誤判自己為衝突
 
     \BuyGoPlus\Plugin::instance()->init();
 
