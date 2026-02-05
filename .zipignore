@@ -11,6 +11,12 @@ BUILD-REPORT.md
 CUMULATIVE_BUG_FIX.md
 HANDOFF-NOTES.md
 SECURITY-OPTIMIZATION-TODO.md
+DEPLOYMENT-AUTO-UPDATE.md
+NOTIFICATION-LINK-FIX-VERIFICATION.md
+OPTIMIZATION-TODOS.md
+SELLER-PRODUCT-LIMITS-REQUIREMENTS.md
+SHIPMENT-NOTIFICATION-BUGS.md
+SHIPMENT-NOTIFICATION-VERIFICATION.md
 
 # Development dependencies
 node_modules
@@ -27,13 +33,30 @@ phpunit.xml
 phpunit-unit.xml
 phpunit.xml.dist
 .phpunit.result.cache
+test-*.php
+check-*.php
+debug-*.php
+verify-*.php
+simple-*.php
 
 # Build files
 release
+build-release.sh
+release.sh
 *.log
 .DS_Store
 Thumbs.db
 
 # Development tools
-bin/setup-test-db.php
-scripts/dev-*.sh
+bin
+liff
+test-scripts
+design-system
+docs
+uploads
+
+# Planning and cache
+.planning
+.claude
+.vscode
+.idea
