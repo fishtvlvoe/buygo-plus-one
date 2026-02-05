@@ -7,6 +7,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #323 | 12:59 PM | 🟣 | GitHub Actions Release Workflow Auto-Renames Plugin for Production | ~457 |
+| #322 | " | 🔵 | Release Workflow Cleanup Steps Remove Development Artifacts | ~414 |
+| #319 | 12:56 PM | 🔴 | Plugin Naming Corrected to Distinguish Production from Development Versions | ~529 |
 | #309 | 12:41 PM | ✅ | Build Exclusion Rules Enhanced for Production Package Optimization | ~452 |
 | #308 | " | 🔄 | GitHub Workflow Build Process Refactored from rsync to Explicit File Deletion | ~484 |
 | #303 | 12:39 PM | 🔄 | GitHub Actions Release Workflow Simplified to Use .zipignore | ~441 |
