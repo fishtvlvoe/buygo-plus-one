@@ -17,13 +17,32 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-// Define plugin constants (支援與舊版共存)
-// 注意：舊版 buygo 使用 BUYGO_PLUS_ONE_PATH/URL，新版使用 BUYGO_PLUS_ONE_PLUGIN_DIR/URL
-// 只有 BUYGO_PLUS_ONE_VERSION 會衝突，其他常數名稱不同所以不會衝突
+// ========================================
+// 🛡️ 防止開發版和正式版同時啟用
+// ========================================
+// 如果已經定義了 BUYGO_PLUS_ONE_VERSION 常數,
+// 表示正式版已經載入,開發版必須停止運作
+if (defined('BUYGO_PLUS_ONE_VERSION')) {
+    // 顯示管理員通知
+    add_action('admin_notices', function() {
+        if (!current_user_can('activate_plugins')) {
+            return;
+        }
 
-if (!defined('BUYGO_PLUS_ONE_VERSION')) {
-    define('BUYGO_PLUS_ONE_VERSION', '0.2.6');
+        echo '<div class="notice notice-error is-dismissible">';
+        echo '<h3>⚠️ BuyGo+1 開發版已自動停用</h3>';
+        echo '<p>系統偵測到 <strong>BuyGo+1 正式版</strong> 已啟用，為避免衝突，開發版將不會載入。</p>';
+        echo '<p><strong>目前狀態：</strong>只有正式版在運作中 ✅</p>';
+        echo '<p><strong>建議：</strong>在本地開發環境請停用正式版，保留開發版即可。</p>';
+        echo '</div>';
+    });
+
+    // 停止載入開發版的其餘程式碼
+    return;
 }
+
+// Define plugin constants
+define('BUYGO_PLUS_ONE_VERSION', '0.2.6-dev');
 
 // 新版專用的常數（舊版不會定義這些）
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', plugin_dir_path(__FILE__));
