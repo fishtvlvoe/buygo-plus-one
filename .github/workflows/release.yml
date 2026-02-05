@@ -61,6 +61,9 @@ jobs:
           rm -f includes/admin/check-compare-price.php
           rm -f includes/CLAUDE.md
 
+          # 修改外掛名稱為正式版
+          sed -i 's/Plugin Name:       BuyGo 開發版/Plugin Name:       BuyGo+1/' buygo-plus-one.php
+
           # 建立 ZIP
           cd ..
           zip -r buygo-plus-one-${{ steps.get_version.outputs.VERSION }}.zip buygo-plus-one/
