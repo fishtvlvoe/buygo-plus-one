@@ -1024,6 +1024,23 @@ class LineWebhookHandler {
 			);
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_product_data_incomplete', $template_args );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : "商品資料不完整，缺少：" . implode( '、', $missing_fields );
+
+			// 清除待處理狀態，避免無限循環
+			// 當用戶發送的訊息不是有效的商品資訊時，應該清除待處理狀態
+			// 讓用戶可以重新開始上架流程
+			if ( class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+				$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
+				$image_uploader->clear_temp_images( $user->ID );
+			}
+			delete_user_meta( $user->ID, 'pending_product_image' );
+			delete_user_meta( $user->ID, 'pending_product_type' );
+			delete_user_meta( $user->ID, 'pending_product_timestamp' );
+
+			$this->logger->log( 'product_validation_failed_cleared_state', array(
+				'missing_fields' => $validation['missing'],
+				'user_id' => $user->ID,
+			), $user->ID, $line_uid );
+
 			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
 			return;
 		}
