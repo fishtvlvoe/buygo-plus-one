@@ -4,7 +4,7 @@
 需要 WordPress 最少版本：5.8
 測試至 WordPress 版本：6.4
 需要 PHP 版本：7.4
-穩定版本標籤：0.2.2
+穩定版本標籤：0.2.7
 授權條款：GPLv2 或更新版本
 授權條款網址：http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,12 @@ BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功
 * buygo-line-notify 外掛（必須先安裝並啟用）
 
 == Changelog ==
+
+= 0.2.7 =
+* 修復：LINE 通知無限循環問題（狀態洩漏導致重複發送）
+* 修復：FluentCart 賣家權限授予的 SQL 欄位錯誤（product_id → post_id）
+* 修復：賣家權限通知中的後台連結錯誤
+* 改善：WebhookLogger 錯誤日誌記錄
 
 = 0.0.2 =
 * 初始版本
