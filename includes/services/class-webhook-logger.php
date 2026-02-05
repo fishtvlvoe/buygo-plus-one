@@ -82,6 +82,14 @@ class WebhookLogger {
 		);
 
 		if ( false === $result ) {
+			// Log database error for debugging
+			if ( ! empty( $wpdb->last_error ) ) {
+				error_log( sprintf(
+					'[BuyGoPlus] WebhookLogger INSERT failed: %s | Query: %s',
+					$wpdb->last_error,
+					$wpdb->last_query
+				) );
+			}
 			return false;
 		}
 
