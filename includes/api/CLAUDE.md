@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #790 | 2:58 AM | ✅ | Version Bump to 0.2.9 with LINE Webhook Infinite Loop Fix | ~420 |
 | #778 | 2:57 AM | 🔴 | Fixed LINE Webhook Infinite Retry Loop Caused by Response Timing Issue | ~577 |
 | #775 | 2:56 AM | 🔴 | Simplified LINE Webhook Processing to Use WordPress Cron Only | ~473 |
 | #771 | 2:55 AM | 🔵 | LINE Webhook API Implementation with Background Processing and Signature Verification | ~570 |
