@@ -562,8 +562,13 @@ class LineWebhookHandler {
 				'display_name' => $user->display_name,
 			), $user->ID, $line_uid );
 
+			// 取得虛擬商品購買連結
+			$seller_product_id = get_option( 'buygo_seller_product_id' );
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
 				'display_name' => $user->display_name ?: $user->user_login,
+				'purchase_url' => $purchase_url,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
 			$this->send_reply_via_facade( $event['replyToken'] ?? '', $message, $line_uid );
@@ -809,9 +814,14 @@ class LineWebhookHandler {
 				'display_name' => $user->display_name,
 			), $user->ID, $line_uid );
 
+			// 取得虛擬商品購買連結
+			$seller_product_id = get_option( 'buygo_seller_product_id' );
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+
 			// 發送權限不足訊息給用戶（不再是 silent）
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
 				'display_name' => $user->display_name ?: $user->user_login,
+				'purchase_url' => $purchase_url,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
 			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
@@ -1004,9 +1014,14 @@ class LineWebhookHandler {
 				'message_type' => 'text',
 			), $user->ID, $line_uid );
 
+			// 取得虛擬商品購買連結
+			$seller_product_id = get_option( 'buygo_seller_product_id' );
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+
 			// 發送權限不足訊息給用戶（不再是 silent）
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
 				'display_name' => $user->display_name ?: $user->user_login,
+				'purchase_url' => $purchase_url,
 			) );
 			$message = $template && isset( $template['line']['text'] ) ? $template['line']['text'] : '抱歉，您目前沒有商品上傳權限。請聯絡管理員開通權限。';
 			$this->send_reply_via_facade( $reply_token, $message, $line_uid );
