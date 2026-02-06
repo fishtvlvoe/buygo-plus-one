@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       BuyGo 開發版
+ * Plugin Name:       BuyGo Plus One
  * Plugin URI:        https://buygo.me
  * Description:       BuyGo 獨立賣場後台系統
  * Version:           0.2.9
