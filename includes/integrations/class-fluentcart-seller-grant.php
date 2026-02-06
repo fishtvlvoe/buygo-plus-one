@@ -38,6 +38,9 @@ class FluentCartSellerGrantIntegration {
 		// 監聽訂單付款完成事件（執行賦予）
 		\add_action( 'fluent_cart/order_paid', [ __CLASS__, 'handle_order_paid' ], 20 );
 
+		// 🆕 監聽訂單建立事件處理免費訂單（NT$0）
+		\add_action( 'fluent_cart/order_created', [ __CLASS__, 'handle_free_order' ], 25 );
+
 		// 監聽訂單退款事件（撤銷賦予）
 		\add_action( 'fluent_cart/order_refunded', [ __CLASS__, 'handle_order_refunded' ], 20 );
 	}
@@ -82,6 +85,49 @@ class FluentCartSellerGrantIntegration {
 			$order->payment_status ?? 'unknown'
 		) );
 
+		// 使用共用的處理邏輯
+		self::process_seller_grant( $order );
+	}
+
+	/**
+	 * 🆕 處理免費訂單（NT$0）的自動授權
+	 *
+	 * 因為免費訂單永遠不會觸發 order_paid 事件，
+	 * 所以需要在 order_created 時檢查並處理
+	 *
+	 * @param array $data FluentCart 事件資料陣列
+	 */
+	public static function handle_free_order( $data ): void {
+		$order = $data['order'] ?? null;
+
+		if ( ! $order ) {
+			error_log( '[BuyGo+1][SellerGrant] free_order: no order data' );
+			return;
+		}
+
+		// 只處理免費訂單（total = 0）
+		if ( $order->total > 0 ) {
+			return;
+		}
+
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] free_order: Processing free order #%d (total: %s)',
+			$order->id,
+			$order->total
+		) );
+
+		// 使用共用的處理邏輯
+		self::process_seller_grant( $order );
+	}
+
+	/**
+	 * 🆕 共用的賣家權限處理邏輯
+	 *
+	 * 從 order_paid 和 free_order 兩個處理器調用
+	 *
+	 * @param object $order 訂單物件
+	 */
+	private static function process_seller_grant( $order ): void {
 		// 檢查是否已處理過
 		if ( self::is_order_processed( $order->id ) ) {
 			error_log( sprintf(
