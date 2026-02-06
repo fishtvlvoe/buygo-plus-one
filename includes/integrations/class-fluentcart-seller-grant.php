@@ -265,6 +265,15 @@ class FluentCartSellerGrantIntegration {
 			return;
 		}
 
+		// 🔍 DEBUG: 記錄執行前的角色狀態
+		$roles_before = $user->roles;
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] Order #%d: User #%d roles BEFORE add_role(): %s',
+			$order->id,
+			$user_id,
+			implode( ', ', $roles_before )
+		) );
+
 		// 檢查是否已有 buygo_admin 角色
 		if ( in_array( 'buygo_admin', $user->roles, true ) ) {
 			error_log( sprintf(
@@ -278,6 +287,74 @@ class FluentCartSellerGrantIntegration {
 
 		// 賦予 buygo_admin 角色
 		$user->add_role( 'buygo_admin' );
+
+		// 🔍 DEBUG: 記錄執行後的角色狀態（物件狀態）
+		$roles_after_object = $user->roles;
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] Order #%d: User #%d roles AFTER add_role() (object): %s',
+			$order->id,
+			$user_id,
+			implode( ', ', $roles_after_object )
+		) );
+
+		// 🔍 DEBUG: 重新從資料庫讀取使用者，驗證角色是否真的被保存
+		$user_verify = get_user_by( 'ID', $user_id );
+		$roles_after_db = $user_verify ? $user_verify->roles : [];
+		$role_saved = in_array( 'buygo_admin', $roles_after_db, true );
+
+		error_log( sprintf(
+			'[BuyGo+1][SellerGrant] Order #%d: User #%d roles AFTER add_role() (database): %s | Role saved: %s',
+			$order->id,
+			$user_id,
+			implode( ', ', $roles_after_db ),
+			$role_saved ? 'YES' : 'NO'
+		) );
+
+		// 🆕 如果角色沒有被保存，使用備用方法直接更新資料庫
+		if ( ! $role_saved ) {
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: add_role() failed to persist, trying direct database update',
+				$order->id
+			) );
+
+			// 取得當前的 capabilities
+			$caps_key = $wpdb->prefix . 'capabilities';
+			$current_caps = get_user_meta( $user_id, $caps_key, true );
+
+			if ( ! is_array( $current_caps ) ) {
+				$current_caps = [];
+			}
+
+			// 添加 buygo_admin 角色
+			$current_caps['buygo_admin'] = true;
+
+			// 直接更新 user meta
+			$update_result = update_user_meta( $user_id, $caps_key, $current_caps );
+
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: Direct database update result: %s | New caps: %s',
+				$order->id,
+				$update_result ? 'SUCCESS' : 'FAILED',
+				wp_json_encode( $current_caps )
+			) );
+
+			// 再次驗證
+			$user_final = get_user_by( 'ID', $user_id );
+			$role_final = $user_final && in_array( 'buygo_admin', $user_final->roles, true );
+
+			error_log( sprintf(
+				'[BuyGo+1][SellerGrant] Order #%d: Final verification - Role saved: %s',
+				$order->id,
+				$role_final ? 'YES' : 'NO'
+			) );
+
+			if ( ! $role_final ) {
+				// 最終失敗
+				self::record_grant( $order->id, $user_id, $product_id, 'failed', 'Failed to save buygo_admin role after fallback' );
+				self::notify_admin_failure( $order->id, $user_id, 'Failed to save buygo_admin role' );
+				return;
+			}
+		}
 
 		// 設定預設配額
 		update_user_meta( $user_id, 'buygo_product_limit', self::DEFAULT_PRODUCT_LIMIT );
