@@ -269,6 +269,7 @@ class LineOrderNotifier {
 				'buyer_name' => $buyerName,
 				'order_total' => $this->formatOrderTotal( $order ),
 				'order_url' => $orderUrl,
+				'currency_symbol' => $this->getCurrencySymbol(),
 			];
 
 			// 發送給賣家和小幫手
@@ -351,6 +352,7 @@ class LineOrderNotifier {
 		$args = [
 			'order_id' => (string) $order->id,
 			'total' => $this->formatOrderTotal( $order ),
+			'currency_symbol' => $this->getCurrencySymbol(),
 		];
 
 		// 發送通知
@@ -478,6 +480,31 @@ class LineOrderNotifier {
 	private function formatOrderTotal( Order $order ): string {
 		$totalAmount = isset( $order->total_amount ) ? (float) $order->total_amount : 0;
 		return number_format( $totalAmount / 100, 0, '.', ',' );
+	}
+
+	/**
+	 * 取得系統幣別符號
+	 *
+	 * @return string
+	 */
+	private function getCurrencySymbol(): string {
+		$symbols = [
+			'JPY' => '¥',
+			'TWD' => 'NT$',
+			'USD' => '$',
+			'THB' => '฿',
+			'CNY' => '¥',
+			'EUR' => '€',
+			'GBP' => '£',
+			'KRW' => '₩',
+		];
+
+		$currency = 'TWD';
+		if ( class_exists( '\FluentCart\Api\CurrencySettings' ) ) {
+			$currency = \FluentCart\Api\CurrencySettings::get( 'currency' ) ?: 'TWD';
+		}
+
+		return $symbols[ $currency ] ?? $currency;
 	}
  
 	/**
