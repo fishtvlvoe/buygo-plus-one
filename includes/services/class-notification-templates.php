@@ -908,7 +908,7 @@ class NotificationTemplates {
             // 客戶（買家）通知
             'order_created' => [
                 'line' => [
-                    'message' => "✅ 訂單已建立\n\n訂單編號：#{order_id}\n訂單金額：NT$ {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
+                    'message' => "✅ 訂單已建立\n\n訂單編號：#{order_id}\n訂單金額：{currency_symbol} {total}\n\n感謝您的訂購！\n我們會盡快為您處理。"
                 ]
             ],
 
@@ -919,14 +919,14 @@ class NotificationTemplates {
             ],
             'plusone_order_confirmation' => [
                 'line' => [
-                    'message' => "已收到您的訂單！\n商品：{product_name}\n數量：{quantity}\n金額：NT$ {total}"
+                    'message' => "已收到您的訂單！\n商品：{product_name}\n數量：{quantity}\n金額：{currency_symbol} {total}"
                 ]
             ],
             
             // 賣家通知
             'seller_order_created' => [
                 'line' => [
-                    'message' => "🛒 您有新的訂單！\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：NT$ {order_total}\n\n請盡快處理訂單。\n{order_url}"
+                    'message' => "🛒 您有新的訂單！\n\n訂單編號：{order_id}\n買家：{buyer_name}\n金額：{currency_symbol} {order_total}\n\n請盡快處理訂單。\n{order_url}"
                 ]
             ],
             'seller_order_cancelled' => [
