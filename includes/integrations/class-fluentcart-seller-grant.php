@@ -397,42 +397,45 @@ class FluentCartSellerGrantIntegration {
 			return [ 'sent' => false, 'channel' => null ];
 		}
 
-		// 準備通知內容
-		$message = self::get_notification_message( $user_id );
-		$dashboard_url = home_url( '/buygo-portal/dashboard/' );
-		$line_official_url = 'https://line.me/ti/p/@317qvsmj'; // BuyGo LINE 官方帳號
+		// 準備模板變數
+		$template_args = [
+			'display_name'  => $user->display_name ?: '新賣家',
+			'product_limit' => self::DEFAULT_PRODUCT_LIMIT,
+			'dashboard_url' => home_url( '/buygo-portal/dashboard/' ),
+		];
 
 		// 檢查是否有 LINE 綁定（使用現有的 IdentityService）
 		$has_line_binding = \BuygoPlus\Services\IdentityService::hasLineBinding( $user_id );
 
 		if ( $has_line_binding ) {
-			// 發送 LINE 通知（帶重試機制）
-			try {
-				$line_message = $message . "\n\n";
-				$line_message .= "📲 後台管理：\n{$dashboard_url}\n\n";
-				$line_message .= "💬 加入 BuyGo LINE 官方帳號：\n{$line_official_url}\n\n";
-				$line_message .= "💡 提示：在 LINE 輸入 /id 可查詢您的身份";
+			// 從模板系統取得 LINE 訊息
+			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_seller_grant_line', $template_args );
+			$line_message = $template['line']['text'] ?? $template['line']['message'] ?? '';
 
-				$result = self::execute_with_retry(
-					function () use ( $user_id, $line_message ) {
-						return \BuyGoPlus\Services\NotificationService::sendRawText( $user_id, $line_message );
-					},
-					3,
-					500
-				);
+			if ( $line_message ) {
+				// 發送 LINE 通知（帶重試機制）
+				try {
+					$result = self::execute_with_retry(
+						function () use ( $user_id, $line_message ) {
+							return \BuyGoPlus\Services\NotificationService::sendRawText( $user_id, $line_message );
+						},
+						3,
+						500
+					);
 
-				if ( $result ) {
-					error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification sent to user #%d', $user_id ) );
-					return [ 'sent' => true, 'channel' => 'line' ];
+					if ( $result ) {
+						error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification sent to user #%d', $user_id ) );
+						return [ 'sent' => true, 'channel' => 'line' ];
+					}
+				} catch ( \Exception $e ) {
+					error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification failed after retries: %s', $e->getMessage() ) );
 				}
-			} catch ( \Exception $e ) {
-				error_log( sprintf( '[BuyGo+1][SellerGrant] LINE notification failed after retries: %s', $e->getMessage() ) );
 			}
 		}
 
 		// Fallback 到 Email
 		if ( $user->user_email ) {
-			$email_result = self::send_seller_grant_email( $user, $dashboard_url, $line_official_url );
+			$email_result = self::send_seller_grant_email( $user, $template_args );
 			if ( $email_result ) {
 				error_log( sprintf( '[BuyGo+1][SellerGrant] Email notification sent to %s', $user->user_email ) );
 				return [ 'sent' => true, 'channel' => 'email' ];
@@ -479,48 +482,23 @@ class FluentCartSellerGrantIntegration {
 	}
 
 	/**
-	 * 取得通知訊息內容
-	 *
-	 * @param int $user_id 使用者 ID
-	 * @return string
-	 */
-	private static function get_notification_message( int $user_id ): string {
-		$user = get_userdata( $user_id );
-		$display_name = $user ? $user->display_name : '新賣家';
-
-		return "🎉 恭喜 {$display_name} 成為 BuyGo 賣家！\n\n" .
-			"您已獲得以下權限：\n" .
-			"✅ BuyGo 管理員角色\n" .
-			"✅ 商品配額：" . self::DEFAULT_PRODUCT_LIMIT . " 個\n\n" .
-			"您現在可以開始上架商品了！";
-	}
-
-	/**
 	 * 發送賣家權限賦予 Email
 	 *
 	 * @param \WP_User $user 使用者物件
-	 * @param string $dashboard_url 後台連結
-	 * @param string $line_official_url LINE 官方帳號連結
+	 * @param array $template_args 模板變數
 	 * @return bool
 	 */
-	private static function send_seller_grant_email( $user, string $dashboard_url, string $line_official_url ): bool {
+	private static function send_seller_grant_email( $user, array $template_args ): bool {
 		$subject = '🎉 恭喜成為 BuyGo 賣家！';
 
-		$message = "親愛的 {$user->display_name}，\n\n";
-		$message .= "恭喜您成為 BuyGo 賣家！\n\n";
-		$message .= "您已獲得以下權限：\n";
-		$message .= "• BuyGo 管理員角色\n";
-		$message .= "• 商品配額：" . self::DEFAULT_PRODUCT_LIMIT . " 個\n\n";
-		$message .= "開始使用：\n";
-		$message .= "• 後台管理：{$dashboard_url}\n\n";
-		$message .= "加入 BuyGo LINE 官方帳號獲得更多支援：\n";
-		$message .= "{$line_official_url}\n\n";
-		$message .= "綁定 LINE 後，您可以：\n";
-		$message .= "• 直接在 LINE 上架商品\n";
-		$message .= "• 使用 /id 指令查詢身份\n";
-		$message .= "• 接收訂單和出貨通知\n\n";
-		$message .= "祝您生意興隆！\n";
-		$message .= "BuyGo 團隊";
+		// 從模板系統取得 Email 內容
+		$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_seller_grant_email', $template_args );
+		$message = $template['line']['text'] ?? $template['line']['message'] ?? '';
+
+		if ( empty( $message ) ) {
+			error_log( '[BuyGo+1][SellerGrant] Email template is empty' );
+			return false;
+		}
 
 		return wp_mail( $user->user_email, $subject, $message );
 	}

@@ -1953,7 +1953,11 @@ LIMIT 10`,
             'arrival_date_section' => '到貨日期區塊',
             'preorder_date_section' => '預購日期區塊',
             'community_url_section' => '社群連結區塊',
-            'missing_fields' => '缺少欄位'
+            'missing_fields' => '缺少欄位',
+            'display_name' => '使用者名稱',
+            'purchase_url' => '購買連結',
+            'product_limit' => '商品配額數量',
+            'dashboard_url' => '後台管理連結'
         ];
         
         // 定義可編輯的模板（按照新的分類）
@@ -2028,6 +2032,21 @@ LIMIT 10`,
                     'name' => '關鍵字回覆訊息',
                     'description' => '關鍵字回覆訊息',
                     'variables' => []
+                ],
+                'system_permission_denied' => [
+                    'name' => '權限不足通知',
+                    'description' => '非賣家用戶嘗試上架商品時發送',
+                    'variables' => ['display_name', 'purchase_url']
+                ],
+                'system_seller_grant_line' => [
+                    'name' => '成為賣家 LINE 通知',
+                    'description' => '購買賣家資格後發送的 LINE 恭喜訊息',
+                    'variables' => ['display_name', 'product_limit', 'dashboard_url']
+                ],
+                'system_seller_grant_email' => [
+                    'name' => '成為賣家 Email 通知',
+                    'description' => '購買賣家資格後發送的 Email 恭喜訊息',
+                    'variables' => ['display_name', 'product_limit', 'dashboard_url']
                 ]
             ]
         ];

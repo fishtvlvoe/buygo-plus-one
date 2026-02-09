@@ -314,60 +314,86 @@ class AllocationService
     public function updateOrderAllocations($product_id, $allocations)
     {
         global $wpdb;
-        
+
         // 將 allocations 的 key 轉換為整數（因為 JSON 物件的 key 是字串）
         $normalized_allocations = [];
         foreach ($allocations as $order_id => $quantity) {
             $normalized_allocations[(int)$order_id] = (int)$quantity;
         }
         $allocations = $normalized_allocations;
-        
+
         $this->debugService->log('AllocationService', '開始更新訂單分配數量', [
             'product_id' => $product_id,
             'allocations' => $allocations
         ]);
-        
+
         // 開始 Transaction
         $wpdb->query('START TRANSACTION');
-        
+
         try {
-            // 0. 先取得商品的 post_id（因為 product_id 是 FluentCart variation ID，而 meta 儲存在 WordPress Post 上）
+            // 0. 先取得商品的 post_id
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
             if (!$product) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('PRODUCT_NOT_FOUND', '商品不存在');
             }
             $post_id = $product->post_id;
-            
+
             // 1. 取得商品的「已採購」數量
             $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
-            
-            // 2. 取得商品的「已分配」數量
-            $current_allocated = (int)get_post_meta($post_id, '_buygo_allocated', true);
-            
-            // 3. 查詢所有相關的訂單項目
+
+            // 2. 查詢所有相關的訂單項目
             $order_ids = array_keys($allocations);
             if (empty($order_ids)) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('NO_ORDER_IDS', '沒有提供訂單 ID');
             }
-            
+
             $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
             $items = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}fct_order_items 
+                "SELECT * FROM {$wpdb->prefix}fct_order_items
                  WHERE object_id = %d AND order_id IN ($placeholders)",
                 array_merge([$product_id], $order_ids)
             ), ARRAY_A);
-            
+
             if (empty($items)) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('NO_ORDER_ITEMS', '找不到對應的訂單項目');
             }
-            
-            // 4. 計算本次分配後的總分配數量
-            // 【增量模式】每次分配都建立新的子訂單，不覆蓋現有子訂單
 
-            // 4.1 查詢當前已分配的總數量（從子訂單計算）
+            // 3. 逐一驗證每個訂單的分配數量
+            // 【統一數據來源】從子訂單實際查詢已分配量，不依賴 _allocated_qty meta
+            foreach ($items as $item) {
+                $order_id = (int)$item['order_id'];
+                $new_allocation = isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
+
+                if ($new_allocation <= 0) {
+                    continue;
+                }
+
+                // 從子訂單查詢該訂單此商品的實際已分配數量
+                $actual_child_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_orders child_o
+                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                     WHERE child_o.parent_id = %d
+                     AND child_o.type = 'split'
+                     AND child_oi.object_id = %d",
+                    $order_id,
+                    (int)$item['object_id']
+                ));
+
+                $total_item_allocated = $actual_child_allocated + $new_allocation;
+
+                // 驗證不超過訂單需求數量
+                if ($total_item_allocated > (int)$item['quantity']) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('INVALID_ALLOCATION',
+                        "訂單 #{$order_id} 的總分配數量 ({$total_item_allocated}) 超過需求數量 ({$item['quantity']})");
+                }
+            }
+
+            // 4. 查詢當前已分配的總數量（從子訂單計算）
             $current_child_allocated = (int)$wpdb->get_var($wpdb->prepare(
                 "SELECT COALESCE(SUM(child_oi.quantity), 0)
                  FROM {$wpdb->prefix}fct_orders child_o
@@ -377,106 +403,91 @@ class AllocationService
                 $product_id
             ));
 
-            // 4.2 計算本次要新增的分配數量
             $new_allocation_total = \array_sum($allocations);
-
-            // 4.3 計算最終的總分配數量
-            // 【增量模式】= 當前已分配 + 本次新分配（每次都新增，不覆蓋）
             $total_allocated = $current_child_allocated + $new_allocation_total;
 
-            $this->debugService->log('AllocationService', '分配數量計算（增量模式）', [
+            $this->debugService->log('AllocationService', '分配數量計算', [
                 'current_child_allocated' => $current_child_allocated,
                 'new_allocation_total' => $new_allocation_total,
                 'total_allocated' => $total_allocated,
                 'purchased' => $purchased
             ]);
-            
+
             // 5. 驗證總分配數量不超過已採購數量
             if ($total_allocated > $purchased) {
                 $wpdb->query('ROLLBACK');
-                return new WP_Error('INSUFFICIENT_STOCK', 
+                return new WP_Error('INSUFFICIENT_STOCK',
                     "總分配數量 ({$total_allocated}) 超過已採購數量 ({$purchased})");
             }
-            
-            // 6. 更新訂單項目的分配數量（增量模式：累加而非覆蓋）
+
+            // 6. 建立子訂單（在 COMMIT 之前，確保原子性）
+            $child_orders = [];
+            foreach ($allocations as $order_id => $allocated_qty) {
+                if ($allocated_qty > 0) {
+                    $child_order = $this->create_child_order($product_id, $order_id, $allocated_qty);
+                    if (is_wp_error($child_order)) {
+                        $wpdb->query('ROLLBACK');
+                        return new WP_Error('CHILD_ORDER_FAILED',
+                            "建立訂單 #{$order_id} 的子訂單失敗：" . $child_order->get_error_message());
+                    }
+                    $child_orders[] = $child_order;
+                }
+            }
+
+            // 7. 子訂單全部建立成功後，從子訂單重新計算 _allocated_qty 並同步
             foreach ($items as $item) {
                 $order_id = (int)$item['order_id'];
-                $new_allocation = isset($allocations[$order_id]) ? (int)$allocations[$order_id] : 0;
 
-                if ($new_allocation <= 0) {
-                    continue;  // 本次沒有分配給這個訂單，跳過
-                }
+                // 從子訂單查詢最新的已分配數量（包含剛剛建立的）
+                $actual_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_orders child_o
+                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                     WHERE child_o.parent_id = %d
+                     AND child_o.type = 'split'
+                     AND child_oi.object_id = %d",
+                    $order_id,
+                    (int)$item['object_id']
+                ));
 
-                // 取得現有的已分配數量
+                // 同步 _allocated_qty meta（以子訂單為準）
                 $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                $already_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+                $meta_data['_allocated_qty'] = $actual_allocated;
 
-                // 計算累加後的總分配數量
-                $total_item_allocated = $already_allocated + $new_allocation;
-
-                // 驗證累加後的分配數量不超過需求數量
-                if ($total_item_allocated > (int)$item['quantity']) {
-                    $wpdb->query('ROLLBACK');
-                    return new WP_Error('INVALID_ALLOCATION',
-                        "訂單 #{$order_id} 的總分配數量 ({$total_item_allocated}) 超過需求數量 ({$item['quantity']})");
-                }
-
-                // 更新分配數量（累加）
-                $meta_data['_allocated_qty'] = $total_item_allocated;
-
-                $result = $wpdb->update(
+                $wpdb->update(
                     $wpdb->prefix . 'fct_order_items',
                     ['line_meta' => json_encode($meta_data)],
                     ['id' => $item['id']],
                     ['%s'],
                     ['%d']
                 );
-
-                if ($result === false) {
-                    $wpdb->query('ROLLBACK');
-                    return new WP_Error('DB_ERROR', '更新訂單項目失敗：' . $wpdb->last_error);
-                }
             }
-            
-            // 7. 更新商品的「已分配」總數
-            $new_product_allocated = $total_allocated;
 
-            $result = update_post_meta($post_id, '_buygo_allocated', $new_product_allocated);
+            // 8. 從子訂單重新計算商品的「已分配」總數
+            $recalc_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_orders child_o
+                 INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                 WHERE child_o.type = 'split'
+                 AND child_oi.object_id = %d",
+                $product_id
+            ));
 
-            // 注意：update_post_meta 在新值與舊值相同時會回傳 false，這不是錯誤
-            // 需要用 get_post_meta 確認實際值是否正確
-            if ($result === false) {
-                $actual_value = get_post_meta($post_id, '_buygo_allocated', true);
-                if (intval($actual_value) !== intval($new_product_allocated)) {
-                    $wpdb->query('ROLLBACK');
-                    return new WP_Error('DB_ERROR', '更新商品已分配數量失敗');
-                }
-            }
-            
+            update_post_meta($post_id, '_buygo_allocated', $recalc_allocated);
+
             // 提交 Transaction
             $wpdb->query('COMMIT');
 
             $this->debugService->log('AllocationService', '更新訂單分配數量成功', [
                 'product_id' => $product_id,
-                'new_total_allocated' => $total_allocated,
-                'new_product_allocated' => $new_product_allocated
+                'recalc_allocated' => $recalc_allocated,
+                'child_orders_count' => count($child_orders)
             ]);
-
-            // 8. 【新增】自動建立子訂單
-            $child_orders = [];
-            foreach ($allocations as $order_id => $allocated_qty) {
-                if ($allocated_qty > 0) {
-                    $child_order = $this->create_child_order($product_id, $order_id, $allocated_qty);
-                    if (!is_wp_error($child_order)) {
-                        $child_orders[] = $child_order;
-                    }
-                }
-            }
 
             return [
                 'success' => true,
                 'child_orders' => $child_orders,
-                'total_allocated' => $total_allocated
+                'total_allocated' => $recalc_allocated
             ];
 
         } catch (\Exception $e) {

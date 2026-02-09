@@ -1012,7 +1012,19 @@ class NotificationTemplates {
             // 系統權限訊息
             'system_permission_denied' => [
                 'line' => [
-                    'message' => "😊 {display_name}，您好！\n\n您目前還沒有商品上傳權限。\n\n要成為 BuyGo 賣家，請先購買「BuyGo 賣家資格」虛擬商品。\n\n購買後，您將立即獲得：\n✅ 商品上傳權限\n✅ 商品管理後台\n✅ 訂單管理功能\n\n立即購買：\n{purchase_url}"
+                    'message' => "😊 {display_name}，您好！\n\n您目前還沒有商品上傳權限。\n\n要成為 BuyGo 賣家，請先購買「BuyGo 賣家資格」虛擬商品。\n\n購買後，您將立即獲得：\n✅ 商品上傳權限\n✅ 商品管理後台\n✅ 訂單管理功能"
+                ]
+            ],
+            // 賣家恭喜通知（LINE）
+            'system_seller_grant_line' => [
+                'line' => [
+                    'message' => "🎉 恭喜 {display_name} 成為 BuyGo 賣家！\n\n您已獲得以下權限：\n✅ BuyGo 管理員角色\n✅ 商品配額：{product_limit} 個\n\n您現在可以開始上架商品了！\n\n📲 後台管理：\n{dashboard_url}\n\n💡 提示：在 LINE 輸入 /id 可查詢您的身份"
+                ]
+            ],
+            // 賣家恭喜通知（Email）
+            'system_seller_grant_email' => [
+                'line' => [
+                    'message' => "親愛的 {display_name}，\n\n恭喜您成為 BuyGo 賣家！\n\n您已獲得以下權限：\n• BuyGo 管理員角色\n• 商品配額：{product_limit} 個\n\n開始使用：\n• 後台管理：{dashboard_url}\n\n綁定 LINE 後，您可以：\n• 直接在 LINE 上架商品\n• 使用 /id 指令查詢身份\n• 接收訂單和出貨通知\n\n祝您生意興隆！\nBuyGo 團隊"
                 ]
             ],
             // 命令模板

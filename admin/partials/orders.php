@@ -904,5 +904,5 @@ HTML;
 <script>
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
-<script src="<?php echo esc_url(plugins_url('js/components/OrdersPage.js', dirname(__FILE__))); ?>"></script>
+<script src="<?php echo esc_url(plugins_url('js/components/OrdersPage.js', dirname(__FILE__)) . '?v=' . filemtime(plugin_dir_path(dirname(__FILE__)) . 'js/components/OrdersPage.js')); ?>"></script>
 

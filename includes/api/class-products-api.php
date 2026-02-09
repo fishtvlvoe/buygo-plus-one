@@ -278,6 +278,13 @@ class Products_API {
                     }
                 }
 
+                // 多樣式商品：purchased 應從預設 variation 的 meta 讀取
+                $purchased = $product['purchased'] ?? 0;
+                if ($hasVariations && $defaultVariation) {
+                    $varPurchased = (int) $productService->getVariationMeta($defaultVariation['id'], '_buygo_purchased', 0);
+                    $purchased = $varPurchased;
+                }
+
                 $formattedProduct = [
                     'id' => $product['id'],
                     'name' => $product['name'],
@@ -287,9 +294,9 @@ class Products_API {
                     'currency' => $product['currency'],
                     'status' => $status,
                     'ordered' => $product['ordered'] ?? 0,
-                    'purchased' => $product['purchased'] ?? 0,
+                    'purchased' => $purchased,
                     'allocated' => $allocated,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0) - $allocated),
+                    'reserved' => max(0, ($product['ordered'] ?? 0) - $purchased - $allocated),
                     'has_variations' => $hasVariations,
                     'variations' => $variations,
                     'default_variation' => $defaultVariation,
@@ -360,6 +367,13 @@ class Products_API {
                     }
                 }
 
+                // 多樣式商品：purchased 應從預設 variation 的 meta 讀取
+                $purchased = $product['purchased'] ?? 0;
+                if ($hasVariations && $defaultVariation) {
+                    $varPurchased = (int) $productService->getVariationMeta($defaultVariation['id'], '_buygo_purchased', 0);
+                    $purchased = $varPurchased;
+                }
+
                 $formattedProducts[] = [
                     'id' => $product['id'],
                     'name' => $product['name'],
@@ -369,7 +383,7 @@ class Products_API {
                     'currency' => $product['currency'],
                     'status' => $status,
                     'ordered' => $product['ordered'] ?? 0,
-                    'purchased' => $product['purchased'] ?? 0,
+                    'purchased' => $purchased,
                     'allocated' => $allocated,
                     'shipped' => $product['shipped'] ?? 0,
                     'pending' => $product['pending'] ?? 0,
@@ -1249,11 +1263,18 @@ class Products_API {
                 ], 404);
             }
 
-            // 更新採購數量（儲存到 variation meta）
+            // 更新採購數量（儲存到 fct_meta 表）
             if (isset($data['purchased'])) {
                 $purchased = (int)$data['purchased'];
-                // 使用 variation meta 而不是 post meta
-                update_metadata('fluent_cart_variation', $variation_id, '_buygo_purchased', $purchased);
+                $productService = new ProductService();
+                $productService->updateVariationMeta($variation_id, '_buygo_purchased', $purchased);
+            }
+
+            // 更新樣式名稱
+            if (isset($data['variation_title'])) {
+                $title = sanitize_text_field($data['variation_title']);
+                $variation->variation_title = $title;
+                $variation->save();
             }
 
             return new \WP_REST_Response([

@@ -206,6 +206,11 @@ function useApi() {
 
             // HTTP 狀態碼檢查
             if (!response.ok) {
+                // 未登入或權限不足：自動導向登入頁面
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = '/wp-login.php?redirect_to=' + encodeURIComponent(window.location.href);
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
