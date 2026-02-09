@@ -488,9 +488,25 @@ const ShipmentProductsPageComponent = {
             loadShipments();
         };
         
+        // 預注入資料初始化（消除 Loading 畫面）
+        const initFromPreloadedData = () => {
+            const preloaded = window.buygoInitialData?.shipments;
+            if (!preloaded || !preloaded.success || !preloaded.data) return false;
+
+            // 備貨商品頁只顯示 pending 狀態，預注入的是全部資料，需要過濾
+            const pendingShipments = preloaded.data.filter(s => s.status === 'pending');
+            shipments.value = pendingShipments;
+            totalShipments.value = pendingShipments.length;
+            loading.value = false;
+            delete window.buygoInitialData?.shipments;
+            return true;
+        };
+
         // 初始化
         onMounted(() => {
-            loadShipments();
+            if (!initFromPreloadedData()) {
+                loadShipments();
+            }
 
             // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
             window.addEventListener('pageshow', (e) => {

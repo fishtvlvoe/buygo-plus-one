@@ -222,7 +222,9 @@ const DashboardPageComponent = {
         this.currencySymbols = this.currencyHelper.currencySymbols;
         console.log('[Dashboard] 初始幣別:', this.currentCurrency);
 
-        await this.loadAllData();
+        if (!this.initFromPreloadedData()) {
+            await this.loadAllData();
+        }
 
         // 等待所有資料載入完成後，再渲染圖表
         this.$nextTick(() => {
@@ -233,6 +235,48 @@ const DashboardPageComponent = {
     },
 
     methods: {
+        // 預注入資料初始化（消除 Loading 畫面）
+        initFromPreloadedData() {
+            const initial = window.buygoInitialData;
+            if (!initial) return false;
+
+            let hasData = false;
+
+            // stats
+            if (initial.stats?.success && initial.stats?.data) {
+                this.rawStats = initial.stats.data;
+                this.calculateConvertedStats();
+                hasData = true;
+            }
+
+            // revenue
+            if (initial.revenue?.data) {
+                this.rawRevenueData = initial.revenue.data;
+                this.calculateConvertedRevenue();
+                hasData = true;
+            }
+
+            // products
+            if (initial.products?.data) {
+                this.productsData = initial.products.data;
+                hasData = true;
+            }
+
+            // activities
+            if (initial.activities?.data) {
+                this.rawActivities = initial.activities.data || [];
+                this.calculateConvertedActivities();
+                hasData = true;
+            }
+
+            if (hasData) {
+                this.loading = false;
+                delete window.buygoInitialData;
+                return true;
+            }
+            return false;
+        },
+
         async loadAllData() {
             this.loading = true;
             this.error = null;

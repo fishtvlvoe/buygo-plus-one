@@ -742,9 +742,32 @@ const ShipmentDetailsPageComponent = {
             }
         });
         
+        // 預注入資料初始化（消除 Loading 畫面）
+        const initFromPreloadedData = () => {
+            const preloaded = window.buygoInitialData?.shipments;
+            if (!preloaded || !preloaded.success || !preloaded.data) return false;
+
+            // 出貨明細頁按 activeTab 過濾（預設 ready_to_ship）
+            const filtered = preloaded.data.filter(s => s.status === activeTab.value);
+            shipments.value = filtered;
+            totalShipments.value = filtered.length;
+            // 統計各狀態數量
+            const allData = preloaded.data;
+            stats.value = {
+                ready_to_ship: allData.filter(s => s.status === 'ready_to_ship').length,
+                shipped: allData.filter(s => s.status === 'shipped').length,
+                archived: allData.filter(s => s.status === 'archived').length
+            };
+            loading.value = false;
+            delete window.buygoInitialData?.shipments;
+            return true;
+        };
+
         onMounted(() => {
-            loadShipments();
-            loadStats();
+            if (!initFromPreloadedData()) {
+                loadShipments();
+                loadStats();
+            }
 
             // 檢查 URL 參數（支援直接訪問詳情頁）
             checkUrlParams();
