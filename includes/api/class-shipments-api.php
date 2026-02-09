@@ -4,6 +4,7 @@ namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\ShipmentService;
 use BuyGoPlus\Services\ExportService;
+use BuyGoPlus\Services\SettingsService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -314,6 +315,21 @@ class Shipments_API
 
         // 建立 WHERE 條件
         $where_conditions = ['1=1'];
+
+        // 多賣家權限過濾：非管理員只能看到自己的出貨單
+        $current_user = wp_get_current_user();
+        $is_admin = in_array('administrator', (array) $current_user->roles, true);
+
+        if (!$is_admin && $current_user->ID > 0) {
+            $accessible_seller_ids = SettingsService::get_accessible_seller_ids($current_user->ID);
+
+            if (!empty($accessible_seller_ids)) {
+                $seller_ids_str = implode(',', array_map('intval', $accessible_seller_ids));
+                $where_conditions[] = "s.seller_id IN ({$seller_ids_str})";
+            } else {
+                $where_conditions[] = '1 = 0';
+            }
+        }
 
         if ($id) {
             $where_conditions[] = $wpdb->prepare('s.id = %d', $id);

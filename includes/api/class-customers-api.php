@@ -1,6 +1,8 @@
 <?php
 namespace BuyGoPlus\Api;
 
+use BuyGoPlus\Services\SettingsService;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -95,13 +97,39 @@ class Customers_API {
             $table_orders = $wpdb->prefix . 'fct_orders';
             $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
             
-            // 先取得總數（不使用搜尋條件來確認資料存在）
-            $total = $wpdb->get_var("SELECT COUNT(*) FROM {$table_customers}");
-            
-            // 建立搜尋條件
+            // 建立搜尋條件（總數在過濾條件建立後計算）
             $where_conditions = ['1=1'];
             $query_params = [];
-            
+
+            // 多賣家權限過濾：非管理員只能看到購買自己商品的客戶
+            $current_user = wp_get_current_user();
+            $is_admin = in_array('administrator', (array) $current_user->roles, true);
+
+            if (!$is_admin && $current_user->ID > 0) {
+                $accessible_seller_ids = SettingsService::get_accessible_seller_ids($current_user->ID);
+
+                if (!empty($accessible_seller_ids)) {
+                    $table_items = $wpdb->prefix . 'fct_order_items';
+                    $table_posts = $wpdb->posts;
+                    $seller_ids_str = implode(',', array_map('intval', $accessible_seller_ids));
+
+                    // 透過 訂單 → 訂單項目 → 商品 → post_author 關聯到賣家
+                    $where_conditions[] = "c.id IN (
+                        SELECT DISTINCT o2.customer_id
+                        FROM {$table_orders} o2
+                        INNER JOIN {$table_items} oi ON o2.id = oi.order_id
+                        INNER JOIN {$table_posts} p ON oi.post_id = p.ID OR oi.post_id = p.post_parent
+                        WHERE p.post_author IN ({$seller_ids_str})
+                    )";
+                } else {
+                    $where_conditions[] = '1 = 0';
+                }
+            }
+
+            // 計算總數（含賣家過濾，不含搜尋條件）
+            $base_where = implode(' AND ', $where_conditions);
+            $total = $wpdb->get_var("SELECT COUNT(DISTINCT c.id) FROM {$table_customers} c WHERE {$base_where}");
+
             if (!empty($search)) {
                 $where_conditions[] = "(CONCAT(c.first_name, ' ', c.last_name) LIKE %s 
                                      OR c.email LIKE %s)";

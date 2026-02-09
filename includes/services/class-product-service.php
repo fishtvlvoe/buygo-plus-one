@@ -841,13 +841,8 @@ class ProductService
             $shippedCounts = $this->calculateShippedCounts([$variationId]);
             $shipped = $shippedCounts[$variationId] ?? 0;
 
-            // 取得已採購數量（從 variation meta）
-            $variation = ProductVariation::find($variationId);
-            $purchased = 0;
-            if ($variation) {
-                // 從 variation meta 讀取（而不是 post meta）
-                $purchased = (int) get_metadata('fluent_cart_variation', $variationId, '_buygo_purchased', true);
-            }
+            // 取得已採購數量（從 fct_meta 表讀取）
+            $purchased = (int) $this->getVariationMeta($variationId, '_buygo_purchased', 0);
 
             return [
                 'ordered' => $ordered,
@@ -873,6 +868,53 @@ class ProductService
                 'reserved' => 0
             ];
         }
+    }
+
+    /**
+     * 從 fct_meta 表讀取 variation 的 meta 值
+     */
+    public function getVariationMeta(int $variationId, string $metaKey, $default = null)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'fct_meta';
+        $value = $wpdb->get_var($wpdb->prepare(
+            "SELECT meta_value FROM {$table} WHERE object_type = 'variation' AND object_id = %d AND meta_key = %s LIMIT 1",
+            $variationId,
+            $metaKey
+        ));
+        return $value !== null ? $value : $default;
+    }
+
+    /**
+     * 更新 fct_meta 表中 variation 的 meta 值
+     */
+    public function updateVariationMeta(int $variationId, string $metaKey, $metaValue): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'fct_meta';
+
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE object_type = 'variation' AND object_id = %d AND meta_key = %s LIMIT 1",
+            $variationId,
+            $metaKey
+        ));
+
+        if ($existing) {
+            $wpdb->update($table, ['meta_value' => $metaValue], [
+                'object_type' => 'variation',
+                'object_id' => $variationId,
+                'meta_key' => $metaKey
+            ]);
+        } else {
+            $wpdb->insert($table, [
+                'object_type' => 'variation',
+                'object_id' => $variationId,
+                'meta_key' => $metaKey,
+                'meta_value' => $metaValue
+            ]);
+        }
+
+        return true;
     }
 
     /**

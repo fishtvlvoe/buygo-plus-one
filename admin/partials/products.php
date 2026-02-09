@@ -102,7 +102,7 @@ $products_component_template .= <<<'HTML'
                 <!-- Content (Desktop & Mobile) -->
                 <div v-else>
                     <!-- Desktop Table View -->
-                    <div v-show="viewMode === 'table'" class="data-table">
+                    <div v-show="viewMode === 'table'" class="data-table hidden md:block">
                         <table>
                             <thead>
                                 <tr>
@@ -174,7 +174,7 @@ $products_component_template .= <<<'HTML'
                     </div>
 
                     <!-- Desktop Grid View -->
-                    <div v-show="viewMode === 'grid'">
+                    <div v-show="viewMode === 'grid'" class="hidden md:block">
                         <!-- Grid Header with Select All -->
                         <div class="flex items-center justify-between mb-4 px-1">
                             <label class="flex items-center gap-2 text-sm text-slate-600 font-medium">
@@ -312,7 +312,7 @@ $products_component_template .= <<<'HTML'
                                         </div>
                                         <!-- 右側採購輸入（外觀像按鈕，實際是輸入框） -->
                                         <div class="flex-1">
-                                            <input type="number" :value="product.purchased || ''" @input="product.purchased = $event.target.value === '' ? 0 : parseInt($event.target.value)" @blur="savePurchased(product)" placeholder="採購" class="w-full px-3 py-2 text-xs text-center text-slate-900 placeholder-slate-400 border border-slate-300 rounded-md bg-white hover:border-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                            <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" placeholder="採購" class="w-full px-3 py-2 text-xs text-center text-slate-900 placeholder-slate-400 border border-slate-300 rounded-md bg-white hover:border-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         </div>
                                     </div>
                                 </div>
@@ -408,6 +408,12 @@ $products_component_template .= <<<'HTML'
                                             </select>
                                         </div>
                                         <div v-else class="mt-2 text-xs text-slate-400">單一商品</div>
+                                        <!-- 採購數量 + 統計 -->
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <input type="number" v-model.number="product.purchased" @blur="savePurchased(product)" @click.stop placeholder="採購" class="flex-1 px-2 py-1.5 text-xs text-center border border-slate-300 rounded-md bg-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                            <span class="text-[10px] text-green-600 font-bold whitespace-nowrap">單<span class="ml-0.5">{{ product.ordered || 0 }}</span></span>
+                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">預<span class="ml-0.5">{{ calculateReserved(product) }}</span></span>
+                                        </div>
                                     </div>
                                     <!-- Action Buttons -->
                                     <div class="grid grid-cols-3 border-t border-slate-200 divide-x divide-slate-200">
@@ -672,11 +678,38 @@ $products_component_template .= <<<'HTML'
                                 <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
                                     <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">基本資訊 #{{ editingProduct.id }}</h3>
                                     <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">商品名稱</label><input type="text" v-model="editingProduct.name" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"></div>
+                                    <!-- 多樣式商品區塊 -->
+                                    <div v-if="editingProduct.has_variations" class="bg-indigo-50/50 border border-indigo-200 rounded-lg p-3 md:p-4 space-y-3">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">多樣式</span>
+                                            <span class="text-xs text-slate-500">共 {{ editingProduct.variations?.length || 0 }} 個樣式</span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">選擇樣式</label>
+                                            <select v-model="editingProduct.editing_variation_id" @change="onEditVariationChange()" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:border-primary focus:outline-none">
+                                                <option v-for="v in editingProduct.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">樣式名稱</label>
+                                            <input type="text" v-model="editingProduct.editing_variation_title" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-700 mb-1">樣式價格</label>
+                                                <input type="number" :value="editingProduct.editing_variation_price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-700 mb-1">樣式採購數量</label>
+                                                <input type="number" v-model.number="editingProduct.editing_variation_purchased" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="grid grid-cols-2 gap-3 md:gap-4">
-                                        <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                        <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" :class="editingProduct.has_variations ? 'bg-slate-50 text-slate-500' : ''" :readonly="editingProduct.has_variations"></div>
                                         <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
                                     </div>
-                                    <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                    <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
                                     <div>
                                         <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
                                         <div class="flex items-center gap-2">
@@ -904,5 +937,5 @@ HTML;
 // Set wpNonce for component
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
-<script src="<?php echo esc_url(plugins_url('js/components/ProductsPage.js', dirname(__FILE__))); ?>"></script>
+<script src="<?php echo esc_url(plugins_url('js/components/ProductsPage.js', dirname(__FILE__))); ?>?v=<?php echo filemtime(plugin_dir_path(dirname(__FILE__)) . 'js/components/ProductsPage.js'); ?>"></script>
 
