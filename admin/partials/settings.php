@@ -1548,15 +1548,19 @@ const SettingsPageComponent = {
         };
 
         // 載入模板設定
-        const loadTemplates = async () => {
+        const loadTemplates = async (preloadedResult = null) => {
             try {
-                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates', {
-                    headers: { 'X-WP-Nonce': wpNonce },
-                    credentials: 'include'
-                });
-                
-                const result = await response.json();
-                
+                let result;
+                if (preloadedResult) {
+                    result = preloadedResult;
+                } else {
+                    const response = await fetch('/wp-json/buygo-plus-one/v1/settings/templates', {
+                        headers: { 'X-WP-Nonce': wpNonce },
+                        credentials: 'include'
+                    });
+                    result = await response.json();
+                }
+
                 if (result.success && result.data) {
                     // 處理新的資料結構
                     const allTemplates = result.data.all || {};
@@ -1732,16 +1736,20 @@ const SettingsPageComponent = {
         };
 
         // 載入小幫手列表
-        const loadHelpers = async () => {
+        const loadHelpers = async (preloadedResult = null) => {
             loadingHelpers.value = true;
-            
-            try {
-                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/helpers', {
-                    headers: { 'X-WP-Nonce': wpNonce },
-                    credentials: 'include'
-                });
 
-                const result = await response.json();
+            try {
+                let result;
+                if (preloadedResult) {
+                    result = preloadedResult;
+                } else {
+                    const response = await fetch('/wp-json/buygo-plus-one/v1/settings/helpers', {
+                        headers: { 'X-WP-Nonce': wpNonce },
+                        credentials: 'include'
+                    });
+                    result = await response.json();
+                }
 
                 if (result.success && result.data) {
                     helpers.value = result.data;
@@ -2162,11 +2170,13 @@ const SettingsPageComponent = {
         
         // 初始化
         onMounted(async () => {
+            const initial = window.buygoInitialData;
             await checkAdmin();
-            await loadTemplates();
-            await loadHelpers();
+            await loadTemplates(initial?.templates || null);
+            await loadHelpers(initial?.helpers || null);
             await loadKeywords();
             await initSortedTemplates();
+            if (initial) delete window.buygoInitialData;
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）

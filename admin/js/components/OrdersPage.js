@@ -91,7 +91,26 @@ const OrdersPageComponent = {
             const skippedNoAllocation = []; // 記錄因無分配而跳過的訂單
 
             for (const orderId of selectedItems.value) {
-                const order = orders.value.find(o => o.id === orderId);
+                // 先在父訂單陣列中找
+                let order = orders.value.find(o => o.id === orderId);
+
+                if (!order) {
+                    // 在「轉備貨」等篩選分頁中，子訂單會被提取為獨立項目顯示
+                    // selectedItems 可能包含子訂單 ID，需要在篩選結果和父訂單的 children 中搜尋
+                    order = allFilteredOrders.value.find(o => o.id === orderId);
+                    if (!order) {
+                        // 最後嘗試在所有父訂單的 children 中搜尋
+                        for (const parentOrder of orders.value) {
+                            if (parentOrder.children) {
+                                const child = parentOrder.children.find(c => c.id === orderId);
+                                if (child) {
+                                    order = child;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
                 if (!order) continue;
 
                 // 如果父訂單有子訂單，處理其下的未出貨子訂單
@@ -113,14 +132,14 @@ const OrdersPageComponent = {
                         }
                     }
                 } else {
-                    // 沒有子訂單的父訂單，直接處理
+                    // 沒有子訂單的訂單（包含提取出的子訂單），直接處理
                     if (!order.shipping_status || order.shipping_status === 'unshipped') {
-                        // 檢查父訂單是否有分配
+                        // 檢查訂單是否有分配
                         if (hasAllocatedItems(order)) {
                             ordersToProcess.push({
                                 id: order.id,
                                 invoice_no: order.invoice_no || order.id,
-                                isChild: false
+                                isChild: !!order._isExtractedChild || !!order.parent_id
                             });
                         } else {
                             skippedNoAllocation.push(order.invoice_no || order.id);
@@ -1167,9 +1186,40 @@ const OrdersPageComponent = {
             // 不再呼叫 loadOrders()，前端直接篩選
         });
 
+        // 使用預注入資料初始化（消除 Loading）
+        const initFromPreloadedData = () => {
+            const preloaded = window.buygoInitialData?.orders;
+            if (!preloaded || !preloaded.success || !preloaded.data) return false;
+
+            orders.value = preloaded.data.map(order => ({
+                ...order,
+                has_allocation: order.items && Array.isArray(order.items) && order.items.some(item => {
+                    const allocatedQty = item.allocated_quantity != null
+                        ? parseInt(item.allocated_quantity, 10)
+                        : 0;
+                    return !isNaN(allocatedQty) && isFinite(allocatedQty) && allocatedQty > 0;
+                }),
+                items: order.items || []
+            }));
+            totalOrders.value = preloaded.total || preloaded.data.length;
+            updateStats(preloaded.stats);
+            orders.value.forEach(order => {
+                if (order.children && order.children.length > 0) {
+                    collapsedChildren.value.add(order.id);
+                }
+            });
+            loading.value = false;
+            // 清除預注入資料，避免重複使用
+            delete window.buygoInitialData?.orders;
+            return true;
+        };
+
         // 初始化
         onMounted(() => {
-            loadOrders();
+            // 優先使用預注入資料，失敗則 fallback 到 API
+            if (!initFromPreloadedData()) {
+                loadOrders();
+            }
             // 檢查 URL 參數（使用 BuyGoRouter 核心模組）
             checkUrlParams();
             // 監聽瀏覽器上一頁/下一頁

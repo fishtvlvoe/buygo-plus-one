@@ -498,11 +498,25 @@ const CustomersPageComponent = {
             displayCurrency.value = newCurrency;
         };
 
+        // 預注入資料初始化（消除 Loading 畫面）
+        const initFromPreloadedData = () => {
+            const preloaded = window.buygoInitialData?.customers;
+            if (!preloaded || !preloaded.success || !preloaded.data) return false;
+
+            customers.value = preloaded.data;
+            totalCustomers.value = preloaded.total || preloaded.data.length;
+            loading.value = false;
+            delete window.buygoInitialData?.customers;
+            return true;
+        };
+
         // 初始化
         onMounted(() => {
-            loadCustomers();
+            if (!initFromPreloadedData()) {
+                loadCustomers();
+            }
 
-            // 檢查 URL 參數並設置監聽
+            // 檢查 URL 參數並設置監聯
             checkUrlParams();
             window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
