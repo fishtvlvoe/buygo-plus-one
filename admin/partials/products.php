@@ -24,8 +24,8 @@
         }
     }
 </script>
-<!-- Products Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/products.css', __FILE__)); ?>" />
+<!-- Products Page Styles - inline 繞過 InstaWP WAF -->
+<style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/products.css'; ?></style>
 
 <?php
 $products_component_template = <<<'HTML'

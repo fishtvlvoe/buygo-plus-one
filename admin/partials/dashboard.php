@@ -1,8 +1,8 @@
 <?php
 // Dashboard 頁面元件
 ?>
-<!-- Dashboard Page Styles (Redesigned) -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/dashboard-redesign.css', __FILE__)); ?>?v=<?php echo time(); ?>" />
+<!-- Dashboard Page Styles (Redesigned) - inline 繞過 InstaWP WAF -->
+<style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/dashboard-redesign.css'; ?></style>
 <!-- Chart.js CDN (4.x) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 

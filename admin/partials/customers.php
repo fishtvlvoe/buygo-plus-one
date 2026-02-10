@@ -4,8 +4,8 @@
 // 載入智慧搜尋框元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php';
 ?>
-<!-- Customers Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/customers.css', __FILE__)); ?>" />
+<!-- Customers Page Styles - inline 繞過 InstaWP WAF -->
+<style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/customers.css'; ?></style>
 <?php
 // 設定 Header 參數
 $header_title = '客戶';

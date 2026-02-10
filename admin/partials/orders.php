@@ -7,8 +7,8 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php
 // 載入 OrderDetailModal 元件
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/order/order-detail-modal.php';
 ?>
-<!-- Orders Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/orders.css', __FILE__)); ?>" />
+<!-- Orders Page Styles - inline 繞過 InstaWP WAF -->
+<style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/orders.css'; ?></style>
 <?php
 // 設定 Header 參數
 $header_title = '訂單';
