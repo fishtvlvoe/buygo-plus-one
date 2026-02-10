@@ -44,9 +44,11 @@ $new_sidebar_template = <<<HTML
         <nav class="flex-1 overflow-y-auto py-4 space-y-1">
             <a v-for="item in menuItems" :key="item.id"
                :href="item.url"
+               @click="handleNavClick(\$event, item)"
                :class="[
                    'w-full flex items-center px-4 md:px-6 py-3 transition-colors duration-200 group relative',
-                   currentPage === item.id ? 'bg-blue-50 text-primary border-r-2 border-primary' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                   (navigatingTo === item.id || currentPage === item.id) ? 'bg-blue-50 text-primary border-r-2 border-primary' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                   navigatingTo === item.id ? 'opacity-70' : ''
                ]"
                :title="item.label">
                 <span v-html="item.icon" class="w-6 h-6 shrink-0"></span>
@@ -113,10 +115,11 @@ $new_sidebar_template = <<<HTML
             <nav class="flex-1 overflow-y-auto py-4 space-y-1">
                 <a v-for="item in menuItems" :key="item.id"
                    :href="item.url"
-                   @click="showMobileMenu = false"
+                   @click="handleNavClick(\$event, item); showMobileMenu = false"
                    :class="[
                        'w-full flex items-center px-6 py-3 transition-colors duration-200',
-                       currentPage === item.id ? 'bg-blue-50 text-primary border-r-4 border-primary' : 'text-slate-600 hover:bg-slate-50'
+                       (navigatingTo === item.id || currentPage === item.id) ? 'bg-blue-50 text-primary border-r-4 border-primary' : 'text-slate-600 hover:bg-slate-50',
+                       navigatingTo === item.id ? 'opacity-70' : ''
                    ]">
                     <span v-html="item.icon" class="w-6 h-6 shrink-0"></span>
                     <span class="ml-3 font-medium">{{ item.label }}</span>
@@ -207,7 +210,17 @@ const NewSidebarComponent = {
         const { ref, onMounted, onUnmounted } = Vue;
 
         const showMobileMenu = ref(false);
+        const navigatingTo = ref(null);
         const menuItems = <?php echo json_encode($new_menu_items); ?>;
+
+        // 點擊導航項目：立即高亮，然後瀏覽器自然跳轉
+        const handleNavClick = (event, item) => {
+            if (item.id === props.currentPage) {
+                event.preventDefault();
+                return;
+            }
+            navigatingTo.value = item.id;
+        };
 
         // 切換側邊欄狀態（向父元件發送事件）
         const toggleSidebar = () => {
@@ -240,8 +253,10 @@ const NewSidebarComponent = {
 
         return {
             showMobileMenu,
+            navigatingTo,
             menuItems,
-            toggleSidebar
+            toggleSidebar,
+            handleNavClick
         };
     }
 };

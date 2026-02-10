@@ -128,6 +128,9 @@ const ShipmentProductsPageComponent = {
                 if (result.success && result.data) {
                     shipments.value = result.data;
                     totalShipments.value = result.total || result.data.length;
+
+                    // 儲存到 BuyGoCache
+                    if (window.BuyGoCache) { window.BuyGoCache.set('shipment-products', result); }
                 } else {
                     throw new Error(result.message || '載入出貨單失敗');
                 }
@@ -498,6 +501,8 @@ const ShipmentProductsPageComponent = {
             shipments.value = pendingShipments;
             totalShipments.value = pendingShipments.length;
             loading.value = false;
+            // 寫入快取，讓 preload 失敗時有 fallback
+            if (window.BuyGoCache) { window.BuyGoCache.set('shipment-products', preloaded); }
             delete window.buygoInitialData?.shipments;
             return true;
         };
@@ -505,7 +510,18 @@ const ShipmentProductsPageComponent = {
         // 初始化
         onMounted(() => {
             if (!initFromPreloadedData()) {
-                loadShipments();
+                // 快取 fallback：使用 sessionStorage 快取加速重複訪問
+                const cached = window.BuyGoCache && window.BuyGoCache.get('shipment-products');
+                if (cached && cached.success && cached.data) {
+                    const pendingShipments = cached.data.filter(s => s.status === 'pending');
+                    shipments.value = pendingShipments;
+                    totalShipments.value = pendingShipments.length;
+                    loading.value = false;
+                    // 背景靜默刷新
+                    loadShipments();
+                } else {
+                    loadShipments();
+                }
             }
 
             // 監聽頁面顯示事件（處理 bfcache 和頁面切換）

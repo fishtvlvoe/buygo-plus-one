@@ -458,6 +458,9 @@ const ProductsPageComponent = {
                         });
                     // 【修復】使用 API 回傳的總數，而非當前頁的商品數
                     totalProducts.value = data.total || products.value.length;
+                    // 儲存到 BuyGoCache
+                    if (window.BuyGoCache) { window.BuyGoCache.set('products', data); }
+
                     // 並行執行 URL 參數檢查和賣家限制檢查，減少載入時間
                     await Promise.all([
                         checkUrlParams(),
@@ -972,13 +975,33 @@ const ProductsPageComponent = {
                 });
             totalProducts.value = preloaded.total || products.value.length;
             loading.value = false;
+            // 寫入快取，讓 preload 失敗時有 fallback
+            if (window.BuyGoCache) { window.BuyGoCache.set('products', preloaded); }
             delete window.buygoInitialData?.products;
             return true;
         };
 
         onMounted(async () => {
             if (!initFromPreloadedData()) {
-                await loadProducts();
+                // 快取 fallback：使用 sessionStorage 快取加速重複訪問
+                const cached = window.BuyGoCache && window.BuyGoCache.get('products');
+                if (cached && cached.success && cached.data) {
+                    products.value = cached.data
+                        .filter(product => product !== null && product !== undefined)
+                        .map(product => {
+                            if (product.has_variations && product.default_variation) {
+                                product.selected_variation_id = product.default_variation.id;
+                                product.selected_variation = product.default_variation;
+                            }
+                            return product;
+                        });
+                    totalProducts.value = cached.total || products.value.length;
+                    loading.value = false;
+                    // 背景靜默刷新
+                    await loadProducts();
+                } else {
+                    await loadProducts();
+                }
             }
             // 頁面載入後立即檢查 URL 參數
             await checkUrlParams();
