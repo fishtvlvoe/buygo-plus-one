@@ -660,6 +660,9 @@ const OrdersPageComponent = {
                             collapsedChildren.value.add(order.id);
                         }
                     });
+
+                    // 儲存到 BuyGoCache
+                    if (window.BuyGoCache) { window.BuyGoCache.set('orders', result); }
                 } else {
                     throw new Error(result.message || '載入訂單失敗');
                 }
@@ -1209,6 +1212,8 @@ const OrdersPageComponent = {
                 }
             });
             loading.value = false;
+            // 寫入快取，讓 preload 失敗時有 fallback
+            if (window.BuyGoCache) { window.BuyGoCache.set('orders', preloaded); }
             // 清除預注入資料，避免重複使用
             delete window.buygoInitialData?.orders;
             return true;
@@ -1218,7 +1223,32 @@ const OrdersPageComponent = {
         onMounted(() => {
             // 優先使用預注入資料，失敗則 fallback 到 API
             if (!initFromPreloadedData()) {
-                loadOrders();
+                // 快取 fallback：使用 sessionStorage 快取加速重複訪問
+                const cached = window.BuyGoCache && window.BuyGoCache.get('orders');
+                if (cached && cached.success && cached.data) {
+                    orders.value = cached.data.map(order => ({
+                        ...order,
+                        has_allocation: order.items && Array.isArray(order.items) && order.items.some(item => {
+                            const allocatedQty = item.allocated_quantity != null
+                                ? parseInt(item.allocated_quantity, 10)
+                                : 0;
+                            return !isNaN(allocatedQty) && isFinite(allocatedQty) && allocatedQty > 0;
+                        }),
+                        items: order.items || []
+                    }));
+                    totalOrders.value = cached.total || cached.data.length;
+                    updateStats(cached.stats);
+                    orders.value.forEach(order => {
+                        if (order.children && order.children.length > 0) {
+                            collapsedChildren.value.add(order.id);
+                        }
+                    });
+                    loading.value = false;
+                    // 背景靜默刷新
+                    loadOrders();
+                } else {
+                    loadOrders();
+                }
             }
             // 檢查 URL 參數（使用 BuyGoRouter 核心模組）
             checkUrlParams();

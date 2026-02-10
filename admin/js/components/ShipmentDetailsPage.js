@@ -118,6 +118,9 @@ const ShipmentDetailsPageComponent = {
                 if (result.success) {
                     shipments.value = result.data || [];
                     totalShipments.value = result.total || result.data.length;
+
+                    // 儲存到 BuyGoCache
+                    if (window.BuyGoCache) { window.BuyGoCache.set('shipment-details', result); }
                 }
             } catch (err) {
                 console.error('載入出貨單失敗:', err);
@@ -759,14 +762,34 @@ const ShipmentDetailsPageComponent = {
                 archived: allData.filter(s => s.status === 'archived').length
             };
             loading.value = false;
+            // 寫入快取，讓 preload 失敗時有 fallback
+            if (window.BuyGoCache) { window.BuyGoCache.set('shipment-details', preloaded); }
             delete window.buygoInitialData?.shipments;
             return true;
         };
 
         onMounted(() => {
             if (!initFromPreloadedData()) {
-                loadShipments();
-                loadStats();
+                // 快取 fallback：使用 sessionStorage 快取加速重複訪問
+                const cached = window.BuyGoCache && window.BuyGoCache.get('shipment-details');
+                if (cached && cached.success && cached.data) {
+                    const filtered = cached.data.filter(s => s.status === activeTab.value);
+                    shipments.value = filtered;
+                    totalShipments.value = filtered.length;
+                    const allData = cached.data;
+                    stats.value = {
+                        ready_to_ship: allData.filter(s => s.status === 'ready_to_ship').length,
+                        shipped: allData.filter(s => s.status === 'shipped').length,
+                        archived: allData.filter(s => s.status === 'archived').length
+                    };
+                    loading.value = false;
+                    // 背景靜默刷新
+                    loadShipments();
+                    loadStats();
+                } else {
+                    loadShipments();
+                    loadStats();
+                }
             }
 
             // 檢查 URL 參數（支援直接訪問詳情頁）

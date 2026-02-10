@@ -173,6 +173,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/DesignSystem.js'); ?>"></script>
+    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/BuyGoCache.js'); ?>"></script>
 
     <style>
         body {
@@ -184,7 +185,32 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     </style>
 </head>
 <body class="bg-slate-50">
-    <div id="buygo-app"></div>
+    <div id="buygo-app">
+        <!-- Skeleton Loading：Vue mount 後自動替換 -->
+        <div class="buygo-skeleton">
+            <div class="buygo-skeleton-sidebar">
+                <div class="buygo-skeleton-logo"></div>
+                <div class="buygo-skeleton-menu-item active"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+                <div class="buygo-skeleton-menu-item"></div>
+            </div>
+            <div class="buygo-skeleton-content">
+                <div class="buygo-skeleton-header"></div>
+                <div class="buygo-skeleton-table">
+                    <div class="buygo-skeleton-row" style="width:100%"></div>
+                    <div class="buygo-skeleton-row" style="width:95%"></div>
+                    <div class="buygo-skeleton-row" style="width:90%"></div>
+                    <div class="buygo-skeleton-row" style="width:97%"></div>
+                    <div class="buygo-skeleton-row" style="width:88%"></div>
+                    <div class="buygo-skeleton-row" style="width:93%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 載入組件定義 -->
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>

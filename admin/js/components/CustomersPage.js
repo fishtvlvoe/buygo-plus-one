@@ -130,6 +130,9 @@ const CustomersPageComponent = {
                 if (result.success && result.data) {
                     customers.value = result.data;
                     totalCustomers.value = result.total || result.data.length;
+
+                    // 儲存到 BuyGoCache
+                    if (window.BuyGoCache) { window.BuyGoCache.set('customers', result); }
                 } else {
                     throw new Error(result.message || '載入客戶列表失敗');
                 }
@@ -506,6 +509,8 @@ const CustomersPageComponent = {
             customers.value = preloaded.data;
             totalCustomers.value = preloaded.total || preloaded.data.length;
             loading.value = false;
+            // 寫入快取，讓 preload 失敗時有 fallback
+            if (window.BuyGoCache) { window.BuyGoCache.set('customers', preloaded); }
             delete window.buygoInitialData?.customers;
             return true;
         };
@@ -513,7 +518,17 @@ const CustomersPageComponent = {
         // 初始化
         onMounted(() => {
             if (!initFromPreloadedData()) {
-                loadCustomers();
+                // 快取 fallback：使用 sessionStorage 快取加速重複訪問
+                const cached = window.BuyGoCache && window.BuyGoCache.get('customers');
+                if (cached && cached.success && cached.data) {
+                    customers.value = cached.data;
+                    totalCustomers.value = cached.total || cached.data.length;
+                    loading.value = false;
+                    // 背景靜默刷新
+                    loadCustomers();
+                } else {
+                    loadCustomers();
+                }
             }
 
             // 檢查 URL 參數並設置監聯
