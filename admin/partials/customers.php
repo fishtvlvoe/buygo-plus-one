@@ -447,5 +447,5 @@ HTML;
 <script>
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
-<script src="<?php echo esc_url(plugins_url('js/components/CustomersPage.js', dirname(__FILE__))); ?>"></script>
+<script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/CustomersPage.js'; ?></script>
 

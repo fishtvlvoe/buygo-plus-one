@@ -937,5 +937,5 @@ HTML;
 // Set wpNonce for component
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
-<script src="<?php echo esc_url(plugins_url('js/components/ProductsPage.js', dirname(__FILE__))); ?>?v=<?php echo filemtime(plugin_dir_path(dirname(__FILE__)) . 'js/components/ProductsPage.js'); ?>"></script>
+<script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ProductsPage.js'; ?></script>
 
