@@ -818,5 +818,5 @@ window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 <!-- Flatpickr JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
-<script src="<?php echo esc_url(plugins_url('js/components/ShipmentDetailsPage.js', dirname(__FILE__))); ?>"></script>
+<script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ShipmentDetailsPage.js'; ?></script>
 

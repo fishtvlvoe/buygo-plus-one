@@ -173,7 +173,7 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
     <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/DesignSystem.js'); ?>"></script>
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/BuyGoCache.js'); ?>"></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/BuyGoCache.js'; ?></script>
 
     <style>
         body {
