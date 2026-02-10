@@ -56,7 +56,7 @@ function buygo_get_initial_data($page) {
             case 'customers':
                 $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/customers');
                 $request->set_param('page', 1);
-                $request->set_param('per_page', 20);
+                $request->set_param('per_page', 5);
                 $response = rest_do_request($request);
                 if (!is_wp_error($response) && $response->get_status() === 200) {
                     $data['customers'] = $response->get_data();

@@ -1,8 +1,8 @@
 <?php
 // 全域搜尋結果頁面
 ?>
-<!-- Search Page Styles -->
-<link rel="stylesheet" href="<?php echo esc_url(plugins_url('../css/search.css', __FILE__)); ?>?v=<?php echo time(); ?>" />
+<!-- Search Page Styles - inline 繞過 InstaWP WAF -->
+<style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/search.css'; ?></style>
 
 <?php
 // 設定 Header 參數
