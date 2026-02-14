@@ -60,17 +60,17 @@ class ShortLinkRoutes {
      */
     public function handle_short_link() {
         $item_id = get_query_var('item_id');
-        
+
         if (empty($item_id)) {
             return;
         }
-        
+
         // 驗證 item_id 是否為數字
         $item_id = intval($item_id);
         if ($item_id <= 0) {
             return;
         }
-        
+
         // 檢查商品是否存在且為 fluent-products 類型
         $post = get_post($item_id);
         if (!$post || $post->post_type !== 'fluent-products') {
@@ -79,7 +79,7 @@ class ShortLinkRoutes {
             get_template_part(404);
             exit;
         }
-        
+
         // 檢查商品是否已發布
         if ($post->post_status !== 'publish') {
             // 如果商品未發布，返回 404
@@ -87,7 +87,13 @@ class ShortLinkRoutes {
             get_template_part(404);
             exit;
         }
-        
+
+        // LINE 內建瀏覽器偵測：引導用戶在外部瀏覽器開啟
+        if ($this->is_line_browser() && empty($_GET['openExternalBrowser'])) {
+            $this->render_line_browser_notice($item_id, $post->post_title);
+            exit;
+        }
+
         // 重定向到 FluentCart 產品頁面
         $product_url = get_permalink($item_id);
 
@@ -120,6 +126,130 @@ class ShortLinkRoutes {
         exit;
     }
     
+    /**
+     * 偵測是否為 LINE 內建瀏覽器
+     */
+    private function is_line_browser() {
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        return stripos($user_agent, 'Line/') !== false;
+    }
+
+    /**
+     * 顯示 LINE 瀏覽器引導頁面
+     */
+    private function render_line_browser_notice($item_id, $product_name) {
+        $external_url = home_url("/item/{$item_id}?openExternalBrowser=1");
+        $product_name = esc_html($product_name);
+
+        status_header(200);
+        header('Content-Type: text/html; charset=utf-8');
+        ?>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $product_name; ?> - BuyGo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 32px 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+        }
+        .icon { font-size: 48px; margin-bottom: 16px; }
+        h1 { font-size: 18px; color: #333; margin-bottom: 8px; }
+        .product-name {
+            font-size: 15px; color: #666; margin-bottom: 24px;
+            padding: 8px 12px; background: #f8f8f8; border-radius: 8px;
+        }
+        .notice {
+            font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 24px;
+        }
+        .btn {
+            display: block; width: 100%; padding: 14px;
+            border-radius: 10px; font-weight: 600; font-size: 15px;
+            text-decoration: none; text-align: center; cursor: pointer;
+            border: none; margin-bottom: 10px; transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-primary {
+            background: #06c755; color: white;
+        }
+        .btn-secondary {
+            background: #f0f0f0; color: #333;
+        }
+        .copied {
+            display: none; font-size: 13px; color: #06c755;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">&#x1F6D2;</div>
+        <h1>BuyGo</h1>
+        <div class="product-name"><?php echo $product_name; ?></div>
+        <p class="notice">
+            LINE 瀏覽器不支援完整購物功能<br>
+            請在手機瀏覽器中開啟此連結
+        </p>
+        <a href="<?php echo esc_url($external_url); ?>" class="btn btn-primary">
+            &#x1F310; 在瀏覽器中開啟
+        </a>
+        <button class="btn btn-secondary" onclick="copyLink()">
+            &#x1F4CB; 複製連結
+        </button>
+        <div class="copied" id="copied-msg">&#x2705; 連結已複製！請貼到瀏覽器開啟</div>
+    </div>
+    <script>
+    function copyLink() {
+        var url = <?php echo wp_json_encode($external_url); ?>;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                showCopied();
+            }).catch(function() {
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+    }
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showCopied(); }
+        catch(e) { alert(text); }
+        document.body.removeChild(ta);
+    }
+    function showCopied() {
+        var el = document.getElementById('copied-msg');
+        el.style.display = 'block';
+        setTimeout(function() { el.style.display = 'none'; }, 3000);
+    }
+    </script>
+</body>
+</html>
+        <?php
+    }
+
     /**
      * 標記需要刷新 rewrite rules（在啟用外掛時呼叫）
      *

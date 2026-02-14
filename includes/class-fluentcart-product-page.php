@@ -37,10 +37,15 @@ class FluentCartProductPage {
         
         // 確保產品設定為單次付款
         $this->ensure_one_time_payment();
-        
+
         // 自訂產品頁面樣式
         add_action('wp_head', array($this, 'add_product_page_styles'), 999);
-        
+
+        // 未登入用戶顯示登入提示
+        if (!is_user_logged_in()) {
+            add_action('wp_footer', array($this, 'add_login_prompt'), 20);
+        }
+
         // 確保數量選擇器顯示
         add_filter('fluent_cart/product_quantity_enabled', array($this, 'enable_quantity_selector'), 10, 2);
     }
@@ -78,6 +83,41 @@ class FluentCartProductPage {
         return true;
     }
     
+    /**
+     * 未登入用戶的登入提示橫幅
+     */
+    public function add_login_prompt() {
+        $redirect_to = get_permalink();
+        $login_url = home_url('/nextend_social_login/?loginSocial=line&redirect=' . urlencode($redirect_to));
+        $wp_login_url = wp_login_url($redirect_to);
+        ?>
+        <div id="buygo-login-prompt" style="
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+            background: white; border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+            padding: 12px 16px; display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+        ">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; color: #333; font-weight: 600;">
+                    &#x1F4AC; 登入後可追蹤訂單、接收出貨通知
+                </div>
+            </div>
+            <a href="<?php echo esc_url($login_url); ?>" style="
+                display: inline-block; padding: 8px 16px;
+                background: #06c755; color: white; border-radius: 8px;
+                font-size: 13px; font-weight: 600; text-decoration: none;
+                white-space: nowrap;
+            ">LINE 登入</a>
+            <button onclick="this.parentElement.style.display='none'" style="
+                background: none; border: none; font-size: 18px;
+                color: #999; cursor: pointer; padding: 4px;
+                line-height: 1;
+            ">&times;</button>
+        </div>
+        <?php
+    }
+
     /**
      * 添加產品頁面自訂樣式
      */

@@ -436,7 +436,8 @@ class LineWebhookHandler {
 	 */
 	private function getProductUrl( $product_id ) {
 		// 使用短連結格式 /item/{product_id}
-		return home_url( "/item/{$product_id}" );
+		// 加上 openExternalBrowser=1 讓 LINE 內點擊時自動開啟外部瀏覽器
+		return home_url( "/item/{$product_id}?openExternalBrowser=1" );
 	}
 
 	/**
@@ -564,7 +565,7 @@ class LineWebhookHandler {
 
 			// 取得虛擬商品購買連結
 			$seller_product_id = get_option( 'buygo_seller_product_id' );
-			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/?openExternalBrowser=1" ) : home_url();
 
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
 				'display_name' => $user->display_name ?: $user->user_login,
@@ -816,7 +817,7 @@ class LineWebhookHandler {
 
 			// 取得虛擬商品購買連結
 			$seller_product_id = get_option( 'buygo_seller_product_id' );
-			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/?openExternalBrowser=1" ) : home_url();
 
 			// 發送權限不足訊息給用戶（不再是 silent）
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
@@ -1016,7 +1017,7 @@ class LineWebhookHandler {
 
 			// 取得虛擬商品購買連結
 			$seller_product_id = get_option( 'buygo_seller_product_id' );
-			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/" ) : home_url();
+			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/?openExternalBrowser=1" ) : home_url();
 
 			// 發送權限不足訊息給用戶（不再是 silent）
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(
@@ -1117,8 +1118,8 @@ class LineWebhookHandler {
 		// Get product URL
 		// 強制使用 /item/{post_id} 格式（短連結）
 		// 不使用 get_permalink() 因為它會返回商品名稱的 slug，不是我們要的短連結格式
-		$product_url = home_url( "/item/{$post_id}" );
-		
+		$product_url = home_url( "/item/{$post_id}?openExternalBrowser=1" );
+
 		// 記錄日誌以便除錯
 		$this->logger->log( 'product_url_generated', array(
 			'product_id' => $post_id,
