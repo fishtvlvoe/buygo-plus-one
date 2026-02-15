@@ -11,12 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 檢查 buygo-line-notify 外掛是否啟用（在 admin_init 時檢查，確保所有外掛已載入）
+// 檢查 LINE 發送管道是否可用（LineHub 或 buygo-line-notify）
 add_action( 'admin_init', function() {
-	if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
+	if ( ! class_exists( '\\LineHub\\Plugin' ) && ! class_exists( '\\BuygoLineNotify\\BuygoLineNotify' ) ) {
 		add_action( 'admin_notices', function() {
-			echo '<div class="notice notice-error"><p>';
-			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 相關功能。';
+			echo '<div class="notice notice-warning"><p>';
+			echo 'BuyGo+ Plus One 建議啟用 LINE Hub 或 BuyGo Line Notify 外掛以使用 LINE Webhook 功能。';
 			echo '</p></div>';
 		} );
 	}
@@ -50,13 +50,18 @@ class LineWebhookHandler {
 		$this->product_data_parser = new ProductDataParser();
 		$this->logger = WebhookLogger::get_instance();
 
-		// 註冊 Hook：監聯 buygo-line-notify 的 webhook 訊息事件
-		// 圖片訊息 → 觸發商品圖片上傳流程
-		add_action( 'buygo_line_notify/webhook_message_image', array( $this, 'handleImageUpload' ), 10, 4 );
-		// 文字訊息 → 處理關鍵字回應、命令、商品資訊等
-		add_action( 'buygo_line_notify/webhook_message_text', array( $this, 'handleTextMessage' ), 10, 4 );
-		// Postback 事件 → 處理商品類型選擇（單一/多樣）
-		add_action( 'buygo_line_notify/webhook_postback', array( $this, 'handlePostback' ), 10, 3 );
+		// 優先監聽 LineHub 的 webhook hooks（Phase 5B）
+		if ( class_exists( '\\LineHub\\Plugin' ) ) {
+			// LineHub 已啟用，使用 LineHub webhook hooks
+			add_action( 'line_hub/webhook/message/image', array( $this, 'handleImageUpload' ), 10, 4 );
+			add_action( 'line_hub/webhook/message/text', array( $this, 'handleTextMessage' ), 10, 4 );
+			add_action( 'line_hub/webhook/postback', array( $this, 'handlePostback' ), 10, 3 );
+		} else {
+			// Fallback：LineHub 未啟用時，繼續監聽 buygo-line-notify
+			add_action( 'buygo_line_notify/webhook_message_image', array( $this, 'handleImageUpload' ), 10, 4 );
+			add_action( 'buygo_line_notify/webhook_message_text', array( $this, 'handleTextMessage' ), 10, 4 );
+			add_action( 'buygo_line_notify/webhook_postback', array( $this, 'handlePostback' ), 10, 3 );
+		}
 	}
 
 	/**
