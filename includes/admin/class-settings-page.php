@@ -375,7 +375,7 @@ class SettingsPage
         }
         
         if ($search) {
-            $where[] = "(receiver LIKE %s OR content LIKE %s)";
+            $where[] = "(title LIKE %s OR message LIKE %s)";
             $search_term = '%' . $wpdb->esc_like($search) . '%';
             $query_params[] = $search_term;
             $query_params[] = $search_term;
@@ -384,7 +384,7 @@ class SettingsPage
         $where_clause = implode(' AND ', $where);
         
         if ($table_exists) {
-            $query = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY created_at DESC LIMIT 100";
+            $query = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY sent_at DESC LIMIT 100";
             if (!empty($query_params)) {
                 $query = $wpdb->prepare($query, $query_params);
             }
@@ -431,16 +431,24 @@ class SettingsPage
                     </tr>
                 <?php else: ?>
                     <?php foreach ($logs as $log): ?>
+                        <?php
+                        // 取得用戶資訊
+                        $user_display = '-';
+                        if (!empty($log['user_id'])) {
+                            $user = get_userdata($log['user_id']);
+                            $user_display = $user ? $user->display_name : "User #{$log['user_id']}";
+                        }
+                        ?>
                         <tr>
-                            <td><?php echo esc_html($log['receiver'] ?? '-'); ?></td>
+                            <td><?php echo esc_html($user_display); ?></td>
                             <td><?php echo esc_html($log['channel'] ?? '-'); ?></td>
                             <td>
                                 <span class="status-badge status-<?php echo esc_attr($log['status'] ?? ''); ?>">
                                     <?php echo esc_html($log['status'] === 'success' ? '成功' : '失敗'); ?>
                                 </span>
                             </td>
-                            <td><?php echo esc_html(wp_trim_words($log['content'] ?? '', 30)); ?></td>
-                            <td><?php echo esc_html($log['created_at'] ?? '-'); ?></td>
+                            <td><?php echo esc_html(wp_trim_words($log['message'] ?? '', 30)); ?></td>
+                            <td><?php echo esc_html($log['sent_at'] ?? '-'); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
