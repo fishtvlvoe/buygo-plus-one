@@ -190,7 +190,7 @@ class ProductNotificationHandler
     private function buildTemplateArgs($product_id, $product_data)
     {
         $product_name = $product_data['name'] ?? '';
-        $product_url = home_url("/item/{$product_id}?openExternalBrowser=1");
+        $product_url = LineProductCreator::buildProductUrl( $product_id );
 
         // 幣別符號（支援多種貨幣）
         $currency = $product_data['currency'] ?? 'TWD';
