@@ -323,7 +323,7 @@ class ProductNotificationHandler
         }
 
         foreach ($user_ids as $user_id) {
-            // 透過 NotificationService 發送（自動選擇 LineHub 或 buygo-line-notify）
+            // 透過 NotificationService 發送（使用 LineHub）
             $success = NotificationService::sendRawText((int) $user_id, $message);
 
             if ($success) {

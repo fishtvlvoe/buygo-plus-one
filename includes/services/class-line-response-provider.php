@@ -2,12 +2,12 @@
 /**
  * LINE Response Provider
  *
- * 監聽 buygo-line-notify 的 filter，提供回覆模板內容
+ * LINE Response Provider（已停用）
  *
- * 架構說明：
- * - buygo-line-notify 處理 LINE webhook 接收和訊息發送
- * - buygo-plus-one-dev 透過此類別提供「要回覆什麼內容」
- * - 此類別不直接發送訊息，只返回模板內容給 buygo-line-notify
+ * 原為 buygo-line-notify filter 橋接器，功能已移至：
+ * - LineWebhookHandler（事件分派）
+ * - LineTextRouter（文字訊息處理）
+ * - LineKeywordResponder（關鍵字指令）
  *
  * @package BuyGoPlus
  * @since 1.2.0
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
  * Class LineResponseProvider
  *
  * 負責：
- * 1. 監聽 buygo_line_notify/get_response filter
+ * 1. （已停用）原監聽 buygo_line_notify/get_response filter
  * 2. 根據 action_type 和用戶身份決定回覆內容
  * 3. 使用 NotificationTemplates 產生格式化訊息
  */
@@ -38,16 +38,13 @@ class LineResponseProvider
 
     /**
      * 初始化
+     *
+     * @deprecated 功能已由 LineWebhookHandler + LineTextRouter + LineKeywordResponder 透過 LineHub action hooks 覆蓋
      */
     public static function init(): void
     {
-        // 檢查 buygo-line-notify 是否啟用
-        if (!class_exists('\\BuygoLineNotify\\BuygoLineNotify')) {
-            return; // 未啟用則靜默返回
-        }
-
-        // 註冊 filter 監聽器
-        add_filter('buygo_line_notify/get_response', [__CLASS__, 'provide_response'], 10, 5);
+        // 不再註冊任何 hook — 所有功能已移至 LineHub action hooks
+        return;
     }
 
     /**
@@ -63,8 +60,8 @@ class LineResponseProvider
     /**
      * 提供回覆內容
      *
-     * 這是與 buygo-line-notify 的主要橋接點。
-     * buygo-line-notify 透過 apply_filters 詢問「這個事件要回覆什麼？」
+     * 原為 buygo-line-notify 的主要橋接點（已停用）。
+     * 原透過 apply_filters 詢問「這個事件要回覆什麼？」
      * 我們根據 action_type 和用戶身份決定回覆內容。
      *
      * @param mixed    $response    預設回覆（null 表示不回覆）

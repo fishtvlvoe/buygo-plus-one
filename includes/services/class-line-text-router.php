@@ -173,16 +173,15 @@ class LineTextRouter {
 			return;
 		}
 
-		// 檢查是否為系統指令（由 LineKeywordResponder filter 處理）
-		// 這些指令會透過 buygo_line_notify/get_response filter 處理
-		// 此處不處理，讓 buygo-line-notify 的 filter 機制接手
+		// 系統指令由 LineKeywordResponder 通過 line_hub/webhook/message/text action 處理（優先級 5）
+		// 此處 return 避免 LineTextRouter（優先級 10）重複處理
 		$system_commands = array( '/id', '/綁定', '/狀態', '/help', '/說明', '/指令' );
 		if ( in_array( strtolower( trim( $text ) ), $system_commands, true ) ) {
 			$this->logger->log( 'system_command_detected', array(
 				'command'  => $text,
 				'line_uid' => $line_uid,
 			), null, $line_uid );
-			return; // 不處理，讓 filter 機制處理
+			return;
 		}
 
 		// Get WordPress user from LINE UID（提前取得，供後續命令和商品資訊處理使用）
@@ -236,9 +235,8 @@ class LineTextRouter {
 			// 清除待處理狀態，避免無限循環
 			// 當用戶發送的訊息不是有效的商品資訊時，應該清除待處理狀態
 			// 讓用戶可以重新開始上架流程
-			if ( class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
-				$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
-				$image_uploader->clear_temp_images( $user->ID );
+			if ( class_exists( '\\LineHub\\Services\\ContentService' ) ) {
+				( new \LineHub\Services\ContentService() )->clearTempImages( $user->ID );
 			}
 			delete_user_meta( $user->ID, 'pending_product_image' );
 			delete_user_meta( $user->ID, 'pending_product_type' );
@@ -264,11 +262,9 @@ class LineTextRouter {
 		$product_data['line_uid'] = $line_uid;
 
 		// Get temporary images
-		// 檢查 buygo-line-notify 是否啟用
 		$image_ids = array();
-		if ( class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
-			$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
-			$image_ids = $image_uploader->get_temp_images( $user->ID );
+		if ( class_exists( '\\LineHub\\Services\\ContentService' ) ) {
+			$image_ids = ( new \LineHub\Services\ContentService() )->getTempImages( $user->ID );
 
 			// 將第一個圖片 ID 加入 product_data（FluentCartService 會使用）
 			if ( ! empty( $image_ids ) ) {
@@ -302,9 +298,8 @@ class LineTextRouter {
 		}
 
 		// Clear temporary images
-		if ( ! empty( $image_ids ) && class_exists( '\BuygoLineNotify\BuygoLineNotify' ) && \BuygoLineNotify\BuygoLineNotify::is_active() ) {
-			$image_uploader = \BuygoLineNotify\BuygoLineNotify::image_uploader();
-			$image_uploader->clear_temp_images( $user->ID );
+		if ( ! empty( $image_ids ) && class_exists( '\\LineHub\\Services\\ContentService' ) ) {
+			( new \LineHub\Services\ContentService() )->clearTempImages( $user->ID );
 		}
 
 		// Log success

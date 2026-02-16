@@ -345,7 +345,19 @@ class ExportService
             return '';
         }
 
-        // 優先級 1: wp_buygo_line_users.display_name（buygo-line-notify 新表）
+        // 優先級 0: wp_line_hub_users.display_name（LineHub 用戶表）
+        $table_line_hub = $wpdb->prefix . 'line_hub_users';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_line_hub}'") === $table_line_hub) {
+            $display_name = $wpdb->get_var($wpdb->prepare(
+                "SELECT display_name FROM {$table_line_hub} WHERE user_id = %d LIMIT 1",
+                $user_id
+            ));
+            if (!empty($display_name)) {
+                return $display_name;
+            }
+        }
+
+        // 優先級 1: wp_buygo_line_users.display_name（舊 buygo-line-notify 表）
         $table_line_users = $wpdb->prefix . 'buygo_line_users';
         if ($wpdb->get_var("SHOW TABLES LIKE '{$table_line_users}'") === $table_line_users) {
             $display_name = $wpdb->get_var($wpdb->prepare(

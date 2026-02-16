@@ -36,8 +36,46 @@ class LineKeywordResponder {
 	 * 初始化
 	 */
 	public function init(): void {
-		// 監聽 LINE 訊息回覆 filter
-		add_filter( 'buygo_line_notify/get_response', [ $this, 'handle_keyword' ], 10, 5 );
+		// 監聯 LineHub Webhook action（優先級 5，比 TextRouter 的 10 更早處理）
+		add_action( 'line_hub/webhook/message/text', [ $this, 'handleTextAction' ], 5, 4 );
+	}
+
+	/**
+	 * 處理 LineHub webhook text action
+	 *
+	 * @param array  $event      LINE Webhook 事件
+	 * @param string $line_uid   LINE User ID
+	 * @param int    $user_id    WordPress User ID
+	 * @param string $message_id LINE Message ID
+	 */
+	public function handleTextAction( array $event, string $line_uid, int $user_id, string $message_id ): void {
+		$text = trim( $event['message']['text'] ?? '' );
+		$text_lower = strtolower( $text );
+
+		// 檢查是否為關鍵字指令
+		$response = null;
+		switch ( $text_lower ) {
+			case '/id':
+			case '/綁定':
+			case '/狀態':
+				$response = $this->get_binding_status_message( $line_uid, $user_id );
+				break;
+
+			case '/help':
+			case '/說明':
+			case '/指令':
+				$response = $this->get_help_message();
+				break;
+		}
+
+		if ( $response === null ) {
+			return; // 非關鍵字，交給後續 handler（TextRouter）處理
+		}
+
+		// 直接用 MessagingFacade 發送回覆
+		$messaging = new LineMessagingFacade();
+		$reply_token = $event['replyToken'] ?? '';
+		$messaging->send_reply( $reply_token, $response, $line_uid );
 	}
 
 	/**

@@ -3,6 +3,7 @@
  * LINE Messaging Facade
  *
  * 統一的 LINE 訊息發送介面 - Reply Token 失效時自動切換到 Push API
+ * 透過 LineHub MessagingService 發送所有訊息
  *
  * @package BuyGoPlus
  */
@@ -41,142 +42,144 @@ class LineMessagingFacade {
 	 *
 	 * @param string       $reply_token Reply token
 	 * @param string|array $message     Message content
-	 * @param string       $line_uid    LINE user ID (optional, for logging)
+	 * @param string       $line_uid    LINE user ID（Push fallback 用）
 	 * @return bool
 	 */
 	public function send_reply( $reply_token, $message, $line_uid = null ) {
-		// 優先使用 LineHub MessagingService
-		if ( class_exists( '\\LineHub\\Messaging\\MessagingService' ) ) {
-			$messages = is_array( $message ) ? array( $message ) : array( array( 'type' => 'text', 'text' => $message ) );
-			return $this->send_via_linehub( $messages, $reply_token, $line_uid, 'send_reply' );
-		}
-
-		// Fallback: buygo-line-notify
-		// 檢查 buygo-line-notify 是否啟用
-		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+		if ( ! class_exists( '\\LineHub\\Messaging\\MessagingService' ) ) {
 			$this->logger->log( 'error', array(
-				'message' => 'BuyGo Line Notify plugin is not active, cannot send reply',
-				'action' => 'send_reply',
+				'message' => 'LINE Hub MessagingService not available',
+				'action'  => 'send_reply',
 			), null, $line_uid );
 			return false;
 		}
 
-		// 使用 buygo-line-notify 的 LineMessagingService
-		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+		$messaging = new \LineHub\Messaging\MessagingService();
+		$messages  = is_array( $message ) ? array( $message ) : array( array( 'type' => 'text', 'text' => $message ) );
 
-		// 先嘗試 Reply（如果 Token 有效）
+		// 先嘗試 Reply
 		$result = false;
 		if ( ! empty( $reply_token ) ) {
-			$result = $messaging->send_reply( $reply_token, $message, $line_uid );
+			$result = $messaging->replyMessage( $reply_token, $messages );
 		}
 
-		// 如果 Reply 失敗（Token 無效、為空、或返回 false），改用 Push Message
+		// Reply 失敗 → Push fallback（需要 line_uid 轉 user_id）
 		if ( ! $result || is_wp_error( $result ) ) {
 			if ( is_wp_error( $result ) ) {
 				$this->logger->log( 'reply_failed_fallback_to_push', array(
-					'error' => $result->get_error_message(),
+					'error'    => $result->get_error_message(),
 					'fallback' => 'push_message',
 				), null, $line_uid );
 			}
 
-			// 確保有 LINE UID 才能使用 Push
-			if ( ! empty( $line_uid ) ) {
-				// 將訊息包裝成 LINE 訊息格式
-				$push_message = is_array( $message ) ? $message : array(
-					'type' => 'text',
-					'text' => $message,
-				);
-
-				$result = $messaging->push_message( $line_uid, $push_message );
-
-				if ( is_wp_error( $result ) ) {
+			if ( ! empty( $line_uid ) && class_exists( '\\LineHub\\Services\\UserService' ) ) {
+				$user_id = \LineHub\Services\UserService::getUserByLineUid( $line_uid );
+				if ( $user_id ) {
+					$result = $messaging->pushMessage( $user_id, $messages );
+					if ( is_wp_error( $result ) ) {
+						$this->logger->log( 'error', array(
+							'message' => 'Failed to send LINE message (both reply and push failed)',
+							'error'   => $result->get_error_message(),
+							'action'  => 'send_reply',
+						), null, $line_uid );
+						return false;
+					}
+				} else {
 					$this->logger->log( 'error', array(
-						'message' => 'Failed to send LINE message (both reply and push failed)',
-						'error' => $result->get_error_message(),
-						'action' => 'send_reply',
+						'message' => 'Cannot push: LINE UID not bound to any user',
+						'action'  => 'send_reply',
 					), null, $line_uid );
 					return false;
 				}
 			} else {
 				$this->logger->log( 'error', array(
 					'message' => 'Cannot send message: no reply token and no LINE UID',
-					'action' => 'send_reply',
+					'action'  => 'send_reply',
 				), null, $line_uid );
 				return false;
 			}
 		}
 
-		return $result;
+		return ! is_wp_error( $result );
 	}
 
 	/**
 	 * 發送 Flex Message（Reply Token 失效時自動切換到 Push API）
 	 *
-	 * @param string $reply_token Reply token
+	 * @param string $reply_token  Reply token
 	 * @param array  $flex_contents Flex Message 內容（bubble 或 carousel）
-	 * @param string $line_uid LINE user ID（Push fallback 用）
-	 * @param string $alt_text 替代文字（不支援 Flex 的裝置顯示）
+	 * @param string $line_uid     LINE user ID（Push fallback 用）
+	 * @param string $alt_text     替代文字（不支援 Flex 的裝置顯示）
 	 * @return bool
 	 */
 	public function send_flex( $reply_token, $flex_contents, $line_uid = null, $alt_text = '商品通知' ) {
-		// 檢查 buygo-line-notify 是否啟用
-		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+		if ( ! class_exists( '\\LineHub\\Messaging\\MessagingService' ) ) {
 			$this->logger->log( 'error', array(
-				'message' => 'BuyGo Line Notify plugin is not active, cannot send flex',
-				'action' => 'send_flex',
+				'message' => 'LINE Hub MessagingService not available',
+				'action'  => 'send_flex',
 			), null, $line_uid );
 			return false;
 		}
 
-		$messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
+		$messaging    = new \LineHub\Messaging\MessagingService();
+		$flex_message = array(
+			'type'     => 'flex',
+			'altText'  => $alt_text,
+			'contents' => $flex_contents,
+		);
+		$messages = array( $flex_message );
 
 		// 先嘗試 Reply
 		$result = false;
 		if ( ! empty( $reply_token ) ) {
-			$result = $messaging->replyFlex( $reply_token, $flex_contents, $alt_text );
+			$result = $messaging->replyMessage( $reply_token, $messages );
 		}
 
 		// Reply 失敗 → Push fallback
 		if ( ! $result || is_wp_error( $result ) ) {
 			if ( is_wp_error( $result ) ) {
 				$this->logger->log( 'flex_reply_failed_fallback_to_push', array(
-					'error' => $result->get_error_message(),
+					'error'    => $result->get_error_message(),
 					'fallback' => 'push_message',
 				), null, $line_uid );
 			}
 
-			if ( ! empty( $line_uid ) ) {
-				$push_message = array(
-					'type'     => 'flex',
-					'altText'  => $alt_text,
-					'contents' => $flex_contents,
-				);
-				$result = $messaging->push_message( $line_uid, $push_message );
-
-				if ( is_wp_error( $result ) ) {
+			if ( ! empty( $line_uid ) && class_exists( '\\LineHub\\Services\\UserService' ) ) {
+				$user_id = \LineHub\Services\UserService::getUserByLineUid( $line_uid );
+				if ( $user_id ) {
+					$result = $messaging->pushFlex( $user_id, $flex_message );
+					if ( is_wp_error( $result ) ) {
+						$this->logger->log( 'error', array(
+							'message' => 'Failed to send Flex (both reply and push failed)',
+							'error'   => $result->get_error_message(),
+							'action'  => 'send_flex',
+						), null, $line_uid );
+						return false;
+					}
+				} else {
 					$this->logger->log( 'error', array(
-						'message' => 'Failed to send Flex (both reply and push failed)',
-						'error' => $result->get_error_message(),
-						'action' => 'send_flex',
+						'message' => 'Cannot push flex: LINE UID not bound to any user',
+						'action'  => 'send_flex',
 					), null, $line_uid );
 					return false;
 				}
 			} else {
 				$this->logger->log( 'error', array(
 					'message' => 'Cannot send flex: no reply token and no LINE UID',
-					'action' => 'send_flex',
+					'action'  => 'send_flex',
 				), null, $line_uid );
 				return false;
 			}
 		}
 
-		return $result;
+		return ! is_wp_error( $result );
 	}
 
 	/**
 	 * 發送說明訊息
 	 *
 	 * @param string $reply_token Reply token
+	 * @param string $line_uid    LINE user ID
 	 * @return bool
 	 */
 	public function send_help( $reply_token, $line_uid = null ) {

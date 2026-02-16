@@ -217,9 +217,8 @@ class Plugin {
         new \BuyGoPlus\Api\Seller_Application_API();
 
         // LINE Webhook API 已移除
-        // 根據架構設計，LINE webhook 由 buygo-line-notify 接收
+        // 根據架構設計，LINE webhook 由 LINE Hub 接收
         // BuyGo Plus One 透過 hook 機制接收事件，不直接處理 webhook
-        // 參考：.planning/debug/line-webhook-integration-failure.md 外掛架構定位
 
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
@@ -243,16 +242,14 @@ class Plugin {
         // 初始化訂單項目標題修復服務
         \BuyGoPlus\Services\OrderItemTitleFixer::instance();
 
-        // 初始化 LINE Response Provider
-        // 透過 filter hook 向 buygo-line-notify 提供回覆模板內容
-        // 參考架構：buygo-line-notify 發送訊息，buygo-plus-one 提供模板
+        // 初始化 LINE Response Provider（已停用，功能移至 LineHub action hooks）
         \BuyGoPlus\Services\LineResponseProvider::init();
 
         // 初始化 LINE Webhook Handler
-        // 處理 buygo-line-notify 發出的 webhook hooks：
-        // - webhook_message_image: 圖片上傳 → 商品類型選單
-        // - webhook_message_text: 文字訊息 → 關鍵字回應、命令處理、商品資訊
-        // - webhook_postback: 按鈕點擊 → 商品類型選擇後發送格式說明
+        // 監聽 LineHub 發出的 webhook action hooks：
+        // - line_hub/webhook/message/image: 圖片上傳 → 商品類型選單
+        // - line_hub/webhook/message/text: 文字訊息 → 關鍵字回應、命令處理、商品資訊
+        // - line_hub/webhook/postback: 按鈕點擊 → 商品類型選擇後發送格式說明
         $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
 
         // 註冊 BuyGo 自建 Webhook 端點的 Cron hook
