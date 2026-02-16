@@ -215,7 +215,7 @@ class LineTextRouter {
 
 			// 取得虛擬商品購買連結
 			$seller_product_id = get_option( 'buygo_seller_product_id' );
-			$purchase_url = $seller_product_id ? home_url( "/product/{$seller_product_id}/?openExternalBrowser=1" ) : home_url();
+			$purchase_url = $seller_product_id ? LineProductCreator::buildProductUrl( $seller_product_id ) : home_url();
 
 			// 發送權限不足訊息給用戶
 			$template = \BuyGoPlus\Services\NotificationTemplates::get( 'system_permission_denied', array(

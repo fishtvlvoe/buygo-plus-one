@@ -204,15 +204,36 @@ class LineProductCreator {
 	}
 
 	/**
-	 * 取得商品 URL
+	 * 取得商品 URL（LINE 內使用 LIFF 開啟）
 	 *
 	 * @param int $product_id 商品 ID
 	 * @return string 商品 URL
 	 */
 	public function getProductUrl( $product_id ) {
-		// 使用短連結格式 /item/{product_id}
-		// 加上 openExternalBrowser=1 讓 LINE 內點擊時自動開啟外部瀏覽器
-		return home_url( "/item/{$product_id}?openExternalBrowser=1" );
+		return self::buildProductUrl( $product_id );
+	}
+
+	/**
+	 * 生成商品連結（靜態方法，供其他類別共用）
+	 *
+	 * 如果 LineHub 已設定 LIFF ID，生成 LIFF URL（LINE 內部瀏覽器開啟）
+	 * 否則使用一般短連結
+	 *
+	 * @param int $product_id 商品 ID
+	 * @return string 商品 URL
+	 */
+	public static function buildProductUrl( $product_id ) {
+		// 優先使用 LIFF URL（在 LINE 內部瀏覽器開啟）
+		if ( class_exists( '\\LineHub\\Services\\SettingsService' ) ) {
+			$liff_id = \LineHub\Services\SettingsService::get( 'general', 'liff_id', '' );
+			if ( ! empty( $liff_id ) ) {
+				$redirect = urlencode( "/item/{$product_id}" );
+				return "https://liff.line.me/{$liff_id}?redirect={$redirect}";
+			}
+		}
+
+		// Fallback：一般短連結
+		return home_url( "/item/{$product_id}" );
 	}
 
 	/**
