@@ -40,13 +40,33 @@ class NotificationService
     }
 
     /**
-     * 檢查 buygo-line-notify 是否可用
+     * 檢查 LineHub MessagingService 是否可用
+     *
+     * @return bool
+     */
+    public static function isLineHubAvailable(): bool
+    {
+        return class_exists('\\LineHub\\Messaging\\MessagingService');
+    }
+
+    /**
+     * 檢查 buygo-line-notify 是否可用（fallback）
      *
      * @return bool
      */
     public static function isLineNotifyAvailable(): bool
     {
         return class_exists('\\BuygoLineNotify\\Services\\MessagingService');
+    }
+
+    /**
+     * 檢查是否有任何 LINE 發送管道可用
+     *
+     * @return bool
+     */
+    public static function isAnyChannelAvailable(): bool
+    {
+        return self::isLineHubAvailable() || self::isLineNotifyAvailable();
     }
 
     /**
@@ -61,9 +81,9 @@ class NotificationService
     {
         self::init_debug_service();
 
-        // 檢查 buygo-line-notify 是否可用
-        if (!self::isLineNotifyAvailable()) {
-            self::$debug_service->log('NotificationService', 'buygo-line-notify 未啟用', [
+        // 檢查是否有任何發送管道可用
+        if (!self::isAnyChannelAvailable()) {
+            self::$debug_service->log('NotificationService', 'LINE 發送管道皆不可用', [
                 'user_id' => $user_id,
                 'template_key' => $template_key,
             ], 'warning');
@@ -96,9 +116,9 @@ class NotificationService
             return false;
         }
 
-        // 發送訊息
+        // 發送訊息：優先使用 LineHub，fallback 到 buygo-line-notify
         try {
-            $result = \BuygoLineNotify\Services\MessagingService::pushText($user_id, $message);
+            $result = self::pushTextViaChannel($user_id, $message);
 
             if (is_wp_error($result)) {
                 self::$debug_service->log('NotificationService', '發送失敗', [
@@ -111,6 +131,7 @@ class NotificationService
             self::$debug_service->log('NotificationService', '發送成功', [
                 'user_id' => $user_id,
                 'template_key' => $template_key,
+                'channel' => self::isLineHubAvailable() ? 'linehub' : 'line-notify',
             ]);
 
             return true;
@@ -135,9 +156,9 @@ class NotificationService
     {
         self::init_debug_service();
 
-        // 檢查 buygo-line-notify 是否可用
-        if (!self::isLineNotifyAvailable()) {
-            self::$debug_service->log('NotificationService', 'buygo-line-notify 未啟用', [
+        // 檢查是否有任何發送管道可用
+        if (!self::isAnyChannelAvailable()) {
+            self::$debug_service->log('NotificationService', 'LINE 發送管道皆不可用', [
                 'user_id' => $user_id,
                 'template_key' => $template_key,
             ], 'warning');
@@ -173,9 +194,9 @@ class NotificationService
         // 構建 Flex Message
         $flex_message = self::buildFlexMessage($flex_template);
 
-        // 發送訊息
+        // 發送訊息：優先使用 LineHub，fallback 到 buygo-line-notify
         try {
-            $result = \BuygoLineNotify\Services\MessagingService::pushFlex($user_id, $flex_message);
+            $result = self::pushFlexViaChannel($user_id, $flex_message);
 
             if (is_wp_error($result)) {
                 self::$debug_service->log('NotificationService', 'Flex 發送失敗', [
@@ -188,6 +209,7 @@ class NotificationService
             self::$debug_service->log('NotificationService', 'Flex 發送成功', [
                 'user_id' => $user_id,
                 'template_key' => $template_key,
+                'channel' => self::isLineHubAvailable() ? 'linehub' : 'line-notify',
             ]);
 
             return true;
@@ -373,7 +395,7 @@ class NotificationService
     {
         self::init_debug_service();
 
-        if (!self::isLineNotifyAvailable()) {
+        if (!self::isAnyChannelAvailable()) {
             return false;
         }
 
@@ -382,7 +404,7 @@ class NotificationService
         }
 
         try {
-            $result = \BuygoLineNotify\Services\MessagingService::pushText($user_id, $message);
+            $result = self::pushTextViaChannel($user_id, $message);
             return !is_wp_error($result);
         } catch (\Exception $e) {
             self::$debug_service->log('NotificationService', '發送原始訊息失敗', [
@@ -390,5 +412,55 @@ class NotificationService
             ], 'error');
             return false;
         }
+    }
+
+    /**
+     * 透過可用管道發送文字訊息
+     *
+     * 優先使用 LineHub MessagingService，不可用時 fallback 到 buygo-line-notify
+     *
+     * @param int $user_id WordPress User ID
+     * @param string $message 文字訊息
+     * @return mixed 成功返回 API 回應，失敗返回 WP_Error
+     */
+    private static function pushTextViaChannel(int $user_id, string $message)
+    {
+        // 優先使用 LineHub
+        if (self::isLineHubAvailable()) {
+            $service = new \LineHub\Messaging\MessagingService();
+            return $service->pushText($user_id, $message);
+        }
+
+        // Fallback: buygo-line-notify
+        if (self::isLineNotifyAvailable()) {
+            return \BuygoLineNotify\Services\MessagingService::pushText($user_id, $message);
+        }
+
+        return new \WP_Error('no_channel', 'LINE 發送管道皆不可用');
+    }
+
+    /**
+     * 透過可用管道發送 Flex Message
+     *
+     * 優先使用 LineHub MessagingService，不可用時 fallback 到 buygo-line-notify
+     *
+     * @param int $user_id WordPress User ID
+     * @param array $flex_message 完整的 Flex Message 結構
+     * @return mixed 成功返回 API 回應，失敗返回 WP_Error
+     */
+    private static function pushFlexViaChannel(int $user_id, array $flex_message)
+    {
+        // 優先使用 LineHub
+        if (self::isLineHubAvailable()) {
+            $service = new \LineHub\Messaging\MessagingService();
+            return $service->pushFlex($user_id, $flex_message);
+        }
+
+        // Fallback: buygo-line-notify
+        if (self::isLineNotifyAvailable()) {
+            return \BuygoLineNotify\Services\MessagingService::pushFlex($user_id, $flex_message);
+        }
+
+        return new \WP_Error('no_channel', 'LINE 發送管道皆不可用');
     }
 }

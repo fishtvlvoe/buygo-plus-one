@@ -315,35 +315,26 @@ class ProductNotificationHandler
             'skipped' => 0,
         ];
 
-        // 檢查 LINE Messaging API 是否可用
-        if (!class_exists('\BuygoLineNotify\Services\MessagingService')) {
-            $this->debug_service->log('ProductNotificationHandler', 'LINE Messaging API 不可用', [], 'warning');
+        // 檢查是否有任何 LINE 發送管道可用
+        if (!NotificationService::isAnyChannelAvailable()) {
+            $this->debug_service->log('ProductNotificationHandler', 'LINE 發送管道皆不可用', [], 'warning');
             $result['skipped'] = count($user_ids);
             return $result;
         }
 
         foreach ($user_ids as $user_id) {
-            // 使用 MessagingService::pushText() 發送訊息
-            // 該方法會自動檢查 LINE 綁定狀態並取得 LINE UID
-            $send_result = \BuygoLineNotify\Services\MessagingService::pushText((int) $user_id, $message);
+            // 透過 NotificationService 發送（自動選擇 LineHub 或 buygo-line-notify）
+            $success = NotificationService::sendRawText((int) $user_id, $message);
 
-            if (is_wp_error($send_result)) {
-                $error_code = $send_result->get_error_code();
-                if ($error_code === 'user_not_linked' || $error_code === 'line_uid_not_found') {
-                    $this->debug_service->log('ProductNotificationHandler', '用戶未綁定 LINE，跳過', [
-                        'user_id' => $user_id,
-                        'error' => $send_result->get_error_message(),
-                    ]);
+            if ($success) {
+                $result['success']++;
+            } else {
+                // sendRawText 內部已記錄詳細日誌，這裡簡單分類
+                if (!IdentityService::hasLineBinding((int) $user_id)) {
                     $result['skipped']++;
                 } else {
-                    $this->debug_service->log('ProductNotificationHandler', '發送失敗', [
-                        'user_id' => $user_id,
-                        'error' => $send_result->get_error_message(),
-                    ], 'error');
                     $result['failed']++;
                 }
-            } else {
-                $result['success']++;
             }
         }
 

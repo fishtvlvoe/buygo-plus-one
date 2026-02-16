@@ -11,12 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 檢查 buygo-line-notify 外掛是否啟用（在 admin_init 時檢查，確保所有外掛已載入）
+// 檢查 LINE 發送管道是否可用（LineHub 或 buygo-line-notify）
 add_action( 'admin_init', function() {
-	if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
+	if ( ! class_exists( '\LineHub\Messaging\MessagingService' ) && ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) ) {
 		add_action( 'admin_notices', function() {
-			echo '<div class="notice notice-error"><p>';
-			echo 'BuyGo+ Plus One 需要啟用 BuyGo Line Notify 外掛才能正常運作 LINE 訂單通知功能。';
+			echo '<div class="notice notice-warning"><p>';
+			echo 'BuyGo+ Plus One 建議啟用 LINE Hub 或 BuyGo Line Notify 外掛以使用 LINE 訂單通知功能。';
 			echo '</p></div>';
 		} );
 	}
@@ -184,9 +184,9 @@ class LineOrderNotifier {
 			return;
 		}
 
-		// 檢查 buygo-line-notify 是否啟用
-		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
-			$this->recordAttempt( $order, $event, $attempt, 'plugin_not_active', 'BuyGo Line Notify 外掛未啟用' );
+		// 檢查是否有任何 LINE 發送管道可用（LineHub 或 buygo-line-notify）
+		if ( ! NotificationService::isAnyChannelAvailable() ) {
+			$this->recordAttempt( $order, $event, $attempt, 'plugin_not_active', 'LINE 發送管道皆不可用' );
 			return;
 		}
 

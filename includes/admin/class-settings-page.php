@@ -135,10 +135,9 @@ class SettingsPage
             $this->handle_form_submit();
         }
 
-        // 取得當前 Tab
-        $current_tab = $_GET['tab'] ?? 'line';
+        // 取得當前 Tab（移除 LINE 設定，統一由 LINE Hub 管理）
+        $current_tab = $_GET['tab'] ?? 'notifications';
         $tabs = [
-            'line' => 'LINE 設定',
             'notifications' => '通知記錄',
             'workflow' => '流程監控',
             'checkout' => '結帳設定',
@@ -171,9 +170,6 @@ class SettingsPage
             <div class="tab-content" style="margin-top: 20px;">
                 <?php
                 switch ($current_tab) {
-                    case 'line':
-                        $this->render_line_tab($line_settings);
-                        break;
                     case 'notifications':
                         $this->render_notifications_tab();
                         break;
@@ -229,9 +225,26 @@ class SettingsPage
 
         ?>
 
+        <!-- 遷移提示 -->
+        <div class="notice notice-warning" style="margin: 20px 0; padding: 15px; border-left: 4px solid #f0ad4e;">
+            <h3 style="margin-top: 0;">⚠️ 重要通知：LINE 設定已遷移</h3>
+            <p style="font-size: 14px; margin-bottom: 10px;">
+                從 LINE Hub v1.0 開始，所有 LINE 相關設定（Channel ID、Secret、Access Token）已統一管理至 <strong>LINE Hub 外掛</strong>。
+            </p>
+            <p style="font-size: 14px; margin-bottom: 10px;">
+                • <strong>此處設定</strong>：僅作為相容性備援，將在未來版本中移除<br>
+                • <strong>建議操作</strong>：請前往 LINE Hub 設定頁面進行設定
+            </p>
+            <p style="margin-bottom: 0;">
+                <a href="<?php echo admin_url('admin.php?page=line-hub-settings'); ?>" class="button button-primary">
+                    前往 LINE Hub 設定 →
+                </a>
+            </p>
+        </div>
+
         <!-- Debug Information -->
         <div class="notice notice-info" style="margin: 20px 0;">
-            <h3>🔍 LINE 設定 Debug 資訊</h3>
+            <h3>🔍 LINE 設定 Debug 資訊（舊版相容模式）</h3>
             <table class="widefat" style="margin-top: 10px;">
                 <tr>
                     <th style="width: 200px;">Token 是否存在</th>
