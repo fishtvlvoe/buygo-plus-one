@@ -230,7 +230,7 @@ class IdentityService
      * 取得用戶的 LINE UID
      *
      * 查詢順序：
-     * 1. buygo-line-notify 的 LineUserService（如果可用）
+     * 1. LineHub 的 UserService（如果可用）
      * 2. wp_buygo_line_bindings 資料表
      * 3. wp_usermeta（_mygo_line_uid）
      *
@@ -239,9 +239,9 @@ class IdentityService
      */
     public static function getLineUid(int $user_id): ?string
     {
-        // 嘗試使用 buygo-line-notify 的服務
-        if (class_exists('\\BuygoLineNotify\\Services\\LineUserService')) {
-            $line_uid = \BuygoLineNotify\Services\LineUserService::getLineUidByUserId($user_id);
+        // 嘗試使用 LineHub 的 UserService
+        if (class_exists('\\LineHub\\Services\\UserService')) {
+            $line_uid = \LineHub\Services\UserService::getLineUid($user_id);
             if ($line_uid) {
                 return $line_uid;
             }
@@ -291,15 +291,7 @@ class IdentityService
             }
         }
 
-        // 2. 嘗試使用 buygo-line-notify 的服務
-        if (class_exists('\\BuygoLineNotify\\Services\\LineUserService')) {
-            $user_id = \BuygoLineNotify\Services\LineUserService::getUserByLineUid($line_uid);
-            if ($user_id) {
-                return $user_id;
-            }
-        }
-
-        // 3. 使用本地 LineService（向後相容）
+        // 2. 使用本地 LineService（向後相容）
         $line_service = new LineService();
         $user = $line_service->get_user_by_line_uid($line_uid);
 

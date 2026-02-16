@@ -79,10 +79,10 @@ class LineProductUploadHandler {
 			return;
 		}
 
-		// 檢查 buygo-line-notify 是否啟用
-		if ( ! class_exists( '\BuygoLineNotify\BuygoLineNotify' ) || ! \BuygoLineNotify\BuygoLineNotify::is_active() ) {
+		// 檢查 LineHub ContentService 是否可用
+		if ( ! class_exists( '\\LineHub\\Services\\ContentService' ) ) {
 			$this->logger->log( 'error', array(
-				'message' => 'BuyGo Line Notify plugin is not active',
+				'message' => 'LINE Hub ContentService not available',
 				'line_uid' => $line_uid,
 				'step' => 'plugin_check',
 			), $user_id, $line_uid );
@@ -138,9 +138,9 @@ class LineProductUploadHandler {
 			'step' => 'download_image',
 		), $user->ID, $line_uid );
 
-		$imageService = \BuygoLineNotify\BuygoLineNotify::image_uploader();
+		$contentService = new \LineHub\Services\ContentService();
 		// 跳過縮圖生成以加速處理，避免 Reply Token 過期（主機會自動處理縮圖）
-		$attachment_id = $imageService->download_and_upload( $message_id, $user->ID, true );
+		$attachment_id = $contentService->downloadAndUpload( $message_id, $user->ID, true );
 
 		if ( is_wp_error( $attachment_id ) ) {
 			$this->logger->log( 'error', array(
@@ -161,6 +161,9 @@ class LineProductUploadHandler {
 			'user_id' => $user->ID,
 			'step' => 'image_uploaded',
 		), $user->ID, $line_uid );
+
+		// 暫存圖片到 LineHub ContentService
+		$contentService->saveTempImage( $user->ID, $attachment_id );
 
 		// 儲存上傳狀態到 user_meta
 		update_user_meta( $user->ID, 'pending_product_image', $attachment_id );

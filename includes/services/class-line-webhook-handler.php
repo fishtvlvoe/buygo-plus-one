@@ -13,12 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 檢查 LINE 發送管道是否可用（LineHub 或 buygo-line-notify）
+// 檢查 LINE 發送管道是否可用
 add_action( 'admin_init', function() {
-	if ( ! class_exists( '\\LineHub\\Plugin' ) && ! class_exists( '\\BuygoLineNotify\\BuygoLineNotify' ) ) {
+	if ( ! class_exists( '\\LineHub\\Plugin' ) ) {
 		add_action( 'admin_notices', function() {
 			echo '<div class="notice notice-warning"><p>';
-			echo 'BuyGo+ Plus One 建議啟用 LINE Hub 或 BuyGo Line Notify 外掛以使用 LINE Webhook 功能。';
+			echo 'BuyGo+ Plus One 建議啟用 LINE Hub 外掛以使用 LINE Webhook 功能。';
 			echo '</p></div>';
 		} );
 	}
@@ -77,20 +77,12 @@ class LineWebhookHandler {
 		$this->text_router = new LineTextRouter();
 		$this->messaging = new LineMessagingFacade();
 
-		// Phase 5B 雙軌 Hook 註冊
-		if ( class_exists( '\\LineHub\\Plugin' ) ) {
-			add_action( 'line_hub/webhook/message/image', array( $this->upload_handler, 'handleImageUpload' ), 10, 4 );
-			add_action( 'line_hub/webhook/message/text', array( $this->text_router, 'handleTextMessage' ), 10, 4 );
-			add_action( 'line_hub/webhook/postback', array( $this->upload_handler, 'handlePostback' ), 10, 3 );
-			add_action( 'line_hub/webhook/follow', array( $this, 'handle_follow' ), 10, 1 );
-			add_action( 'line_hub/webhook/unfollow', array( $this, 'handle_unfollow' ), 10, 1 );
-		} else {
-			add_action( 'buygo_line_notify/webhook_message_image', array( $this->upload_handler, 'handleImageUpload' ), 10, 4 );
-			add_action( 'buygo_line_notify/webhook_message_text', array( $this->text_router, 'handleTextMessage' ), 10, 4 );
-			add_action( 'buygo_line_notify/webhook_postback', array( $this->upload_handler, 'handlePostback' ), 10, 3 );
-			add_action( 'buygo_line_notify/webhook_follow', array( $this, 'handle_follow' ), 10, 1 );
-			add_action( 'buygo_line_notify/webhook_unfollow', array( $this, 'handle_unfollow' ), 10, 1 );
-		}
+		// LineHub Hook 註冊
+		add_action( 'line_hub/webhook/message/image', array( $this->upload_handler, 'handleImageUpload' ), 10, 4 );
+		add_action( 'line_hub/webhook/message/text', array( $this->text_router, 'handleTextMessage' ), 10, 4 );
+		add_action( 'line_hub/webhook/postback', array( $this->upload_handler, 'handlePostback' ), 10, 3 );
+		add_action( 'line_hub/webhook/follow', array( $this, 'handle_follow' ), 10, 1 );
+		add_action( 'line_hub/webhook/unfollow', array( $this, 'handle_unfollow' ), 10, 1 );
 	}
 
 	/**

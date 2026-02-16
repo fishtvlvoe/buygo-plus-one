@@ -842,7 +842,7 @@ class SettingsService
         }
 
         // 方式 2：從 wp_usermeta 查詢
-        // line_uid 是 buygo-line-notify 使用的 meta key
+        // line_uid 是舊版使用的 meta key
         // _mygo_line_uid 是舊系統使用的 meta key（向後相容）
         $meta_keys = ['line_uid', '_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
 
@@ -853,10 +853,10 @@ class SettingsService
             }
         }
 
-        // 方式 3：從 wp_buygo_line_users 表查詢（buygo-line-notify 外掛專用）
+        // 方式 3：從 wp_buygo_line_users 表查詢（舊表，向後相容）
         $buygo_line_users_table = $wpdb->prefix . 'buygo_line_users';
 
-        // 檢查 buygo-line-notify 資料表是否存在
+        // 檢查資料表是否存在
         $buygo_table_exists = $wpdb->get_var($wpdb->prepare(
             "SHOW TABLES LIKE %s",
             $buygo_line_users_table
@@ -922,11 +922,11 @@ class SettingsService
 
         // 情況 1: 已綁定 LINE → 直接發送 LINE 訊息通知賣家設定完成
         if (!empty($line_uid)) {
-            // 檢查 buygo-line-notify 外掛是否啟用
-            if (!class_exists('\\BuygoLineNotify\\BuygoLineNotify')) {
+            // 檢查 LineHub MessagingService 是否可用
+            if (!class_exists('\\LineHub\\Messaging\\MessagingService')) {
                 return [
                     'success' => false,
-                    'message' => '請先啟用 BuyGo LINE Notify 外掛'
+                    'message' => '請先啟用 LINE Hub 外掛'
                 ];
             }
 
@@ -939,8 +939,16 @@ class SettingsService
             $message .= "立即上傳第一張商品圖片試試看吧！";
 
             try {
-                $messaging = \BuygoLineNotify\BuygoLineNotify::messaging();
-                $messaging->pushText($line_uid, $message);
+                // 透過 LineHub UserService 取得 user_id，再用 MessagingService 發送
+                $wp_user_id = null;
+                if (class_exists('\\LineHub\\Services\\UserService')) {
+                    $wp_user_id = \LineHub\Services\UserService::getUserByLineUid($line_uid);
+                }
+                if (!$wp_user_id) {
+                    $wp_user_id = $user_id; // fallback to the user_id we already have
+                }
+                $messaging = new \LineHub\Messaging\MessagingService();
+                $messaging->pushText($wp_user_id, $message);
 
                 return [
                     'success' => true,
