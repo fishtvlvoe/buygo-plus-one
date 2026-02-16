@@ -279,7 +279,19 @@ class IdentityService
      */
     public static function getUserIdByLineUid(string $line_uid): ?int
     {
-        // 嘗試使用 buygo-line-notify 的服務
+        // 1. 優先使用 LINE Hub（最新系統）
+        if (class_exists('\\LineHub\\Services\\UserService')) {
+            try {
+                $user_id = \LineHub\Services\UserService::getUserByLineUid($line_uid);
+                if ($user_id) {
+                    return $user_id;
+                }
+            } catch (\Exception $e) {
+                error_log('[BuyGo] 無法從 LINE Hub 查詢用戶：' . $e->getMessage());
+            }
+        }
+
+        // 2. 嘗試使用 buygo-line-notify 的服務
         if (class_exists('\\BuygoLineNotify\\Services\\LineUserService')) {
             $user_id = \BuygoLineNotify\Services\LineUserService::getUserByLineUid($line_uid);
             if ($user_id) {
@@ -287,7 +299,7 @@ class IdentityService
             }
         }
 
-        // 使用本地 LineService
+        // 3. 使用本地 LineService（向後相容）
         $line_service = new LineService();
         $user = $line_service->get_user_by_line_uid($line_uid);
 
