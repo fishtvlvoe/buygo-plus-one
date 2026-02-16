@@ -17,17 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Line_Webhook_API {
 
 	/**
-	 * Webhook Handler
-	 *
-	 * @var \BuyGoPlus\Services\LineWebhookHandler
-	 */
-	private $webhook_handler;
-
-	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
+		// 不再自行實例化 LineWebhookHandler，避免 hooks 重複註冊
+		// LineWebhookHandler 由 class-plugin.php 統一管理
 	}
 
 	/**

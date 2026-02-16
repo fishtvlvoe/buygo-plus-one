@@ -253,7 +253,10 @@ class Plugin {
         // - webhook_message_image: 圖片上傳 → 商品類型選單
         // - webhook_message_text: 文字訊息 → 關鍵字回應、命令處理、商品資訊
         // - webhook_postback: 按鈕點擊 → 商品類型選擇後發送格式說明
-        new \BuyGoPlus\Services\LineWebhookHandler();
+        $webhook_handler = new \BuyGoPlus\Services\LineWebhookHandler();
+
+        // 註冊 BuyGo 自建 Webhook 端點的 Cron hook
+        add_action( 'buygo_process_line_webhook', array( $webhook_handler, 'process_events' ) );
 
         // 初始化商品上架通知（Phase 30）
         // 當賣家透過 LINE 上架商品時，通知賣家和小幫手

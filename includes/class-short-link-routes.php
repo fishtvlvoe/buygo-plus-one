@@ -89,7 +89,8 @@ class ShortLinkRoutes {
         }
 
         // LINE 內建瀏覽器偵測：引導用戶在外部瀏覽器開啟
-        if ($this->is_line_browser() && empty($_GET['openExternalBrowser'])) {
+        // 已登入用戶（例如 LIFF 登入後）跳過攔截，直接顯示產品頁
+        if ($this->is_line_browser() && empty($_GET['openExternalBrowser']) && !is_user_logged_in()) {
             $this->render_line_browser_notice($item_id, $post->post_title);
             exit;
         }

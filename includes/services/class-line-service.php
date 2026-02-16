@@ -71,7 +71,7 @@ class LineService {
 
 		try {
 			// 1. Check buygo_line_bindings table first (優先)
-			$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+			$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
 
 			if ( $table_exists ) {
 				$user_id = $wpdb->get_var( $wpdb->prepare(
@@ -161,7 +161,7 @@ class LineService {
 		global $wpdb;
 
 		// 1. Check buygo_line_bindings table first (優先)
-		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
 		
 		if ( $table_exists ) {
 			$line_uid = $wpdb->get_var( $wpdb->prepare(
@@ -482,7 +482,7 @@ class LineService {
 		$this->debugService->log( 'LineService', '開始清理過期綁定碼', [] );
 
 		try {
-			$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+			$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
 
 			if ( $table_exists ) {
 				$result = $wpdb->query( "UPDATE {$this->table_name} SET status = 'expired' WHERE status = 'pending' AND binding_code_expires_at < NOW()" );
@@ -506,7 +506,7 @@ class LineService {
 	private function maybe_create_table() {
 		global $wpdb;
 
-		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name;
+		$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
 		
 		if ( $table_exists ) {
 			return;

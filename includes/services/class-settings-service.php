@@ -732,9 +732,29 @@ class SettingsService
      */
     public static function get_line_settings(): array
     {
+        // 優先使用 LINE Hub 設定（統一管理）
+        if (class_exists('LineHub\Services\SettingsService')) {
+            try {
+                $hub_settings = \LineHub\Services\SettingsService::get_group('general');
+
+                // 如果 LINE Hub 有設定 Access Token，就使用 LINE Hub 的設定
+                if (!empty($hub_settings['access_token'])) {
+                    return [
+                        'channel_access_token' => $hub_settings['access_token'],
+                        'channel_secret' => $hub_settings['channel_secret'] ?? '',
+                        'liff_id' => $hub_settings['liff_id'] ?? '',
+                        'webhook_url' => rest_url('line-hub/v1/webhook'),
+                    ];
+                }
+            } catch (\Exception $e) {
+                error_log('[BuyGo] 無法讀取 LINE Hub 設定：' . $e->getMessage());
+            }
+        }
+
+        // Fallback: 使用舊的 BuyGo 設定（向後相容，但不應該執行到這裡）
         $token_raw = get_option('buygo_line_channel_access_token', '');
         $secret_raw = get_option('buygo_line_channel_secret', '');
-        
+
         // 嘗試解密敏感資料（如果解密失敗，使用原始值）
         $token = $token_raw;
         if (!empty($token_raw) && self::is_encrypted_field('line_channel_access_token')) {
@@ -744,7 +764,7 @@ class SettingsService
                 $token = $decrypted;
             }
         }
-        
+
         $secret = $secret_raw;
         if (!empty($secret_raw) && self::is_encrypted_field('line_channel_secret')) {
             $decrypted = self::decrypt($secret_raw);
@@ -753,7 +773,7 @@ class SettingsService
                 $secret = $decrypted;
             }
         }
-        
+
         return [
             'channel_access_token' => $token,
             'channel_secret' => $secret,
