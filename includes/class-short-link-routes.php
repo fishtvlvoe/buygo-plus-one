@@ -88,9 +88,15 @@ class ShortLinkRoutes {
             exit;
         }
 
-        // LINE 內建瀏覽器偵測：引導用戶在外部瀏覽器開啟
-        // 已登入用戶（例如 LIFF 登入後）跳過攔截，直接顯示產品頁
-        if ($this->is_line_browser() && empty($_GET['openExternalBrowser']) && !is_user_logged_in()) {
+        // LINE 內建瀏覽器偵測：未登入用戶自動跳轉 LIFF 登入
+        // LIFF 登入完成後會 redirect 回此商品頁
+        if ($this->is_line_browser() && !is_user_logged_in()) {
+            $liff_url = $this->get_liff_url("/item/{$item_id}");
+            if ($liff_url) {
+                wp_redirect($liff_url);
+                exit;
+            }
+            // 無 LIFF 設定時，顯示引導頁面
             $this->render_line_browser_notice($item_id, $post->post_title);
             exit;
         }
@@ -128,6 +134,24 @@ class ShortLinkRoutes {
     }
     
     /**
+     * 取得 LIFF URL（帶 redirect 參數）
+     *
+     * @param string $redirect_path 登入後重定向的相對路徑
+     * @return string|null LIFF URL 或 null（未設定 LIFF）
+     */
+    private function get_liff_url($redirect_path) {
+        if (!class_exists('\\LineHub\\Services\\SettingsService')) {
+            return null;
+        }
+        $liff_id = \LineHub\Services\SettingsService::get('general', 'liff_id', '');
+        if (empty($liff_id)) {
+            return null;
+        }
+        $redirect = urlencode($redirect_path);
+        return "https://liff.line.me/{$liff_id}?redirect={$redirect}";
+    }
+
+    /**
      * 偵測是否為 LINE 內建瀏覽器
      */
     private function is_line_browser() {
@@ -139,7 +163,7 @@ class ShortLinkRoutes {
      * 顯示 LINE 瀏覽器引導頁面
      */
     private function render_line_browser_notice($item_id, $product_name) {
-        $external_url = home_url("/item/{$item_id}?openExternalBrowser=1");
+        $external_url = home_url("/item/{$item_id}");
         $product_name = esc_html($product_name);
 
         status_header(200);
