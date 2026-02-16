@@ -827,20 +827,33 @@ class SettingsService
      */
     public static function get_user_line_id(int $user_id): ?string
     {
-        // 方式 1：從 wp_usermeta 查詢（優先）
-        // line_uid 是 buygo-line-notify 使用的 meta key（最優先）
+        global $wpdb;
+
+        // 方式 1：從 LINE Hub 表查詢（最優先）
+        if (class_exists('LineHub\Services\UserService')) {
+            try {
+                $binding = \LineHub\Services\UserService::getBinding($user_id);
+                if ($binding && !empty($binding->line_uid)) {
+                    return $binding->line_uid;
+                }
+            } catch (\Exception $e) {
+                error_log('[BuyGo] 無法從 LINE Hub 查詢 LINE UID：' . $e->getMessage());
+            }
+        }
+
+        // 方式 2：從 wp_usermeta 查詢
+        // line_uid 是 buygo-line-notify 使用的 meta key
         // _mygo_line_uid 是舊系統使用的 meta key（向後相容）
         $meta_keys = ['line_uid', '_mygo_line_uid', 'buygo_line_user_id', 'm_line_user_id', 'line_user_id'];
-        
+
         foreach ($meta_keys as $meta_key) {
             $line_id = get_user_meta($user_id, $meta_key, true);
             if (!empty($line_id)) {
                 return $line_id;
             }
         }
-        
-        // 方式 2：從 wp_buygo_line_users 表查詢（buygo-line-notify 外掛專用）
-        global $wpdb;
+
+        // 方式 3：從 wp_buygo_line_users 表查詢（buygo-line-notify 外掛專用）
         $buygo_line_users_table = $wpdb->prefix . 'buygo_line_users';
 
         // 檢查 buygo-line-notify 資料表是否存在
@@ -860,28 +873,28 @@ class SettingsService
             }
         }
 
-        // 方式 3：從 wp_social_users 表查詢（備用）
+        // 方式 4：從 wp_social_users 表查詢（備用）
         // 某些社交登入外掛（如 Super Socializer）會將 UID 儲存在此表
         // 注意：此表的 User ID 欄位名稱是 ID（大寫），不是 user_id
         $social_users_table = $wpdb->prefix . 'social_users';
-        
+
         // 檢查資料表是否存在
         $table_exists = $wpdb->get_var($wpdb->prepare(
             "SHOW TABLES LIKE %s",
             $social_users_table
         ));
-        
+
         if ($table_exists) {
             $line_id = $wpdb->get_var($wpdb->prepare(
                 "SELECT identifier FROM {$social_users_table} WHERE ID = %d AND type = 'line' LIMIT 1",
                 $user_id
             ));
-            
+
             if (!empty($line_id)) {
                 return $line_id;
             }
         }
-        
+
         return null;
     }
     
