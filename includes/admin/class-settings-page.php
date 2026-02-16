@@ -666,27 +666,11 @@ class SettingsPage
      */
     private function render_roles_tab(): void
     {
-        // 處理賣家商品 ID 設定儲存
-        if (isset($_POST['buygo_seller_product_submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_seller_product_settings')) {
-            $product_id = sanitize_text_field($_POST['buygo_seller_product_id'] ?? '');
-            update_option('buygo_seller_product_id', $product_id);
-            echo '<div class="notice notice-success is-dismissible"><p>賣家商品 ID 已儲存！</p></div>';
-        }
+        // 移除：虛擬產品賦予身份功能（已不再使用）
+        // 此功能已被更靈活的賣家類型系統取代
 
-        // 取得當前設定值
-        $seller_product_id = get_option('buygo_seller_product_id', '');
-
-        // 查詢所有虛擬商品（fulfillment_type = 'digital'）
+        // 移除：虛擬商品查詢（已不再使用）
         global $wpdb;
-        $virtual_products = $wpdb->get_results("
-            SELECT p.ID, p.post_title, pd.min_price as price
-            FROM {$wpdb->prefix}posts AS p
-            INNER JOIN {$wpdb->prefix}fct_product_details AS pd ON p.ID = pd.post_id
-            WHERE p.post_type = 'fluent-products'
-            AND pd.fulfillment_type = 'digital'
-            AND p.post_status = 'publish'
-            ORDER BY p.post_modified DESC
-        ");
 
         // 取得所有小幫手（從選項中）
         $helpers = SettingsService::get_helpers();
@@ -821,44 +805,6 @@ class SettingsPage
         
         ?>
         <div class="wrap">
-            <!-- FluentCart 自動賦予設定 -->
-            <div class="card" style="max-width: 800px; margin-bottom: 20px;">
-                <h2 style="margin-top: 0;">FluentCart 自動賦予設定</h2>
-                <p class="description">設定後，顧客購買此商品並付款完成時，將自動獲得 BuyGo 管理員角色和預設商品配額（3 個）</p>
-
-                <form method="post" action="">
-                    <?php wp_nonce_field('buygo_seller_product_settings'); ?>
-
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label for="buygo-seller-product-id">賣家商品 ID（FluentCart）</label>
-                            </th>
-                            <td>
-                                <select name="buygo_seller_product_id" id="buygo-seller-product-id" class="regular-text">
-                                    <option value="">-- 請選擇賣家商品 --</option>
-                                    <?php foreach ($virtual_products as $product): ?>
-                                        <option
-                                            value="<?php echo esc_attr($product->ID); ?>"
-                                            <?php selected($seller_product_id, $product->ID); ?>
-                                        >
-                                            #<?php echo esc_html($product->ID); ?> - <?php echo esc_html($product->post_title); ?> (NT$ <?php echo number_format($product->price, 0); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <p class="description">
-                                    選擇一個虛擬商品作為賣家權限商品。顧客購買此商品並付款後，將自動獲得 BuyGo 管理員角色。
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <p class="submit">
-                        <button type="submit" name="buygo_seller_product_submit" class="button button-primary">儲存設定</button>
-                    </p>
-                </form>
-            </div>
-
             <h2>
                 角色權限設定
                 <button type="button" class="button" id="add-role-btn" style="margin-left: 10px;">
