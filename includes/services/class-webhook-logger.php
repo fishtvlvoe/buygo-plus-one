@@ -215,23 +215,38 @@ class WebhookLogger {
 	public function get_statistics( $period = 'today' ) {
 		global $wpdb;
 
-		$date_format = '';
+		// 使用 WordPress 時區計算日期範圍
+		$today_start = current_time( 'mysql', false ); // 使用 WordPress 時區
+		$today_start = date( 'Y-m-d 00:00:00', strtotime( $today_start ) );
+
+		$date_condition = '';
 		switch ( $period ) {
 			case 'today':
-				$date_format = '%Y-%m-%d';
-				$date_condition = "DATE(created_at) = CURDATE()";
+				// 使用 WordPress 時區的今天開始時間
+				$date_condition = $wpdb->prepare(
+					"created_at >= %s",
+					$today_start
+				);
 				break;
 			case 'week':
-				$date_condition = "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+				$week_start = date( 'Y-m-d 00:00:00', strtotime( $today_start . ' -7 days' ) );
+				$date_condition = $wpdb->prepare(
+					"created_at >= %s",
+					$week_start
+				);
 				break;
 			case 'month':
-				$date_condition = "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+				$month_start = date( 'Y-m-d 00:00:00', strtotime( $today_start . ' -30 days' ) );
+				$date_condition = $wpdb->prepare(
+					"created_at >= %s",
+					$month_start
+				);
 				break;
 			default:
 				$date_condition = "1=1";
 		}
 
-		$query = "SELECT 
+		$query = "SELECT
 			event_type,
 			COUNT(*) as count
 		FROM {$this->table_name}
