@@ -93,6 +93,8 @@ class ShortLinkRoutes {
         if ($this->is_line_browser() && !is_user_logged_in()) {
             $liff_url = $this->get_liff_url("/item/{$item_id}");
             if ($liff_url) {
+                // 用 cookie 保存 redirect 路徑（LIFF login 過程中 URL 參數會丟失）
+                setcookie('liff_redirect', "/item/{$item_id}", time() + 300, '/', '', is_ssl(), true);
                 wp_redirect($liff_url);
                 exit;
             }
