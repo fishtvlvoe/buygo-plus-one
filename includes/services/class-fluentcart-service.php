@@ -118,6 +118,12 @@ class FluentCartService {
 				'product_id' => $product_id,
 			), 'info' );
 
+			// 將 post_name (slug) 改為數字 ID，讓 permalink 為 /item/916 而非 /item/中文名/
+			wp_update_post( array(
+				'ID'        => $product_id,
+				'post_name' => (string) $product_id,
+			) );
+
 			// Debug: 確認 Post 建立成功
 			$this->webhookLogger->log( 'fluentcart_post_created', array(
 				'product_id' => $product_id,
