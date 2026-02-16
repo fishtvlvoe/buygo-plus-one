@@ -70,7 +70,22 @@ class LineService {
 		) );
 
 		try {
-			// 1. Check buygo_line_bindings table first (優先)
+			// 0. Check LineHub users table first (最高優先級)
+			if ( class_exists( '\\LineHub\\Services\\UserService' ) ) {
+				$linehub_user_id = \LineHub\Services\UserService::getUserByLineUid( $line_uid );
+				if ( $linehub_user_id ) {
+					$user = get_userdata( $linehub_user_id );
+					if ( $user ) {
+						$this->debugService->log( 'LineService', '從 LineHub 找到使用者', array(
+							'line_uid' => $line_uid,
+							'user_id'  => $linehub_user_id,
+						) );
+						return $user;
+					}
+				}
+			}
+
+			// 1. Check buygo_line_bindings table (優先)
 			$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
 
 			if ( $table_exists ) {
