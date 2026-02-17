@@ -48,7 +48,7 @@ class LineKeywordResponder {
 	 * @param int    $user_id    WordPress User ID
 	 * @param string $message_id LINE Message ID
 	 */
-	public function handleTextAction( array $event, string $line_uid, int $user_id, string $message_id ): void {
+	public function handleTextAction( array $event, string $line_uid, ?int $user_id, string $message_id ): void {
 		$text = trim( $event['message']['text'] ?? '' );
 		$text_lower = strtolower( $text );
 
