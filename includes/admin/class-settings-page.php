@@ -79,7 +79,8 @@ class SettingsPage
     public function enqueue_scripts($hook): void
     {
         // 檢查是否在 BuyGo+1 的後台頁面
-        if ($hook !== 'toplevel_page_buygo-plus-one' && $hook !== 'buygo1_page_buygo-settings') {
+        // hook name 格式: {sanitized_title}_page_{slug} — 不同環境 sanitize 結果可能不同
+        if (strpos($hook, 'buygo-plus-one') === false && strpos($hook, 'buygo-settings') === false) {
             return;
         }
 
