@@ -52,28 +52,169 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // 新增角色 Modal
-    $('#add-role-btn').on('click', function() {
-        $('#add-role-modal').show();
+    // ===== 新增角色 Modal =====
+    let userSearchTimeout = null;
+    let sellerSearchTimeout = null;
+
+    // 通用搜尋函式
+    function setupSearchField(inputId, resultsId, hiddenId, selectedId, filterRole) {
+        const $input = $(inputId);
+        const $results = $(resultsId);
+        const $hidden = $(hiddenId);
+        const $selected = $(selectedId);
+        let timeout = null;
+
+        $input.on('input', function() {
+            const query = $(this).val().trim();
+            clearTimeout(timeout);
+
+            if (query.length < 2) {
+                $results.hide().empty();
+                return;
+            }
+
+            $results.show().html('<div class="search-loading">搜尋中...</div>');
+
+            timeout = setTimeout(function() {
+                let url = buygoSettings.restUrl + '/settings/users/search?query=' + encodeURIComponent(query);
+                if (filterRole) {
+                    url += '&role=' + encodeURIComponent(filterRole);
+                }
+
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+                    success: function(response) {
+                        $results.empty();
+                        if (response.success && response.data && response.data.length > 0) {
+                            response.data.forEach(function(user) {
+                                $results.append(
+                                    '<div class="search-result-item" data-id="' + user.id + '" data-name="' + $('<span>').text(user.name).html() + '" data-email="' + $('<span>').text(user.email).html() + '">' +
+                                        '<div><span class="user-name">' + $('<span>').text(user.name).html() + '</span> <span class="user-email">' + $('<span>').text(user.email).html() + '</span></div>' +
+                                        '<span class="user-id">WP-' + user.id + '</span>' +
+                                    '</div>'
+                                );
+                            });
+                        } else {
+                            $results.html('<div class="search-no-result">找不到符合的使用者</div>');
+                        }
+                        $results.show();
+                    },
+                    error: function() {
+                        $results.html('<div class="search-no-result">搜尋失敗</div>').show();
+                    }
+                });
+            }, 300);
+        });
+
+        // 點選搜尋結果
+        $results.on('click', '.search-result-item', function() {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            const email = $(this).data('email');
+
+            $hidden.val(id);
+            $selected.find('.user-selected-name').text(name + ' (' + email + ')');
+            $selected.show();
+            $input.hide();
+            $results.hide().empty();
+        });
+
+        // 清除已選
+        $selected.on('click', '.user-selected-clear', function() {
+            $hidden.val('');
+            $selected.hide();
+            $input.val('').show().focus();
+        });
+
+        // 點擊 Modal 外部時關閉搜尋結果
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.user-search-wrap').length) {
+                $results.hide();
+            }
+        });
+    }
+
+    // 初始化兩個搜尋欄位
+    setupSearchField('#add-role-user-search', '#add-role-user-results', '#add-role-user', '#add-role-user-selected', null);
+    setupSearchField('#add-role-seller-search', '#add-role-seller-results', '#add-role-seller-id', '#add-role-seller-selected', 'buygo_admin');
+
+    // 角色切換 → 顯示/隱藏賣家欄位
+    $('#add-role-type').on('change', function() {
+        if ($(this).val() === 'buygo_helper') {
+            $('#add-role-seller-row').show();
+        } else {
+            $('#add-role-seller-row').hide();
+            // 清除已選的賣家
+            $('#add-role-seller-id').val('');
+            $('#add-role-seller-selected').hide();
+            $('#add-role-seller-search').val('').show();
+        }
     });
-    
+
+    // 重置 Modal 狀態
+    function resetAddRoleModal() {
+        $('#add-role-user').val('');
+        $('#add-role-user-search').val('').show();
+        $('#add-role-user-selected').hide();
+        $('#add-role-user-results').hide().empty();
+        $('#add-role-type').val('buygo_admin');
+        $('#add-role-seller-row').hide();
+        $('#add-role-seller-id').val('');
+        $('#add-role-seller-search').val('').show();
+        $('#add-role-seller-selected').hide();
+        $('#add-role-seller-results').hide().empty();
+    }
+
+    // 開啟 Modal
+    $('#add-role-btn').on('click', function() {
+        resetAddRoleModal();
+        $('#add-role-modal').show();
+        setTimeout(function() { $('#add-role-user-search').focus(); }, 100);
+    });
+
+    // 關閉 Modal
     $('#cancel-add-role').on('click', function() {
         $('#add-role-modal').hide();
     });
-    
+
+    // 點擊背景關閉 Modal
+    $('#add-role-modal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).hide();
+        }
+    });
+
+    // 確認新增
     $('#confirm-add-role').on('click', function() {
         const userId = $('#add-role-user').val();
         const role = $('#add-role-type').val();
-        
+        const sellerId = $('#add-role-seller-id').val();
+
         if (!userId) {
-            alert('請選擇使用者');
+            alert('請先搜尋並選擇使用者');
             return;
         }
-        
+
+        if (role === 'buygo_helper' && !sellerId) {
+            alert('請選擇歸屬賣家');
+            return;
+        }
+
         const button = $(this);
         const originalText = button.text();
         button.prop('disabled', true).text('處理中...');
-        
+
+        const payload = {
+            user_id: parseInt(userId),
+            role: role
+        };
+
+        if (role === 'buygo_helper' && sellerId) {
+            payload.seller_id = parseInt(sellerId);
+        }
+
         $.ajax({
             url: buygoSettings.restUrl + '/settings/helpers',
             type: 'POST',
@@ -81,10 +222,7 @@ jQuery(document).ready(function($) {
                 'X-WP-Nonce': buygoSettings.restNonce,
                 'Content-Type': 'application/json'
             },
-            data: JSON.stringify({
-                user_id: parseInt(userId),
-                role: role
-            }),
+            data: JSON.stringify(payload),
             success: function(response) {
                 if (response.success) {
                     alert('角色已新增');
@@ -145,10 +283,164 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // 發送綁定連結 - 已移除（UI 重構）
-    // 功能已停用，相關按鈕已從 UI 移除
-    // 保留註解以記錄歷史功能
-    
+    // ===== 新增小幫手 Modal（從綁定關係欄位觸發）=====
+    $(document).on('click', '.add-helper-link', function(e) {
+        e.preventDefault();
+        const sellerId = $(this).data('seller-id');
+        const sellerName = $(this).data('seller-name');
+
+        $('#add-helper-seller-id').val(sellerId);
+        $('#add-helper-seller-label').text(sellerName);
+        $('#add-helper-search').val('');
+        $('#add-helper-results').hide().empty();
+
+        // 載入目前的小幫手列表
+        loadCurrentHelpers(sellerId);
+
+        $('#add-helper-modal').show();
+        setTimeout(function() { $('#add-helper-search').focus(); }, 100);
+    });
+
+    function loadCurrentHelpers(sellerId) {
+        const $list = $('#add-helper-current-list');
+        $list.html('<p style="color:#666;">載入中...</p>');
+
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers?seller_id=' + sellerId,
+            type: 'GET',
+            headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+            success: function(response) {
+                if (response.success && response.data && response.data.length > 0) {
+                    let html = '<p style="font-weight:500; margin-bottom:8px;">目前小幫手</p>';
+                    response.data.forEach(function(helper) {
+                        html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f9f9f9; border-radius:4px; margin-bottom:4px;">'
+                            + '<span>' + $('<span>').text(helper.name).html() + ' <small style="color:#666;">' + $('<span>').text(helper.email).html() + '</small></span>'
+                            + '<button type="button" class="remove-helper-inline button" data-user-id="' + helper.id + '" data-seller-id="' + sellerId + '" style="font-size:11px; padding:2px 8px; height:auto; color:#dc3232; border-color:#dc3232;">移除</button>'
+                            + '</div>';
+                    });
+                    $list.html(html);
+                } else {
+                    $list.html('<p style="color:#999; font-size:13px;">尚無小幫手</p>');
+                }
+            },
+            error: function() {
+                $list.html('<p style="color:#dc3232;">載入失敗</p>');
+            }
+        });
+    }
+
+    // 小幫手搜尋
+    let helperSearchTimeout = null;
+    $('#add-helper-search').on('input', function() {
+        const query = $(this).val().trim();
+        const $results = $('#add-helper-results');
+        clearTimeout(helperSearchTimeout);
+
+        if (query.length < 2) {
+            $results.hide().empty();
+            return;
+        }
+
+        $results.show().html('<div class="search-loading">搜尋中...</div>');
+
+        helperSearchTimeout = setTimeout(function() {
+            $.ajax({
+                url: buygoSettings.restUrl + '/settings/users/search?query=' + encodeURIComponent(query),
+                type: 'GET',
+                headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+                success: function(response) {
+                    $results.empty();
+                    if (response.success && response.data && response.data.length > 0) {
+                        response.data.forEach(function(user) {
+                            $results.append(
+                                '<div class="search-result-item" data-id="' + user.id + '">'
+                                    + '<div><span class="user-name">' + $('<span>').text(user.name).html() + '</span> <span class="user-email">' + $('<span>').text(user.email).html() + '</span></div>'
+                                    + '<span class="user-id">WP-' + user.id + '</span>'
+                                + '</div>'
+                            );
+                        });
+                    } else {
+                        $results.html('<div class="search-no-result">找不到符合的使用者</div>');
+                    }
+                    $results.show();
+                }
+            });
+        }, 300);
+    });
+
+    // 點選搜尋結果 → 直接新增為小幫手
+    $('#add-helper-results').on('click', '.search-result-item', function() {
+        const userId = $(this).data('id');
+        const sellerId = $('#add-helper-seller-id').val();
+
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers',
+            type: 'POST',
+            headers: {
+                'X-WP-Nonce': buygoSettings.restNonce,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                user_id: parseInt(userId),
+                role: 'buygo_helper',
+                seller_id: parseInt(sellerId)
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#add-helper-search').val('');
+                    $('#add-helper-results').hide().empty();
+                    loadCurrentHelpers(sellerId);
+                } else {
+                    alert('新增失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '新增失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            }
+        });
+    });
+
+    // 移除小幫手（inline）
+    $(document).on('click', '.remove-helper-inline', function() {
+        const userId = $(this).data('user-id');
+        const sellerId = $(this).data('seller-id');
+        const btn = $(this);
+
+        if (!confirm('確定要移除這個小幫手嗎？')) return;
+
+        btn.prop('disabled', true).text('...');
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers/' + userId,
+            type: 'DELETE',
+            headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+            success: function(response) {
+                if (response.success) {
+                    loadCurrentHelpers(sellerId);
+                } else {
+                    alert('移除失敗');
+                    btn.prop('disabled', false).text('移除');
+                }
+            }
+        });
+    });
+
+    // 關閉小幫手 Modal
+    $('#close-add-helper').on('click', function() {
+        $('#add-helper-modal').hide();
+        location.reload(); // 重新整理以更新綁定關係欄位
+    });
+
+    $('#add-helper-modal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).hide();
+            location.reload();
+        }
+    });
+
     // 移除角色
     $(document).on('click', '.remove-role', function() {
         const userId = $(this).data('user-id');

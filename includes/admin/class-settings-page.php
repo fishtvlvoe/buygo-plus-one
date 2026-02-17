@@ -88,7 +88,7 @@ class SettingsPage
             'buygo-settings-admin',
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/admin-settings.js',
             ['jquery'],
-            '1.0.0',
+            '1.2.0',
             true
         );
 
@@ -96,7 +96,7 @@ class SettingsPage
             'buygo-settings-admin',
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-settings.css',
             [],
-            '1.0.0'
+            '1.2.0'
         );
 
         wp_localize_script('buygo-settings-admin', 'buygoSettings', [
@@ -782,16 +782,24 @@ class SettingsPage
                     $binding_info = '<span style="color: #d63638;">未綁定賣家</span>';
                 }
             } elseif ($has_buygo_admin_role || $is_wp_admin) {
-                // 賣家：查詢小幫手數量
+                // 賣家：查詢小幫手數量和列表
                 $helper_count = $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$helpers_table} WHERE seller_id = %d",
                     $user->ID
                 ));
+                $helper_list_html = '';
                 if ($helper_count > 0) {
-                    $binding_info = "小幫手數量：{$helper_count} 個";
-                } else {
-                    $binding_info = '無小幫手';
+                    $helpers = $wpdb->get_results($wpdb->prepare(
+                        "SELECT h.helper_id, u.display_name FROM {$helpers_table} h JOIN {$wpdb->users} u ON h.helper_id = u.ID WHERE h.seller_id = %d",
+                        $user->ID
+                    ));
+                    $names = array_map(function($h) { return esc_html($h->display_name); }, $helpers);
+                    $helper_list_html = '<br><small style="color:#666;">' . implode('、', $names) . '</small>';
                 }
+                $binding_info = '<a href="#" class="add-helper-link" data-seller-id="' . esc_attr($user->ID) . '" data-seller-name="' . esc_attr($user->display_name) . '" style="text-decoration:none;">'
+                    . ($helper_count > 0 ? "小幫手數量：{$helper_count} 個" : '無小幫手')
+                    . ' <span style="font-size:11px;">✏️</span></a>'
+                    . $helper_list_html;
             }
 
             $all_users[] = [
@@ -928,26 +936,27 @@ class SettingsPage
             <?php endif; ?>
         </div>
         
-        <!-- 新增角色 Modal（使用 WordPress 內建的樣式） -->
+        <!-- 新增角色 Modal -->
         <div id="add-role-modal" style="display:none;">
-            <div class="modal-content" style="background: white; padding: 20px; border: 1px solid #ccc; border-radius: 4px; max-width: 500px; margin: 20px auto;">
+            <div class="modal-content">
                 <h3>新增角色</h3>
                 <form id="add-role-form">
                     <table class="form-table">
                         <tr>
                             <th scope="row">
-                                <label for="add-role-user">選擇使用者</label>
+                                <label>搜尋使用者</label>
                             </th>
                             <td>
-                                <select name="user_id" id="add-role-user" class="regular-text">
-                                    <option value="">請選擇使用者</option>
-                                    <?php
-                                    $users = get_users(['number' => 100]);
-                                    foreach ($users as $user) {
-                                        echo '<option value="' . esc_attr($user->ID) . '">' . esc_html($user->display_name) . ' (' . esc_html($user->user_email) . ')</option>';
-                                    }
-                                    ?>
-                                </select>
+                                <div class="user-search-wrap">
+                                    <input type="text" id="add-role-user-search" class="regular-text" placeholder="輸入姓名或 Email 搜尋..." autocomplete="off" />
+                                    <input type="hidden" id="add-role-user" name="user_id" value="" />
+                                    <div id="add-role-user-selected" class="user-selected" style="display:none;">
+                                        <span class="user-selected-name"></span>
+                                        <button type="button" class="user-selected-clear" title="清除">&times;</button>
+                                    </div>
+                                    <div id="add-role-user-results" class="user-search-results" style="display:none;"></div>
+                                    <p class="description">至少輸入 2 個字元開始搜尋</p>
+                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -956,9 +965,26 @@ class SettingsPage
                             </th>
                             <td>
                                 <select name="role" id="add-role-type" class="regular-text">
+                                    <option value="buygo_admin">BuyGo 管理員（賣家）</option>
                                     <option value="buygo_helper">BuyGo 小幫手</option>
-                                    <option value="buygo_admin">BuyGo 管理員</option>
                                 </select>
+                            </td>
+                        </tr>
+                        <tr id="add-role-seller-row" style="display:none;">
+                            <th scope="row">
+                                <label>歸屬賣家</label>
+                            </th>
+                            <td>
+                                <div class="user-search-wrap">
+                                    <input type="text" id="add-role-seller-search" class="regular-text" placeholder="輸入賣家姓名或 Email 搜尋..." autocomplete="off" />
+                                    <input type="hidden" id="add-role-seller-id" name="seller_id" value="" />
+                                    <div id="add-role-seller-selected" class="user-selected" style="display:none;">
+                                        <span class="user-selected-name"></span>
+                                        <button type="button" class="user-selected-clear" title="清除">&times;</button>
+                                    </div>
+                                    <div id="add-role-seller-results" class="user-search-results" style="display:none;"></div>
+                                    <p class="description">選擇此小幫手歸屬的賣家（僅顯示管理員）</p>
+                                </div>
                             </td>
                         </tr>
                     </table>
@@ -967,6 +993,28 @@ class SettingsPage
                         <button type="button" class="button" id="cancel-add-role">取消</button>
                     </p>
                 </form>
+            </div>
+        </div>
+
+        <!-- 新增小幫手 Modal（從綁定關係欄位觸發） -->
+        <div id="add-helper-modal" style="display:none;">
+            <div class="modal-content">
+                <h3>管理小幫手 — <span id="add-helper-seller-label"></span></h3>
+                <input type="hidden" id="add-helper-seller-id" value="" />
+
+                <div id="add-helper-current-list" style="margin-bottom: 15px;"></div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                    <p style="font-weight: 500; margin-bottom: 8px;">新增小幫手</p>
+                    <div class="user-search-wrap">
+                        <input type="text" id="add-helper-search" class="regular-text" placeholder="輸入姓名或 Email 搜尋..." autocomplete="off" />
+                        <div id="add-helper-results" class="user-search-results" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <p class="submit" style="margin-top: 15px;">
+                    <button type="button" class="button" id="close-add-helper">關閉</button>
+                </p>
             </div>
         </div>
         <?php
