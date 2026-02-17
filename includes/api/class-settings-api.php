@@ -252,8 +252,11 @@ class Settings_API {
      */
     public function get_helpers($request) {
         try {
-            // 使用 get_helpers_with_line_status 取得含 LINE 狀態的小幫手列表
-            $helpers = SettingsService::get_helpers_with_line_status();
+            // 支援按 seller_id 過濾（後台管理用）
+            $seller_id = $request->get_param('seller_id');
+            $seller_id = $seller_id ? (int) $seller_id : null;
+
+            $helpers = SettingsService::get_helpers_with_line_status($seller_id);
 
             return new \WP_REST_Response([
                 'success' => true,
@@ -299,8 +302,11 @@ class Settings_API {
                 ], 404);
             }
             
-            SettingsService::add_helper($user_id, $role);
-            
+            // 取得 seller_id（小幫手需要指定歸屬賣家）
+            $seller_id = isset($body['seller_id']) ? (int) $body['seller_id'] : null;
+
+            SettingsService::add_helper($user_id, $role, $seller_id);
+
             $role_name = $role === 'buygo_admin' ? '管理員' : '小幫手';
             
             return new \WP_REST_Response([
@@ -355,6 +361,7 @@ class Settings_API {
     public function search_users($request) {
         try {
             $query = $request->get_param('query');
+            $role_filter = $request->get_param('role');
 
             if (empty($query)) {
                 return new \WP_REST_Response([
@@ -366,22 +373,32 @@ class Settings_API {
             // 限制搜尋字串長度，避免過度查詢
             $query = substr($query, 0, 50);
 
-            $users = get_users([
+            $args = [
                 'search' => '*' . $query . '*',
                 'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
-                'number' => 10, // 限制結果數量
-            ]);
+                'number' => 10,
+            ];
+
+            // 支援按角色過濾（例如只搜尋賣家）
+            if (!empty($role_filter)) {
+                $args['role'] = sanitize_text_field($role_filter);
+            }
+
+            $users = get_users($args);
+
+            // WP 管理員可以看完整 email，其他角色只看遮罩版
+            $show_full_email = current_user_can('manage_options');
 
             $results = [];
             foreach ($users as $user) {
-                // 遮罩電子郵件（只顯示前3字元和域名）
                 $email = $user->user_email;
-                $email_parts = explode('@', $email);
-                if (count($email_parts) === 2) {
-                    $local = $email_parts[0];
-                    $domain = $email_parts[1];
-                    $masked_local = substr($local, 0, 3) . '***';
-                    $email = $masked_local . '@' . $domain;
+
+                if (!$show_full_email) {
+                    $email_parts = explode('@', $email);
+                    if (count($email_parts) === 2) {
+                        $masked_local = substr($email_parts[0], 0, 3) . '***';
+                        $email = $masked_local . '@' . $email_parts[1];
+                    }
                 }
 
                 // 取得頭像（優先使用 FluentCommunity 頭像，否則使用 Gravatar）
