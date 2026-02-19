@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v2.0 — 後台 UI 統一化（定義需求中）
+**當前焦點:** v2.0 — 後台 UI 統一化（Phase 41 準備開始）
 
 **PROJECT.md 最後更新:** 2026-02-20
 
@@ -18,9 +18,13 @@
 ## 當前位置
 
 **Milestone:** v2.0 - 後台 UI 統一化
-**Phase:** Not started (defining requirements)
+**Phase:** 41 - 基礎架構（準備開始）
 **Plan:** —
-**Status:** Defining requirements
+**Status:** Roadmap created, ready to plan Phase 41
+
+```
+進度 [░░░░░░] 0/6 phases complete
+```
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -30,7 +34,20 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-20 — v1.5 結案，開始 v2.0 milestone
+**Last activity:** 2026-02-20 — v2.0 roadmap 建立完成，Phase 41 待規劃
+
+---
+
+## v2.0 Phase 結構
+
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 41 | 基礎架構 | ARCH-01~04 | Not started |
+| 42 | 角色權限優化 | ROLE-01~07 | Not started |
+| 43 | 資料管理 Tab | DATA-01~05 | Not started |
+| 44 | 功能管理 Tab | FEAT-01~04 | Not started |
+| 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
+| 46 | 清理 | CLEAN-01~03 | Not started |
 
 ---
 
@@ -38,18 +55,27 @@
 
 **v2.0 核心決策（對話中確認）:**
 - 選單 BuyGo+1 → BGO，取消子選單，改為單頁 6-Tab
-- Tab 導航 CSS 跟 LineHub 對齊（方案 A：各自品牌色 + 共用結構）
+- Tab 導航 CSS 跟 LineHub 對齊（各自品牌色 + 共用結構）
 - 只改 wp-admin 設定頁，不動前端 Portal
 - 通知記錄 Tab 刪除（已壞，功能移至 LineHub）
 - 流程監控/測試工具/除錯中心合併為「開發者」Tab
 - 角色表格只顯示 BGO 角色，純 WP Admin 不顯示
-- 新增流程簡化為「新增賣家」
-- 搜尋 UX：點擊搜尋框即顯示（0 字元開始）
+- 新增流程簡化為「新增賣家」（無需選角色和歸屬賣家）
+- 搜尋 UX：點擊搜尋框即顯示（0 字元開始，前 20 筆）
 - 小幫手權限簡化為 5 大項（商品/訂單/出貨/客戶/設定）
 - Pro 授權透過 BuyGo 外掛控制（不用 FluentCart Licensing）
+- buygo_is_pro() 現在永遠回傳 true（授權伺服器未來做）
 - 資料管理刪除需二次確認（Modal + 輸入 DELETE）
 - Phase 40（小幫手共享配額）已取消
 
+**v2.0 Out of Scope:**
+- 前端 Vue Portal 改版（只改 wp-admin）
+- 授權伺服器（buygo_is_pro() 先回傳 true）
+- 批量上架前端 UI（只留 API 骨架）
+- 自定義欄位前端 UI（只留 API 骨架）
+- 多圖片輪播（只留 API 骨架）
+- 異地備份模組
+
 ---
 
-*State updated: 2026-02-20 — v2.0 milestone started*
+*State updated: 2026-02-20 — v2.0 roadmap created, current_phase = 41*
