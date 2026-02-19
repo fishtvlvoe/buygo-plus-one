@@ -180,152 +180,162 @@ MVP 快速開發階段，功能不斷往現有檔案堆疊，導致：
 
 ---
 
-## 第四章：BGO 優化階段
+## 第四章：整合執行計畫（BGO + LineHub）
 
-### Phase A：部署自動化（優先級最高）
-
-**目標：** 消除手動部署的所有問題，為商業化做準備
-
-| 項目 | 說明 |
-|------|------|
-| A-1 | 完善 build-release.sh 打包腳本（BGO + LineHub） |
-| A-2 | 確保 ZIP 包含所有必要檔案，排除開發檔案 |
-| A-3 | GitHub Release 自動更新機制驗證（BGO 已有，LineHub 補上） |
-| A-4 | 建立部署前自動檢查（權限、檔案完整性、PHP 版本相容性） |
-
-**完成標準：** 跑一個指令就能產生可部署的 ZIP，客戶後台一鍵更新
+> LineHub 已有 autoloader，BGO 還沒有。
+> BGO 後台設定頁有 LINE/通知/工作流程 Tab，跟 LineHub 後台重疊。
+> 目標：統一兩邊架構，消除重疊，每步可自主執行。
 
 ---
 
-### Phase B：設定頁拆分（最大瓶頸）
+### Step 1：BGO Autoloader（基礎建設）
 
-**目標：** 把 3000 行的 class-settings-page.php 拆成獨立模組
+**涉及：** BGO
+**目標：** 把 glob() 全載入改成跟 LineHub 一樣的 PSR-4 autoloader
 
-現在的結構（全部塞在一個檔案）：
 ```
-class-settings-page.php (2994 行)
-├── LINE 設定 Tab
-├── 通知設定 Tab
-├── 結帳設定 Tab
-├── 工作流程 Tab
-├── 角色權限 Tab
-├── 測試工具 Tab
-├── Debug 中心 Tab
-├── 12 個 AJAX handler
-└── 內嵌 JavaScript
-```
-
-拆分後：
-```
-admin/
-├── class-admin-page.php          # 主框架（Tab 路由，< 100 行）
-├── tabs/
-│   ├── class-line-tab.php        # LINE 設定
-│   ├── class-notifications-tab.php
-│   ├── class-checkout-tab.php
-│   ├── class-workflow-tab.php
-│   ├── class-roles-tab.php
-│   ├── class-test-tools-tab.php
-│   └── class-debug-tab.php
-└── ajax/
-    ├── class-line-ajax.php       # LINE 相關 AJAX
-    ├── class-roles-ajax.php      # 角色相關 AJAX
-    └── class-test-ajax.php       # 測試工具 AJAX
-```
-
-**完成標準：** 每個 Tab 檔案 < 300 行，只在需要時載入
-
----
-
-### Phase C：Service 按需載入
-
-**目標：** 40 個 service 不再全部載入，改為用到時才載入
-
-現在的問題：
-```php
-// class-plugin.php 裡面：一口氣全部 require
-require_once 'services/class-product-service.php';
-require_once 'services/class-order-service.php';
-require_once 'services/class-shipment-service.php';
-// ... 還有 37 個
-```
+現在（BGO class-plugin.php）：
+  glob('services/class-*.php')    → 一口氣載入 40 個 service
+  glob('api/class-*.php')         → 一口氣載入 15 個 API
 
 改為：
-```php
-// Autoloader：用到才載入
-spl_autoload_register(function ($class) {
-    // BuyGo\Services\ProductService → services/class-product-service.php
-});
+  spl_autoload_register()         → 用到哪個才載入哪個
+  （參考 LineHub 的 includes/autoload.php，已有現成範本）
 ```
 
-**完成標準：** 首頁請求只載入 3-5 個必要類別，而非全部 40 個
+| 項目 | 內容 |
+|------|------|
+| 建立 | `buygo-plus-one/includes/autoload.php`（參考 LineHub） |
+| 修改 | `class-plugin.php` 移除所有 glob() 和逐行 require |
+| 驗證 | 後台所有頁面正常運作 |
+
+**自主度：** 高 — 不需要用戶介入
+**預估：** 1 個對話
 
 ---
 
-### Phase D：大型 Service 拆分
+### Step 2：部署自動化（BGO + LineHub 一起）
 
+**涉及：** BGO + LineHub
+**目標：** 一個指令產生 ZIP，客戶後台一鍵更新
+
+| 項目 | 內容 |
+|------|------|
+| BGO | 完善 `build-release.sh`（排除 .planning/、tests/、.git/ 等） |
+| LineHub | 建立 `build-release.sh` + 加入 `class-auto-updater.php` |
+| 驗證 | 產生的 ZIP 可在 WP 後台正常安裝 |
+
+**自主度：** 高 — 不需要用戶介入
+**預估：** 1 個對話
+
+---
+
+### Step 3：BGO 設定頁拆分 + JS/CSS 抽出
+
+**涉及：** BGO
+**目標：** 3000 行 → 每個 Tab 獨立文件 + 獨立 AJAX + 獨立 JS/CSS
+
+```
+之前（1 個文件做所有事）：             之後（每個 Tab 獨立文件）：
+
+class-settings-page.php (2994 行)    admin/
+├── LINE 設定 Tab                    ├── class-settings-page.php (< 100 行，只做路由)
+├── 通知設定 Tab                     ├── tabs/
+├── 結帳設定 Tab                     │   ├── class-line-tab.php
+├── 工作流程 Tab                     │   ├── class-notifications-tab.php
+├── 角色權限 Tab                     │   ├── class-checkout-tab.php
+├── 測試工具 Tab                     │   ├── class-workflow-tab.php
+├── Debug 中心 Tab                   │   ├── class-roles-tab.php
+├── 12 個 AJAX handler              │   ├── class-test-tools-tab.php
+├── 內嵌 JavaScript                  │   └── class-debug-tab.php
+└── 內嵌 CSS                        ├── ajax/
+                                     │   ├── class-line-ajax.php
+                                     │   ├── class-roles-ajax.php
+                                     │   └── class-test-ajax.php
+                                     └── assets/
+                                         ├── js/settings-*.js（獨立 JS）
+                                         └── css/settings-*.css（獨立 CSS）
+```
+
+分 3 個子對話執行：
+- **3a**：拆 LINE 設定 + 通知設定 + 工作流程 Tab
+- **3b**：拆 角色權限 + 結帳設定 Tab
+- **3c**：拆 測試工具 + Debug Tab + 所有 AJAX handler
+
+**自主度：** 中 — 每批完成後建議打開後台確認頁面正常
+**預估：** 2-3 個對話
+
+---
+
+### Step 4：LINE Tab 搬到 LineHub + LineHub 後台 Phase 7
+
+**涉及：** BGO + LineHub
+**目標：** BGO 的 LINE 相關 Tab 移到 LineHub 後台，消除重疊
+
+```
+BGO 後台（拆分後）：                 LineHub 後台（升級後）：
+├── 結帳設定 Tab                    ├── 入門引導 Tab（快速開始）
+├── 角色權限 Tab                    ├── LINE 設定 Tab（從 BGO 搬過來）
+├── 測試工具 Tab                    ├── 通知設定 Tab（從 BGO 搬過來）
+└── Debug 中心 Tab                  ├── 工作流程 Tab（從 BGO 搬過來）
+                                    ├── Webhook 記錄 Tab
+    BGO = 純 ERP 管理               └── 用法說明 Tab
+    LineHub = 所有 LINE 功能             LineHub = 完整 LINE 管理介面
+```
+
+同時清理 BGO 裡的 11 個 `class-line-*.php` 殘留文件。
+
+**自主度：** 中 — 完成後需確認兩邊後台都正常
+**預估：** 2 個對話
+
+---
+
+### Step 5：大型 Service 拆分
+
+**涉及：** BGO
 **目標：** 超過 500 行的 Service 拆成專職小類別
 
-| 原始 | 拆分方向 |
-|------|---------|
-| OrderService (1156 行) | OrderQuery + OrderStatus + OrderExport |
-| ProductService (1094 行) | ProductQuery + ProductStock + ProductUpload |
-| SettingsService (1208 行) | 按功能區塊拆分 |
-| NotificationTemplates (1043 行) | 拆成每個通知類型一個文件（模板留在 BGO） |
+| 原始 | 行數 | 拆分方向 |
+|------|------|---------|
+| SettingsService | 1208 | 按 Tab 對應拆分 |
+| OrderService | 1156 | OrderQuery + OrderStatus + OrderExport |
+| ProductService | 1094 | ProductQuery + ProductStock + ProductUpload |
+| NotificationTemplates | 1043 | 每個通知類型一個文件（留在 BGO） |
+
+**自主度：** 高 — 每個 Service 獨立拆，不影響其他
+**預估：** 2-3 個對話
 
 ---
 
-### Phase E：前後端分離
-
-**目標：** PHP 不再內嵌 JS/CSS，實現完全分離
-
-| 項目 | 說明 |
-|------|------|
-| E-1 | 設定頁的內嵌 JS 抽出為獨立 .js 檔案 |
-| E-2 | 模板頁的內嵌 CSS 抽出為獨立 .css 檔案 |
-| E-3 | Vue 元件統一管理路徑 |
-
----
-
-### Phase F：清理 LINE 舊代碼殘留
-
-**現況：** BGO 已改為透過 LineHub 的 MessagingService 發送（已完成），
-但 services/ 裡還殘留 11 個 `class-line-*.php` 舊文件，部分已是 facade 模式。
-
-**目標：** 清理殘留代碼，讓 BGO 只透過 hooks 與 LineHub 通訊
-
-| 文件 | 處置 |
-|------|------|
-| class-line-messaging-facade.php | 簡化為純 hook 呼叫或移除 |
-| class-line-order-notifier.php | 保留觸發邏輯，移除 LINE API 呼叫 |
-| class-line-keyword-responder.php | 遷移到 LineHub |
-| class-line-service.php | 遷移到 LineHub |
-| class-line-text-router.php | 遷移到 LineHub |
-| class-line-webhook-handler.php | 遷移到 LineHub（已拆分為 6 個類別） |
-| class-line-response-provider.php | 遷移到 LineHub |
-| class-line-product-creator.php | 遷移到 LineHub |
-| class-line-product-upload-handler.php | 遷移到 LineHub |
-| class-line-binding-receipt.php | 遷移到 LineHub |
-| class-line-permission-validator.php | 遷移到 LineHub |
-
-**注意：** 通知模板（NotificationTemplates）留在 BGO，因為那是業務內容。
-LineHub 只是通道，不存任何業務外掛的模板。
-
-**完成標準：** BGO 的 services/ 裡面沒有直接呼叫 LINE API 的代碼
-
----
-
-## 執行順序
+## 執行總覽
 
 ```
-A（部署自動化）→ B（設定頁拆分）→ C（按需載入）→ D（Service 拆分）→ E（前後端分離）→ F（LINE 遷移）
+Step 1 ── BGO Autoloader ─────────────────── 1 個對話 ── 自主
+  │
+Step 2 ── 部署自動化（BGO + LineHub）──────── 1 個對話 ── 自主
+  │
+Step 3 ── BGO 設定頁拆分 + JS/CSS 抽出 ──── 2-3 個對話 ── 每批確認
+  │        3a: LINE + 通知 + 工作流程 Tab
+  │        3b: 角色權限 + 結帳 Tab
+  │        3c: 測試 + Debug Tab + AJAX
+  │
+Step 4 ── LINE Tab → LineHub + 後台 Phase 7 ─ 2 個對話 ── 完成後確認
+  │        + 清理 BGO 的 class-line-*.php
+  │
+Step 5 ── 大型 Service 拆分 ──────────────── 2-3 個對話 ── 自主
+  │
+  ▼
+完成 ── 總計 8-10 個對話
 ```
 
-- **A 最優先**：每次部署都踩坑，商業化前必須解決
-- **B + E 一起做**：拆設定頁時順便把內嵌 JS/CSS 抽出
-- **C 效益最大**：autoloader 一次搞定，所有頁面都加速
-- **D 持續進行**：每次碰到大文件就順手拆
-- **F 搭配 LineHub Phase 4-5**：LineHub 準備好才能遷移
+### 你需要做的事
+
+| 時刻 | 動作 |
+|------|------|
+| 每個對話開始 | 說「做第 X 步」或「繼續」 |
+| Step 3 每批完成後 | 打開 WP 後台看設定頁正不正常（30 秒） |
+| Step 4 完成後 | 打開 BGO + LineHub 後台各看一眼（1 分鐘） |
+| 其他步驟 | 不需要介入 |
 
 ---
 
@@ -333,12 +343,14 @@ A（部署自動化）→ B（設定頁拆分）→ C（按需載入）→ D（S
 
 | 指標 | 現在 | 優化後 |
 |------|------|--------|
-| 最大檔案行數 | 2994 行 | < 500 行 |
-| services/ 檔案數 | 40 個 | ~25 個（LINE 遷走後） |
-| 每次請求載入類別數 | ~40 個 | 3-5 個 |
+| BGO 最大檔案行數 | 2994 行 | < 300 行 |
+| BGO services/ 檔案數 | 40 個 | ~25 個（LINE 遷走後） |
+| BGO 每次請求載入類別數 | ~55 個（全部） | 按需載入（3-5 個） |
+| LineHub 後台 | 僅基本設定 | 完整管理介面 |
+| BGO 後台設定頁 | 7 個 Tab 混在一起 | 4 個 ERP Tab（LINE 的搬走了） |
 | 部署方式 | SSH + rsync | ZIP 一鍵更新 |
-| 內嵌 JS/CSS | 大量 | 0 |
-| LINE 直接呼叫在 BGO | 11 個檔案 | 0 個（只剩 hook 呼叫） |
+| PHP 內嵌 JS/CSS | 大量 | 0 |
+| BGO 裡的 LINE 程式碼 | 11 個檔案 | 0 個（只剩 hook 呼叫） |
 
 ---
 
