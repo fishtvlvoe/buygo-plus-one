@@ -1,254 +1,284 @@
-# Roadmap: BuyGo+1 v1.5
+# Roadmap: BuyGo+1
 
-**Created:** 2026-02-04
-**Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
-**Starting Phase:** 38（延續 v1.4 的 Phase 37）
+**Created:** 2026-02-04 (v1.5)
+**Updated:** 2026-02-20 (v2.0 roadmap added)
 
 ## Milestones
 
-- ✅ **v1.0 MVP** - Phases 1-22 (shipped 2026-01-29)
+- ✅ **v1.0 設計系統遷移與核心功能** - Phases 10-22 (shipped 2026-01-29)
 - ✅ **v1.1 部署優化與會員權限** - Phases 23-27 (shipped 2026-02-01)
 - ✅ **v1.2 LINE 通知觸發機制整合** - Phases 28-31 (shipped 2026-02-01)
 - ✅ **v1.3 出貨通知與 FluentCart 同步系統** - Phases 32-34 (shipped 2026-02-02)
 - ✅ **v1.4 會員前台子訂單顯示功能** - Phases 35-37 (shipped 2026-02-02)
-- 🚧 **v1.5 賣家商品數量限制與 ID 對應系統** - Phases 38-40 (in progress)
-
-## Phase Overview
-
-| # | Phase | Goal | Requirements | Success Criteria | Status |
-|---|-------|------|--------------|------------------|--------|
-| 38 | 角色權限頁面 UI 重構 | 顯示 ID 對應、簡化欄位、統一編輯體驗 | UI-01~05 | 5 | ✅ Complete |
-| 39 | FluentCart 自動賦予賣家權限 | 購買指定商品自動獲得賣家身份和預設配額 | FC-01~04 | 4 | ○ Pending |
-| 40 | 小幫手共享配額驗證 | 防止賣家和小幫手總上架商品數超過限制 | QUOTA-01~03 | 3 | ○ Pending |
+- ✅ **v1.5 賣家商品數量限制與 ID 對應系統** - Phases 38-39 (shipped 2026-02-20)
+- 🚧 **v2.0 後台 UI 統一化** - Phases 41-46 (in progress)
 
 ---
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1-22) - SHIPPED 2026-01-29</summary>
+<summary>✅ v1.0 MVP (Phases 10-22) - SHIPPED 2026-01-29</summary>
 
-**Milestone Goal:** 完成設計系統遷移與核心功能
+**Milestone Goal:** 完成設計系統遷移（表格、卡片、按鈕、狀態標籤、分頁器）、Dashboard 功能和全域搜尋功能
 
-### Phase 10-22: [詳細內容見 v1.0 ROADMAP.md]
+### Phase 10-22: [詳細內容見 MILESTONES.md]
 
 </details>
 
 <details>
 <summary>✅ v1.1 部署優化與會員權限 (Phases 23-27) - SHIPPED 2026-02-01</summary>
 
-**Milestone Goal:** 實作 GitHub Releases 自動更新機制與多賣家權限系統
+**Milestone Goal:** 實作 GitHub Releases 自動更新機制與多賣家權限隔離系統
 
-### Phase 23-27: [詳細內容見 v1.1 ROADMAP.md]
+### Phase 23-27: [詳細內容見 MILESTONES.md]
 
 </details>
 
 <details>
 <summary>✅ v1.2 LINE 通知觸發機制整合 (Phases 28-31) - SHIPPED 2026-02-01</summary>
 
-**Milestone Goal:** 整合 buygo-line-notify，實作商品上架和訂單通知
+**Milestone Goal:** 整合 buygo-line-notify，實作商品上架和訂單通知觸發邏輯
 
-### Phase 28-31: [詳細內容見 v1.2 ROADMAP.md]
+### Phase 28-31: [詳細內容見 MILESTONES.md]
 
 </details>
 
 <details>
 <summary>✅ v1.3 出貨通知與 FluentCart 同步系統 (Phases 32-34) - SHIPPED 2026-02-02</summary>
 
-**Milestone Goal:** 完善出貨流程，實作 LINE 出貨通知功能
+**Milestone Goal:** 完善出貨流程，實作 LINE 出貨通知與子訂單狀態同步
 
-### Phase 32-34: [詳細內容見 v1.3 ROADMAP.md]
+### Phase 32-34: [詳細內容見 MILESTONES.md]
 
 </details>
 
 <details>
 <summary>✅ v1.4 會員前台子訂單顯示功能 (Phases 35-37) - SHIPPED 2026-02-02</summary>
 
-**Milestone Goal:** 在 FluentCart 會員前台訂單頁面中，讓購物者能查看該主訂單包含的所有子訂單詳細資訊
+**Milestone Goal:** 在 FluentCart 會員前台訂單頁面中讓購物者查看子訂單詳細資訊
 
-### Phase 35-37: [詳細內容見 v1.4 ROADMAP.md]
+### Phase 35-37: [詳細內容見 MILESTONES.md]
+
+</details>
+
+<details>
+<summary>✅ v1.5 賣家商品數量限制與 ID 對應系統 (Phases 38-39) - SHIPPED 2026-02-20</summary>
+
+**Milestone Goal:** 重構賣家管理 UI（WP ID + BuyGo ID 對應）、FluentCart 購買自動賦予賣家角色
+
+### Phase 38: 角色權限頁面 UI 重構
+**Goal:** 顯示 WordPress User ID 和 BuyGo ID 對應關係，簡化欄位，統一商品限制編輯體驗
+**Status:** ✅ Complete (2026-02-04)
+**Plans:** 3/3
+
+### Phase 39: FluentCart 自動賦予賣家權限
+**Goal:** 購買指定商品的顧客自動獲得 buygo_admin 角色和預設商品配額
+**Status:** ✅ Complete (2026-02-20)
+**Plans:** 4/4
+
+### Phase 40: 小幫手共享配額驗證
+**Status:** ❌ Cancelled — 單站情境不需要共享配額（決策 2026-02-20）
 
 </details>
 
 ---
 
-## 🚧 v1.5 賣家商品數量限制與 ID 對應系統 (In Progress)
+## 🚧 v2.0 後台 UI 統一化 (In Progress)
 
-**Milestone Goal:** 重構賣家管理功能，移除「賣家類型」概念，改用統一的「商品數量限制」機制，並整合 FluentCart 自動賦予權限
+**Milestone Goal:** 重構 BGO 後台 UI，與 LineHub 設計語言統一，精簡 Tab 結構（6-Tab），新增細粒度權限、資料管理和 Pro 版授權機制
 
 **Context:**
-- 現有的「賣家類型」（測試/真實）系統過於複雜且維護成本高
-- 小幫手配額未與賣家共享，存在超配風險
-- 手動發送 LINE 綁定已不再需要（用戶自行綁定）
-- FluentCart 購買流程可自動化賣家角色賦予
-
-**Technical Background:**
-- 現有 user meta: `buygo_seller_type` (test/real), `buygo_product_limit` (數字)
-- 現有資料表: `wp_buygo_helpers` (賣家-小幫手關係)
-- FluentCart hook: `fluent_cart/order_paid` (訂單付款完成事件)
+- v1.5 完成賣家管理功能重構，現有後台仍是多子選單結構
+- LineHub 外掛已採用單頁 6-Tab 設計，BGO 需對齊統一
+- 現有角色權限 UI 缺乏細粒度控制（僅有「有/無」權限）
+- 缺乏資料管理工具（訂單/商品/客戶的批次清理）
+- Pro 版功能機制未建立
 
 **Key Decisions:**
-- 保留但隱藏 `buygo_seller_type` user meta（避免資料遷移風險）
-- 商品限制預設從 2 改為 3（用戶反饋）
-- 移除「發送綁定」按鈕（簡化 UI）
-- 小幫手配額必須在 v1.5 完成（核心功能）
+- 選單 BuyGo+1 → BGO，取消子選單，改為單頁 6-Tab
+- Tab 導航 CSS 跟 LineHub 對齊（各自品牌色 + 共用結構）
+- 只改 wp-admin 設定頁，不動前端 Portal
+- 通知記錄 Tab 刪除（已壞，功能移至 LineHub）
+- 流程監控/測試工具/除錯中心合併為「開發者」Tab
+- 角色表格只顯示 BGO 角色，純 WP Admin 不顯示
+- 小幫手權限簡化為 5 大項（商品/訂單/出貨/客戶/設定）
+- Pro 授權透過 BuyGo 外掛控制（不用 FluentCart Licensing）
+- 資料管理刪除需二次確認（Modal + 輸入 DELETE）
 
 ---
 
-### Phase 38: 角色權限頁面 UI 重構
+## Phase Overview (v2.0)
 
-**Goal:** 顯示 WordPress User ID 和 BuyGo ID 對應關係，簡化欄位，統一商品限制編輯體驗
-
-**Depends on:** v1.4 Phase 37 完成
-
-**Requirements:**
-- UI-01: 使用者欄位顯示 WordPress User ID
-- UI-02: 角色欄位顯示 BuyGo ID（小幫手）或「無 BuyGo ID」（賣家）
-- UI-03: 完全隱藏賣家類型欄位
-- UI-04: 移除發送綁定按鈕
-- UI-05: 商品限制欄位全部可編輯（預設值改為 3）
-
-**Success Criteria** (what must be TRUE):
-1. 角色權限頁面的使用者欄位顯示格式：「使用者名稱\nWP-{user_id}」（兩行，所有使用者都顯示）
-2. 角色欄位顯示：小幫手顯示「BuyGo 小幫手\nBuyGo-{helpers.id}」，賣家顯示「BuyGo 管理員\n（無 BuyGo ID）」
-3. 賣家類型欄位完全消失（列表和詳情頁都不顯示），但 `buygo_seller_type` user meta 繼續保留在資料庫中
-4. 操作欄位只有「移除」按鈕，完全沒有「發送綁定」按鈕
-5. 商品限制欄位在所有賣家都可以編輯（無 disabled 狀態），新賣家預設值為 3，輸入 0 表示無限制
-
-**Status:** ✅ Complete (2026-02-04)
-
-**Plans:** 3 plans
-
-Plans:
-- [x] 38-01-PLAN.md — UI 欄位顯示改造（WP ID + BuyGo ID）
-- [x] 38-02-PLAN.md — 欄位隱藏與移除（賣家類型、發送綁定）
-- [x] 38-03-PLAN.md — 商品限制邏輯統一（預設值、disabled 移除）
+| # | Phase | Goal | Requirements | Success Criteria | Status |
+|---|-------|------|--------------|------------------|--------|
+| 41 | 基礎架構 | CSS + 選單合併為 6-Tab 單頁結構 | ARCH-01~04 | 4 | ○ Not started |
+| 42 | 角色權限優化 | 表格過濾 + 5 大項細粒度權限 + 搜尋 UX | ROLE-01~07 | 5 | ○ Not started |
+| 43 | 資料管理 Tab | 訂單/商品/客戶查詢、編輯、刪除 | DATA-01~05 | 4 | ○ Not started |
+| 44 | 功能管理 Tab | Free/Pro 功能列表 + 授權碼驗證 | FEAT-01~04 | 4 | ○ Not started |
+| 45 | 開發者 Tab + 預留 API | 三工具合併 + 3 組 API 骨架 | DEV-01~03, API-01~03 | 4 | ○ Not started |
+| 46 | 清理 | 刪除廢棄檔案和舊樣式 | CLEAN-01~03 | 3 | ○ Not started |
 
 ---
 
-### Phase 39: FluentCart 自動賦予賣家權限
+## Phase Details
 
-**Goal:** 購買指定商品的顧客自動獲得 buygo_admin 角色和預設商品配額
+### Phase 41: 基礎架構
 
-**Depends on:** Phase 38（UI 改造完成後，自動賦予功能才有意義）
+**Goal:** BGO 後台從多子選單重構為 6-Tab 單頁設計，CSS 與 LineHub 設計語言對齊
 
-**Requirements:**
-- FC-01: 後台設定賣家商品 ID 輸入框
-- FC-02: 監聽 fluent_cart/order_paid hook
-- FC-03: 購買指定商品後自動賦予 buygo_admin 角色
-- FC-04: 自動設定 user meta（buygo_product_limit = 3）
+**Depends on:** Phase 39 (v1.5 完成)
+
+**Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04
 
 **Success Criteria** (what must be TRUE):
-1. 角色權限設定頁面有「賣家商品 ID（FluentCart）」輸入框，可以輸入 FluentCart 商品 ID 並儲存到 `buygo_seller_product_id` option
-2. 當顧客購買該商品並付款完成時，`fluent_cart/order_paid` hook 被正確監聽並執行賦予流程
-3. 該顧客自動獲得 `buygo_admin` WordPress 角色，可以存取 BuyGo+1 後台
-4. 該顧客自動獲得 `buygo_product_limit` = 3 和 `buygo_seller_type` = 'test' user meta（如果不存在才寫入）
-5. 整個流程記錄 debug log（包含訂單 ID、用戶 ID、商品 ID、賦予結果）
-
-**Plans:** 4 plans
-
-Plans:
-- [ ] 39-01-PLAN.md — 後台設定介面（賣家商品 ID 輸入框 + 驗證）
-- [ ] 39-02-PLAN.md — Hook 監聯與賦予邏輯（整合類別 + 資料表）
-- [ ] 39-03-PLAN.md — 通知系統（LINE/Email 通知 + 管理員失敗通知）
-- [ ] 39-04-PLAN.md — 退款處理與驗證（退款 Hook + 功能驗證）
-
----
-
-### Phase 40: 小幫手共享配額驗證
-
-**Goal:** 防止賣家和所有小幫手的總上架商品數超過賣家的商品限制
-
-**Depends on:** Phase 38（需要商品限制機制已正確實作）
-
-**Requirements:**
-- QUOTA-01: 小幫手上架商品計入賣家配額
-- QUOTA-02: 配額驗證邏輯（賣家 + 所有小幫手總數 <= 限制）
-- QUOTA-03: 阻止超限上架
-
-**Success Criteria** (what must be TRUE):
-1. 當小幫手嘗試上架商品時，系統識別該小幫手屬於哪個賣家（查詢 `wp_buygo_helpers` 表）
-2. 配額驗證邏輯正確計算：`賣家商品數 + SUM(所有小幫手商品數) <= 賣家的 buygo_product_limit`
-3. 當總數達到限制時，賣家和小幫手都無法上架新商品，前端顯示錯誤訊息：「商品數量已達上限（X/Y），無法上架」
-4. 配額為 0 時表示無限制，可以無限上架
-5. 小幫手同時屬於多個賣家時，配額計算正確（小幫手的商品計入所有關聯賣家的配額）
+  1. WP 後台左側選單顯示「BGO」（原 BuyGo+1），點擊後進入單一頁面，不展開子選單
+  2. 頁面頂部顯示 6 個 Tab（角色權限、LINE 模板、結帳設定、資料管理、功能管理、開發者），點擊各 Tab 切換內容不重新載入頁面
+  3. Tab 的視覺樣式（品牌藍 #3b82f6 底線、padding、transition）與 LineHub 後台 Tab 結構一致
+  4. 頁面大標顯示「BGO」，Tab 名稱大小寫正確（例如「LINE 模板」不是「Line 模板」）
 
 **Plans:** TBD
 
 Plans:
-- [ ] 40-01: [待規劃]
+- [ ] 41-01: 選單重構（add_menu_page 改名 + 刪除 add_submenu_page + render_page）
+- [ ] 41-02: Tab 導航 CSS（admin-tabs.css + .bgo- 前綴 + LineHub 對齊）
+- [ ] 41-03: Tab 框架整合（PHP 頁面切換邏輯 + 現有 Tab 內容掛載）
+
+---
+
+### Phase 42: 角色權限優化
+
+**Goal:** 角色權限 Tab 只顯示 BGO 相關用戶、支援細粒度 5 大項權限設定、改善搜尋 UX
+
+**Depends on:** Phase 41
+
+**Requirements:** ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05, ROLE-06, ROLE-07
+
+**Success Criteria** (what must be TRUE):
+  1. 角色權限表格只顯示有 BGO 角色的用戶（WP Admin 無 BGO 角色時不出現），WP Admin + BGO Admin 可以被移除 BGO 角色後從表格消失
+  2. 搜尋框點擊後立即顯示前 20 筆用戶列表（不需輸入任何字元），輸入字元後即時篩選
+  3. 「新增賣家」按鈕不再需要選擇角色或歸屬賣家，點擊搜尋、選擇用戶後直接賦予 buygo_admin 角色
+  4. 小幫手的操作欄位有「權限設定」按鈕，點擊後 Modal 顯示 5 大項 checkbox（商品/訂單/出貨/客戶/設定），儲存後立即生效
+  5. API 和 Portal 導航套用 buygo_helper_can() 檢查，無權限頁面顯示提示而非空白
+
+**Plans:** TBD
+
+Plans:
+- [ ] 42-01: 表格過濾邏輯（只顯示 BGO 角色 + 移除後從表格消失）
+- [ ] 42-02: 搜尋 UX 改進（0 字元觸發 + 後端空 query 回傳前 20 筆）
+- [ ] 42-03: 新增流程簡化（移除 dropdown + 移除歸屬搜尋 + 自動 buygo_admin）
+- [ ] 42-04: 5 大項細粒度權限 Modal（checkbox UI + user_meta 儲存 + 重設按鈕）
+- [ ] 42-05: API 和 Portal 層權限檢查（buygo_helper_can() + no-access.php）
+
+---
+
+### Phase 43: 資料管理 Tab
+
+**Goal:** 管理員可按日期範圍查詢、編輯、刪除訂單/商品/客戶資料，刪除需二次確認
+
+**Depends on:** Phase 41
+
+**Requirements:** DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
+
+**Success Criteria** (what must be TRUE):
+  1. 資料管理 Tab 有篩選區：選擇資料類型（訂單/商品/客戶）、設定日期範圍、輸入關鍵字，按下查詢後顯示結果列表
+  2. 訂單查詢結果可單筆刪除或勾選後批次刪除，刪除同時清理 buygo_shipment_items 關聯資料
+  3. 客戶資料列表可點擊進入編輯 Modal，修改姓名、電話、地址、身分證字號後儲存到 fct_customers 和 fct_customer_addresses
+  4. 所有刪除操作必須通過二次確認：第一次 Modal 顯示將刪除數量，第二次需輸入「DELETE」文字才啟用確認按鈕
+
+**Plans:** TBD
+
+Plans:
+- [ ] 43-01: 篩選區 UI + 查詢 API（三種資料類型 + 日期範圍 + 關鍵字）
+- [ ] 43-02: 訂單刪除功能（單筆 + 批次 + 關聯清理）
+- [ ] 43-03: 商品刪除功能（接入現有 /products/batch-delete 端點）
+- [ ] 43-04: 客戶編輯 Modal（姓名/電話/地址/身分證 + fct_customers 更新）
+- [ ] 43-05: 二次確認機制（數量 Modal + DELETE 輸入驗證）
+
+---
+
+### Phase 44: 功能管理 Tab
+
+**Goal:** 顯示 Free/Pro 功能列表、授權碼輸入驗證、Pro 後各功能可獨立開關
+
+**Depends on:** Phase 41
+
+**Requirements:** FEAT-01, FEAT-02, FEAT-03, FEAT-04
+
+**Success Criteria** (what must be TRUE):
+  1. 功能管理 Tab 顯示完整 Free 和 Pro 功能列表，未授權時 Pro 功能顯示「升級 Pro」提示
+  2. 授權碼輸入框點擊驗證後顯示狀態（未啟用 / Pro 已啟用 / 到期日），狀態儲存到 wp_options
+  3. Pro 啟用後，各 Pro 功能有獨立開關 toggle，開關狀態存入 wp_options 並立即生效
+  4. buygo_is_pro() 函式可被其他程式呼叫，目前永遠回傳 true（授權伺服器未來實作）
+
+**Plans:** TBD
+
+Plans:
+- [ ] 44-01: Free/Pro 功能列表 UI（分組顯示 + 未授權鎖定狀態）
+- [ ] 44-02: 授權碼欄位（輸入框 + 驗證按鈕 + 狀態顯示 + wp_options 儲存）
+- [ ] 44-03: 功能開關（Pro 後 toggle + wp_options + buygo_is_pro() 輔助函式）
+
+---
+
+### Phase 45: 開發者 Tab + 預留 API
+
+**Goal:** 三個開發工具合併為單一開發者 Tab，並建立三組未來 API 的骨架端點
+
+**Depends on:** Phase 41
+
+**Requirements:** DEV-01, DEV-02, DEV-03, API-01, API-02, API-03
+
+**Success Criteria** (what must be TRUE):
+  1. 開發者 Tab 內包含三個 .bgo-card 區塊：流程日誌（統計卡片 + 事件篩選 + 日誌表格）、資料清除（統計 + 一鍵清除）、SQL 查詢（SELECT-only 控制台）
+  2. 三個舊 Tab 檔案的功能在新開發者 Tab 中完整呈現，行為與原本一致
+  3. POST /buygo-plus-one/v1/products/batch-create 端點存在，回傳 HTTP 501 Not Implemented
+  4. POST 和 GET /products/{id}/images 端點存在，回傳 HTTP 501；GET 和 PUT /products/{id}/custom-fields 端點存在，回傳 HTTP 501
+
+**Plans:** TBD
+
+Plans:
+- [ ] 45-01: 開發者 Tab 整合（三工具合併到 developer-tab.php + .bgo-card 包裝）
+- [ ] 45-02: 預留 API 骨架（batch-create + images + custom-fields，全回傳 501）
+
+---
+
+### Phase 46: 清理
+
+**Goal:** 刪除 v2.0 重構後已無用的廢棄檔案和舊樣式，降低維護熵
+
+**Depends on:** Phase 45（所有功能整合完成後才清理）
+
+**Requirements:** CLEAN-01, CLEAN-02, CLEAN-03
+
+**Success Criteria** (what must be TRUE):
+  1. notifications-tab.php 不存在於檔案系統，且刪除後後台無任何功能損壞
+  2. workflow-tab.php、test-tools-tab.php、debug-center-tab.php 三個檔案不存在，其功能已由 developer-tab.php 承接
+  3. admin-settings.css 中 .tab-content 和 .status-badge 選擇器不存在，但 modal 和使用者搜尋等功能性樣式保留正常
+
+**Plans:** TBD
+
+Plans:
+- [ ] 46-01: 刪除廢棄 Tab 檔案（notifications + workflow + test-tools + debug-center）
+- [ ] 46-02: 清理 admin-settings.css（移除被 .bgo-* 取代的舊選擇器）
 
 ---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 38 → 39 → 40
+Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 38. 角色權限頁面 UI 重構 | 0/3 | Planning complete | - |
-| 39. FluentCart 自動賦予賣家權限 | 0/TBD | Not started | - |
-| 40. 小幫手共享配額驗證 | 0/TBD | Not started | - |
-
----
-
-## Milestone Success Criteria
-
-v1.5 完成時，系統應具備：
-
-1. **角色權限頁面改進**
-   - 清楚顯示 WordPress User ID 和 BuyGo ID 對應關係
-   - 賣家類型欄位完全隱藏（但資料保留）
-   - 所有賣家都可以編輯商品限制（預設值為 3）
-   - 移除「發送綁定」按鈕（簡化 UI）
-
-2. **FluentCart 自動化整合**
-   - 購買指定商品自動獲得賣家身份
-   - 自動設定預設商品配額（3 個）
-   - 降低手動操作成本和錯誤率
-
-3. **小幫手配額共享**
-   - 小幫手上架商品計入賣家配額
-   - 防止賣家 + 小幫手總上架數超過限制
-   - 超限時阻止上架並顯示友善錯誤訊息
-
-4. **向後相容性**
-   - 保留 `buygo_seller_type` user meta（不刪除舊資料）
-   - 現有賣家和小幫手功能繼續正常運作
-   - 升級過程平滑無中斷
-
-5. **資料一致性**
-   - ID 對應關係正確顯示
-   - 配額計算邏輯正確（支援多賣家小幫手）
-   - Debug log 完整記錄關鍵操作
-
----
-
-## Risk Assessment
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| 移除賣家類型破壞現有邏輯 | Low | High | 只隱藏欄位不刪除資料，保持程式邏輯完整 |
-| FluentCart Hook 找不到訂單商品 | Low | Medium | 先探索 Hook 參數結構，確認可取得商品清單 |
-| 小幫手配額計算邏輯複雜 | Medium | Medium | 分步實作：先單一賣家，再多賣家，充分測試 |
-| 配額驗證影響效能 | Low | Low | 使用快取機制，避免重複查詢 |
-| UI 改造影響現有功能 | Low | Medium | 先備份舊程式碼，小步迭代，每步驗證 |
-
----
-
-## Out of Scope (v1.5)
-
-以下功能明確**不包含**在 v1.5：
-
-- **刪除 buygo_seller_type user meta** — 保留但不顯示，避免資料遷移風險
-- **後台發送 LINE 綁定** — 完全移除，用戶自行綁定
-- **配額歷史記錄** — 只計算當前上架商品數量
-- **配額報表和統計** — 簡化功能範圍
-- **FluentCart 提前實作判斷** — 如果 UI 改造複雜可延後到 v1.6
-- **多層級配額系統** — 維持簡單的單一數字限制
-- **配額預警通知** — 達到限制時才阻止，不提前通知
-- **賣家自助升級配額** — 配額由後台管理員手動調整
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 38. 角色權限頁面 UI 重構 | v1.5 | 3/3 | Complete | 2026-02-04 |
+| 39. FluentCart 自動賦予賣家權限 | v1.5 | 4/4 | Complete | 2026-02-20 |
+| 40. 小幫手共享配額驗證 | v1.5 | — | Cancelled | — |
+| 41. 基礎架構 | v2.0 | 0/TBD | Not started | — |
+| 42. 角色權限優化 | v2.0 | 0/TBD | Not started | — |
+| 43. 資料管理 Tab | v2.0 | 0/TBD | Not started | — |
+| 44. 功能管理 Tab | v2.0 | 0/TBD | Not started | — |
+| 45. 開發者 Tab + 預留 API | v2.0 | 0/TBD | Not started | — |
+| 46. 清理 | v2.0 | 0/TBD | Not started | — |
 
 ---
 
 *Roadmap created: 2026-02-04*
-*Last updated: 2026-02-04*
+*v2.0 phases added: 2026-02-20*

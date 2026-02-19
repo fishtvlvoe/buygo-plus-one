@@ -172,40 +172,40 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | — | Pending |
-| ARCH-02 | — | Pending |
-| ARCH-03 | — | Pending |
-| ARCH-04 | — | Pending |
-| ROLE-01 | — | Pending |
-| ROLE-02 | — | Pending |
-| ROLE-03 | — | Pending |
-| ROLE-04 | — | Pending |
-| ROLE-05 | — | Pending |
-| ROLE-06 | — | Pending |
-| ROLE-07 | — | Pending |
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| DATA-03 | — | Pending |
-| DATA-04 | — | Pending |
-| DATA-05 | — | Pending |
-| FEAT-01 | — | Pending |
-| FEAT-02 | — | Pending |
-| FEAT-03 | — | Pending |
-| FEAT-04 | — | Pending |
-| DEV-01 | — | Pending |
-| DEV-02 | — | Pending |
-| DEV-03 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| CLEAN-01 | — | Pending |
-| CLEAN-02 | — | Pending |
-| CLEAN-03 | — | Pending |
+| ARCH-01 | Phase 41 | Pending |
+| ARCH-02 | Phase 41 | Pending |
+| ARCH-03 | Phase 41 | Pending |
+| ARCH-04 | Phase 41 | Pending |
+| ROLE-01 | Phase 42 | Pending |
+| ROLE-02 | Phase 42 | Pending |
+| ROLE-03 | Phase 42 | Pending |
+| ROLE-04 | Phase 42 | Pending |
+| ROLE-05 | Phase 42 | Pending |
+| ROLE-06 | Phase 42 | Pending |
+| ROLE-07 | Phase 42 | Pending |
+| DATA-01 | Phase 43 | Pending |
+| DATA-02 | Phase 43 | Pending |
+| DATA-03 | Phase 43 | Pending |
+| DATA-04 | Phase 43 | Pending |
+| DATA-05 | Phase 43 | Pending |
+| FEAT-01 | Phase 44 | Pending |
+| FEAT-02 | Phase 44 | Pending |
+| FEAT-03 | Phase 44 | Pending |
+| FEAT-04 | Phase 44 | Pending |
+| DEV-01 | Phase 45 | Pending |
+| DEV-02 | Phase 45 | Pending |
+| DEV-03 | Phase 45 | Pending |
+| API-01 | Phase 45 | Pending |
+| API-02 | Phase 45 | Pending |
+| API-03 | Phase 45 | Pending |
+| CLEAN-01 | Phase 46 | Pending |
+| CLEAN-02 | Phase 46 | Pending |
+| CLEAN-03 | Phase 46 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 29 total
-- Mapped to phases: 0/29 (roadmap pending)
+- Mapped to phases: 29/29 (100%)
 
 ---
 
-*Last updated: 2026-02-20 after v2.0 requirements definition*
+*Last updated: 2026-02-20 — traceability table completed, all 29 requirements mapped to phases 41-46*
