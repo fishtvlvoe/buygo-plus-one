@@ -47,11 +47,11 @@ rsync -av \
     --exclude='.env' \
     --exclude='.env.*' \
     --exclude='bin' \
-    --exclude='check-*.php' \
-    --exclude='debug-*.php' \
-    --exclude='test-*.php' \
-    --exclude='verify-*.php' \
-    --exclude='simple-debug.php' \
+    --exclude='/check-*.php' \
+    --exclude='/debug-*.php' \
+    --exclude='/test-*.php' \
+    --exclude='/verify-*.php' \
+    --exclude='/simple-debug.php' \
     --exclude='.zipignore' \
     --exclude='.github' \
     ./ "$BUILD_DIR/$PLUGIN_NAME/"
