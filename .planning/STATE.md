@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-05
-**專案版本:** v1.5 Phase 39 已完成，準備 Phase 40
+**最後更新:** 2026-02-20
+**專案版本:** v2.0 後台 UI 統一化
 
 ---
 
@@ -9,18 +9,18 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** Phase 40 - 小幫手共享配額驗證
+**當前焦點:** v2.0 — 後台 UI 統一化（定義需求中）
 
-**PROJECT.md 最後更新:** 2026-02-04
+**PROJECT.md 最後更新:** 2026-02-20
 
 ---
 
 ## 當前位置
 
-**Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
-**Phase:** 40 of 40（小幫手共享配額驗證 - 準備開始）
-**Plan:** Phase 39 全部完成（4/4 Plans）
-**Status:** v1.5 milestone complete
+**Milestone:** v2.0 - 後台 UI 統一化
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
@@ -28,299 +28,28 @@
 - **v1.2** — LINE 通知觸發機制整合 (Phases 28-31) — Shipped 2026-02-01
 - **v1.3** — 出貨通知與 FluentCart 同步系統 (Phases 32-34) — Shipped 2026-02-02
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
+- **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**當前 Milestone:**
-- **v1.5** — 賣家商品數量限制與 ID 對應系統（Phases 38-40，進行中）
-
-**Progress (v1.5):** [█████████░] 90% (Phase 38-39 完成，Phase 40 待執行)
-
-**Last activity:** 2026-02-05 — 完成 Phase 39 全部 4 個 Plans（通知系統 + 退款撤銷）
-
----
-
-## 效能指標
-
-**Velocity (v1.5):**
-- Milestone started: 2026-02-04
-- Roadmap created: 2026-02-04
-- Phase 38 completed: 2026-02-04
-- Current phase: Phase 38 完成，準備 Phase 39
-- Total phases: 3
-- Completed phases: 1/3 (33%)
-- Total requirements: 12
-- Completed requirements: 5/12 (42%)
-- Coverage: 12/12 (100%)
-
-**Phase Breakdown:**
-- Phase 38: 5 requirements (UI-01 ~ UI-05)
-- Phase 39: 4 requirements (FC-01 ~ FC-04)
-- Phase 40: 3 requirements (QUOTA-01 ~ QUOTA-03)
-
-**Recent Activity:**
-- 2026-02-05: ✅ 完成 Phase 39 全部 Plans（39-01 ~ 39-04）
-- 2026-02-05: ✅ 完成 39-04-PLAN（退款撤銷權限機制）
-- 2026-02-05: ✅ 完成 39-03-PLAN（LINE/Email 通知系統）
-- 2026-02-04: ✅ 完成 39-02-PLAN（FluentCart Hook 整合與賦予邏輯）
-- 2026-02-04: ✅ 完成 39-01-PLAN（賣家商品 ID 設定介面）
-- 2026-02-04: ✅ Phase 38 完成並通過驗證（12/12 must-haves verified）
-- 2026-02-04: 完成 38-03-PLAN（商品限制邏輯統一與預設值調整）
-- 2026-02-04: 完成 38-02-PLAN（隱藏賣家類型和移除發送綁定按鈕）
-- 2026-02-04: 完成 38-01-PLAN（WP ID + BuyGo ID 顯示）
+**Last activity:** 2026-02-20 — v1.5 結案，開始 v2.0 milestone
 
 ---
 
 ## 累積決策
 
-最近影響當前開發的決策（詳見 PROJECT.md Key Decisions）：
-
-**v1.5 Milestone 核心決策:**
-- **保留但隱藏 buygo_seller_type** — 避免資料遷移風險，未來可能需要參考 ✅ 已實作
-- **商品限制預設從 2 改為 3** — 用戶反饋認為 2 個太少 ✅ 已實作
-- **移除「發送綁定」按鈕** — 簡化 UI，用戶自行處理綁定 ✅ 已實作
-- **商品限制 0 值明確處理** — 使用 `=== '' || === false` 檢查，避免 0 被誤判 ✅ 已實作
-- **FluentCart 整合為中優先級** — 先完成 UI 改造，整合可延後
-- **小幫手配額必須在 v1.5 完成** — 核心功能，防止超配是高優先
-
-**Phase 39 決策:**
-- **商品驗證時機** — 點擊驗證按鈕時觸發，避免頻繁查詢資料庫 ✅ 已實作
-- **虛擬商品判斷** — 使用 `fct_products.is_shippable = 0` 判斷 ✅ 已實作
-- **設定區塊位置** — 放在角色權限頁面頂部，語意相關 ✅ 已實作
-- **賦予邏輯去重機制** — 使用 UNIQUE KEY + is_order_processed() 雙重保護 ✅ 已實作
-- **Hook 選擇策略** — order_created 記錄，order_paid 執行賦予 ✅ 已實作
-- **已有角色處理** — 跳過賦予但記錄 status='skipped' ✅ 已實作
-- **通知優先順序** — LINE 優先（3 次重試），失敗 fallback 到 Email ✅ 已實作
-- **通知時機** — 同步發送（非排程），在賦予成功後立即執行 ✅ 已實作
-- **退款撤銷範圍** — 移除角色 + 刪除所有相關 user meta ✅ 已實作
-- **不使用 NotificationTemplates** — 目前只有 1 個模板，直接實作避免過度設計 ✅ 已實作
-
-**Phase 策略:**
-- Phase 38 先完成 UI 重構（基礎）
-- Phase 39 實作 FluentCart 整合（自動化）
-- Phase 40 實作配額驗證（核心功能）
+**v2.0 核心決策（對話中確認）:**
+- 選單 BuyGo+1 → BGO，取消子選單，改為單頁 6-Tab
+- Tab 導航 CSS 跟 LineHub 對齊（方案 A：各自品牌色 + 共用結構）
+- 只改 wp-admin 設定頁，不動前端 Portal
+- 通知記錄 Tab 刪除（已壞，功能移至 LineHub）
+- 流程監控/測試工具/除錯中心合併為「開發者」Tab
+- 角色表格只顯示 BGO 角色，純 WP Admin 不顯示
+- 新增流程簡化為「新增賣家」
+- 搜尋 UX：點擊搜尋框即顯示（0 字元開始）
+- 小幫手權限簡化為 5 大項（商品/訂單/出貨/客戶/設定）
+- Pro 授權透過 BuyGo 外掛控制（不用 FluentCart Licensing）
+- 資料管理刪除需二次確認（Modal + 輸入 DELETE）
+- Phase 40（小幫手共享配額）已取消
 
 ---
 
-## 待辦清單（v1.5）
-
-**Phase 38（角色權限頁面 UI 重構）:** ✅ 完成
-- [x] 規劃 Phase 38 執行計畫（3 個計畫，通過驗證）
-- [x] 實作 WordPress User ID 顯示（Plan 38-01）
-- [x] 實作 BuyGo ID 顯示邏輯（Plan 38-01）
-- [x] 隱藏賣家類型欄位（Plan 38-02）
-- [x] 移除發送綁定按鈕（Plan 38-02）
-- [x] 統一商品限制編輯體驗（Plan 38-03）
-
-**Phase 39（FluentCart 自動賦予賣家權限）:** ✅ 完成
-- [x] 規劃 Phase 39 執行計畫（4 個計畫）
-- [x] 後台設定頁面新增賣家商品 ID 輸入框（Plan 39-01）
-- [x] 商品驗證 AJAX handler（Plan 39-01）
-- [x] 前端驗證邏輯（Plan 39-01）
-- [x] 建立 seller_grants 資料表（Plan 39-02）
-- [x] 建立 FluentCartSellerGrantIntegration 類別（Plan 39-02）
-- [x] 監聽 fluent_cart/order_paid hook（Plan 39-02）
-- [x] 自動賦予 buygo_admin 角色（Plan 39-02）
-- [x] 自動設定預設配額（Plan 39-02）
-- [x] 實作去重機制和賦予記錄（Plan 39-02）
-- [x] 實作 LINE/Email 通知系統（Plan 39-03）
-- [x] 實作管理員失敗通知（Plan 39-03）
-- [x] 實作退款撤銷機制（Plan 39-04）
-- [x] 建立 39-03-SUMMARY.md 和 39-04-SUMMARY.md
-
-**Phase 40（小幫手共享配額驗證）:**
-- [ ] 規劃 Phase 40 執行計畫
-- [ ] 實作配額驗證邏輯
-- [ ] 阻止超限上架
-- [ ] 錯誤訊息顯示
-
----
-
-## 阻礙和疑慮
-
-### 待解決
-
-**Phase 40 相關:**
-- 配額計算邏輯可能複雜（特別是多賣家小幫手情況）
-- 需確認現有商品上架流程的程式碼位置
-
-### 已解決
-
-**Phase 38 相關:**
-- ✅ 角色權限頁面程式碼位置已確認：`includes/admin/class-settings-page.php`（純 PHP 模板，非 Vue 元件）
-- ✅ BuyGo ID 查詢邏輯已確認：從 `wp_buygo_helpers.id` 表查詢
-
-**Phase 39 相關:**
-- ✅ fluent_cart/order_paid hook 參數結構已確認：傳遞陣列，需使用 `$data['order']` 解構
-- ✅ 商品清單取得方式已確認：查詢 `fct_order_items` 表取得 product_id
-- ✅ 去重機制已實作：UNIQUE KEY + is_order_processed() 雙重保護
-
----
-
-## 對齊狀態
-
-**與使用者對齊:** ✅ 良好
-- v1.5 目標已確認
-- 核心決策已確認
-- 路線圖已建立並等待用戶批准
-
-**與技術棧對齊:** ✅ 良好
-- 遵循現有 WordPress + Vue 3 架構
-- 使用現有 Service Layer 模式
-- 向後相容（保留但隱藏舊欄位）
-
-**與計畫對齊:** ✅ 完成
-- REQUIREMENTS.md 已完成（12 個需求，100% 映射）
-- ROADMAP.md 已建立（3 個 Phase，清楚的成功標準）
-- 等待執行第一個 Phase
-
----
-
-## 會話連續性
-
-**Last session:** 2026-02-05
-**Stopped at:** 完成 Phase 39 全部 4 個 Plans，建立 SUMMARY 文件，更新 STATE.md
-**Resume file:** 無
-
-**下一步:**
-1. ✅ Phase 39 已完成所有功能（設定 + 賦予 + 通知 + 退款）
-2. 建議：在生產環境驗證 Phase 39 功能（購買/退款流程測試）
-3. 準備開始 Phase 40（小幫手共享配額驗證）
-
-**Ready to execute:** Phase 40 規劃 - 小幫手共享配額驗證
-
-**Plans completed:**
-- ✅ 38-01-PLAN.md (WP ID + BuyGo ID 顯示)
-- ✅ 38-02-PLAN.md (隱藏賣家類型和移除發送綁定)
-- ✅ 38-03-PLAN.md (商品限制邏輯統一)
-- ✅ 39-01-PLAN.md (賣家商品 ID 設定介面)
-- ✅ 39-02-PLAN.md (FluentCart Hook 整合與賦予邏輯)
-- ✅ 39-03-PLAN.md (LINE/Email 通知系統)
-- ✅ 39-04-PLAN.md (退款撤銷機制)
-
----
-
-## 最近完成的計畫
-
-### 39-04: 退款撤銷機制
-
-**完成時間:** 2026-02-05
-**Commit:** bc44df4（與 39-03 同一次提交）
-
-**成果:**
-- ✅ 註冊 `fluent_cart/order_refunded` hook
-- ✅ 實作 `handle_order_refunded()` 方法（91 行程式碼）
-- ✅ 自動移除 `buygo_admin` 角色
-- ✅ 刪除 `buygo_product_limit` 和 `buygo_seller_type` user meta
-- ✅ 記錄撤銷到資料庫（`status = 'revoked'`）
-- ✅ 區分 full/partial refund 類型
-- ✅ 完整的防禦性檢查和錯誤日誌
-
-**決策:**
-- REFUND-ALL-OR-NOTHING: 只撤銷有成功賦予記錄的訂單
-- REFUND-COMPLETE-CLEANUP: 角色 + user meta 全部移除
-- REFUND-TYPE-TRACKING: 記錄退款類型到 error_message 欄位
-
-### 39-03: LINE/Email 通知系統
-
-**完成時間:** 2026-02-05
-**Commit:** bc44df4
-
-**成果:**
-- ✅ 實作 `send_seller_grant_notification()` - 主通知邏輯
-- ✅ LINE 通知優先（3 次重試，500ms 延遲）
-- ✅ Email fallback（未綁定或 LINE 失敗時）
-- ✅ 通知內容模板（恭喜訊息、權限說明、連結）
-- ✅ 管理員失敗通知（`notify_admin_failure()`）
-- ✅ 資料庫通知狀態追蹤（`notification_sent`, `notification_channel`）
-- ✅ 可重用的 `execute_with_retry()` 重試機制
-
-**決策:**
-- NOTIFICATION-PRIORITY: LINE 優先，Email fallback
-- NOTIFICATION-SYNC: 同步發送（非排程），確保即時性
-- NOTIFICATION-RETRY: 3 次重試處理暫時性網路錯誤
-- NO-TEMPLATE-CLASS: 不建立 NotificationTemplates 類別（YAGNI）
-
-### 39-02: FluentCart Hook 整合與賦予邏輯
-
-**完成時間:** 2026-02-04
-**Duration:** 103 秒（約 2 分鐘）
-**Commit:** 16088df, 9491434, 3959875
-
-**成果:**
-- ✅ 建立 wp_buygo_seller_grants 資料表（記錄賦予歷史）
-- ✅ 建立 FluentCartSellerGrantIntegration 整合類別
-- ✅ 監聽 fluent_cart/order_created 和 fluent_cart/order_paid
-- ✅ 自動賦予 buygo_admin 角色
-- ✅ 設定預設配額（buygo_product_limit=3, buygo_seller_type='test'）
-- ✅ 實作去重機制（UNIQUE KEY + is_order_processed()）
-- ✅ 完整的 debug log 追蹤
-- ✅ 錯誤處理和狀態記錄（success/skipped/failed）
-
-**決策:**
-- SELLER-GRANT-IDEMPOTENCY: 使用 UNIQUE KEY 實作去重機制
-- SELLER-GRANT-HOOK-ORDER: order_created 記錄，order_paid 執行賦予
-- SELLER-GRANT-SKIP-EXISTING: 已有角色的用戶跳過賦予，記錄 status='skipped'
-
-### 39-01: 賣家商品 ID 設定介面
-
-**完成時間:** 2026-02-04
-**Duration:** 113 秒（約 2 分鐘）
-**Commit:** e3d12ad, 021f064, 87edb40
-
-**成果:**
-- ✅ 在角色權限頁面新增「FluentCart 自動賦予設定」區塊
-- ✅ 實作商品 ID 輸入框和儲存機制（`buygo_seller_product_id` option）
-- ✅ 實作 AJAX 商品驗證 handler（存在性、狀態、虛擬商品類型）
-- ✅ 實作前端驗證邏輯（即時驗證、商品資訊顯示）
-- ✅ 加入說明文字和錯誤處理
-
-**決策:**
-- SETTINGS-UI-PLACEMENT: 放在角色權限頁面頂部（語意相關）
-- VALIDATION-TIMING: 點擊驗證按鈕時觸發（避免頻繁查詢）
-- PRODUCT-TYPE-CHECK: 使用 `fct_products.is_shippable = 0` 判斷虛擬商品
-
-### 38-03: 商品限制邏輯統一與預設值調整
-
-**完成時間:** 2026-02-04
-**Duration:** 1 分鐘
-**Commit:** 5916ee1
-
-**成果:**
-- ✅ 確認商品限制欄位無 disabled 邏輯（所有賣家統一可編輯）
-- ✅ 預設值從 2 改為 3（根據用戶反饋）
-- ✅ 使用明確的 `=== ''` 或 `=== false` 檢查，避免 0 值被誤判
-- ✅ 加入清晰註解說明商品限制邏輯
-- ✅ 加入 placeholder 和 title 提示（"0 = 無限制，預設 = 3"）
-
-**決策:**
-- PROD-LIMIT-DEFAULT-3: 預設值從 2 改為 3（用戶反饋 2 個太少）
-- PROD-LIMIT-ZERO-EXPLICIT: 使用明確的 null/false 檢查而非 empty()
-
-### 38-02: 隱藏賣家類型和移除發送綁定按鈕
-
-**完成時間:** 2026-02-04
-**Commit:** (See previous session)
-
-**成果:**
-- ✅ 隱藏賣家類型欄位（保留資料但不顯示）
-- ✅ 移除發送綁定按鈕（簡化 UI）
-
-### 38-01: UI 欄位顯示改造（WP ID + BuyGo ID）
-
-**完成時間:** 2026-02-04
-**Duration:** 1.5 分鐘
-**Commit:** 47256d9
-
-**成果:**
-- ✅ 使用者欄位顯示 WP-{user_id}
-- ✅ 角色欄位顯示 BuyGo-{helpers.id}（小幫手）或「（無 BuyGo ID）」（賣家）
-- ✅ 優化資料庫查詢，一次取得 BuyGo ID 和賣家資訊
-- ✅ 統一 ID 顯示格式（兩行，主要文字 + 灰色小字）
-
-**決策:**
-- 使用 wp_buygo_helpers.id 作為 BuyGo ID（而非 helper_id）
-- 賣家顯示「（無 BuyGo ID）」明確告知預期行為
-- 優化 SQL 查詢結構，一次取得所有需要的資料
-
----
-
-*State updated: 2026-02-04 after completing Phase 39 Plan 02*
+*State updated: 2026-02-20 — v2.0 milestone started*
