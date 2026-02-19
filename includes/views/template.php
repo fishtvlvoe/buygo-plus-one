@@ -167,12 +167,12 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Design System CSS (統一設計系統 - 2026-01-27) -->
-    <link rel="stylesheet" href="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'design-system/index.css'); ?>">
+    <!-- Design System CSS (統一設計系統 - inline 繞過 InstaWP WAF) -->
+    <style><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/index.css'; ?></style>
 
-    <!-- BuyGo Core JS Modules (新路徑：admin/js/) -->
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js'); ?>"></script>
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/DesignSystem.js'); ?>"></script>
+    <!-- BuyGo Core JS Modules (inline 繞過 InstaWP WAF) -->
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/RouterMixin.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/DesignSystem.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/BuyGoCache.js'; ?></script>
 
     <style>
@@ -218,8 +218,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
 
-    <!-- 獨立 Header 元件 (Vue Component) -->
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'components/shared/header-component.js'); ?>"></script>
+    <!-- 獨立 Header 元件 (Vue Component - inline 繞過 WAF) -->
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/header-component.js'; ?></script>
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -228,8 +228,8 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- VueDraggable CDN -->
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
 
-    <!-- useCurrency Composable (全站幣別處理邏輯) -->
-    <script src="<?php echo esc_url(BUYGO_PLUS_ONE_PLUGIN_URL . 'includes/views/composables/useCurrency.js'); ?>"></script>
+    <!-- useCurrency Composable (全站幣別處理邏輯 - inline 繞過 WAF) -->
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useCurrency.js'; ?></script>
 
     <!-- Global WP Nonce for REST API -->
     <script>
