@@ -213,3 +213,42 @@ buygo-line-notify (實際發送 LINE 訊息)
 ---
 
 *Last Updated: 2026-02-01*
+
+### v1.5 - 賣家商品數量限制與 ID 對應系統
+
+**Archived:** 2026-02-20
+**Duration:** 2026-02-05 ~ 2026-02-20
+**Commits:** 51 | **Files:** 127 changed | **LOC:** +11,530 / -8,791
+
+#### Phases Completed
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 38 | 角色權限頁面 UI 重構 | 3 plans | ✅ Complete |
+| 39 | FluentCart 自動賦予賣家權限 | 4 plans | ✅ Complete |
+| 40 | 小幫手共享配額驗證 | - | ❌ Cancelled |
+
+#### Key Achievements
+
+1. **角色權限 UI 重構**
+   - WP ID + BuyGo ID 對應顯示
+   - 隱藏賣家類型欄位、移除發送綁定按鈕
+   - 商品限制可編輯（預設 3，0=無限制）
+
+2. **FluentCart 自動賦予賣家權限**
+   - 後台設定賣家商品 ID
+   - 購買指定商品 → 自動獲得 buygo_admin 角色 + 預設配額
+   - LINE + Email 恭喜通知
+   - 退款 → 自動撤銷賣家角色
+
+3. **熵減重構**
+   - SettingsPage 拆分為 tabs/ + ajax/ 獨立檔案
+   - template.php CSS inline 繞過 InstaWP WAF
+   - build-release.sh 排除規則修正
+
+#### Known Gaps
+
+- QUOTA-01~03（小幫手共享配額驗證）— **Cancelled**，單站情境不需要共享配額
+
+---
+
