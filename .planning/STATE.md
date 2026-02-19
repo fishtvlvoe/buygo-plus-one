@@ -20,7 +20,7 @@
 **Milestone:** v1.5 - 賣家商品數量限制與 ID 對應系統
 **Phase:** 40 of 40（小幫手共享配額驗證 - 準備開始）
 **Plan:** Phase 39 全部完成（4/4 Plans）
-**Status:** Phase 39 已完成並等待生產環境驗證
+**Status:** v1.5 milestone complete
 
 **已完成的 Milestones:**
 - **v1.0** — 設計系統遷移與核心功能 (Phases 10-22) — Shipped 2026-01-29
