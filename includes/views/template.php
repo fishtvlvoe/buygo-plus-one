@@ -167,8 +167,47 @@ $current_page = get_query_var('buygo_page', 'dashboard');
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Design System CSS (統一設計系統 - inline 繞過 InstaWP WAF) -->
-    <style><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/index.css'; ?></style>
+    <!-- Design System CSS (inline 繞過 InstaWP WAF — 展開所有 @import) -->
+    <style>
+    <?php
+    // Design Tokens
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/colors.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/spacing.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/typography.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/effects.css';
+    // Component Styles
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/header.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/smart-search-box.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/table.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/card.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/button.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/form.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/status-tag.css';
+    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/pagination.css';
+    ?>
+    /* Global Resets */
+    * { box-sizing: border-box; }
+    a { text-decoration: none; }
+    button { font-family: inherit; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+    .hidden-mobile { display: none; }
+    @media (min-width: 768px) { .hidden-mobile { display: block; } }
+    .hidden-desktop { display: block; }
+    @media (min-width: 768px) { .hidden-desktop { display: none; } }
+    /* Skeleton Loading */
+    .buygo-skeleton { display: flex; min-height: 100vh; background: #f8fafc; }
+    .buygo-skeleton-sidebar { width: 12rem; background: #fff; border-right: 1px solid #e2e8f0; padding: 1.5rem 1rem; }
+    .buygo-skeleton-logo { height: 2rem; width: 6rem; background: #e2e8f0; border-radius: 0.5rem; margin-bottom: 2rem; }
+    .buygo-skeleton-menu-item { height: 2.5rem; background: #f1f5f9; border-radius: 0.5rem; margin-bottom: 0.5rem; }
+    .buygo-skeleton-menu-item.active { background: #dbeafe; }
+    .buygo-skeleton-content { flex: 1; padding: 1.5rem; }
+    .buygo-skeleton-header { height: 2rem; width: 12rem; background: #e2e8f0; border-radius: 0.5rem; margin-bottom: 1.5rem; }
+    .buygo-skeleton-table { background: #fff; border-radius: 0.75rem; padding: 1.5rem; }
+    .buygo-skeleton-row { height: 3rem; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; border-radius: 0.5rem; margin-bottom: 0.75rem; animation: buygo-shimmer 1.5s infinite; }
+    @keyframes buygo-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @media (max-width: 768px) { .buygo-skeleton-sidebar { display: none; } .buygo-skeleton-content { padding: 1rem; } }
+    </style>
 
     <!-- BuyGo Core JS Modules (inline 繞過 InstaWP WAF) -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/RouterMixin.js'; ?></script>
