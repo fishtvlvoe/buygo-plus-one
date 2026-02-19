@@ -352,8 +352,13 @@ if (!function_exists('sanitize_textarea_field')) {
 
 // 載入需要測試的類別
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-encryption-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-role-permission-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-settings-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-settings-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-definitions.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-flex-message-builder.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-templates.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-identity-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-service.php';

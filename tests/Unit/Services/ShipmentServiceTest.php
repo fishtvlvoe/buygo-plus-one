@@ -269,8 +269,8 @@ class ShipmentServiceTest extends TestCase
         $method = $reflection->getMethod('mark_shipped');
         $parameters = $method->getParameters();
 
-        // 應該有兩個參數
-        $this->assertCount(2, $parameters);
+        // 應該有三個參數
+        $this->assertCount(3, $parameters);
 
         // 第一個參數：shipment_ids
         $this->assertEquals('shipment_ids', $parameters[0]->getName());
@@ -279,6 +279,11 @@ class ShipmentServiceTest extends TestCase
         $this->assertEquals('estimated_delivery_at', $parameters[1]->getName());
         $this->assertTrue($parameters[1]->isOptional());
         $this->assertNull($parameters[1]->getDefaultValue());
+
+        // 第三個參數：shipping_method（有預設值 null）
+        $this->assertEquals('shipping_method', $parameters[2]->getName());
+        $this->assertTrue($parameters[2]->isOptional());
+        $this->assertNull($parameters[2]->getDefaultValue());
     }
 
     /**

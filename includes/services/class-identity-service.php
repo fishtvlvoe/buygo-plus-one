@@ -165,14 +165,15 @@ class IdentityService
             return false;
         }
 
-        // 檢查是否有 buygo_admin 角色或 seller_type meta
-        if (in_array('buygo_admin', (array) $user->roles)) {
+        $roles = (array) $user->roles;
+
+        // WordPress 管理員 = BuyGo 賣家身份（管理員 + LINE 綁定即可操作 Bot）
+        if (in_array('administrator', $roles, true)) {
             return true;
         }
 
-        // 檢查 seller_type meta（測試賣家或正式賣家）
-        $seller_type = get_user_meta($user_id, 'buygo_seller_type', true);
-        if (in_array($seller_type, ['test', 'official'])) {
+        // 檢查是否有 buygo_admin 角色
+        if (in_array('buygo_admin', $roles, true)) {
             return true;
         }
 

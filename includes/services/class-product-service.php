@@ -7,29 +7,34 @@ use FluentCart\App\Models\Product;
 use FluentCart\App\Models\OrderItem;
 
 /**
- * Product Service - 商品管理服務
- * 
- * 整合 FluentCart 商品功能並添加 BuyGo 特有的業務邏輯
- * 
- * @package BuyGoPlusOne\Services
- * @version 1.0.0
+ * Product Service - 商品管理服務（Facade）
+ *
+ * 整合 FluentCart 商品功能並添加 BuyGo 特有的業務邏輯。
+ * 統計計算委派給 ProductStatsCalculator，限制檢查委派給 ProductLimitChecker。
+ *
+ * @package BuyGoPlus\Services
+ * @version 2.1.0
  */
 class ProductService
 {
     private $debugService;
+    private $statsCalculator;
+    private $limitChecker;
 
-    // 測試版限制（Phase 19）
-    const MAX_PRODUCTS_PER_SELLER = 2;  // 每個賣家最多 2 個商品
-    const MAX_IMAGES_PER_PRODUCT = 2;   // 每個商品最多 2 張圖片
+    // 測試版限制（Phase 19）— 保留常數以維持向後相容
+    const MAX_PRODUCTS_PER_SELLER = ProductLimitChecker::MAX_PRODUCTS_PER_SELLER;
+    const MAX_IMAGES_PER_PRODUCT = ProductLimitChecker::MAX_IMAGES_PER_PRODUCT;
 
     public function __construct()
     {
         $this->debugService = DebugService::get_instance();
+        $this->statsCalculator = new ProductStatsCalculator($this->debugService);
+        $this->limitChecker = new ProductLimitChecker($this->debugService);
     }
 
     /**
      * 取得商品列表（包含下單數量）
-     * 
+     *
      * @param array $filters 篩選條件
      * @param string $viewMode 顯示模式 frontend|backend
      * @return array
@@ -43,7 +48,7 @@ class ProductService
 
         try {
             global $wpdb;
-            
+
             $user = wp_get_current_user();
             $isWpAdmin = in_array('administrator', (array)$user->roles, true);
 
@@ -111,13 +116,13 @@ class ProductService
 
             // 計算下單數量
             $productIds = $products->pluck('id')->toArray();
-            $orderCounts = $this->calculateOrderCounts($productIds);
+            $orderCounts = $this->statsCalculator->calculateOrderCounts($productIds);
 
             // 計算已出貨數量
-            $shippedCounts = $this->calculateShippedCounts($productIds);
+            $shippedCounts = $this->statsCalculator->calculateShippedCounts($productIds);
 
             // 計算已分配到子訂單的數量（取代不可靠的 post_meta）
-            $allocatedToChildCounts = $this->calculateAllocatedToChildOrders($productIds);
+            $allocatedToChildCounts = $this->statsCalculator->calculateAllocatedToChildOrders($productIds);
 
             // 格式化資料
             $formattedProducts = [];
@@ -235,81 +240,59 @@ class ProductService
 
     /**
      * 更新商品資料
-     * 
+     *
      * @param int $productId 商品 ID
      * @param array $updateData 更新資料
      * @return bool
      */
     public function updateProduct(int $productId, array $updateData): bool
     {
-        error_log('===== ProductService::updateProduct =====');
-        error_log('ID: ' . $productId);
-        error_log('Data: ' . print_r($updateData, true));
-        
         $this->debugService->log('ProductService', '更新商品資料', [
             'product_id' => $productId,
             'update_data' => $updateData
         ]);
 
         try {
-            error_log('嘗試取得商品: ProductVariation::find(' . $productId . ')');
             $product = ProductVariation::find($productId);
-            
+
             if (!$product) {
-                error_log('錯誤：商品不存在，ID: ' . $productId);
                 return false;
             }
-            
-            error_log('找到商品: post_id=' . $product->post_id . ', item_title=' . ($product->variation_title ?? 'N/A'));
 
             // 更新商品名稱（WordPress Post Title）
             if (isset($updateData['name'])) {
-                error_log('更新商品名稱: ' . $updateData['name']);
-                $result = wp_update_post([
+                wp_update_post([
                     'ID' => $product->post_id,
                     'post_title' => $updateData['name']
                 ]);
-                if (is_wp_error($result)) {
-                    error_log('wp_update_post 失敗: ' . $result->get_error_message());
-                } else {
-                    error_log('wp_update_post 成功: ' . $result);
-                }
             }
 
             // 更新價格（轉換為分）
             if (isset($updateData['price'])) {
                 $priceInCents = (int) ($updateData['price'] * 100);
-                error_log('更新價格: ' . $updateData['price'] . ' 元 = ' . $priceInCents . ' 分');
                 $product->item_price = $priceInCents;
             }
 
             // 更新已採購數量（儲存到 post_meta）
             if (isset($updateData['purchased'])) {
-                error_log('更新已採購數量: ' . $updateData['purchased']);
                 update_post_meta($product->post_id, '_buygo_purchased', (int) $updateData['purchased']);
             }
 
             // 更新狀態
             if (isset($updateData['status'])) {
-                error_log('更新狀態: ' . $updateData['status']);
-                $result = wp_update_post([
+                wp_update_post([
                     'ID' => $product->post_id,
                     'post_status' => $updateData['status']
                 ]);
-                if (is_wp_error($result)) {
-                    error_log('wp_update_post (status) 失敗: ' . $result->get_error_message());
-                } else {
-                    error_log('wp_update_post (status) 成功: ' . $result);
-                }
             }
 
             // 儲存 ProductVariation 變更
-            error_log('嘗試儲存 ProductVariation...');
             $result = $product->save();
-            error_log('儲存結果: ' . ($result ? '成功' : '失敗'));
-            
+
             if (!$result) {
-                error_log('ProductVariation::save() 返回 false');
+                $this->debugService->log('ProductService', 'ProductVariation::save() 返回 false', [
+                    'product_id' => $productId
+                ], 'warning');
             }
 
             $this->debugService->log('ProductService', '商品更新成功', [
@@ -319,14 +302,11 @@ class ProductService
             return true;
 
         } catch (\Exception $e) {
-            error_log('ProductService::updateProduct 錯誤: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
             $this->debugService->log('ProductService', '商品更新失敗', [
                 'product_id' => $productId,
                 'error' => $e->getMessage()
             ], 'error');
-            
+
             throw $e;
         }
     }
@@ -478,167 +458,6 @@ class ProductService
     }
 
     /**
-     * 計算商品的下單數量
-     * 
-     * @param array $productVariationIds 商品變化 ID 陣列
-     * @return array
-     */
-    private function calculateOrderCounts(array $productVariationIds): array
-    {
-        if (empty($productVariationIds)) {
-            return [];
-        }
-
-        try {
-            global $wpdb;
-            
-            $table_items = $wpdb->prefix . 'fct_order_items';
-            $table_orders = $wpdb->prefix . 'fct_orders';
-            
-            $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
-            
-            $sql = $wpdb->prepare("
-                SELECT oi.object_id as product_variation_id, SUM(oi.quantity) as order_count
-                FROM {$table_items} oi
-                INNER JOIN {$table_orders} o ON oi.order_id = o.id
-                WHERE oi.object_id IN ({$placeholders})
-                AND o.status NOT IN ('cancelled', 'refunded')
-                AND o.parent_id IS NULL
-                GROUP BY oi.object_id
-            ", ...$productVariationIds);
-
-            $results = $wpdb->get_results($sql, ARRAY_A);
-            
-            $orderCounts = [];
-            foreach ($results as $result) {
-                $orderCounts[$result['product_variation_id']] = (int)$result['order_count'];
-            }
-
-            return $orderCounts;
-
-        } catch (\Exception $e) {
-            $this->debugService->log('ProductService', '計算下單數量失敗', [
-                'error' => $e->getMessage(),
-                'product_variation_ids' => $productVariationIds
-            ], 'error');
-
-            return [];
-        }
-    }
-
-    /**
-     * 計算已出貨數量
-     * 
-     * @param array $productVariationIds 商品變體 ID 陣列
-     * @return array 商品 ID => 已出貨數量
-     */
-    private function calculateShippedCounts(array $productVariationIds): array
-    {
-        if (empty($productVariationIds)) {
-            return [];
-        }
-
-        try {
-            global $wpdb;
-
-            $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
-            $table_shipments = $wpdb->prefix . 'buygo_shipments';
-            $table_variations = $wpdb->prefix . 'fct_product_variations';
-
-            $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
-
-            // 【重要】buygo_shipment_items.product_id 存的是 WordPress post_id
-            // 而傳入的 productVariationIds 是 FluentCart ProductVariation ID
-            // 需要透過 fct_product_variations 表做轉換
-            $sql = $wpdb->prepare("
-                SELECT
-                    pv.id as product_variation_id,
-                    SUM(si.quantity) as shipped_count
-                FROM {$table_shipment_items} si
-                INNER JOIN {$table_shipments} s ON si.shipment_id = s.id
-                INNER JOIN {$table_variations} pv ON si.product_id = pv.post_id
-                WHERE pv.id IN ({$placeholders})
-                AND s.status IN ('shipped', 'archived')
-                GROUP BY pv.id
-            ", ...$productVariationIds);
-
-            $results = $wpdb->get_results($sql, ARRAY_A);
-
-            $shippedCounts = [];
-            foreach ($results as $result) {
-                $shippedCounts[$result['product_variation_id']] = (int)$result['shipped_count'];
-            }
-
-            return $shippedCounts;
-
-        } catch (\Exception $e) {
-            $this->debugService->log('ProductService', '計算已出貨數量失敗', [
-                'error' => $e->getMessage(),
-                'product_variation_ids' => $productVariationIds
-            ], 'error');
-
-            return [];
-        }
-    }
-
-    /**
-     * 計算已分配到子訂單的數量
-     *
-     * 【重要】這個方法計算的是實際已建立子訂單的商品數量
-     * 用於取代從 post_meta 讀取的 _buygo_allocated（因為 post_meta 可能不同步）
-     *
-     * @param array $productVariationIds 商品變體 ID 陣列
-     * @return array 商品 ID => 已分配到子訂單的數量
-     */
-    private function calculateAllocatedToChildOrders(array $productVariationIds): array
-    {
-        if (empty($productVariationIds)) {
-            return [];
-        }
-
-        try {
-            global $wpdb;
-
-            $table_items = $wpdb->prefix . 'fct_order_items';
-            $table_orders = $wpdb->prefix . 'fct_orders';
-
-            $placeholders = implode(',', array_fill(0, count($productVariationIds), '%d'));
-
-            // 計算每個商品在子訂單中的總數量
-            // 子訂單的特徵：parent_id IS NOT NULL 且 type = 'split'
-            $sql = $wpdb->prepare("
-                SELECT
-                    oi.object_id as product_variation_id,
-                    SUM(oi.quantity) as allocated_count
-                FROM {$table_items} oi
-                INNER JOIN {$table_orders} o ON oi.order_id = o.id
-                WHERE oi.object_id IN ({$placeholders})
-                AND o.parent_id IS NOT NULL
-                AND o.type = 'split'
-                AND o.status NOT IN ('cancelled', 'refunded')
-                GROUP BY oi.object_id
-            ", ...$productVariationIds);
-
-            $results = $wpdb->get_results($sql, ARRAY_A);
-
-            $allocatedCounts = [];
-            foreach ($results as $result) {
-                $allocatedCounts[$result['product_variation_id']] = (int)$result['allocated_count'];
-            }
-
-            return $allocatedCounts;
-
-        } catch (\Exception $e) {
-            $this->debugService->log('ProductService', '計算已分配到子訂單數量失敗', [
-                'error' => $e->getMessage(),
-                'product_variation_ids' => $productVariationIds
-            ], 'error');
-
-            return [];
-        }
-    }
-
-    /**
      * 取得幣別符號
      *
      * @param string $currency 幣別代碼
@@ -673,8 +492,8 @@ class ProductService
 
     /**
      * 取得單一商品完整資料
-     * 
-     * @param int $productId 商品 ID 
+     *
+     * @param int $productId 商品 ID
      * @return array|null
      */
     public function getProductById(int $productId): ?array
@@ -722,7 +541,7 @@ class ProductService
 
             // 計算下單數量
             $productIds = [$product->id];
-            $orderCounts = $this->calculateOrderCounts($productIds);
+            $orderCounts = $this->statsCalculator->calculateOrderCounts($productIds);
 
             // 取得商品名稱：直接從 wp_posts 讀取 post_title（最可靠的方式）
             $post = get_post($product->post_id);
@@ -830,15 +649,15 @@ class ProductService
     {
         try {
             // 計算下單數量（只計算父訂單）
-            $orderCounts = $this->calculateOrderCounts([$variationId]);
+            $orderCounts = $this->statsCalculator->calculateOrderCounts([$variationId]);
             $ordered = $orderCounts[$variationId] ?? 0;
 
             // 計算已分配數量（從子訂單計算）
-            $allocatedCounts = $this->calculateAllocatedToChildOrders([$variationId]);
+            $allocatedCounts = $this->statsCalculator->calculateAllocatedToChildOrders([$variationId]);
             $allocated = $allocatedCounts[$variationId] ?? 0;
 
             // 計算已出貨數量
-            $shippedCounts = $this->calculateShippedCounts([$variationId]);
+            $shippedCounts = $this->statsCalculator->calculateShippedCounts([$variationId]);
             $shipped = $shippedCounts[$variationId] ?? 0;
 
             // 取得已採購數量（從 fct_meta 表讀取）
@@ -918,177 +737,34 @@ class ProductService
     }
 
     /**
-     * 檢查商品是否為多樣式商品
+     * 檢查商品是否為多樣式商品（委派給 ProductLimitChecker）
      *
      * @param int $productId WordPress Post ID
      * @return bool
      */
     public function isVariableProduct(int $productId): bool
     {
-        try {
-            global $wpdb;
-            $table = $wpdb->prefix . 'fct_product_variations';
-
-            $count = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table}
-                 WHERE post_id = %d AND item_status = 'active'",
-                $productId
-            ));
-
-            return (int)$count > 1;
-
-        } catch (\Exception $e) {
-            $this->debugService->log('ProductService', '檢查 Variable Product 失敗', [
-                'product_id' => $productId,
-                'error' => $e->getMessage()
-            ], 'error');
-
-            return false;
-        }
+        return $this->limitChecker->isVariableProduct($productId);
     }
 
     /**
-     * 檢查賣家是否可以新增商品（Phase 19 + Phase 40）
-     *
-     * Phase 40: 實作小幫手共享配額驗證
-     * - 計算賣家 + 所有小幫手的總商品數
-     * - 與賣家的 product_limit 比較
+     * 檢查賣家是否可以新增商品（委派給 ProductLimitChecker）
      *
      * @param int $user_id 賣家或小幫手 ID
      * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
      */
     public function canAddProduct($user_id) {
-        global $wpdb;
-
-        // 檢查賣家類型
-        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
-
-        // 真實賣家沒有限制
-        if ($seller_type === 'real') {
-            return [
-                'can_add' => true,
-                'current' => 0,
-                'limit' => 0,
-                'message' => '真實賣家無商品數量限制'
-            ];
-        }
-
-        // Phase 40: 判斷是賣家還是小幫手
-        $seller_id = $user_id;
-        $is_helper = false;
-
-        // 檢查是否為小幫手（查詢 wp_buygo_helpers 表）
-        $helper_relation = $wpdb->get_row($wpdb->prepare(
-            "SELECT seller_id FROM {$wpdb->prefix}buygo_helpers WHERE helper_id = %d",
-            $user_id
-        ));
-
-        if ($helper_relation) {
-            $is_helper = true;
-            $seller_id = $helper_relation->seller_id;
-        }
-
-        // 取得賣家的商品限制數量 (0 = 無限制)
-        $product_limit = get_user_meta($seller_id, 'buygo_product_limit', true);
-        if ($product_limit === '') {
-            $product_limit = self::MAX_PRODUCTS_PER_SELLER; // 預設為 2
-        }
-        $product_limit = intval($product_limit);
-
-        // 如果限制為 0,表示無限制
-        if ($product_limit === 0) {
-            return [
-                'can_add' => true,
-                'current' => 0,
-                'limit' => 0,
-                'message' => $is_helper ? '小幫手（無商品數量限制）' : '測試賣家（無商品數量限制）'
-            ];
-        }
-
-        // Phase 40: 計算賣家 + 所有小幫手的總商品數
-
-        // 1. 賣家自己的商品數
-        $seller_product_count = Product::where('post_author', $seller_id)
-            ->where('post_status', '!=', 'trash')
-            ->count();
-
-        // 2. 所有小幫手的商品數
-        $helpers = $wpdb->get_col($wpdb->prepare(
-            "SELECT helper_id FROM {$wpdb->prefix}buygo_helpers WHERE seller_id = %d",
-            $seller_id
-        ));
-
-        $helpers_product_count = 0;
-        if (!empty($helpers)) {
-            $helpers_product_count = Product::whereIn('post_author', $helpers)
-                ->where('post_status', '!=', 'trash')
-                ->count();
-        }
-
-        // 總商品數
-        $total_count = $seller_product_count + $helpers_product_count;
-        $can_add = $total_count < $product_limit;
-
-        $message = $can_add
-            ? sprintf('還可新增 %d 個商品', $product_limit - $total_count)
-            : '已達上架限制，無法新增更多產品';
-
-        return [
-            'can_add' => $can_add,
-            'current' => $total_count,
-            'limit' => $product_limit,
-            'message' => $message,
-            'is_helper' => $is_helper,
-            'seller_id' => $seller_id
-        ];
+        return $this->limitChecker->canAddProduct($user_id);
     }
 
     /**
-     * 檢查商品是否可以新增圖片（Phase 19）
+     * 檢查商品是否可以新增圖片（委派給 ProductLimitChecker）
      *
      * @param int $product_id 商品 ID (wp_posts.ID)
      * @param int $user_id 賣家 ID
      * @return array ['can_add' => bool, 'current' => int, 'limit' => int, 'message' => string]
      */
     public function canAddImage($product_id, $user_id) {
-        // 檢查賣家類型
-        $seller_type = \BuyGoPlus\Admin\SellerTypeField::get_seller_type($user_id);
-
-        // 真實賣家沒有限制
-        if ($seller_type === 'real') {
-            return [
-                'can_add' => true,
-                'current' => 0,
-                'limit' => 0,
-                'message' => '真實賣家無圖片數量限制'
-            ];
-        }
-
-        // 測試賣家：計算現有圖片數量
-        $image_count = 0;
-
-        // 1. 縮圖
-        $thumbnail_id = get_post_thumbnail_id($product_id);
-        if ($thumbnail_id) {
-            $image_count++;
-        }
-
-        // 2. Gallery 圖片
-        $gallery = get_post_meta($product_id, '_product_image_gallery', true);
-        if (!empty($gallery)) {
-            $gallery_ids = explode(',', $gallery);
-            $image_count += count($gallery_ids);
-        }
-
-        $can_add = $image_count < self::MAX_IMAGES_PER_PRODUCT;
-
-        return [
-            'can_add' => $can_add,
-            'current' => $image_count,
-            'limit' => self::MAX_IMAGES_PER_PRODUCT,
-            'message' => $can_add
-                ? sprintf('還可新增 %d 張圖片', self::MAX_IMAGES_PER_PRODUCT - $image_count)
-                : sprintf('已達圖片數量上限（%d/%d）', $image_count, self::MAX_IMAGES_PER_PRODUCT)
-        ];
+        return $this->limitChecker->canAddImage($product_id, $user_id);
     }
 }

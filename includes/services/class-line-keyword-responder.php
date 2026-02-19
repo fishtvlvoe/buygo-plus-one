@@ -52,7 +52,7 @@ class LineKeywordResponder {
 		$text = trim( $event['message']['text'] ?? '' );
 		$text_lower = strtolower( $text );
 
-		// 檢查是否為關鍵字指令
+		// /id 系列指令：所有人可用（查詢自己的綁定狀態）
 		$response = null;
 		switch ( $text_lower ) {
 			case '/id':
@@ -64,6 +64,11 @@ class LineKeywordResponder {
 			case '/help':
 			case '/說明':
 			case '/指令':
+				// 其他指令：只有賣家/小幫手可用
+				$validator = new LinePermissionValidator();
+				if ( ! $validator->shouldBotRespond( $line_uid, $user_id, 'keyword' ) ) {
+					return;
+				}
 				$response = $this->get_help_message();
 				break;
 		}

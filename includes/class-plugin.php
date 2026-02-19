@@ -101,74 +101,18 @@ class Plugin {
     /**
      * 載入依賴檔案
      *
-     * 使用 WordPress Plugin Boilerplate 結構
-     *
-     * 載入順序：
-     * 1. 核心類別（Loader, Admin, Public）
-     * 2. Services（使用 glob 批次載入）
-     * 3. API（使用 glob 批次載入）
-     * 4. Admin Pages
-     * 5. Database
-     * 6. Routes
-     * 7. 其他整合
+     * 使用 PSR-4 Autoloader 按需載入 includes/ 下的所有類別。
+     * 只保留 autoloader 管不到的檔案（不在 includes/ 目錄下的）。
      *
      * @return void
      */
     private function load_dependencies() {
-        // 載入核心類別（WordPress Plugin Boilerplate）
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-loader.php';
+        // PSR-4 Autoloader — includes/ 下的類別用到才載入
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/autoload.php';
+
+        // 以下檔案不在 includes/ 目錄下，autoloader 無法處理
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/class-admin.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'public/class-public.php';
-
-        // 使用 glob 批次載入 Services（15 個服務）
-        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-*.php') as $service) {
-            require_once $service;
-        }
-
-        // 載入核心服務
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/core/class-buygo-plus-core.php';
-
-        // 載入監控工具
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/monitoring/class-slow-query-monitor.php';
-
-        // 載入診斷工具（WP-CLI 命令）
-        if (defined('WP_CLI') && WP_CLI) {
-            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/diagnostics/class-diagnostics-command.php';
-        }
-
-        // 載入 Admin Pages
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-debug-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-settings-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-management-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/class-seller-type-field.php';
-
-        // 載入 Database
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
-
-        // 使用 glob 批次載入 API（5 個 API）
-        foreach (glob(BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-*.php') as $api) {
-            require_once $api;
-        }
-
-        // 載入 Routes
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-routes.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-short-link-routes.php';
-
-        // 載入 Shortcodes
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-seller-application-shortcode.php';
-
-        // 載入 FluentCart/FluentCommunity 整合
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluentcart-product-page.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-fluent-community.php';
-
-        // FluentCart 整合
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-child-orders-integration.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-offline-payment-user.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-seller-grant.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/integrations/class-fluentcart-hide-child-orders.php';
-
-        // 自動更新
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-auto-updater.php';
     }
     
     /**
@@ -214,11 +158,6 @@ class Plugin {
         new \BuyGoPlus\Api\Debug_API();
         new \BuyGoPlus\Api\Settings_API();
         new \BuyGoPlus\Api\Keywords_API();
-        new \BuyGoPlus\Api\Seller_Application_API();
-
-        // LINE Webhook API 已移除
-        // 根據架構設計，LINE webhook 由 LINE Hub 接收
-        // BuyGo Plus One 透過 hook 機制接收事件，不直接處理 webhook
 
         // 初始化 FluentCommunity 整合（若 FluentCommunity 已安裝）
         if (class_exists('FluentCommunity\\App\\App')) {
@@ -236,14 +175,8 @@ class Plugin {
         // 初始化結帳頁面自訂服務（身分證字號等）
         \BuyGoPlus\Services\CheckoutCustomizationService::init();
 
-        // 初始化賣家申請 Shortcode
-        SellerApplicationShortcode::instance();
-
         // 初始化訂單項目標題修復服務
         \BuyGoPlus\Services\OrderItemTitleFixer::instance();
-
-        // 初始化 LINE Response Provider（已停用，功能移至 LineHub action hooks）
-        \BuyGoPlus\Services\LineResponseProvider::init();
 
         // 初始化 LINE Webhook Handler
         // 監聽 LineHub 發出的 webhook action hooks：
@@ -309,9 +242,7 @@ class Plugin {
         $current_db_version = get_option('buygo_plus_one_db_version', '0');
         $required_db_version = self::DB_VERSION; // 使用類別常數
 
-        // 載入必要的類別
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database-checker.php';
+        // Database 和 DatabaseChecker 由 autoloader 按需載入
 
         // 版本升級邏輯
         if (version_compare($current_db_version, $required_db_version, '<')) {
