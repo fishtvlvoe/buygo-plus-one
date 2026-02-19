@@ -2,6 +2,7 @@
   "model_profile": "balanced",
   "commit_docs": true,
   "workflow": {
-    "verifier": true
+    "verifier": true,
+    "research": false
   }
 }
