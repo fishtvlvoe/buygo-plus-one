@@ -224,6 +224,12 @@
                                     min="0" step="1" title="0 = 無限制" />
                             </td>
                             <td>
+                                <?php if ($user['has_buygo_helper_role']): ?>
+                                    <button type="button" class="bgo-btn-icon permission-btn"
+                                        data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                        data-user-name="<?php echo esc_attr($user['name']); ?>"
+                                        title="權限設定">⚙️</button>
+                                <?php endif; ?>
                                 <?php
                                 $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : null);
                                 if ($role_to_remove): ?>
@@ -275,6 +281,42 @@
                 </div>
                 <div class="bgo-modal-actions">
                     <button type="button" class="button" id="close-add-helper">關閉</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 權限設定 Modal -->
+        <div id="permission-modal" class="bgo-modal-overlay" style="display:none;">
+            <div class="bgo-modal">
+                <h3>權限設定 — <span id="permission-user-label"></span></h3>
+                <input type="hidden" id="permission-user-id" value="" />
+                <p style="margin:0 0 12px; font-size:13px; color:#666;">勾選此小幫手可操作的功能項目</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_products" checked /> <span>商品管理</span>
+                        <small style="color:#888; margin-left:auto;">查看、編輯、刪除商品</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_orders" checked /> <span>訂單管理</span>
+                        <small style="color:#888; margin-left:auto;">查看、處理訂單</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_shipments" checked /> <span>出貨管理</span>
+                        <small style="color:#888; margin-left:auto;">查看、管理出貨</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_customers" checked /> <span>客戶資料</span>
+                        <small style="color:#888; margin-left:auto;">查看客戶資料</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_settings" checked /> <span>設定</span>
+                        <small style="color:#888; margin-left:auto;">存取設定頁面</small>
+                    </label>
+                </div>
+                <div class="bgo-modal-actions">
+                    <button type="button" class="button-primary" id="save-permissions">儲存</button>
+                    <button type="button" class="button" id="reset-permissions">全部開啟</button>
+                    <button type="button" class="button" id="cancel-permissions">取消</button>
                 </div>
             </div>
         </div>

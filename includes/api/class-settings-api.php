@@ -138,6 +138,20 @@ class Settings_API {
                 ]
             ]
         ]);
+
+        // GET /settings/helpers/{user_id}/permissions - 取得小幫手權限
+        register_rest_route($this->namespace, '/settings/helpers/(?P<user_id>\d+)/permissions', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_helper_permissions'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
+
+        // POST /settings/helpers/{user_id}/permissions - 儲存小幫手權限
+        register_rest_route($this->namespace, '/settings/helpers/(?P<user_id>\d+)/permissions', [
+            'methods' => 'POST',
+            'callback' => [$this, 'save_helper_permissions'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
     }
     
     /**
@@ -756,5 +770,29 @@ class Settings_API {
                 'message' => '取得模板順序失敗：' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * 取得小幫手權限
+     */
+    public function get_helper_permissions($request) {
+        $user_id = (int) $request['user_id'];
+        $permissions = SettingsService::get_helper_permissions($user_id);
+        return new \WP_REST_Response(['success' => true, 'data' => $permissions], 200);
+    }
+
+    /**
+     * 儲存小幫手權限
+     */
+    public function save_helper_permissions($request) {
+        $user_id = (int) $request['user_id'];
+        $body = json_decode($request->get_body(), true);
+
+        if (!is_array($body)) {
+            return new \WP_REST_Response(['success' => false, 'message' => '無效的請求'], 400);
+        }
+
+        $result = SettingsService::save_helper_permissions($user_id, $body);
+        return new \WP_REST_Response(['success' => $result, 'message' => $result ? '權限已儲存' : '儲存失敗'], $result ? 200 : 500);
     }
 }
