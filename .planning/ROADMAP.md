@@ -135,12 +135,13 @@
   3. Tab 的視覺樣式（品牌藍 #3b82f6 底線、padding、transition）與 LineHub 後台 Tab 結構一致
   4. 頁面大標顯示「BGO」，Tab 名稱大小寫正確（例如「LINE 模板」不是「Line 模板」）
 
-**Plans:** TBD
+**Status:** ✅ Complete (2026-02-20)
+**Plans:** 3/3
 
 Plans:
-- [ ] 41-01: 選單重構（add_menu_page 改名 + 刪除 add_submenu_page + render_page）
-- [ ] 41-02: Tab 導航 CSS（admin-tabs.css + .bgo- 前綴 + LineHub 對齊）
-- [ ] 41-03: Tab 框架整合（PHP 頁面切換邏輯 + 現有 Tab 內容掛載）
+- [x] 41-01: 選單重構（add_menu_page 改名 + 刪除 add_submenu_page + render_page）
+- [x] 41-02: Tab 導航 CSS（admin-tabs.css + .bgo- 前綴 + LineHub 對齊）
+- [x] 41-03: Tab 框架整合（PHP 頁面切換邏輯 + 現有 Tab 內容掛載）
 
 ---
 
@@ -271,7 +272,7 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 38. 角色權限頁面 UI 重構 | v1.5 | 3/3 | Complete | 2026-02-04 |
 | 39. FluentCart 自動賦予賣家權限 | v1.5 | 4/4 | Complete | 2026-02-20 |
 | 40. 小幫手共享配額驗證 | v1.5 | — | Cancelled | — |
-| 41. 基礎架構 | v2.0 | 0/TBD | Not started | — |
+| 41. 基礎架構 | v2.0 | 3/3 | Complete | 2026-02-20 |
 | 42. 角色權限優化 | v2.0 | 0/TBD | Not started | — |
 | 43. 資料管理 Tab | v2.0 | 0/TBD | Not started | — |
 | 44. 功能管理 Tab | v2.0 | 0/TBD | Not started | — |
