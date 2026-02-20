@@ -460,9 +460,75 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // 賣家類型切換 - 已移除（UI 重構）
-    // 功能已停用，相關欄位已從 UI 移除
-    // 保留註解以記錄歷史功能
+    // ===== 權限設定 Modal =====
+    $(document).on('click', '.permission-btn', function() {
+        const userId = $(this).data('user-id');
+        const userName = $(this).data('user-name');
+
+        $('#permission-user-id').val(userId);
+        $('#permission-user-label').text(userName);
+
+        // 載入現有權限
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers/' + userId + '/permissions',
+            type: 'GET',
+            headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const perms = response.data;
+                    $('[name="perm_products"]').prop('checked', perms.products);
+                    $('[name="perm_orders"]').prop('checked', perms.orders);
+                    $('[name="perm_shipments"]').prop('checked', perms.shipments);
+                    $('[name="perm_customers"]').prop('checked', perms.customers);
+                    $('[name="perm_settings"]').prop('checked', perms.settings);
+                }
+            }
+        });
+
+        $('#permission-modal').show();
+    });
+
+    $('#save-permissions').on('click', function() {
+        const userId = $('#permission-user-id').val();
+        const btn = $(this);
+        btn.prop('disabled', true).text('儲存中...');
+
+        const payload = {
+            products:  $('[name="perm_products"]').is(':checked'),
+            orders:    $('[name="perm_orders"]').is(':checked'),
+            shipments: $('[name="perm_shipments"]').is(':checked'),
+            customers: $('[name="perm_customers"]').is(':checked'),
+            settings:  $('[name="perm_settings"]').is(':checked')
+        };
+
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/helpers/' + userId + '/permissions',
+            type: 'POST',
+            headers: { 'X-WP-Nonce': buygoSettings.restNonce, 'Content-Type': 'application/json' },
+            data: JSON.stringify(payload),
+            success: function(response) {
+                if (response.success) {
+                    $('#permission-modal').hide();
+                } else {
+                    alert('儲存失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function() { alert('儲存失敗'); },
+            complete: function() { btn.prop('disabled', false).text('儲存'); }
+        });
+    });
+
+    $('#reset-permissions').on('click', function() {
+        $('#permission-modal input[type="checkbox"]').prop('checked', true);
+    });
+
+    $('#cancel-permissions').on('click', function() {
+        $('#permission-modal').hide();
+    });
+
+    $('#permission-modal').on('click', function(e) {
+        if (e.target === this) $(this).hide();
+    });
 
     // 商品限制數量變更
     let limitUpdateTimeout;

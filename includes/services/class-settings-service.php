@@ -159,6 +159,87 @@ class SettingsService
     }
 
     // ────────────────────────────────────────────────
+    // 小幫手細粒度權限（v2.0）
+    // ────────────────────────────────────────────────
+
+    /**
+     * 檢查用戶是否有特定操作權限
+     *
+     * 賣家和 WP Admin 永遠回傳 true。
+     * 小幫手依 user_meta 中的 buygo_helper_permissions 判斷。
+     * 未設定時預設全部開啟（向後相容）。
+     *
+     * @param string   $permission  權限名稱：products, orders, shipments, customers, settings
+     * @param int|null $user_id     用戶 ID，null 為當前用戶
+     * @return bool
+     */
+    public static function helper_can(string $permission, ?int $user_id = null): bool
+    {
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+
+        // 賣家和 WP Admin 永遠有權限
+        if (in_array('administrator', (array) $user->roles) || in_array('buygo_admin', (array) $user->roles)) {
+            return true;
+        }
+
+        // 小幫手：檢查細粒度權限
+        if (in_array('buygo_helper', (array) $user->roles)) {
+            $permissions = get_user_meta($user_id, 'buygo_helper_permissions', true);
+            if (empty($permissions) || !is_array($permissions)) {
+                return true; // 未設定 = 全部開啟（向後相容）
+            }
+            return !empty($permissions[$permission]);
+        }
+
+        return false;
+    }
+
+    /**
+     * 取得小幫手的所有權限設定
+     *
+     * @param int $user_id
+     * @return array
+     */
+    public static function get_helper_permissions(int $user_id): array
+    {
+        $defaults = [
+            'products'  => true,
+            'orders'    => true,
+            'shipments' => true,
+            'customers' => true,
+            'settings'  => true,
+        ];
+        $saved = get_user_meta($user_id, 'buygo_helper_permissions', true);
+        if (empty($saved) || !is_array($saved)) {
+            return $defaults;
+        }
+        return array_merge($defaults, $saved);
+    }
+
+    /**
+     * 儲存小幫手的權限設定
+     *
+     * @param int   $user_id
+     * @param array $permissions
+     * @return bool
+     */
+    public static function save_helper_permissions(int $user_id, array $permissions): bool
+    {
+        $valid_keys = ['products', 'orders', 'shipments', 'customers', 'settings'];
+        $clean = [];
+        foreach ($valid_keys as $key) {
+            $clean[$key] = !empty($permissions[$key]);
+        }
+        return (bool) update_user_meta($user_id, 'buygo_helper_permissions', $clean);
+    }
+
+    // ────────────────────────────────────────────────
     // 模板設定（保留在此，直接操作 NotificationTemplates）
     // ────────────────────────────────────────────────
 
