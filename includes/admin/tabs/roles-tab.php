@@ -2,42 +2,13 @@
 
         global $wpdb;
 
-        // 取得所有小幫手（從選項中）
-        $helpers = \BuyGoPlus\Services\SettingsService::get_helpers();
-        $helper_ids = array_map(function($h) { return $h['id']; }, $helpers);
-
-        // 取得所有管理員（WordPress 管理員 + BuyGo 管理員）
-        $wp_admins = get_users(['role' => 'administrator']);
+        // v2.0: 只查詢有 BGO 角色的使用者（不含純 WP Admin）
         $buygo_admins = get_users(['role' => 'buygo_admin']);
-        $all_admins = array_merge($wp_admins, $buygo_admins);
-        $wp_admin_ids = array_map(function($admin) { return $admin->ID; }, $wp_admins);
-
-        // 取得所有有 buygo_helper 角色的使用者
         $buygo_helpers = get_users(['role' => 'buygo_helper']);
 
-        // 合併所有相關使用者（管理員 + 小幫手）
-        $all_related_users = array_merge($all_admins, $buygo_helpers);
-
-        // 也加入從選項中取得的小幫手（可能沒有角色但有記錄）
-        foreach ($helpers as $helper) {
-            $found = false;
-            foreach ($all_related_users as $user) {
-                if ($user->ID === $helper['id']) {
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
-                $user_obj = get_userdata($helper['id']);
-                if ($user_obj) {
-                    $all_related_users[] = $user_obj;
-                }
-            }
-        }
-
-        // 去重（使用 user_id 作為 key）
+        // 去重合併
         $unique_users = [];
-        foreach ($all_related_users as $user) {
+        foreach (array_merge($buygo_admins, $buygo_helpers) as $user) {
             if (!isset($unique_users[$user->ID])) {
                 $unique_users[$user->ID] = $user;
             }
@@ -50,24 +21,16 @@
             $line_id = \BuyGoPlus\Services\SettingsService::get_user_line_id($user->ID);
 
             // 判斷角色
-            $is_wp_admin = in_array($user->ID, $wp_admin_ids);
-            $has_buygo_admin_role = in_array('buygo_admin', $user->roles);
-            $has_buygo_helper_role = in_array('buygo_helper', $user->roles);
-            $is_in_helpers_list = in_array($user->ID, $helper_ids);
+            $is_wp_admin = in_array('administrator', (array) $user->roles);
+            $has_buygo_admin_role = in_array('buygo_admin', (array) $user->roles);
+            $has_buygo_helper_role = in_array('buygo_helper', (array) $user->roles);
 
-            if ($is_wp_admin || $has_buygo_admin_role) {
-                $role = 'BuyGo 管理員';
-            } elseif ($has_buygo_helper_role || $is_in_helpers_list) {
-                $role = 'BuyGo 小幫手';
+            if ($has_buygo_admin_role) {
+                $role = '賣家';
+            } elseif ($has_buygo_helper_role) {
+                $role = '小幫手';
             } else {
-                // 這種情況不應該發生，但為了安全起見
                 continue;
-            }
-
-            // 取得賣家類型
-            $seller_type = get_user_meta($user->ID, 'buygo_seller_type', true);
-            if (empty($seller_type)) {
-                $seller_type = 'test'; // 預設為測試賣家
             }
 
             // 商品限制邏輯：
@@ -86,7 +49,7 @@
             $binding_info = '';
             $buygo_id = null;
 
-            if ($has_buygo_helper_role || $is_in_helpers_list) {
+            if ($has_buygo_helper_role) {
                 // 小幫手：查詢綁定的賣家和 BuyGo ID
                 $helper_data = $wpdb->get_row($wpdb->prepare(
                     "SELECT h.id as buygo_id, s.ID as seller_wp_id, s.display_name as seller_name
@@ -102,7 +65,7 @@
                 } else {
                     $binding_info = '<span style="color: #d63638;">未綁定賣家</span>';
                 }
-            } elseif ($has_buygo_admin_role || $is_wp_admin) {
+            } elseif ($has_buygo_admin_role) {
                 // 賣家：查詢小幫手數量和列表
                 $helper_count = $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$helpers_table} WHERE seller_id = %d",
@@ -133,8 +96,6 @@
                 'is_wp_admin' => $is_wp_admin,
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
-                'is_in_helpers_list' => $is_in_helpers_list,
-                'seller_type' => $seller_type,
                 'product_limit' => intval($product_limit),
                 'binding_info' => $binding_info,
                 'buygo_id' => $buygo_id
@@ -146,7 +107,7 @@
             <h2>
                 角色權限設定
                 <button type="button" class="button" id="add-role-btn" style="margin-left: 10px;">
-                    新增角色
+                    新增賣家
                 </button>
             </h2>
 
@@ -228,25 +189,13 @@
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                        <?php if (!$user['is_wp_admin']): ?>
-                                            <?php
-                                            // 判斷應該移除哪個角色
-                                            $role_to_remove = null;
-                                            if ($user['has_buygo_admin_role'] || ($user['role'] === 'BuyGo 管理員')) {
-                                                $role_to_remove = 'buygo_admin';
-                                            } elseif ($user['has_buygo_helper_role'] || $user['role'] === 'BuyGo 小幫手' || ($user['is_in_helpers_list'] ?? false)) {
-                                                $role_to_remove = 'buygo_helper';
-                                            }
-                                            ?>
-                                            <?php if ($role_to_remove): ?>
-                                                <button type="button" class="button remove-role" data-user-id="<?php echo esc_attr($user['id']); ?>" data-role="<?php echo esc_attr($role_to_remove); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4; background: #dc3232; color: white; border-color: #dc3232; cursor: pointer;">
-                                                    🗑️ 移除<?php echo $role_to_remove === 'buygo_admin' ? '管理員' : '小幫手'; ?>角色
-                                                </button>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="description" style="font-size: 11px; color: #666; padding: 4px 8px; background: #f0f0f1; border-radius: 3px;">
-                                                WordPress 管理員無法移除
-                                            </span>
+                                        <?php
+                                        $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : null);
+                                        ?>
+                                        <?php if ($role_to_remove): ?>
+                                            <button type="button" class="button remove-role" data-user-id="<?php echo esc_attr($user['id']); ?>" data-role="<?php echo esc_attr($role_to_remove); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4; background: #dc3232; color: white; border-color: #dc3232; cursor: pointer;">
+                                                🗑️ 移除<?php echo $role_to_remove === 'buygo_admin' ? '賣家' : '小幫手'; ?>角色
+                                            </button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -257,10 +206,10 @@
             <?php endif; ?>
         </div>
 
-        <!-- 新增角色 Modal -->
+        <!-- 新增賣家 Modal -->
         <div id="add-role-modal" style="display:none;">
             <div class="modal-content">
-                <h3>新增角色</h3>
+                <h3>新增賣家</h3>
                 <form id="add-role-form">
                     <table class="form-table">
                         <tr>
@@ -276,41 +225,13 @@
                                         <button type="button" class="user-selected-clear" title="清除">&times;</button>
                                     </div>
                                     <div id="add-role-user-results" class="user-search-results" style="display:none;"></div>
-                                    <p class="description">至少輸入 2 個字元開始搜尋</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="add-role-type">選擇角色</label>
-                            </th>
-                            <td>
-                                <select name="role" id="add-role-type" class="regular-text">
-                                    <option value="buygo_admin">BuyGo 管理員（賣家）</option>
-                                    <option value="buygo_helper">BuyGo 小幫手</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr id="add-role-seller-row" style="display:none;">
-                            <th scope="row">
-                                <label>歸屬賣家</label>
-                            </th>
-                            <td>
-                                <div class="user-search-wrap">
-                                    <input type="text" id="add-role-seller-search" class="regular-text" placeholder="輸入賣家姓名或 Email 搜尋..." autocomplete="off" />
-                                    <input type="hidden" id="add-role-seller-id" name="seller_id" value="" />
-                                    <div id="add-role-seller-selected" class="user-selected" style="display:none;">
-                                        <span class="user-selected-name"></span>
-                                        <button type="button" class="user-selected-clear" title="清除">&times;</button>
-                                    </div>
-                                    <div id="add-role-seller-results" class="user-search-results" style="display:none;"></div>
-                                    <p class="description">選擇此小幫手歸屬的賣家（僅顯示管理員）</p>
+                                    <p class="description">點擊搜尋框選擇用戶</p>
                                 </div>
                             </td>
                         </tr>
                     </table>
                     <p class="submit">
-                        <button type="button" class="button-primary" id="confirm-add-role">確認</button>
+                        <button type="button" class="button-primary" id="confirm-add-role">確認新增</button>
                         <button type="button" class="button" id="cancel-add-role">取消</button>
                     </p>
                 </form>

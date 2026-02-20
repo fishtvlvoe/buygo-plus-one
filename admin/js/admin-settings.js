@@ -56,7 +56,7 @@ jQuery(document).ready(function($) {
     let userSearchTimeout = null;
     let sellerSearchTimeout = null;
 
-    // 通用搜尋函式
+    // 通用搜尋函式（v2.0: focus 即顯示前 20 筆）
     function setupSearchField(inputId, resultsId, hiddenId, selectedId, filterRole) {
         const $input = $(inputId);
         const $results = $(resultsId);
@@ -64,47 +64,52 @@ jQuery(document).ready(function($) {
         const $selected = $(selectedId);
         let timeout = null;
 
+        function triggerSearch(query) {
+            $results.show().html('<div class="search-loading">搜尋中...</div>');
+
+            let url = buygoSettings.restUrl + '/settings/users/search?query=' + encodeURIComponent(query);
+            if (filterRole) {
+                url += '&role=' + encodeURIComponent(filterRole);
+            }
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                headers: { 'X-WP-Nonce': buygoSettings.restNonce },
+                success: function(response) {
+                    $results.empty();
+                    if (response.success && response.data && response.data.length > 0) {
+                        response.data.forEach(function(user) {
+                            $results.append(
+                                '<div class="search-result-item" data-id="' + user.id + '" data-name="' + $('<span>').text(user.name).html() + '" data-email="' + $('<span>').text(user.email).html() + '">' +
+                                    '<div><span class="user-name">' + $('<span>').text(user.name).html() + '</span> <span class="user-email">' + $('<span>').text(user.email).html() + '</span></div>' +
+                                    '<span class="user-id">WP-' + user.id + '</span>' +
+                                '</div>'
+                            );
+                        });
+                    } else {
+                        $results.html('<div class="search-no-result">找不到符合的使用者</div>');
+                    }
+                    $results.show();
+                },
+                error: function() {
+                    $results.html('<div class="search-no-result">搜尋失敗</div>').show();
+                }
+            });
+        }
+
+        // focus 時自動顯示用戶列表
+        $input.on('focus', function() {
+            if (!$hidden.val()) {
+                triggerSearch($input.val().trim());
+            }
+        });
+
         $input.on('input', function() {
             const query = $(this).val().trim();
             clearTimeout(timeout);
-
-            if (query.length < 2) {
-                $results.hide().empty();
-                return;
-            }
-
-            $results.show().html('<div class="search-loading">搜尋中...</div>');
-
             timeout = setTimeout(function() {
-                let url = buygoSettings.restUrl + '/settings/users/search?query=' + encodeURIComponent(query);
-                if (filterRole) {
-                    url += '&role=' + encodeURIComponent(filterRole);
-                }
-
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    headers: { 'X-WP-Nonce': buygoSettings.restNonce },
-                    success: function(response) {
-                        $results.empty();
-                        if (response.success && response.data && response.data.length > 0) {
-                            response.data.forEach(function(user) {
-                                $results.append(
-                                    '<div class="search-result-item" data-id="' + user.id + '" data-name="' + $('<span>').text(user.name).html() + '" data-email="' + $('<span>').text(user.email).html() + '">' +
-                                        '<div><span class="user-name">' + $('<span>').text(user.name).html() + '</span> <span class="user-email">' + $('<span>').text(user.email).html() + '</span></div>' +
-                                        '<span class="user-id">WP-' + user.id + '</span>' +
-                                    '</div>'
-                                );
-                            });
-                        } else {
-                            $results.html('<div class="search-no-result">找不到符合的使用者</div>');
-                        }
-                        $results.show();
-                    },
-                    error: function() {
-                        $results.html('<div class="search-no-result">搜尋失敗</div>').show();
-                    }
-                });
+                triggerSearch(query);
             }, 300);
         });
 
@@ -136,22 +141,8 @@ jQuery(document).ready(function($) {
         });
     }
 
-    // 初始化兩個搜尋欄位
+    // 初始化搜尋欄位（v2.0: 移除賣家搜尋欄位）
     setupSearchField('#add-role-user-search', '#add-role-user-results', '#add-role-user', '#add-role-user-selected', null);
-    setupSearchField('#add-role-seller-search', '#add-role-seller-results', '#add-role-seller-id', '#add-role-seller-selected', 'buygo_admin');
-
-    // 角色切換 → 顯示/隱藏賣家欄位
-    $('#add-role-type').on('change', function() {
-        if ($(this).val() === 'buygo_helper') {
-            $('#add-role-seller-row').show();
-        } else {
-            $('#add-role-seller-row').hide();
-            // 清除已選的賣家
-            $('#add-role-seller-id').val('');
-            $('#add-role-seller-selected').hide();
-            $('#add-role-seller-search').val('').show();
-        }
-    });
 
     // 重置 Modal 狀態
     function resetAddRoleModal() {
@@ -159,12 +150,6 @@ jQuery(document).ready(function($) {
         $('#add-role-user-search').val('').show();
         $('#add-role-user-selected').hide();
         $('#add-role-user-results').hide().empty();
-        $('#add-role-type').val('buygo_admin');
-        $('#add-role-seller-row').hide();
-        $('#add-role-seller-id').val('');
-        $('#add-role-seller-search').val('').show();
-        $('#add-role-seller-selected').hide();
-        $('#add-role-seller-results').hide().empty();
     }
 
     // 開啟 Modal
@@ -186,19 +171,12 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // 確認新增
+    // 確認新增（v2.0: 固定賦予 buygo_admin 角色）
     $('#confirm-add-role').on('click', function() {
         const userId = $('#add-role-user').val();
-        const role = $('#add-role-type').val();
-        const sellerId = $('#add-role-seller-id').val();
 
         if (!userId) {
             alert('請先搜尋並選擇使用者');
-            return;
-        }
-
-        if (role === 'buygo_helper' && !sellerId) {
-            alert('請選擇歸屬賣家');
             return;
         }
 
@@ -208,12 +186,8 @@ jQuery(document).ready(function($) {
 
         const payload = {
             user_id: parseInt(userId),
-            role: role
+            role: 'buygo_admin'
         };
-
-        if (role === 'buygo_helper' && sellerId) {
-            payload.seller_id = parseInt(sellerId);
-        }
 
         $.ajax({
             url: buygoSettings.restUrl + '/settings/helpers',
