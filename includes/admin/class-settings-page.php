@@ -32,38 +32,19 @@ class SettingsPage
 
     /**
      * 添加管理選單
+     *
+     * v2.0: 合併為單一「BGO」選單，無子選單，6-Tab 單頁設計
      */
     public function add_admin_menu(): void
     {
-        // 主選單：BuyGo+1
         add_menu_page(
-            'BuyGo+1',
-            'BuyGo+1',
+            'BGO',
+            'BGO',
             'manage_options',
             'buygo-plus-one',
-            [$this, 'render_templates_page'],  // 預設顯示 LINE 模板頁面
+            [$this, 'render_page'],
             'dashicons-cart',
             30
-        );
-
-        // 子選單 1：LINE 模板（第一個位置）
-        add_submenu_page(
-            'buygo-plus-one',
-            'LINE 模板',
-            'LINE 模板',
-            'manage_options',
-            'buygo-plus-one',  // 與主選單相同 slug，覆蓋預設子選單
-            [$this, 'render_templates_page']
-        );
-
-        // 子選單 2：設定（第二個位置）
-        add_submenu_page(
-            'buygo-plus-one',
-            '設定',
-            '設定',
-            'manage_options',
-            'buygo-settings',
-            [$this, 'render_settings_page']
         );
     }
 
@@ -82,8 +63,7 @@ class SettingsPage
      */
     public function enqueue_scripts($hook): void
     {
-        // 檢查是否在 BuyGo+1 的後台頁面
-        if (strpos($hook, 'buygo-plus-one') === false && strpos($hook, 'buygo-settings') === false) {
+        if (strpos($hook, 'buygo-plus-one') === false) {
             return;
         }
 
@@ -91,7 +71,7 @@ class SettingsPage
             'buygo-settings-admin',
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/admin-settings.js',
             ['jquery'],
-            '1.2.0',
+            '2.0.0',
             true
         );
 
@@ -99,7 +79,14 @@ class SettingsPage
             'buygo-settings-admin',
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-settings.css',
             [],
-            '1.2.0'
+            '2.0.0'
+        );
+
+        wp_enqueue_style(
+            'bgo-admin-tabs',
+            BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/css/admin-tabs.css',
+            [],
+            '2.0.0'
         );
 
         wp_localize_script('buygo-settings-admin', 'buygoSettings', [
@@ -126,11 +113,93 @@ class SettingsPage
     }
 
     // ──────────────────────────────────────────────
-    // 頁面渲染（路由分派到 tabs/ 目錄下的獨立檔案）
+    // v2.0 統一頁面渲染（6-Tab 單頁設計）
     // ──────────────────────────────────────────────
 
     /**
-     * 渲染設定頁面
+     * 渲染 BGO 後台統一頁面
+     *
+     * v2.0: 合併原本的 render_settings_page() 和 render_templates_page()
+     */
+    public function render_page(): void
+    {
+        // 處理模板表單提交
+        if (isset($_POST['submit_templates']) && isset($_POST['templates']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
+            $this->handle_templates_submit();
+        }
+
+        // 處理設定表單提交
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'buygo_settings')) {
+            $this->handle_form_submit();
+        }
+
+        // Tab 路由（POST 提交後保持在同一 Tab）
+        $current_tab = sanitize_key($_GET['tab'] ?? 'roles');
+        $tabs = [
+            'roles'     => '角色權限',
+            'templates' => 'LINE 模板',
+            'checkout'  => '結帳設定',
+            'data'      => '資料管理',
+            'features'  => '功能管理',
+            'developer' => '開發者',
+        ];
+
+        // 驗證 Tab 有效性
+        if (!isset($tabs[$current_tab])) {
+            $current_tab = 'roles';
+        }
+
+        ?>
+        <div class="wrap">
+            <h1>BGO</h1>
+            <?php settings_errors('buygo_settings'); ?>
+
+            <div class="bgo-tabs">
+                <ul class="bgo-tabs-wrapper">
+                    <?php foreach ($tabs as $tab_key => $tab_label): ?>
+                        <li class="bgo-tab <?php echo $current_tab === $tab_key ? 'active' : ''; ?>">
+                            <a href="<?php echo esc_url(add_query_arg(['page' => 'buygo-plus-one', 'tab' => $tab_key], admin_url('admin.php'))); ?>">
+                                <?php echo esc_html($tab_label); ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <div class="bgo-tab-content">
+                <?php
+                switch ($current_tab) {
+                    case 'roles':
+                        $this->render_roles_tab();
+                        break;
+                    case 'templates':
+                        $this->render_templates_tab();
+                        break;
+                    case 'checkout':
+                        $this->render_checkout_tab();
+                        break;
+                    case 'data':
+                        echo '<div class="bgo-card"><p>資料管理功能將在後續版本中實作。</p></div>';
+                        break;
+                    case 'features':
+                        echo '<div class="bgo-card"><p>功能管理將在後續版本中實作。</p></div>';
+                        break;
+                    case 'developer':
+                        $this->render_workflow_tab();
+                        break;
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    // ──────────────────────────────────────────────
+    // 舊頁面渲染（@deprecated v2.0，保留供相容）
+    // ──────────────────────────────────────────────
+
+    /**
+     * @deprecated v2.0 — 已由 render_page() 取代
      */
     public function render_settings_page(): void
     {

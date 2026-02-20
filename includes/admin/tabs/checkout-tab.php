@@ -16,7 +16,7 @@
             <h2>FluentCart 結帳頁面自訂</h2>
             <p class="description">這些設定會即時生效於 FluentCart 結帳頁面，無需清除快取。</p>
 
-            <form method="post" action="">
+            <form method="post" action="<?php echo esc_url(add_query_arg(['page' => 'buygo-plus-one', 'tab' => 'checkout'], admin_url('admin.php'))); ?>">
                 <?php wp_nonce_field('buygo_checkout_settings'); ?>
 
                 <table class="form-table">
