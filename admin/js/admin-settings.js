@@ -98,16 +98,14 @@ jQuery(document).ready(function($) {
             });
         }
 
-        // focus 時自動顯示用戶列表
-        $input.on('focus', function() {
-            if (!$hidden.val()) {
-                triggerSearch($input.val().trim());
-            }
-        });
-
+        // 輸入至少 1 字後觸發搜尋
         $input.on('input', function() {
             const query = $(this).val().trim();
             clearTimeout(timeout);
+            if (query.length < 1) {
+                $results.hide().empty();
+                return;
+            }
             timeout = setTimeout(function() {
                 triggerSearch(query);
             }, 300);
