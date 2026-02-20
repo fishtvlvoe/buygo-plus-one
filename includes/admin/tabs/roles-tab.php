@@ -140,7 +140,7 @@
         .bgo-btn-icon:hover { opacity: 1; background: #fee2e2; }
         /* Modal 統一風格 */
         .bgo-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100000; display: flex; align-items: center; justify-content: center; }
-        .bgo-modal { background: #fff; border-radius: 8px; padding: 24px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+        .bgo-modal { background: #fff; border-radius: 8px; padding: 24px 28px; max-width: 600px; width: 90%; max-height: 80vh; overflow: visible; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
         .bgo-modal h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #1d2327; }
         .bgo-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
         /* 搜尋 dropdown */
