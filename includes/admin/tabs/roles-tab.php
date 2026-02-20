@@ -86,6 +86,12 @@
                     . $helper_list_html;
             }
 
+            // 取得頭像
+            $avatar_url = get_user_meta($user->ID, 'fc_customer_photo_url', true);
+            if (empty($avatar_url)) {
+                $avatar_url = get_avatar_url($user->user_email, ['size' => 64]);
+            }
+
             $all_users[] = [
                 'id' => $user->ID,
                 'name' => $user->display_name,
@@ -93,118 +99,114 @@
                 'role' => $role,
                 'line_id' => $line_id,
                 'is_bound' => !empty($line_id),
-                'is_wp_admin' => $is_wp_admin,
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
                 'product_limit' => intval($product_limit),
                 'binding_info' => $binding_info,
-                'buygo_id' => $buygo_id
+                'avatar_url' => $avatar_url,
             ];
         }
 
         ?>
-        <div class="wrap">
-            <h2>
-                角色權限設定
-                <button type="button" class="button" id="add-role-btn" style="margin-left: 10px;">
-                    新增賣家
-                </button>
-            </h2>
+        <style>
+        .bgo-roles-table { border-collapse: collapse; width: 100%; max-width: 900px; }
+        .bgo-roles-table th { text-align: left; padding: 10px 12px; font-size: 12px; color: #666; border-bottom: 2px solid #e0e0e0; font-weight: 600; }
+        .bgo-roles-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; font-size: 13px; }
+        .bgo-roles-table tr:hover td { background: #f9fbff; }
+        .bgo-user-cell { display: flex; align-items: center; gap: 10px; }
+        .bgo-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .bgo-user-info { line-height: 1.4; }
+        .bgo-user-name { font-weight: 500; color: #1d2327; }
+        .bgo-user-email { font-size: 11px; color: #888; }
+        .bgo-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .bgo-badge-seller { background: #dbeafe; color: #1e40af; }
+        .bgo-badge-helper { background: #f3f4f6; color: #4b5563; }
+        .bgo-line-status { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+        .bgo-line-uid { color: #999; font-family: monospace; font-size: 10px; }
+        .bgo-binding { font-size: 12px; }
+        .bgo-binding a { text-decoration: none; color: #2271b1; }
+        .bgo-binding a:hover { text-decoration: underline; }
+        .bgo-limit-input { width: 48px; font-size: 12px; padding: 3px 6px; text-align: center; border: 1px solid #ddd; border-radius: 3px; }
+        .bgo-limit-label { font-size: 10px; color: #999; }
+        .bgo-btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; font-size: 16px; line-height: 1; opacity: 0.4; transition: opacity 0.2s; }
+        .bgo-btn-icon:hover { opacity: 1; background: #fee2e2; }
+        </style>
 
-            <?php if (empty($all_users)): ?>
-                <p class="no-logs">尚無管理員或小幫手</p>
-            <?php else: ?>
-                <p class="description" style="margin-bottom: 15px;">
-                    ⚠️ 提示：未綁定 LINE 的使用者無法從 LINE 上架商品
-                </p>
-
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th>使用者</th>
-                            <th>Email</th>
-                            <th>LINE ID</th>
-                            <th>角色</th>
-                            <th>綁定關係</th>
-                            <th>商品限制</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($all_users as $user): ?>
-                            <tr>
-                                <td>
-                                    <?php echo esc_html($user['name']); ?><br>
-                                    <small style="color: #666;">WP-<?php echo esc_html($user['id']); ?></small>
-                                </td>
-                                <td><?php echo esc_html($user['email']); ?></td>
-                                <td>
-                                    <?php if ($user['is_bound']): ?>
-                                        <div style="display: flex; align-items: flex-start; gap: 4px; max-width: 140px;">
-                                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="已綁定" style="flex-shrink: 0; margin-top: 2px;">
-                                                <circle cx="8" cy="8" r="8" fill="#00a32a"/>
-                                                <path d="M5 8L7 10L11 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            <code style="font-size: 9px; color: #666; line-height: 1.3; word-break: break-all; display: block;"><?php echo esc_html($user['line_id']); ?></code>
-                                        </div>
-                                    <?php else: ?>
-                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" title="未綁定">
-                                            <circle cx="8" cy="8" r="8" fill="#d63638"/>
-                                            <path d="M5 5L11 11M11 5L5 11" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php echo esc_html($user['role']); ?><br>
-                                    <small style="color: #666;">
-                                        <?php
-                                        if ($user['buygo_id']) {
-                                            echo 'BuyGo-' . esc_html($user['buygo_id']);
-                                        } else {
-                                            echo '（無 BuyGo ID）';
-                                        }
-                                        ?>
-                                    </small>
-                                </td>
-                                <td style="font-size: 12px; color: #2271b1;">
-                                    <?php echo $user['binding_info']; ?>
-                                </td>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        <input
-                                            type="number"
-                                            class="product-limit-input"
-                                            data-user-id="<?php echo esc_attr($user['id']); ?>"
-                                            value="<?php echo esc_attr($user['product_limit']); ?>"
-                                            min="0"
-                                            step="1"
-                                            style="width: 60px; font-size: 12px;"
-                                            placeholder="3"
-                                            title="0 = 無限制，預設 = 3"
-                                        />
-                                        <span style="font-size: 11px; color: #666;">
-                                            <?php echo ($user['product_limit'] == 0) ? '(無限制)' : '個商品'; ?>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                        <?php
-                                        $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : null);
-                                        ?>
-                                        <?php if ($role_to_remove): ?>
-                                            <button type="button" class="button remove-role" data-user-id="<?php echo esc_attr($user['id']); ?>" data-role="<?php echo esc_attr($role_to_remove); ?>" style="font-size: 12px; padding: 6px 12px; height: auto; line-height: 1.4; background: #dc3232; color: white; border-color: #dc3232; cursor: pointer;">
-                                                🗑️ 移除<?php echo $role_to_remove === 'buygo_admin' ? '賣家' : '小幫手'; ?>角色
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <h2 style="margin: 0;">角色權限</h2>
+            <button type="button" class="button" id="add-role-btn">+ 新增賣家</button>
         </div>
+
+        <?php if (empty($all_users)): ?>
+            <p class="no-logs">尚無賣家或小幫手</p>
+        <?php else: ?>
+            <table class="bgo-roles-table">
+                <thead>
+                    <tr>
+                        <th>使用者</th>
+                        <th>角色</th>
+                        <th>LINE</th>
+                        <th>綁定</th>
+                        <th>商品</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($all_users as $user): ?>
+                        <tr>
+                            <td>
+                                <div class="bgo-user-cell">
+                                    <img class="bgo-avatar" src="<?php echo esc_url($user['avatar_url']); ?>" alt="" />
+                                    <div class="bgo-user-info">
+                                        <div class="bgo-user-name"><?php echo esc_html($user['name']); ?></div>
+                                        <div class="bgo-user-email"><?php echo esc_html($user['email']); ?></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <?php if ($user['has_buygo_admin_role']): ?>
+                                    <span class="bgo-badge bgo-badge-seller">賣家</span>
+                                <?php else: ?>
+                                    <span class="bgo-badge bgo-badge-helper">小幫手</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($user['is_bound']): ?>
+                                    <div class="bgo-line-status" title="<?php echo esc_attr($user['line_id']); ?>">
+                                        <svg width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#00a32a"/><path d="M5 8L7 10L11 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <span class="bgo-line-uid"><?php echo esc_html(substr($user['line_id'], 0, 8)); ?>…</span>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="bgo-line-status">
+                                        <svg width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#d63638"/><path d="M5 5L11 11M11 5L5 11" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+                                        <span style="color:#999;">未綁定</span>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="bgo-binding">
+                                <?php echo $user['binding_info']; ?>
+                            </td>
+                            <td>
+                                <input type="number" class="bgo-limit-input product-limit-input"
+                                    data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                    value="<?php echo esc_attr($user['product_limit']); ?>"
+                                    min="0" step="1" title="0 = 無限制" />
+                            </td>
+                            <td>
+                                <?php
+                                $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : null);
+                                if ($role_to_remove): ?>
+                                    <button type="button" class="bgo-btn-icon remove-role"
+                                        data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                        data-role="<?php echo esc_attr($role_to_remove); ?>"
+                                        title="移除<?php echo $role_to_remove === 'buygo_admin' ? '賣家' : '小幫手'; ?>角色">🗑️</button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
 
         <!-- 新增賣家 Modal -->
         <div id="add-role-modal" style="display:none;">
