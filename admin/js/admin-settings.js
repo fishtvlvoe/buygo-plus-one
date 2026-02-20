@@ -120,22 +120,22 @@ jQuery(document).ready(function($) {
             const email = $(this).data('email');
 
             $hidden.val(id);
-            $selected.find('.user-selected-name').text(name + ' (' + email + ')');
+            $selected.find('.bgo-selected-name, .user-selected-name').text(name + ' (' + email + ')');
             $selected.show();
             $input.hide();
             $results.hide().empty();
         });
 
         // 清除已選
-        $selected.on('click', '.user-selected-clear', function() {
+        $selected.on('click', '.bgo-selected-clear, .user-selected-clear', function() {
             $hidden.val('');
             $selected.hide();
             $input.val('').show().focus();
         });
 
-        // 點擊 Modal 外部時關閉搜尋結果
+        // 點擊搜尋區外部時關閉搜尋結果
         $(document).on('click', function(e) {
-            if (!$(e.target).closest('.user-search-wrap').length) {
+            if (!$(e.target).closest('.bgo-search-wrap, .user-search-wrap').length) {
                 $results.hide();
             }
         });

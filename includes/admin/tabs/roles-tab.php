@@ -109,27 +109,58 @@
 
         ?>
         <style>
+        /* 表格 */
         .bgo-roles-table { border-collapse: collapse; width: 100%; max-width: 900px; }
         .bgo-roles-table th { text-align: left; padding: 10px 12px; font-size: 12px; color: #666; border-bottom: 2px solid #e0e0e0; font-weight: 600; }
-        .bgo-roles-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; font-size: 13px; }
-        .bgo-roles-table tr:hover td { background: #f9fbff; }
+        .bgo-roles-table td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
+        .bgo-roles-table tbody tr:nth-child(odd) td { background: #fff; }
+        .bgo-roles-table tbody tr:nth-child(even) td { background: #f9fafb; }
+        .bgo-roles-table tbody tr:hover td { background: #f0f7ff; }
+        /* 使用者 */
         .bgo-user-cell { display: flex; align-items: center; gap: 10px; }
         .bgo-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
         .bgo-user-info { line-height: 1.4; }
         .bgo-user-name { font-weight: 500; color: #1d2327; }
         .bgo-user-email { font-size: 11px; color: #888; }
+        /* Badge */
         .bgo-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
         .bgo-badge-seller { background: #dbeafe; color: #1e40af; }
         .bgo-badge-helper { background: #f3f4f6; color: #4b5563; }
+        /* LINE */
         .bgo-line-status { display: flex; align-items: center; gap: 4px; font-size: 11px; }
         .bgo-line-uid { color: #999; font-family: monospace; font-size: 10px; }
+        /* 綁定 */
         .bgo-binding { font-size: 12px; }
         .bgo-binding a { text-decoration: none; color: #2271b1; }
         .bgo-binding a:hover { text-decoration: underline; }
+        /* 商品限制 */
         .bgo-limit-input { width: 48px; font-size: 12px; padding: 3px 6px; text-align: center; border: 1px solid #ddd; border-radius: 3px; }
-        .bgo-limit-label { font-size: 10px; color: #999; }
+        /* 操作按鈕 */
         .bgo-btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; font-size: 16px; line-height: 1; opacity: 0.4; transition: opacity 0.2s; }
         .bgo-btn-icon:hover { opacity: 1; background: #fee2e2; }
+        /* Modal 統一風格 */
+        .bgo-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100000; display: flex; align-items: center; justify-content: center; }
+        .bgo-modal { background: #fff; border-radius: 8px; padding: 24px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+        .bgo-modal h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #1d2327; }
+        .bgo-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+        /* 搜尋 dropdown */
+        .bgo-search-wrap { position: relative; }
+        .bgo-search-wrap input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .bgo-search-wrap input[type="text"]:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+        .bgo-search-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-top: none; border-radius: 0 0 6px 6px; max-height: 240px; overflow-y: auto; z-index: 100001; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .bgo-search-results .search-result-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .bgo-search-results .search-result-item:last-child { border-bottom: none; }
+        .bgo-search-results .search-result-item:hover { background: #f0f7ff; }
+        .bgo-search-results .search-result-item .user-name { font-weight: 500; }
+        .bgo-search-results .search-result-item .user-email { color: #888; font-size: 11px; margin-left: 6px; }
+        .bgo-search-results .search-result-item .user-id { color: #bbb; font-size: 11px; }
+        .bgo-search-results .search-no-result,
+        .bgo-search-results .search-loading { padding: 12px; color: #999; text-align: center; font-size: 13px; }
+        /* 已選取 */
+        .bgo-selected { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f7ff; border: 1px solid #3b82f6; border-radius: 4px; margin-top: 6px; }
+        .bgo-selected-name { flex: 1; font-weight: 500; color: #1e40af; font-size: 13px; }
+        .bgo-selected-clear { background: none; border: none; color: #999; font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; }
+        .bgo-selected-clear:hover { color: #dc3232; }
         </style>
 
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
@@ -148,7 +179,7 @@
                         <th>LINE</th>
                         <th>綁定</th>
                         <th>商品</th>
-                        <th></th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -209,55 +240,41 @@
         <?php endif; ?>
 
         <!-- 新增賣家 Modal -->
-        <div id="add-role-modal" style="display:none;">
-            <div class="modal-content">
+        <div id="add-role-modal" class="bgo-modal-overlay" style="display:none;">
+            <div class="bgo-modal">
                 <h3>新增賣家</h3>
-                <form id="add-role-form">
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label>搜尋使用者</label>
-                            </th>
-                            <td>
-                                <div class="user-search-wrap">
-                                    <input type="text" id="add-role-user-search" class="regular-text" placeholder="輸入姓名或 Email 搜尋..." autocomplete="off" />
-                                    <input type="hidden" id="add-role-user" name="user_id" value="" />
-                                    <div id="add-role-user-selected" class="user-selected" style="display:none;">
-                                        <span class="user-selected-name"></span>
-                                        <button type="button" class="user-selected-clear" title="清除">&times;</button>
-                                    </div>
-                                    <div id="add-role-user-results" class="user-search-results" style="display:none;"></div>
-                                    <p class="description">點擊搜尋框選擇用戶</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                    <p class="submit">
-                        <button type="button" class="button-primary" id="confirm-add-role">確認新增</button>
-                        <button type="button" class="button" id="cancel-add-role">取消</button>
-                    </p>
-                </form>
+                <p style="margin:0 0 12px; font-size:13px; color:#666;">搜尋用戶並賦予賣家角色</p>
+                <div class="bgo-search-wrap">
+                    <input type="text" id="add-role-user-search" placeholder="輸入姓名或 Email..." autocomplete="off" />
+                    <input type="hidden" id="add-role-user" name="user_id" value="" />
+                    <div id="add-role-user-selected" class="bgo-selected" style="display:none;">
+                        <span class="bgo-selected-name"></span>
+                        <button type="button" class="bgo-selected-clear" title="清除">&times;</button>
+                    </div>
+                    <div id="add-role-user-results" class="bgo-search-results" style="display:none;"></div>
+                </div>
+                <div class="bgo-modal-actions">
+                    <button type="button" class="button-primary" id="confirm-add-role">確認新增</button>
+                    <button type="button" class="button" id="cancel-add-role">取消</button>
+                </div>
             </div>
         </div>
 
-        <!-- 新增小幫手 Modal（從綁定關係欄位觸發） -->
-        <div id="add-helper-modal" style="display:none;">
-            <div class="modal-content">
+        <!-- 管理小幫手 Modal -->
+        <div id="add-helper-modal" class="bgo-modal-overlay" style="display:none;">
+            <div class="bgo-modal">
                 <h3>管理小幫手 — <span id="add-helper-seller-label"></span></h3>
                 <input type="hidden" id="add-helper-seller-id" value="" />
-
-                <div id="add-helper-current-list" style="margin-bottom: 15px;"></div>
-
-                <div style="border-top: 1px solid #eee; padding-top: 15px;">
-                    <p style="font-weight: 500; margin-bottom: 8px;">新增小幫手</p>
-                    <div class="user-search-wrap">
-                        <input type="text" id="add-helper-search" class="regular-text" placeholder="輸入姓名或 Email 搜尋..." autocomplete="off" />
-                        <div id="add-helper-results" class="user-search-results" style="display:none;"></div>
+                <div id="add-helper-current-list" style="margin-bottom: 12px;"></div>
+                <div style="border-top: 1px solid #eee; padding-top: 12px;">
+                    <p style="font-weight: 500; margin: 0 0 8px; font-size: 13px;">新增小幫手</p>
+                    <div class="bgo-search-wrap">
+                        <input type="text" id="add-helper-search" placeholder="輸入姓名或 Email..." autocomplete="off" />
+                        <div id="add-helper-results" class="bgo-search-results" style="display:none;"></div>
                     </div>
                 </div>
-
-                <p class="submit" style="margin-top: 15px;">
+                <div class="bgo-modal-actions">
                     <button type="button" class="button" id="close-add-helper">關閉</button>
-                </p>
+                </div>
             </div>
         </div>
