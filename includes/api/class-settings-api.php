@@ -364,20 +364,20 @@ class Settings_API {
             $role_filter = $request->get_param('role');
 
             if (empty($query)) {
-                return new \WP_REST_Response([
-                    'success' => true,
-                    'data' => []
-                ], 200);
+                // v2.0: 空搜尋回傳前 20 筆用戶（按名稱排序）
+                $args = [
+                    'orderby' => 'display_name',
+                    'order' => 'ASC',
+                    'number' => 20,
+                ];
+            } else {
+                $query = substr($query, 0, 50);
+                $args = [
+                    'search' => '*' . $query . '*',
+                    'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
+                    'number' => 20,
+                ];
             }
-
-            // 限制搜尋字串長度，避免過度查詢
-            $query = substr($query, 0, 50);
-
-            $args = [
-                'search' => '*' . $query . '*',
-                'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
-                'number' => 10,
-            ];
 
             // 支援按角色過濾（例如只搜尋賣家）
             if (!empty($role_filter)) {
