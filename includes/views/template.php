@@ -129,7 +129,8 @@ if (!is_user_logged_in()) {
 // 已登入，檢查是否有賣場後台權限
 $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_admin')
-    || current_user_can('buygo_helper');
+    || current_user_can('buygo_helper')
+    || current_user_can('buygo_lister');
 
 if (!$has_portal_access) {
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/no-access.php';
@@ -137,6 +138,25 @@ if (!$has_portal_access) {
 }
 
 $current_page = get_query_var('buygo_page', 'dashboard');
+
+// 頁面→權限對應（未列出的頁面不受限制，如 dashboard、search）
+$page_permission_map = [
+    'products'          => 'products',
+    'orders'            => 'orders',
+    'shipment-products' => 'shipments',
+    'shipment-details'  => 'shipments',
+    'customers'         => 'customers',
+    'settings'          => 'settings',
+];
+
+// 小幫手頁面級權限檢查
+if (isset($page_permission_map[$current_page])) {
+    $required_permission = $page_permission_map[$current_page];
+    if (!\BuyGoPlus\Services\SettingsService::helper_can($required_permission)) {
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/no-access.php';
+        exit;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-TW">

@@ -103,6 +103,13 @@ class Settings_API {
             'permission_callback' => [$this, 'check_permission_for_admin'],
         ]);
         
+        // POST /settings/roles/upgrade - 升級上架幫手為小幫手
+        register_rest_route($this->namespace, '/settings/roles/upgrade', [
+            'methods' => 'POST',
+            'callback' => [$this, 'upgrade_role'],
+            'permission_callback' => [$this, 'check_permission_for_admin'],
+        ]);
+
         // POST /settings/templates/order - 更新模板順序
         register_rest_route($this->namespace, '/settings/templates/order', [
             'methods' => 'POST',
@@ -301,7 +308,7 @@ class Settings_API {
             }
             
             // 驗證角色
-            if (!in_array($role, ['buygo_helper', 'buygo_admin'], true)) {
+            if (!in_array($role, ['buygo_helper', 'buygo_admin', 'buygo_lister'], true)) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '無效的角色'
@@ -321,7 +328,8 @@ class Settings_API {
 
             SettingsService::add_helper($user_id, $role, $seller_id);
 
-            $role_name = $role === 'buygo_admin' ? '管理員' : '小幫手';
+            $role_names = ['buygo_admin' => '管理員', 'buygo_helper' => '小幫手', 'buygo_lister' => '上架幫手'];
+            $role_name = $role_names[$role] ?? '小幫手';
             
             return new \WP_REST_Response([
                 'success' => true,
@@ -346,15 +354,16 @@ class Settings_API {
     public function remove_helper($request) {
         try {
             $user_id = (int)$request->get_param('user_id');
-            
+            $seller_id = $request->get_param('seller_id') ? (int)$request->get_param('seller_id') : null;
+
             if (!$user_id) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '缺少 user_id 參數'
                 ], 400);
             }
-            
-            SettingsService::remove_helper($user_id);
+
+            SettingsService::remove_helper($user_id, $seller_id);
             
             return new \WP_REST_Response([
                 'success' => true,
@@ -595,7 +604,7 @@ class Settings_API {
             }
             
             // 驗證角色
-            if (!in_array($role, ['buygo_helper', 'buygo_admin'], true)) {
+            if (!in_array($role, ['buygo_helper', 'buygo_admin', 'buygo_lister'], true)) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '無效的角色'
@@ -620,7 +629,8 @@ class Settings_API {
             
             SettingsService::remove_role($user_id, $role);
             
-            $role_name = $role === 'buygo_admin' ? '管理員' : '小幫手';
+            $role_names = ['buygo_admin' => '管理員', 'buygo_helper' => '小幫手', 'buygo_lister' => '上架幫手'];
+            $role_name = $role_names[$role] ?? '小幫手';
             
             return new \WP_REST_Response([
                 'success' => true,
@@ -634,6 +644,57 @@ class Settings_API {
         }
     }
     
+    /**
+     * 升級上架幫手為小幫手
+     */
+    public function upgrade_role($request) {
+        try {
+            $body = json_decode($request->get_body(), true);
+            $user_id = (int)($body['user_id'] ?? 0);
+
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '缺少 user_id 參數'
+                ], 400);
+            }
+
+            $user = get_userdata($user_id);
+            if (!$user) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '使用者不存在'
+                ], 404);
+            }
+
+            if (!in_array('buygo_lister', (array) $user->roles)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '此使用者不是上架幫手，無法升級'
+                ], 400);
+            }
+
+            $result = SettingsService::upgrade_lister_to_helper($user_id);
+
+            if ($result) {
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'message' => '已升級為小幫手'
+                ], 200);
+            } else {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '升級失敗'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '升級失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * 測試 LINE 連線
      */

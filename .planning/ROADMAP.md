@@ -160,14 +160,14 @@ Plans:
   4. 小幫手的操作欄位有「權限設定」按鈕，點擊後 Modal 顯示 5 大項 checkbox（商品/訂單/出貨/客戶/設定），儲存後立即生效
   5. API 和 Portal 導航套用 buygo_helper_can() 檢查，無權限頁面顯示提示而非空白
 
-**Plans:** TBD
+**Status:** Complete (2026-02-20)
 
-Plans:
-- [ ] 42-01: 表格過濾邏輯（只顯示 BGO 角色 + 移除後從表格消失）
-- [ ] 42-02: 搜尋 UX 改進（0 字元觸發 + 後端空 query 回傳前 20 筆）
-- [ ] 42-03: 新增流程簡化（移除 dropdown + 移除歸屬搜尋 + 自動 buygo_admin）
-- [ ] 42-04: 5 大項細粒度權限 Modal（checkbox UI + user_meta 儲存 + 重設按鈕）
-- [ ] 42-05: API 和 Portal 層權限檢查（buygo_helper_can() + no-access.php）
+Plans: 5/5
+- [x] 42-01: 表格過濾邏輯（只顯示 BGO 角色 + 移除後從表格消失）
+- [x] 42-02: 搜尋 UX 改進（1 字元觸發 + 後端空 query 回傳前 20 筆）
+- [x] 42-03: 新增流程簡化（移除 dropdown + 移除歸屬搜尋 + 自動 buygo_admin）
+- [x] 42-04: 6 大項細粒度權限 Modal（上架/商品/訂單/出貨/客戶/設定）
+- [x] 42-05: API 和 Portal 層權限檢查（helper_can() + no-access.php）
 
 ---
 
@@ -273,11 +273,11 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 39. FluentCart 自動賦予賣家權限 | v1.5 | 4/4 | Complete | 2026-02-20 |
 | 40. 小幫手共享配額驗證 | v1.5 | — | Cancelled | — |
 | 41. 基礎架構 | v2.0 | 3/3 | Complete | 2026-02-20 |
-| 42. 角色權限優化 | v2.0 | 0/TBD | Not started | — |
-| 43. 資料管理 Tab | v2.0 | 0/TBD | Not started | — |
-| 44. 功能管理 Tab | v2.0 | 0/TBD | Not started | — |
-| 45. 開發者 Tab + 預留 API | v2.0 | 0/TBD | Not started | — |
-| 46. 清理 | v2.0 | 0/TBD | Not started | — |
+| 42. 角色權限優化 | v2.0 | 5/5 | Complete | 2026-02-20 |
+| 43. 資料管理 Tab | v2.0 | — | UI 框架完成，功能待討論 | — |
+| 44. 功能管理 Tab | v2.0 | — | UI 框架完成，功能待討論 | — |
+| 45. 開發者 Tab + 預留 API | v2.0 | — | UI 風格已套用 | — |
+| 46. 清理 | v2.0 | 1/2 | 棄用 Tab 已刪除，CSS 清理待做 | 2026-02-20 |
 
 ---
 

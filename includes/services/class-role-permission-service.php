@@ -60,6 +60,15 @@ class RolePermissionService
                 'buygo_add_helper' => false,
             ]);
         }
+
+        // 建立 BuyGo 上架幫手角色（固定權限：listing + products）
+        if (!get_role('buygo_lister')) {
+            add_role('buygo_lister', 'BuyGo 上架幫手', [
+                'read' => true,
+                'buygo_manage_all' => true,
+                'buygo_add_helper' => false,
+            ]);
+        }
     }
 
     /**
@@ -117,11 +126,18 @@ class RolePermissionService
                 $seller = get_userdata($record->seller_id);
                 $seller_name = $seller ? $seller->display_name : '未知';
 
+                // 判斷角色
+                $user_role = 'buygo_helper';
+                if (in_array('buygo_lister', (array) $user->roles)) {
+                    $user_role = 'buygo_lister';
+                }
+
                 $helpers[] = [
                     'id' => $user->ID,
                     'name' => $user->display_name,
                     'email' => $user->user_email,
                     'avatar' => $avatar_url,
+                    'role' => $user_role,
                     'created_at' => $record->created_at,
                     'seller_id' => $record->seller_id,
                     'seller_name' => $seller_name,
@@ -205,7 +221,7 @@ class RolePermissionService
                 $seller_id = get_current_user_id();
             }
 
-            if ($role === 'buygo_helper') {
+            if ($role === 'buygo_helper' || $role === 'buygo_lister') {
                 // 檢查資料表是否存在
                 if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
                     // 檢查是否已存在
@@ -228,18 +244,20 @@ class RolePermissionService
                     }
                 }
 
-                // 向後相容：也同時更新 Option API
-                $helper_ids = get_option('buygo_helpers', []);
-                if (!is_array($helper_ids)) {
-                    $helper_ids = [];
-                }
-                if (!in_array($user_id, $helper_ids)) {
-                    $helper_ids[] = $user_id;
-                    update_option('buygo_helpers', $helper_ids);
+                // 向後相容：也同時更新 Option API（僅 helper）
+                if ($role === 'buygo_helper') {
+                    $helper_ids = get_option('buygo_helpers', []);
+                    if (!is_array($helper_ids)) {
+                        $helper_ids = [];
+                    }
+                    if (!in_array($user_id, $helper_ids)) {
+                        $helper_ids[] = $user_id;
+                        update_option('buygo_helpers', $helper_ids);
+                    }
                 }
 
-                // 賦予小幫手角色
-                $user->add_role('buygo_helper');
+                // 賦予角色
+                $user->add_role($role);
             } elseif ($role === 'buygo_admin') {
                 // 新增管理員
                 $user->add_role('buygo_admin');
@@ -269,27 +287,34 @@ class RolePermissionService
      * @param int|null $seller_id 管理員 ID，若為 null 則使用當前使用者
      * @return bool
      */
+    /**
+     * 移除幫手綁定
+     *
+     * @param int $user_id 幫手的 user ID
+     * @param int|null $seller_id 指定賣家 ID；null 表示清除該用戶的所有綁定
+     */
     public static function remove_helper(int $user_id, ?int $seller_id = null): bool
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'buygo_helpers';
 
-        // 如果沒有指定 seller_id，使用當前使用者
-        if ($seller_id === null) {
-            $seller_id = get_current_user_id();
-        }
-
         // 檢查資料表是否存在
         if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
-            // 從新資料表刪除
-            $wpdb->delete(
-                $table_name,
-                [
-                    'helper_id' => $user_id,
-                    'seller_id' => $seller_id,
-                ],
-                ['%d', '%d']
-            );
+            if ($seller_id !== null) {
+                // 刪除特定賣家的綁定
+                $wpdb->delete(
+                    $table_name,
+                    ['helper_id' => $user_id, 'seller_id' => $seller_id],
+                    ['%d', '%d']
+                );
+            } else {
+                // 清除該用戶的所有綁定
+                $wpdb->delete(
+                    $table_name,
+                    ['helper_id' => $user_id],
+                    ['%d']
+                );
+            }
         }
 
         // 向後相容：也從 Option 中移除
@@ -303,7 +328,7 @@ class RolePermissionService
             }
         }
 
-        // 檢查使用者是否還是其他賣家的小幫手
+        // 檢查使用者是否還有其他賣家的綁定
         $remaining = 0;
         if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
             $remaining = $wpdb->get_var($wpdb->prepare(
@@ -317,6 +342,7 @@ class RolePermissionService
             $user = get_userdata($user_id);
             if ($user) {
                 $user->remove_role('buygo_helper');
+                $user->remove_role('buygo_lister');
             }
         }
 
@@ -345,6 +371,12 @@ class RolePermissionService
             if (in_array('buygo_helper', $user->roles)) {
                 $user->remove_role('buygo_helper');
             }
+        } elseif ($role === 'buygo_lister') {
+            // 移除上架幫手
+            self::remove_helper($user_id);
+            if (in_array('buygo_lister', $user->roles)) {
+                $user->remove_role('buygo_lister');
+            }
         } elseif ($role === 'buygo_admin') {
             // 移除管理員角色
             if (in_array('buygo_admin', $user->roles)) {
@@ -356,6 +388,41 @@ class RolePermissionService
                 self::remove_helper($user_id);
             }
         }
+
+        return true;
+    }
+
+    /**
+     * 升級上架幫手為小幫手
+     * 保留 helpers 表中的綁定關係，只換角色
+     */
+    public static function upgrade_lister_to_helper(int $user_id): bool
+    {
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+
+        if (!in_array('buygo_lister', (array) $user->roles)) {
+            return false;
+        }
+
+        // 移除 lister 角色，加上 helper 角色
+        $user->remove_role('buygo_lister');
+        $user->add_role('buygo_helper');
+
+        // 設定預設全開權限（小幫手預設擁有所有權限）
+        $all_permissions = [
+            'listing', 'products', 'orders',
+            'shipments', 'customers', 'settings'
+        ];
+        update_user_meta(
+            $user_id,
+            'buygo_helper_permissions',
+            $all_permissions
+        );
+
+        // helpers 表綁定關係不動，繼續複用
 
         return true;
     }
