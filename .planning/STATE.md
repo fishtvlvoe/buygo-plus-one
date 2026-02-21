@@ -19,11 +19,11 @@
 
 **Milestone:** v2.0 - 後台 UI 統一化
 **Phase:** 43 - 資料管理 Tab
-**Plan:** 01 complete, 02 pending
-**Status:** Phase 43 Plan 01 complete — DataManagementService built
+**Plan:** 01 complete, 02 complete
+**Status:** Phase 43 complete — DataManagementService + REST API built
 
 ```
-進度 [░░░░░░] 0/6 phases complete
+進度 [█░░░░░] 1/6 phases complete
 ```
 
 **已完成的 Milestones:**
@@ -34,7 +34,7 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-21 — Phase 43 Plan 01 complete (DataManagementService)
+**Last activity:** 2026-02-21 — Phase 43 complete (DataManagementService + REST API)
 
 ---
 
@@ -44,7 +44,7 @@
 |-------|------|--------------|--------|
 | 41 | 基礎架構 | ARCH-01~04 | Not started |
 | 42 | 角色權限優化 | ROLE-01~07 | Not started |
-| 43 | 資料管理 Tab | DATA-01~05 | Plan 01/02 complete |
+| 43 | 資料管理 Tab | DATA-01~05 | Complete (Plan 01+02) |
 | 44 | 功能管理 Tab | FEAT-01~04 | Not started |
 | 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
 | 46 | 清理 | CLEAN-01~03 | Not started |
@@ -73,6 +73,9 @@
 - 商品刪除沿用 FluentCart 既有軟刪除模式（item_status = inactive）
 - 客戶刪除只移除 FluentCart 資料，保留 WP 帳號
 - 訂單刪除含遞迴子訂單處理
+- REST API 使用 instance method check_permission_for_admin（與 Settings_API 一致）
+- 單一 /query 端點搭配 type 參數切換訂單/商品/客戶（更簡潔的 API 設計）
+- 所有刪除端點強制 confirmation_token = 'DELETE' 伺服器端驗證（DATA-05）
 
 **v2.0 Out of Scope:**
 - 前端 Vue Portal 改版（只改 wp-admin）
@@ -84,4 +87,4 @@
 
 ---
 
-*State updated: 2026-02-21 — Phase 43 Plan 01 complete, current_phase = 43*
+*State updated: 2026-02-21 — Phase 43 complete (Plan 01+02), current_phase = 43*

@@ -92,7 +92,7 @@
   - 編輯 Modal：姓名、電話、地址、身分證字號
   - 更新 fct_customers + fct_customer_addresses
 
-- [ ] **DATA-05**: 批次刪除二次確認
+- [x] **DATA-05**: 批次刪除二次確認
   - 第一次：Modal 顯示將刪除的數量
   - 第二次：輸入 "DELETE" 文字才啟用確認按鈕
   - 刪除後不可復原
@@ -187,7 +187,7 @@
 | DATA-02 | Phase 43 | Complete |
 | DATA-03 | Phase 43 | Complete |
 | DATA-04 | Phase 43 | Complete |
-| DATA-05 | Phase 43 | Pending |
+| DATA-05 | Phase 43 | Complete |
 | FEAT-01 | Phase 44 | Pending |
 | FEAT-02 | Phase 44 | Pending |
 | FEAT-03 | Phase 44 | Pending |
