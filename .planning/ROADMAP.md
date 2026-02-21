@@ -1,7 +1,7 @@
 # Roadmap: BuyGo+1
 
 **Created:** 2026-02-04 (v1.5)
-**Updated:** 2026-02-20 (v2.0 roadmap added)
+**Updated:** 2026-02-21 (Phase 43 plans created)
 
 ## Milestones
 
@@ -173,26 +173,23 @@ Plans: 5/5
 
 ### Phase 43: 資料管理 Tab
 
-**Goal:** 管理員可按日期範圍查詢、編輯、刪除訂單/商品/客戶資料，刪除需二次確認
+**Goal:** 建立資料管理後端 API（僅 Backend），讓管理員可按日期範圍查詢、編輯、刪除訂單/商品/客戶資料，刪除需二次確認 token
 
 **Depends on:** Phase 41
 
 **Requirements:** DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
 
 **Success Criteria** (what must be TRUE):
-  1. 資料管理 Tab 有篩選區：選擇資料類型（訂單/商品/客戶）、設定日期範圍、輸入關鍵字，按下查詢後顯示結果列表
-  2. 訂單查詢結果可單筆刪除或勾選後批次刪除，刪除同時清理 buygo_shipment_items 關聯資料
-  3. 客戶資料列表可點擊進入編輯 Modal，修改姓名、電話、地址、身分證字號後儲存到 fct_customers 和 fct_customer_addresses
-  4. 所有刪除操作必須通過二次確認：第一次 Modal 顯示將刪除數量，第二次需輸入「DELETE」文字才啟用確認按鈕
+  1. REST API 支援按資料類型（訂單/商品/客戶）、日期範圍、關鍵字查詢，回傳分頁結果
+  2. 訂單刪除 API 同步清理 buygo_shipment_items 和 buygo_shipments 關聯資料
+  3. 客戶編輯 API 可修改姓名、電話、地址、身分證字號，同步更新 fct_customers 和 fct_customer_addresses
+  4. 所有刪除 API 端點強制要求 confirmation_token = 'DELETE'
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 43-01: 篩選區 UI + 查詢 API（三種資料類型 + 日期範圍 + 關鍵字）
-- [ ] 43-02: 訂單刪除功能（單筆 + 批次 + 關聯清理）
-- [ ] 43-03: 商品刪除功能（接入現有 /products/batch-delete 端點）
-- [ ] 43-04: 客戶編輯 Modal（姓名/電話/地址/身分證 + fct_customers 更新）
-- [ ] 43-05: 二次確認機制（數量 Modal + DELETE 輸入驗證）
+- [ ] 43-01-PLAN.md — DataManagementService 服務層（查詢 + 刪除 + 編輯方法）
+- [ ] 43-02-PLAN.md — DataManagement_API REST 端點 + 插件載入整合
 
 ---
 
@@ -274,7 +271,7 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 40. 小幫手共享配額驗證 | v1.5 | — | Cancelled | — |
 | 41. 基礎架構 | v2.0 | 3/3 | Complete | 2026-02-20 |
 | 42. 角色權限優化 | v2.0 | 5/5 | Complete | 2026-02-20 |
-| 43. 資料管理 Tab | v2.0 | — | UI 框架完成，功能待討論 | — |
+| 43. 資料管理 Tab | v2.0 | 0/2 | Planning complete | — |
 | 44. 功能管理 Tab | v2.0 | — | UI 框架完成，功能待討論 | — |
 | 45. 開發者 Tab + 預留 API | v2.0 | — | UI 風格已套用 | — |
 | 46. 清理 | v2.0 | 1/2 | 棄用 Tab 已刪除，CSS 清理待做 | 2026-02-20 |
@@ -283,3 +280,4 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 
 *Roadmap created: 2026-02-04*
 *v2.0 phases added: 2026-02-20*
+*Phase 43 plans created: 2026-02-21*
