@@ -216,12 +216,12 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // 移除小幫手
+    // 移除幫手
     $(document).on('click', '.delete-helper', function() {
         const userId = $(this).data('user-id');
         const button = $(this);
-        
-        if (!confirm('確定要移除這個小幫手嗎？')) {
+
+        if (!confirm('確定要移除這個幫手嗎？')) {
             return;
         }
         
@@ -283,16 +283,22 @@ jQuery(document).ready(function($) {
             headers: { 'X-WP-Nonce': buygoSettings.restNonce },
             success: function(response) {
                 if (response.success && response.data && response.data.length > 0) {
-                    let html = '<p style="font-weight:500; margin-bottom:8px;">目前小幫手</p>';
+                    let html = '<p style="font-weight:500; margin-bottom:8px;">目前幫手</p>';
                     response.data.forEach(function(helper) {
+                        var roleBadge = '';
+                        if (helper.role === 'buygo_lister') {
+                            roleBadge = '<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:500;background:#fef3c7;color:#92400e;margin-right:6px;">上架幫手</span>';
+                        } else {
+                            roleBadge = '<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:500;background:#f3f4f6;color:#4b5563;margin-right:6px;">小幫手</span>';
+                        }
                         html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f9f9f9; border-radius:4px; margin-bottom:4px;">'
-                            + '<span>' + $('<span>').text(helper.name).html() + ' <small style="color:#666;">' + $('<span>').text(helper.email).html() + '</small></span>'
+                            + '<span>' + roleBadge + $('<span>').text(helper.name).html() + ' <small style="color:#666;">' + $('<span>').text(helper.email).html() + '</small></span>'
                             + '<button type="button" class="remove-helper-inline button" data-user-id="' + helper.id + '" data-seller-id="' + sellerId + '" style="font-size:11px; padding:2px 8px; height:auto; color:#dc3232; border-color:#dc3232;">移除</button>'
                             + '</div>';
                     });
                     $list.html(html);
                 } else {
-                    $list.html('<p style="color:#999; font-size:13px;">尚無小幫手</p>');
+                    $list.html('<p style="color:#999; font-size:13px;">尚無幫手</p>');
                 }
             },
             error: function() {
@@ -340,10 +346,11 @@ jQuery(document).ready(function($) {
         }, 300);
     });
 
-    // 點選搜尋結果 → 直接新增為小幫手
+    // 點選搜尋結果 → 直接新增為幫手（依選取的角色）
     $('#add-helper-results').on('click', '.search-result-item', function() {
         const userId = $(this).data('id');
         const sellerId = $('#add-helper-seller-id').val();
+        const selectedRole = $('input[name="add_helper_role"]:checked').val() || 'buygo_helper';
 
         $.ajax({
             url: buygoSettings.restUrl + '/settings/helpers',
@@ -354,7 +361,7 @@ jQuery(document).ready(function($) {
             },
             data: JSON.stringify({
                 user_id: parseInt(userId),
-                role: 'buygo_helper',
+                role: selectedRole,
                 seller_id: parseInt(sellerId)
             }),
             success: function(response) {
@@ -382,11 +389,11 @@ jQuery(document).ready(function($) {
         const sellerId = $(this).data('seller-id');
         const btn = $(this);
 
-        if (!confirm('確定要移除這個小幫手嗎？')) return;
+        if (!confirm('確定要移除這個幫手嗎？')) return;
 
         btn.prop('disabled', true).text('...');
         $.ajax({
-            url: buygoSettings.restUrl + '/settings/helpers/' + userId,
+            url: buygoSettings.restUrl + '/settings/helpers/' + userId + '?seller_id=' + sellerId,
             type: 'DELETE',
             headers: { 'X-WP-Nonce': buygoSettings.restNonce },
             success: function(response) {
@@ -419,7 +426,8 @@ jQuery(document).ready(function($) {
         const role = $(this).data('role');
         const button = $(this);
         
-        const roleName = role === 'buygo_admin' ? '管理員' : '小幫手';
+        const roleNameMap = { 'buygo_admin': '管理員', 'buygo_helper': '小幫手', 'buygo_lister': '上架幫手' };
+        const roleName = roleNameMap[role] || role;
         
         if (!confirm(`確定要移除這個使用者的「${roleName}」角色嗎？移除後將降級為一般顧客。`)) {
             return;
@@ -460,6 +468,46 @@ jQuery(document).ready(function($) {
         });
     });
 
+    // ===== 升級上架幫手為小幫手 =====
+    $(document).on('click', '.upgrade-role', function() {
+        const userId = $(this).data('user-id');
+        const button = $(this);
+
+        if (!confirm('確定要將此「上架幫手」升級為「小幫手」嗎？升級後可進一步調整權限。')) {
+            return;
+        }
+
+        button.prop('disabled', true).css('opacity', '0.3');
+
+        $.ajax({
+            url: buygoSettings.restUrl + '/settings/roles/upgrade',
+            type: 'POST',
+            headers: {
+                'X-WP-Nonce': buygoSettings.restNonce,
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({ user_id: parseInt(userId) }),
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message || '已升級為小幫手');
+                    location.reload();
+                } else {
+                    alert('升級失敗：' + (response.message || '未知錯誤'));
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = '升級失敗';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += '：' + xhr.responseJSON.message;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                button.prop('disabled', false).css('opacity', '0.6');
+            }
+        });
+    });
+
     // ===== 權限設定 Modal =====
     $(document).on('click', '.permission-btn', function() {
         const userId = $(this).data('user-id');
@@ -481,6 +529,7 @@ jQuery(document).ready(function($) {
                     $('[name="perm_shipments"]').prop('checked', perms.shipments);
                     $('[name="perm_customers"]').prop('checked', perms.customers);
                     $('[name="perm_settings"]').prop('checked', perms.settings);
+                    $('[name="perm_listing"]').prop('checked', perms.listing);
                 }
             }
         });
@@ -498,7 +547,8 @@ jQuery(document).ready(function($) {
             orders:    $('[name="perm_orders"]').is(':checked'),
             shipments: $('[name="perm_shipments"]').is(':checked'),
             customers: $('[name="perm_customers"]').is(':checked'),
-            settings:  $('[name="perm_settings"]').is(':checked')
+            settings:  $('[name="perm_settings"]').is(':checked'),
+            listing:   $('[name="perm_listing"]').is(':checked')
         };
 
         $.ajax({
@@ -509,6 +559,8 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response.success) {
                     $('#permission-modal').hide();
+                    // 更新表格中該用戶的權限顯示
+                    location.reload();
                 } else {
                     alert('儲存失敗：' + (response.message || '未知錯誤'));
                 }
@@ -556,8 +608,8 @@ jQuery(document).ready(function($) {
                 success: function(response) {
                     if (response.success) {
                         // 顯示提示
-                        const message = $('<div class="notice notice-success" style="padding: 8px 12px; margin: 10px 0;"><p>✅ 商品限制已更新為：' +
-                            (productLimit === 0 ? '無限制' : productLimit + ' 個商品') +
+                        const message = $('<div class="notice notice-success" style="padding: 8px 12px; margin: 10px 0;"><p>上架限額已更新為：' +
+                            (productLimit === 0 ? '無限制' : productLimit + ' 個') +
                             '</p></div>');
                         input.closest('tr').find('td:first').append(message);
                         setTimeout(function() {

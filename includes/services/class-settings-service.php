@@ -127,6 +127,14 @@ class SettingsService
     }
 
     /**
+     * @see RolePermissionService::upgrade_lister_to_helper()
+     */
+    public static function upgrade_lister_to_helper(int $user_id): bool
+    {
+        return RolePermissionService::upgrade_lister_to_helper($user_id);
+    }
+
+    /**
      * @see RolePermissionService::get_accessible_seller_ids()
      */
     public static function get_accessible_seller_ids(?int $user_id = null): array
@@ -169,7 +177,7 @@ class SettingsService
      * 小幫手依 user_meta 中的 buygo_helper_permissions 判斷。
      * 未設定時預設全部開啟（向後相容）。
      *
-     * @param string   $permission  權限名稱：products, orders, shipments, customers, settings
+     * @param string   $permission  權限名稱：listing, products, orders, shipments, customers, settings
      * @param int|null $user_id     用戶 ID，null 為當前用戶
      * @return bool
      */
@@ -186,6 +194,11 @@ class SettingsService
         // 賣家和 WP Admin 永遠有權限
         if (in_array('administrator', (array) $user->roles) || in_array('buygo_admin', (array) $user->roles)) {
             return true;
+        }
+
+        // 上架幫手：固定權限（listing + products）
+        if (in_array('buygo_lister', (array) $user->roles)) {
+            return in_array($permission, ['listing', 'products']);
         }
 
         // 小幫手：檢查細粒度權限
@@ -209,6 +222,7 @@ class SettingsService
     public static function get_helper_permissions(int $user_id): array
     {
         $defaults = [
+            'listing'   => true,
             'products'  => true,
             'orders'    => true,
             'shipments' => true,
@@ -231,12 +245,16 @@ class SettingsService
      */
     public static function save_helper_permissions(int $user_id, array $permissions): bool
     {
-        $valid_keys = ['products', 'orders', 'shipments', 'customers', 'settings'];
+        $valid_keys = ['listing', 'products', 'orders', 'shipments', 'customers', 'settings'];
         $clean = [];
         foreach ($valid_keys as $key) {
             $clean[$key] = !empty($permissions[$key]);
         }
-        return (bool) update_user_meta($user_id, 'buygo_helper_permissions', $clean);
+        // update_user_meta() 在值沒有變化時回傳 false，不代表失敗
+        // 改用 update 後再 get 來驗證結果
+        update_user_meta($user_id, 'buygo_helper_permissions', $clean);
+        $saved = get_user_meta($user_id, 'buygo_helper_permissions', true);
+        return $saved === $clean;
     }
 
     // ────────────────────────────────────────────────

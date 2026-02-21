@@ -56,51 +56,20 @@ class API {
      * - WordPress 管理員
      * - BuyGo 管理員
      * - 小幫手
+     * - 上架幫手
      *
      * @return bool
      */
     public static function check_permission(): bool
     {
-        // 除錯日誌：同時寫入 WordPress error_log 和 BuyGo 日誌
-        error_log('[BuyGo API] check_permission() called at ' . date('Y-m-d H:i:s'));
-
-        $user_id = get_current_user_id();
-        $is_logged_in = is_user_logged_in();
-        $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
-
-        // 也寫入 WordPress debug.log
-        error_log("[BuyGo API] User ID: $user_id, Logged In: " . ($is_logged_in ? 'YES' : 'NO'));
-
-        $log_message = sprintf(
-            "[%s] [PERMISSION] User ID: %d, Logged In: %s",
-            date('Y-m-d H:i:s'),
-            $user_id,
-            $is_logged_in ? 'YES' : 'NO'
-        );
-        file_put_contents($log_file, $log_message . "\n", FILE_APPEND);
-
-        if (!$is_logged_in) {
-            file_put_contents($log_file, sprintf("[%s] [PERMISSION] DENIED - User not logged in\n", date('Y-m-d H:i:s')), FILE_APPEND);
+        if (!is_user_logged_in()) {
             return false;
         }
 
-        $can_manage = current_user_can('manage_options');
-        $can_buygo_admin = current_user_can('buygo_admin');
-        $can_buygo_helper = current_user_can('buygo_helper');
-
-        $log_message = sprintf(
-            "[%s] [PERMISSION] Capabilities - manage_options: %s, buygo_admin: %s, buygo_helper: %s",
-            date('Y-m-d H:i:s'),
-            $can_manage ? 'YES' : 'NO',
-            $can_buygo_admin ? 'YES' : 'NO',
-            $can_buygo_helper ? 'YES' : 'NO'
-        );
-        file_put_contents($log_file, $log_message . "\n", FILE_APPEND);
-
-        $has_permission = $can_manage || $can_buygo_admin || $can_buygo_helper;
-        file_put_contents($log_file, sprintf("[%s] [PERMISSION] %s\n", date('Y-m-d H:i:s'), $has_permission ? 'GRANTED' : 'DENIED'), FILE_APPEND);
-
-        return $has_permission;
+        return current_user_can('manage_options')
+            || current_user_can('buygo_admin')
+            || current_user_can('buygo_helper')
+            || current_user_can('buygo_lister');
     }
 
     /**
@@ -124,5 +93,22 @@ class API {
     public static function check_permission_for_api(): bool
     {
         return self::check_permission();
+    }
+
+    /**
+     * 帶細粒度權限的檢查（小幫手 scope 檢查）
+     *
+     * 先通過基礎權限檢查，再檢查小幫手是否有特定 scope 權限。
+     * 賣家和 WP Admin 不受 scope 限制。
+     *
+     * @param string $scope 權限範圍：products, orders, shipments, customers, settings, listing
+     * @return bool
+     */
+    public static function check_permission_with_scope(string $scope): bool
+    {
+        if (!self::check_permission()) {
+            return false;
+        }
+        return \BuyGoPlus\Services\SettingsService::helper_can($scope);
     }
 }

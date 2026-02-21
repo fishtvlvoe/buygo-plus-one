@@ -1325,6 +1325,6 @@ class Products_API {
      * 權限檢查
      */
     public static function check_permission() {
-        return \BuyGoPlus\Api\API::check_permission_for_api();
+        return \BuyGoPlus\Api\API::check_permission_with_scope('products');
     }
 }

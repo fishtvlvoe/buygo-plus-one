@@ -31,6 +31,10 @@ class Shipments_API
         $this->exportService = new ExportService();
     }
 
+    public static function check_permission() {
+        return API::check_permission_with_scope('shipments');
+    }
+
     /**
      * 註冊 REST API 路由
      */
@@ -40,12 +44,12 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipments'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'create_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -53,12 +57,12 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
             [
                 'methods' => 'PUT',
                 'callback' => [$this, 'update_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -66,7 +70,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_mark_shipped'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -75,7 +79,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'archive_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -84,7 +88,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'merge_shipments'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -93,7 +97,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_archive_shipments'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -102,7 +106,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_shipment_detail'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -111,7 +115,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'export_shipments'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -120,7 +124,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'transfer_to_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -129,7 +133,7 @@ class Shipments_API
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'batch_transfer_to_shipment'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
 
@@ -138,7 +142,7 @@ class Shipments_API
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_diagnostics'],
-                'permission_callback' => [API::class, 'check_permission'],
+                'permission_callback' => [self::class, 'check_permission'],
             ],
         ]);
     }
