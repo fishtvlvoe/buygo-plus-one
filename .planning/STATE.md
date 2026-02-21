@@ -1,6 +1,6 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-20
+**最後更新:** 2026-02-21
 **專案版本:** v2.0 後台 UI 統一化
 
 ---
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v2.0 — 後台 UI 統一化（Phase 41 準備開始）
+**當前焦點:** v2.0 — 後台 UI 統一化（Phase 43 資料管理 Tab 進行中）
 
 **PROJECT.md 最後更新:** 2026-02-20
 
@@ -18,9 +18,9 @@
 ## 當前位置
 
 **Milestone:** v2.0 - 後台 UI 統一化
-**Phase:** 41 - 基礎架構（準備開始）
-**Plan:** —
-**Status:** Roadmap created, ready to plan Phase 41
+**Phase:** 43 - 資料管理 Tab
+**Plan:** 01 complete, 02 pending
+**Status:** Phase 43 Plan 01 complete — DataManagementService built
 
 ```
 進度 [░░░░░░] 0/6 phases complete
@@ -34,7 +34,7 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-20 — v2.0 roadmap 建立完成，Phase 41 待規劃
+**Last activity:** 2026-02-21 — Phase 43 Plan 01 complete (DataManagementService)
 
 ---
 
@@ -44,7 +44,7 @@
 |-------|------|--------------|--------|
 | 41 | 基礎架構 | ARCH-01~04 | Not started |
 | 42 | 角色權限優化 | ROLE-01~07 | Not started |
-| 43 | 資料管理 Tab | DATA-01~05 | Not started |
+| 43 | 資料管理 Tab | DATA-01~05 | Plan 01/02 complete |
 | 44 | 功能管理 Tab | FEAT-01~04 | Not started |
 | 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
 | 46 | 清理 | CLEAN-01~03 | Not started |
@@ -68,6 +68,12 @@
 - 資料管理刪除需二次確認（Modal + 輸入 DELETE）
 - Phase 40（小幫手共享配額）已取消
 
+**Phase 43 決策:**
+- DataManagementService 使用 wpdb 直接查詢（非 Eloquent），控制複雜 JOIN 和串聯刪除
+- 商品刪除沿用 FluentCart 既有軟刪除模式（item_status = inactive）
+- 客戶刪除只移除 FluentCart 資料，保留 WP 帳號
+- 訂單刪除含遞迴子訂單處理
+
 **v2.0 Out of Scope:**
 - 前端 Vue Portal 改版（只改 wp-admin）
 - 授權伺服器（buygo_is_pro() 先回傳 true）
@@ -78,4 +84,4 @@
 
 ---
 
-*State updated: 2026-02-20 — v2.0 roadmap created, current_phase = 41*
+*State updated: 2026-02-21 — Phase 43 Plan 01 complete, current_phase = 43*
