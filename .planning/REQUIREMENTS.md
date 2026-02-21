@@ -72,22 +72,22 @@
 
 ### 資料管理 (DATA)
 
-- [ ] **DATA-01**: 篩選區
+- [x] **DATA-01**: 篩選區
   - 資料類型選擇：訂單 / 商品 / 客戶（radio）
   - 時間範圍：開始日期 + 結束日期
   - 關鍵字搜尋
 
-- [ ] **DATA-02**: 訂單查詢和刪除
+- [x] **DATA-02**: 訂單查詢和刪除
   - 按日期範圍查詢 fct_orders
   - 單筆刪除和批次刪除
   - 直接操作資料庫（繞過 FluentCart 限制）
   - 同步清理 buygo_shipment_items 關聯
 
-- [ ] **DATA-03**: 商品查詢和刪除
+- [x] **DATA-03**: 商品查詢和刪除
   - 按日期範圍查詢商品
   - 使用現有 /products/batch-delete 端點
 
-- [ ] **DATA-04**: 客戶資料查詢、編輯和刪除
+- [x] **DATA-04**: 客戶資料查詢、編輯和刪除
   - 按日期範圍查詢 fct_customers
   - 編輯 Modal：姓名、電話、地址、身分證字號
   - 更新 fct_customers + fct_customer_addresses
@@ -183,10 +183,10 @@
 | ROLE-05 | Phase 42 | Pending |
 | ROLE-06 | Phase 42 | Pending |
 | ROLE-07 | Phase 42 | Pending |
-| DATA-01 | Phase 43 | Pending |
-| DATA-02 | Phase 43 | Pending |
-| DATA-03 | Phase 43 | Pending |
-| DATA-04 | Phase 43 | Pending |
+| DATA-01 | Phase 43 | Complete |
+| DATA-02 | Phase 43 | Complete |
+| DATA-03 | Phase 43 | Complete |
+| DATA-04 | Phase 43 | Complete |
 | DATA-05 | Phase 43 | Pending |
 | FEAT-01 | Phase 44 | Pending |
 | FEAT-02 | Phase 44 | Pending |

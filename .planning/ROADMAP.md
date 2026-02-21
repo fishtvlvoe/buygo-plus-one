@@ -112,7 +112,7 @@
 |---|-------|------|--------------|------------------|--------|
 | 41 | 基礎架構 | CSS + 選單合併為 6-Tab 單頁結構 | ARCH-01~04 | 4 | ○ Not started |
 | 42 | 角色權限優化 | 表格過濾 + 5 大項細粒度權限 + 搜尋 UX | ROLE-01~07 | 5 | ○ Not started |
-| 43 | 資料管理 Tab | 訂單/商品/客戶查詢、編輯、刪除 | DATA-01~05 | 4 | ○ Not started |
+| 43 | 1/2 | In Progress|  | 4 | ○ Not started |
 | 44 | 功能管理 Tab | Free/Pro 功能列表 + 授權碼驗證 | FEAT-01~04 | 4 | ○ Not started |
 | 45 | 開發者 Tab + 預留 API | 三工具合併 + 3 組 API 骨架 | DEV-01~03, API-01~03 | 4 | ○ Not started |
 | 46 | 清理 | 刪除廢棄檔案和舊樣式 | CLEAN-01~03 | 3 | ○ Not started |
@@ -185,7 +185,7 @@ Plans: 5/5
   3. 客戶編輯 API 可修改姓名、電話、地址、身分證字號，同步更新 fct_customers 和 fct_customer_addresses
   4. 所有刪除 API 端點強制要求 confirmation_token = 'DELETE'
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 43-01-PLAN.md — DataManagementService 服務層（查詢 + 刪除 + 編輯方法）
