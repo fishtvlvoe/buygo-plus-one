@@ -20,7 +20,7 @@
 **Milestone:** v2.0 - 後台 UI 統一化
 **Phase:** 43 - 資料管理 Tab
 **Plan:** 01 complete, 02 complete
-**Status:** Phase 43 complete — DataManagementService + REST API built
+**Status:** Milestone complete
 
 ```
 進度 [█░░░░░] 1/6 phases complete
