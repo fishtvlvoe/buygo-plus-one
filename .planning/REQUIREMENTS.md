@@ -13,21 +13,21 @@
 
 ### 基礎架構 (ARCH)
 
-- [ ] **ARCH-01**: 選單名稱從 BuyGo+1 改為 BGO
+- [x] **ARCH-01**: 選單名稱從 BuyGo+1 改為 BGO
   - add_menu_page() 標題和選單文字都改為 'BGO'
   - dashicons-cart 圖示保留
 
-- [ ] **ARCH-02**: 取消子選單，改為單頁 6-Tab 導航
+- [x] **ARCH-02**: 取消子選單，改為單頁 6-Tab 導航
   - 刪除兩個 add_submenu_page()
   - 新增統一的 render_page() 方法
   - Tab 順序：角色權限 > LINE 模板 > 結帳設定 > 資料管理 > 功能管理 > 開發者
 
-- [ ] **ARCH-03**: Tab 導航 CSS 仿 LineHub 結構
+- [x] **ARCH-03**: Tab 導航 CSS 仿 LineHub 結構
   - 新建 admin-tabs.css，使用 `.bgo-` 前綴
   - 品牌色：#3b82f6（藍）
   - 結構：tab padding、底線、transition、響應式斷點跟 LineHub 完全一致
 
-- [ ] **ARCH-04**: 頁面標題一致性
+- [x] **ARCH-04**: 頁面標題一致性
   - 大標 `<h1>BGO</h1>`
   - Tab 名稱使用正確大小寫（LINE 模板，不是 Line 模板）
 
@@ -172,10 +172,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 41 | Pending |
-| ARCH-02 | Phase 41 | Pending |
-| ARCH-03 | Phase 41 | Pending |
-| ARCH-04 | Phase 41 | Pending |
+| ARCH-01 | Phase 41 | Complete |
+| ARCH-02 | Phase 41 | Complete |
+| ARCH-03 | Phase 41 | Complete |
+| ARCH-04 | Phase 41 | Complete |
 | ROLE-01 | Phase 42 | Pending |
 | ROLE-02 | Phase 42 | Pending |
 | ROLE-03 | Phase 42 | Pending |

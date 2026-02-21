@@ -112,7 +112,7 @@
 |---|-------|------|--------------|------------------|--------|
 | 41 | 基礎架構 | CSS + 選單合併為 6-Tab 單頁結構 | ARCH-01~04 | 4 | ○ Not started |
 | 42 | 角色權限優化 | 表格過濾 + 5 大項細粒度權限 + 搜尋 UX | ROLE-01~07 | 5 | ○ Not started |
-| 43 | 2/2 | Complete   | 2026-02-21 | 4 | ○ Not started |
+| 43 | 2/2 | Complete    | 2026-02-21 | 4 | ○ Not started |
 | 44 | 功能管理 Tab | Free/Pro 功能列表 + 授權碼驗證 | FEAT-01~04 | 4 | ○ Not started |
 | 45 | 開發者 Tab + 預留 API | 三工具合併 + 3 組 API 骨架 | DEV-01~03, API-01~03 | 4 | ○ Not started |
 | 46 | 清理 | 刪除廢棄檔案和舊樣式 | CLEAN-01~03 | 3 | ○ Not started |
