@@ -5,10 +5,11 @@
         // v2.0: 只查詢有 BGO 角色的使用者（不含純 WP Admin）
         $buygo_admins = get_users(['role' => 'buygo_admin']);
         $buygo_helpers = get_users(['role' => 'buygo_helper']);
+        $buygo_listers = get_users(['role' => 'buygo_lister']);
 
         // 去重合併
         $unique_users = [];
-        foreach (array_merge($buygo_admins, $buygo_helpers) as $user) {
+        foreach (array_merge($buygo_admins, $buygo_helpers, $buygo_listers) as $user) {
             if (!isset($unique_users[$user->ID])) {
                 $unique_users[$user->ID] = $user;
             }
@@ -24,11 +25,14 @@
             $is_wp_admin = in_array('administrator', (array) $user->roles);
             $has_buygo_admin_role = in_array('buygo_admin', (array) $user->roles);
             $has_buygo_helper_role = in_array('buygo_helper', (array) $user->roles);
+            $has_buygo_lister_role = in_array('buygo_lister', (array) $user->roles);
 
             if ($has_buygo_admin_role) {
                 $role = '賣家';
             } elseif ($has_buygo_helper_role) {
                 $role = '小幫手';
+            } elseif ($has_buygo_lister_role) {
+                $role = '上架幫手';
             } else {
                 continue;
             }
@@ -49,19 +53,20 @@
             $binding_info = '';
             $buygo_id = null;
 
-            if ($has_buygo_helper_role) {
-                // 小幫手：查詢綁定的賣家和 BuyGo ID
-                $helper_data = $wpdb->get_row($wpdb->prepare(
+            if ($has_buygo_helper_role || $has_buygo_lister_role) {
+                // 小幫手/上架幫手：查詢綁定的所有賣家
+                $helper_rows = $wpdb->get_results($wpdb->prepare(
                     "SELECT h.id as buygo_id, s.ID as seller_wp_id, s.display_name as seller_name
                      FROM {$helpers_table} h
                      JOIN {$wpdb->users} s ON h.seller_id = s.ID
                      WHERE h.helper_id = %d
-                     LIMIT 1",
+                     ORDER BY h.created_at ASC",
                     $user->ID
                 ));
-                if ($helper_data) {
-                    $buygo_id = $helper_data->buygo_id;
-                    $binding_info = '綁定賣家：' . $helper_data->seller_name;
+                if (!empty($helper_rows)) {
+                    $buygo_id = $helper_rows[0]->buygo_id;
+                    $seller_names = array_map(function($r) { return esc_html($r->seller_name); }, $helper_rows);
+                    $binding_info = '綁定賣家：' . implode('、', $seller_names);
                 } else {
                     $binding_info = '<span style="color: #d63638;">未綁定賣家</span>';
                 }
@@ -101,6 +106,7 @@
                 'is_bound' => !empty($line_id),
                 'has_buygo_admin_role' => $has_buygo_admin_role,
                 'has_buygo_helper_role' => $has_buygo_helper_role,
+                'has_buygo_lister_role' => $has_buygo_lister_role,
                 'product_limit' => intval($product_limit),
                 'binding_info' => $binding_info,
                 'avatar_url' => $avatar_url,
@@ -126,6 +132,7 @@
         .bgo-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
         .bgo-badge-seller { background: #dbeafe; color: #1e40af; }
         .bgo-badge-helper { background: #f3f4f6; color: #4b5563; }
+        .bgo-badge-lister { background: #fef3c7; color: #92400e; }
         /* LINE */
         .bgo-line-status { display: flex; align-items: center; gap: 4px; font-size: 11px; }
         .bgo-line-uid { color: #999; font-family: monospace; font-size: 10px; }
@@ -178,7 +185,7 @@
                         <th>角色</th>
                         <th>LINE</th>
                         <th>綁定</th>
-                        <th>商品</th>
+                        <th>上架限額</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -197,6 +204,8 @@
                             <td>
                                 <?php if ($user['has_buygo_admin_role']): ?>
                                     <span class="bgo-badge bgo-badge-seller">賣家</span>
+                                <?php elseif ($user['has_buygo_lister_role']): ?>
+                                    <span class="bgo-badge bgo-badge-lister">上架幫手</span>
                                 <?php else: ?>
                                     <span class="bgo-badge bgo-badge-helper">小幫手</span>
                                 <?php endif; ?>
@@ -218,10 +227,14 @@
                                 <?php echo $user['binding_info']; ?>
                             </td>
                             <td>
-                                <input type="number" class="bgo-limit-input product-limit-input"
-                                    data-user-id="<?php echo esc_attr($user['id']); ?>"
-                                    value="<?php echo esc_attr($user['product_limit']); ?>"
-                                    min="0" step="1" title="0 = 無限制" />
+                                <?php if ($user['has_buygo_admin_role']): ?>
+                                    <input type="number" class="bgo-limit-input product-limit-input"
+                                        data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                        value="<?php echo esc_attr($user['product_limit']); ?>"
+                                        min="0" step="1" title="0 = 無限制" />
+                                <?php else: ?>
+                                    <span style="color:#999;">—</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($user['has_buygo_helper_role']): ?>
@@ -229,14 +242,19 @@
                                         data-user-id="<?php echo esc_attr($user['id']); ?>"
                                         data-user-name="<?php echo esc_attr($user['name']); ?>"
                                         title="權限設定">⚙️</button>
+                                <?php elseif ($user['has_buygo_lister_role']): ?>
+                                    <button type="button" class="bgo-btn-icon upgrade-role"
+                                        data-user-id="<?php echo esc_attr($user['id']); ?>"
+                                        title="升級為小幫手" style="opacity:0.6;">⬆️</button>
                                 <?php endif; ?>
                                 <?php
-                                $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : null);
+                                $role_to_remove = $user['has_buygo_admin_role'] ? 'buygo_admin' : ($user['has_buygo_helper_role'] ? 'buygo_helper' : ($user['has_buygo_lister_role'] ? 'buygo_lister' : null));
+                                $role_label_map = ['buygo_admin' => '賣家', 'buygo_helper' => '小幫手', 'buygo_lister' => '上架幫手'];
                                 if ($role_to_remove): ?>
                                     <button type="button" class="bgo-btn-icon remove-role"
                                         data-user-id="<?php echo esc_attr($user['id']); ?>"
                                         data-role="<?php echo esc_attr($role_to_remove); ?>"
-                                        title="移除<?php echo $role_to_remove === 'buygo_admin' ? '賣家' : '小幫手'; ?>角色">🗑️</button>
+                                        title="移除<?php echo $role_label_map[$role_to_remove] ?? ''; ?>角色">🗑️</button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -266,14 +284,22 @@
             </div>
         </div>
 
-        <!-- 管理小幫手 Modal -->
+        <!-- 管理幫手 Modal -->
         <div id="add-helper-modal" class="bgo-modal-overlay" style="display:none;">
             <div class="bgo-modal">
-                <h3>管理小幫手 — <span id="add-helper-seller-label"></span></h3>
+                <h3>管理幫手 — <span id="add-helper-seller-label"></span></h3>
                 <input type="hidden" id="add-helper-seller-id" value="" />
                 <div id="add-helper-current-list" style="margin-bottom: 12px;"></div>
                 <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                    <p style="font-weight: 500; margin: 0 0 8px; font-size: 13px;">新增小幫手</p>
+                    <p style="font-weight: 500; margin: 0 0 8px; font-size: 13px;">新增幫手</p>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                            <input type="radio" name="add_helper_role" value="buygo_helper" checked /> 小幫手
+                        </label>
+                        <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                            <input type="radio" name="add_helper_role" value="buygo_lister" /> 上架幫手
+                        </label>
+                    </div>
                     <div class="bgo-search-wrap">
                         <input type="text" id="add-helper-search" placeholder="輸入姓名或 Email..." autocomplete="off" />
                         <div id="add-helper-results" class="bgo-search-results" style="display:none;"></div>
@@ -293,23 +319,27 @@
                 <p style="margin:0 0 12px; font-size:13px; color:#666;">勾選此小幫手可操作的功能項目</p>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_listing" checked /> <span>上架管理</span>
+                        <small style="color:#888; margin-left:auto;">LINE 上架商品、收發訊息</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
                         <input type="checkbox" name="perm_products" checked /> <span>商品管理</span>
                         <small style="color:#888; margin-left:auto;">查看、編輯、刪除商品</small>
                     </label>
-                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
                         <input type="checkbox" name="perm_orders" checked /> <span>訂單管理</span>
-                        <small style="color:#888; margin-left:auto;">查看、處理訂單</small>
+                        <small style="color:#888; margin-left:auto;">接單、轉備貨、取消</small>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_shipments" checked /> <span>出貨管理</span>
+                        <small style="color:#888; margin-left:auto;">備貨清單、出貨寄送</small>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
-                        <input type="checkbox" name="perm_shipments" checked /> <span>出貨管理</span>
-                        <small style="color:#888; margin-left:auto;">查看、管理出貨</small>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
-                        <input type="checkbox" name="perm_customers" checked /> <span>客戶資料</span>
+                        <input type="checkbox" name="perm_customers" checked /> <span>客戶管理</span>
                         <small style="color:#888; margin-left:auto;">查看客戶資料</small>
                     </label>
-                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f9fafb; border-radius:4px; cursor:pointer;">
-                        <input type="checkbox" name="perm_settings" checked /> <span>設定</span>
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-radius:4px; cursor:pointer;">
+                        <input type="checkbox" name="perm_settings" checked /> <span>系統設定</span>
                         <small style="color:#888; margin-left:auto;">存取設定頁面</small>
                     </label>
                 </div>
