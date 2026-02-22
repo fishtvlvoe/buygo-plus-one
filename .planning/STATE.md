@@ -1,6 +1,6 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-21
+**最後更新:** 2026-02-22
 **專案版本:** v2.0 後台 UI 統一化
 
 ---
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v2.0 — 後台 UI 統一化（Phase 43 資料管理 Tab 進行中）
+**當前焦點:** v2.0 — 後台 UI 統一化（Phase 44 功能管理 Tab 進行中）
 
 **PROJECT.md 最後更新:** 2026-02-20
 
@@ -18,12 +18,12 @@
 ## 當前位置
 
 **Milestone:** v2.0 - 後台 UI 統一化
-**Phase:** 43 - 資料管理 Tab
-**Plan:** 01 complete, 02 complete
-**Status:** Milestone complete
+**Phase:** 44 - 功能管理 Tab
+**Plan:** 01 complete, 02 pending
+**Status:** In progress
 
 ```
-進度 [█░░░░░] 1/6 phases complete
+進度 [██░░░░] 2/6 phases complete
 ```
 
 **已完成的 Milestones:**
@@ -34,7 +34,7 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-21 — Phase 43 complete (DataManagementService + REST API)
+**Last activity:** 2026-02-22 — Phase 44 Plan 01 complete (FeatureManagementService + buygo_is_pro())
 
 ---
 
@@ -45,7 +45,7 @@
 | 41 | 基礎架構 | ARCH-01~04 | Not started |
 | 42 | 角色權限優化 | ROLE-01~07 | Not started |
 | 43 | 資料管理 Tab | DATA-01~05 | Complete (Plan 01+02) |
-| 44 | 功能管理 Tab | FEAT-01~04 | Not started |
+| 44 | 功能管理 Tab | FEAT-01~04 | Plan 01 complete |
 | 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
 | 46 | 清理 | CLEAN-01~03 | Not started |
 
@@ -77,6 +77,12 @@
 - 單一 /query 端點搭配 type 參數切換訂單/商品/客戶（更簡潔的 API 設計）
 - 所有刪除端點強制 confirmation_token = 'DELETE' 伺服器端驗證（DATA-05）
 
+**Phase 44 決策:**
+- functions.php 透過 require_once 在 buygo-plus-one.php 直接載入（非 autoloader，因為不是 class）
+- FeatureManagementService 7 個方法全為 static（與 SettingsService 模式一致）
+- Pro 功能開關預設全部啟用
+- is_pro() 永遠回傳 true，加 TODO 標記未來改接授權伺服器
+
 **v2.0 Out of Scope:**
 - 前端 Vue Portal 改版（只改 wp-admin）
 - 授權伺服器（buygo_is_pro() 先回傳 true）
@@ -87,4 +93,4 @@
 
 ---
 
-*State updated: 2026-02-21 — Phase 43 complete (Plan 01+02), current_phase = 43*
+*State updated: 2026-02-22 — Phase 44 Plan 01 complete (FeatureManagementService + buygo_is_pro()), current_phase = 44*
