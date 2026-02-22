@@ -20,7 +20,7 @@
 **Milestone:** v2.0 - 後台 UI 統一化
 **Phase:** 44 - 功能管理 Tab
 **Plan:** 02 complete (all plans done)
-**Status:** Phase 44 complete
+**Status:** Milestone complete
 
 ```
 進度 [███░░░] 3/6 phases complete
