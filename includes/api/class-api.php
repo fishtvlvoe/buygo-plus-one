@@ -20,6 +20,7 @@ class API {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-dashboard-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-child-orders-api.php';
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-data-management-api.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-feature-management-api.php';
 
         // 註冊商品 API
         $products_api = new Products_API();
@@ -52,6 +53,10 @@ class API {
         // 註冊資料管理 API（僅管理員）
         $data_management_api = new DataManagement_API();
         $data_management_api->register_routes();
+
+        // 註冊功能管理 API（僅管理員）
+        $feature_management_api = new FeatureManagement_API();
+        $feature_management_api->register_routes();
     }
     
     /**
