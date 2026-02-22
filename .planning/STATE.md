@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v2.0 — 後台 UI 統一化（Phase 44 功能管理 Tab 進行中）
+**當前焦點:** v2.0 — 後台 UI 統一化（Phase 44 完成，Phase 45 待開始）
 
 **PROJECT.md 最後更新:** 2026-02-20
 
@@ -19,11 +19,11 @@
 
 **Milestone:** v2.0 - 後台 UI 統一化
 **Phase:** 44 - 功能管理 Tab
-**Plan:** 01 complete, 02 pending
-**Status:** In progress
+**Plan:** 02 complete (all plans done)
+**Status:** Phase 44 complete
 
 ```
-進度 [██░░░░] 2/6 phases complete
+進度 [███░░░] 3/6 phases complete
 ```
 
 **已完成的 Milestones:**
@@ -34,7 +34,7 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-22 — Phase 44 Plan 01 complete (FeatureManagementService + buygo_is_pro())
+**Last activity:** 2026-02-22 — Phase 44 complete (Plan 02: FeatureManagement_API with 6 REST endpoints)
 
 ---
 
@@ -45,7 +45,7 @@
 | 41 | 基礎架構 | ARCH-01~04 | Not started |
 | 42 | 角色權限優化 | ROLE-01~07 | Not started |
 | 43 | 資料管理 Tab | DATA-01~05 | Complete (Plan 01+02) |
-| 44 | 功能管理 Tab | FEAT-01~04 | Plan 01 complete |
+| 44 | 功能管理 Tab | FEAT-01~04 | Complete (Plan 01+02) |
 | 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
 | 46 | 清理 | CLEAN-01~03 | Not started |
 
@@ -93,4 +93,4 @@
 
 ---
 
-*State updated: 2026-02-22 — Phase 44 Plan 01 complete (FeatureManagementService + buygo_is_pro()), current_phase = 44*
+*State updated: 2026-02-22 — Phase 44 complete (Plan 02: FeatureManagement_API REST endpoints), current_phase = 44, next = 45*
