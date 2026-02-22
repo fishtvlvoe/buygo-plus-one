@@ -207,11 +207,11 @@ Plans:
   3. REST API 支援各 Pro 功能獨立開關 toggle，開關狀態存入 wp_options（buygo_feature_toggles）
   4. buygo_is_pro() 函式可被其他程式呼叫，目前永遠回傳 true（授權伺服器未來實作）
 
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 44-01-PLAN.md — FeatureManagementService 服務層 + buygo_is_pro() 全域輔助函式
-- [ ] 44-02-PLAN.md — FeatureManagement_API REST 端點 + 插件載入整合
+- [x] 44-02-PLAN.md — FeatureManagement_API REST 端點 + 插件載入整合
 
 ---
 
@@ -271,7 +271,7 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 41. 基礎架構 | v2.0 | 3/3 | Complete | 2026-02-20 |
 | 42. 角色權限優化 | v2.0 | 5/5 | Complete | 2026-02-20 |
 | 43. 資料管理 Tab | v2.0 | 0/2 | Planning complete | — |
-| 44. 功能管理 Tab | v2.0 | 1/2 | In progress | — |
+| 44. 功能管理 Tab | v2.0 | 2/2 | Complete | 2026-02-22 |
 | 45. 開發者 Tab + 預留 API | v2.0 | — | UI 風格已套用 | — |
 | 46. 清理 | v2.0 | 1/2 | 棄用 Tab 已刪除，CSS 清理待做 | 2026-02-20 |
 
