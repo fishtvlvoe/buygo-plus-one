@@ -99,21 +99,21 @@
 
 ### 功能管理 (FEAT)
 
-- [ ] **FEAT-01**: Free/Pro 功能列表顯示
+- [x] **FEAT-01**: Free/Pro 功能列表顯示
   - Free 功能：角色權限、LINE 模板、結帳設定、單一商品管理、訂單檢視、基本出貨
   - Pro 功能：小幫手系統、合併訂單、批次操作、資料管理、自定義欄位、多圖輪播、匯出
   - 未授權時 Pro 功能顯示「升級 Pro」
 
-- [ ] **FEAT-02**: 功能啟用/關閉開關
+- [x] **FEAT-02**: 功能啟用/關閉開關
   - Pro 啟用後各功能可獨立開關
   - 開關狀態存在 wp_options
 
-- [ ] **FEAT-03**: 授權碼欄位
+- [x] **FEAT-03**: 授權碼欄位
   - 授權碼輸入框 + 驗證按鈕
   - 顯示狀態（未啟用 / Pro 已啟用 / 到期日）
   - wp_options: buygo_license_key, buygo_license_status, buygo_license_expires
 
-- [ ] **FEAT-04**: buygo_is_pro() 輔助函式
+- [x] **FEAT-04**: buygo_is_pro() 輔助函式
   - 檢查授權狀態和到期日
   - 這次先永遠回傳 true（授權伺服器未來做）
 
@@ -188,10 +188,10 @@
 | DATA-03 | Phase 43 | Complete |
 | DATA-04 | Phase 43 | Complete |
 | DATA-05 | Phase 43 | Complete |
-| FEAT-01 | Phase 44 | Pending |
-| FEAT-02 | Phase 44 | Pending |
-| FEAT-03 | Phase 44 | Pending |
-| FEAT-04 | Phase 44 | Pending |
+| FEAT-01 | Phase 44 | Complete |
+| FEAT-02 | Phase 44 | Complete |
+| FEAT-03 | Phase 44 | Complete |
+| FEAT-04 | Phase 44 | Complete |
 | DEV-01 | Phase 45 | Pending |
 | DEV-02 | Phase 45 | Pending |
 | DEV-03 | Phase 45 | Pending |
