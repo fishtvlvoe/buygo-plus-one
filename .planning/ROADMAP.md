@@ -1,7 +1,7 @@
 # Roadmap: BuyGo+1
 
 **Created:** 2026-02-04 (v1.5)
-**Updated:** 2026-02-21 (Phase 43 plans created)
+**Updated:** 2026-02-22 (Phase 44 plans created)
 
 ## Milestones
 
@@ -195,24 +195,23 @@ Plans:
 
 ### Phase 44: 功能管理 Tab
 
-**Goal:** 顯示 Free/Pro 功能列表、授權碼輸入驗證、Pro 後各功能可獨立開關
+**Goal:** 建立功能管理後端 API（僅 Backend），提供 Free/Pro 功能列表資料、功能開關狀態儲存、授權碼驗證，以及 buygo_is_pro() 全域輔助函式
 
 **Depends on:** Phase 41
 
 **Requirements:** FEAT-01, FEAT-02, FEAT-03, FEAT-04
 
 **Success Criteria** (what must be TRUE):
-  1. 功能管理 Tab 顯示完整 Free 和 Pro 功能列表，未授權時 Pro 功能顯示「升級 Pro」提示
-  2. 授權碼輸入框點擊驗證後顯示狀態（未啟用 / Pro 已啟用 / 到期日），狀態儲存到 wp_options
-  3. Pro 啟用後，各 Pro 功能有獨立開關 toggle，開關狀態存入 wp_options 並立即生效
+  1. REST API 回傳完整 Free 和 Pro 功能列表（含 id、名稱、描述、分類、啟用狀態）
+  2. REST API 支援授權碼輸入和狀態查詢，狀態儲存到 wp_options（buygo_license_key, buygo_license_status, buygo_license_expires）
+  3. REST API 支援各 Pro 功能獨立開關 toggle，開關狀態存入 wp_options（buygo_feature_toggles）
   4. buygo_is_pro() 函式可被其他程式呼叫，目前永遠回傳 true（授權伺服器未來實作）
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 44-01: Free/Pro 功能列表 UI（分組顯示 + 未授權鎖定狀態）
-- [ ] 44-02: 授權碼欄位（輸入框 + 驗證按鈕 + 狀態顯示 + wp_options 儲存）
-- [ ] 44-03: 功能開關（Pro 後 toggle + wp_options + buygo_is_pro() 輔助函式）
+- [ ] 44-01-PLAN.md — FeatureManagementService 服務層 + buygo_is_pro() 全域輔助函式
+- [ ] 44-02-PLAN.md — FeatureManagement_API REST 端點 + 插件載入整合
 
 ---
 
@@ -272,7 +271,7 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 41. 基礎架構 | v2.0 | 3/3 | Complete | 2026-02-20 |
 | 42. 角色權限優化 | v2.0 | 5/5 | Complete | 2026-02-20 |
 | 43. 資料管理 Tab | v2.0 | 0/2 | Planning complete | — |
-| 44. 功能管理 Tab | v2.0 | — | UI 框架完成，功能待討論 | — |
+| 44. 功能管理 Tab | v2.0 | 0/2 | Planning complete | — |
 | 45. 開發者 Tab + 預留 API | v2.0 | — | UI 風格已套用 | — |
 | 46. 清理 | v2.0 | 1/2 | 棄用 Tab 已刪除，CSS 清理待做 | 2026-02-20 |
 
@@ -281,3 +280,4 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 *Roadmap created: 2026-02-04*
 *v2.0 phases added: 2026-02-20*
 *Phase 43 plans created: 2026-02-21*
+*Phase 44 plans created: 2026-02-22*
