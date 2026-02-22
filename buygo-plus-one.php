@@ -52,6 +52,9 @@ define('BUYGO_PLUS_ONE_PLUGIN_FILE', __FILE__);
 // Load plugin class
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin.php';
 
+// Load global helper functions (not a class, cannot use autoloader)
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/functions.php';
+
 // Load updater
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-updater.php';
 
