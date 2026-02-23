@@ -1265,11 +1265,13 @@ function useOrders() {
             });
 
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
-            // 只要頁面變為可見就重新載入，確保資料永遠是最新的
+            // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
+                    if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('orders')) {
+                        return; // 快取新鮮，不需要重新載入
+                    }
                     loadOrders();
-                    // 清除可能的分配更新標記
                     localStorage.removeItem('buygo_allocation_updated');
                 }
             });
