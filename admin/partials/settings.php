@@ -1121,7 +1121,8 @@ const SettingsPageComponent = {
         // 拖拉排序狀態
         const sortedTemplates = ref({
             buyer: [],
-            seller: []
+            seller: [],
+            helper: []
         });
         const sortedSystemTemplates = ref([]);
         
@@ -1334,6 +1335,13 @@ const SettingsPageComponent = {
                             sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
                         }
                         
+                        // 排序幫手模板
+                        if (orderData.helper) {
+                            sortedTemplates.value.helper = sortTemplatesByOrder(templateDefinitions.helper || [], orderData.helper);
+                        } else {
+                            sortedTemplates.value.helper = [...(templateDefinitions.helper || [])];
+                        }
+
                         // 排序系統模板
                         if (orderData.system) {
                             sortedSystemTemplates.value = sortTemplatesByOrder(getSystemNotificationTemplates(), orderData.system);
@@ -1344,12 +1352,14 @@ const SettingsPageComponent = {
                         // 如果沒有順序資料，使用預設順序
                         sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
                         sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                        sortedTemplates.value.helper = [...(templateDefinitions.helper || [])];
                         sortedSystemTemplates.value = getSystemNotificationTemplates();
                     }
                 } else {
                     // 如果 API 失敗，使用預設順序
                     sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
                     sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                    sortedTemplates.value.helper = [...(templateDefinitions.helper || [])];
                     sortedSystemTemplates.value = getSystemNotificationTemplates();
                 }
             } catch (err) {
@@ -1357,6 +1367,7 @@ const SettingsPageComponent = {
                 // 使用預設順序
                 sortedTemplates.value.buyer = [...(templateDefinitions.buyer || [])];
                 sortedTemplates.value.seller = [...(templateDefinitions.seller || [])];
+                sortedTemplates.value.helper = [...(templateDefinitions.helper || [])];
                 sortedSystemTemplates.value = getSystemNotificationTemplates();
             }
         };
