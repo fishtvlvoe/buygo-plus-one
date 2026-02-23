@@ -426,5 +426,6 @@ HTML;
 <script>
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
+<script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentProducts.js'; ?></script>
 <script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ShipmentProductsPage.js'; ?></script>
 
