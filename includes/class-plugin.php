@@ -316,6 +316,22 @@ class Plugin {
 
             new Auto_Updater(BUYGO_PLUS_ONE_VERSION, $api_url);
         }
+
+        // 非管理員隱藏 WordPress 管理工具列（前台上方黑條）
+        add_filter('show_admin_bar', function ($show) {
+            if (is_user_logged_in() && !current_user_can('manage_options')) {
+                return false;
+            }
+            return $show;
+        });
+
+        // 登出後回到原頁面（不跳到 wp-login.php）
+        add_action('wp_logout', function () {
+            $referer = wp_get_referer();
+            $redirect = $referer ? $referer : home_url('/');
+            wp_safe_redirect($redirect);
+            exit;
+        });
     }
 
     /**
