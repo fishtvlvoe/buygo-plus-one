@@ -113,6 +113,46 @@
             ];
         }
 
+        // 搜尋 + 角色篩選 + 分頁
+        $bgo_search = sanitize_text_field($_GET['bgo_search'] ?? '');
+        $bgo_role = sanitize_key($_GET['bgo_role'] ?? '');
+        $bgo_page = max(1, intval($_GET['bgo_page'] ?? 1));
+        $per_page = 20;
+
+        $filtered_users = $all_users;
+
+        if ($bgo_search !== '') {
+            $filtered_users = array_filter($filtered_users, function($u) use ($bgo_search) {
+                return stripos($u['name'], $bgo_search) !== false
+                    || stripos($u['email'], $bgo_search) !== false;
+            });
+        }
+
+        if ($bgo_role !== '') {
+            $role_key_map = [
+                'seller' => 'has_buygo_admin_role',
+                'helper' => 'has_buygo_helper_role',
+                'lister' => 'has_buygo_lister_role',
+            ];
+            if (isset($role_key_map[$bgo_role])) {
+                $key = $role_key_map[$bgo_role];
+                $filtered_users = array_filter($filtered_users, fn($u) => $u[$key]);
+            }
+        }
+
+        $filtered_users = array_values($filtered_users);
+        $total_count = count($filtered_users);
+        $total_pages = max(1, (int) ceil($total_count / $per_page));
+        $bgo_page = min($bgo_page, $total_pages);
+        $offset = ($bgo_page - 1) * $per_page;
+        $paged_users = array_slice($filtered_users, $offset, $per_page);
+
+        // 角色計數（用未篩選的 $all_users 計算）
+        $count_all = count($all_users);
+        $count_seller = count(array_filter($all_users, fn($u) => $u['has_buygo_admin_role']));
+        $count_helper = count(array_filter($all_users, fn($u) => $u['has_buygo_helper_role']));
+        $count_lister = count(array_filter($all_users, fn($u) => $u['has_buygo_lister_role']));
+
         ?>
         <style>
         /* 表格 */
@@ -175,6 +215,24 @@
             <button type="button" class="button" id="add-role-btn">+ 新增賣家</button>
         </div>
 
+        <!-- 搜尋 + 角色篩選 -->
+        <form method="GET" action="" style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+            <input type="hidden" name="page" value="buygo-plus-one" />
+            <input type="hidden" name="tab" value="roles" />
+            <input type="text" name="bgo_search" value="<?php echo esc_attr($bgo_search); ?>" placeholder="搜尋姓名或 Email..." style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; font-size:13px; width:200px;" />
+            <select name="bgo_role" style="padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:13px;">
+                <option value="">全部角色 (<?php echo $count_all; ?>)</option>
+                <option value="seller" <?php selected($bgo_role, 'seller'); ?>>賣家 (<?php echo $count_seller; ?>)</option>
+                <option value="helper" <?php selected($bgo_role, 'helper'); ?>>小幫手 (<?php echo $count_helper; ?>)</option>
+                <option value="lister" <?php selected($bgo_role, 'lister'); ?>>上架幫手 (<?php echo $count_lister; ?>)</option>
+            </select>
+            <button type="submit" class="button">篩選</button>
+            <?php if ($bgo_search !== '' || $bgo_role !== ''): ?>
+                <a href="<?php echo admin_url('admin.php?page=buygo-plus-one&tab=roles'); ?>" class="button">清除</a>
+            <?php endif; ?>
+            <span style="margin-left:auto; color:#666; font-size:12px;">共 <?php echo $total_count; ?> 位<?php if ($total_pages > 1) echo "，第 {$bgo_page}/{$total_pages} 頁"; ?></span>
+        </form>
+
         <?php if (empty($all_users)): ?>
             <p class="no-logs">尚無賣家或小幫手</p>
         <?php else: ?>
@@ -190,7 +248,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($all_users as $user): ?>
+                    <?php foreach ($paged_users as $user): ?>
                         <tr>
                             <td>
                                 <div class="bgo-user-cell">
@@ -261,6 +319,35 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
+
+            <?php if ($total_pages > 1): ?>
+                <div style="margin-top:12px; display:flex; gap:4px; align-items:center;">
+                    <?php
+                    $base_params = ['page' => 'buygo-plus-one', 'tab' => 'roles'];
+                    if ($bgo_search !== '') $base_params['bgo_search'] = $bgo_search;
+                    if ($bgo_role !== '') $base_params['bgo_role'] = $bgo_role;
+
+                    if ($bgo_page > 1):
+                        $base_params['bgo_page'] = $bgo_page - 1;
+                        echo '<a href="' . esc_url(admin_url('admin.php?' . http_build_query($base_params))) . '" class="button" style="padding:4px 8px;">&laquo;</a>';
+                    endif;
+
+                    for ($p = 1; $p <= $total_pages; $p++):
+                        $base_params['bgo_page'] = $p;
+                        $url = esc_url(admin_url('admin.php?' . http_build_query($base_params)));
+                        $active_style = $p === $bgo_page ? 'font-weight:bold; background:#3b82f6; color:#fff; border-color:#3b82f6;' : '';
+                    ?>
+                        <a href="<?php echo $url; ?>" class="button" style="padding:4px 10px; <?php echo $active_style; ?>"><?php echo $p; ?></a>
+                    <?php endfor;
+
+                    if ($bgo_page < $total_pages):
+                        $base_params['bgo_page'] = $bgo_page + 1;
+                        echo '<a href="' . esc_url(admin_url('admin.php?' . http_build_query($base_params))) . '" class="button" style="padding:4px 8px;">&raquo;</a>';
+                    endif;
+                    ?>
+                </div>
+            <?php endif; ?>
+
         <?php endif; ?>
 
         <!-- 新增賣家 Modal -->

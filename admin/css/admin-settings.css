@@ -1,34 +1,9 @@
 /* BuyGo Settings Admin Styles */
 
-.status-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.status-badge.status-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.status-badge.status-failed {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
 .no-logs {
     text-align: center;
     padding: 40px 20px;
     color: #666;
-}
-
-.tab-content {
-    background: white;
-    padding: 20px;
-    border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
 }
 
 #line-test-result {

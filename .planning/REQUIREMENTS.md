@@ -33,24 +33,24 @@
 
 ### 角色權限 (ROLE)
 
-- [ ] **ROLE-01**: 表格只顯示 BGO 管理員和小幫手
+- [x] **ROLE-01**: 表格只顯示 BGO 管理員和小幫手
   - 純 WP Admin（無 BGO 角色）不在表格中
   - WP Admin + BGO Admin 顯示，可移除 BGO 角色
 
-- [ ] **ROLE-02**: WP Admin + BGO Admin 可移除 BGO 角色
+- [x] **ROLE-02**: WP Admin + BGO Admin 可移除 BGO 角色
   - 移除後從表格消失（只剩 WP Admin）
   - 不影響 WordPress 管理員身份
 
-- [ ] **ROLE-03**: 新增流程簡化為「新增賣家」按鈕
+- [x] **ROLE-03**: 新增流程簡化為「新增賣家」按鈕
   - 移除角色選擇 dropdown
   - 移除歸屬賣家搜尋欄位
   - 新增即自動獲得 buygo_admin 角色
 
-- [ ] **ROLE-04**: 搜尋 UX 改進
+- [x] **ROLE-04**: 搜尋 UX 改進
   - 點擊搜尋框立即顯示使用者列表（0 字元開始）
   - 後端 API 支援空 query 回傳前 20 筆
 
-- [ ] **ROLE-05**: 小幫手 5 大項細粒度權限
+- [x] **ROLE-05**: 小幫手 5 大項細粒度權限
   - 商品管理（products）：檢視、上架、編輯、刪除、分配
   - 訂單管理（orders）：檢視、狀態更新、拆分合併、轉備貨
   - 出貨管理（shipments）：檢視、建立、標記出貨、匯出
@@ -58,13 +58,13 @@
   - 設定管理（settings）：模板、關鍵字、小幫手管理
   - 預設：商品管理開，其餘關
 
-- [ ] **ROLE-06**: 權限設定 Modal
+- [x] **ROLE-06**: 權限設定 Modal
   - 表格中小幫手的「操作」欄位新增「權限設定」按鈕
   - Modal 顯示 5 個 checkbox + 說明
   - 儲存到 user_meta: buygo_helper_capabilities
   - 「重設為預設」按鈕
 
-- [ ] **ROLE-07**: API 層和 Portal 層權限檢查
+- [x] **ROLE-07**: API 層和 Portal 層權限檢查
   - buygo_helper_can($user_id, $capability) 函式
   - 賣家自動通過所有權限檢查
   - Portal 導航列只顯示有權限的頁面
@@ -119,41 +119,41 @@
 
 ### 開發者工具 (DEV)
 
-- [ ] **DEV-01**: 合併流程日誌
+- [x] **DEV-01**: 合併流程日誌
   - 原 workflow-tab.php 的統計卡片 + 事件篩選 + 日誌表格
   - 用 .bgo-card 區塊包裝
 
-- [ ] **DEV-02**: 合併資料清除
+- [x] **DEV-02**: 合併資料清除
   - 原 test-tools-tab.php 的統計 + 一鍵清除功能
   - 用 .bgo-card 區塊包裝
 
-- [ ] **DEV-03**: 合併 SQL 查詢
+- [x] **DEV-03**: 合併 SQL 查詢
   - 原 debug-center-tab.php 的 SELECT-only 查詢控制台
   - 用 .bgo-card 區塊包裝
 
 ### 預留 API (API)
 
-- [ ] **API-01**: 批量上架端點骨架
+- [x] **API-01**: 批量上架端點骨架
   - POST /products/batch-create — 回傳 501 Not Implemented
 
-- [ ] **API-02**: 多圖上傳端點骨架
+- [x] **API-02**: 多圖上傳端點骨架
   - POST /products/{id}/images — 回傳 501
   - GET /products/{id}/images — 回傳 501
 
-- [ ] **API-03**: 自定義欄位端點骨架
+- [x] **API-03**: 自定義欄位端點骨架
   - GET /products/{id}/custom-fields — 回傳 501
   - PUT /products/{id}/custom-fields — 回傳 501
 
 ### 清理 (CLEAN)
 
-- [ ] **CLEAN-01**: 刪除 notifications-tab.php
+- [x] **CLEAN-01**: 刪除 notifications-tab.php
   - 自 2025/12/14 後無新記錄，功能已移至 LineHub
 
-- [ ] **CLEAN-02**: 刪除被合併的舊 Tab 檔案
+- [x] **CLEAN-02**: 刪除被合併的舊 Tab 檔案
   - workflow-tab.php、test-tools-tab.php、debug-center-tab.php
   - 內容已合併至 developer-tab.php
 
-- [ ] **CLEAN-03**: 清理 admin-settings.css
+- [x] **CLEAN-03**: 清理 admin-settings.css
   - 移除 .tab-content 和 .status-badge（被 .bgo-* 取代）
   - 保留 modal、使用者搜尋等功能性樣式
 
@@ -176,13 +176,13 @@
 | ARCH-02 | Phase 41 | Complete |
 | ARCH-03 | Phase 41 | Complete |
 | ARCH-04 | Phase 41 | Complete |
-| ROLE-01 | Phase 42 | Pending |
-| ROLE-02 | Phase 42 | Pending |
-| ROLE-03 | Phase 42 | Pending |
-| ROLE-04 | Phase 42 | Pending |
-| ROLE-05 | Phase 42 | Pending |
-| ROLE-06 | Phase 42 | Pending |
-| ROLE-07 | Phase 42 | Pending |
+| ROLE-01 | Phase 42 | Complete |
+| ROLE-02 | Phase 42 | Complete |
+| ROLE-03 | Phase 42 | Complete |
+| ROLE-04 | Phase 42 | Complete |
+| ROLE-05 | Phase 42 | Complete |
+| ROLE-06 | Phase 42 | Complete |
+| ROLE-07 | Phase 42 | Complete |
 | DATA-01 | Phase 43 | Complete |
 | DATA-02 | Phase 43 | Complete |
 | DATA-03 | Phase 43 | Complete |
@@ -192,15 +192,15 @@
 | FEAT-02 | Phase 44 | Complete |
 | FEAT-03 | Phase 44 | Complete |
 | FEAT-04 | Phase 44 | Complete |
-| DEV-01 | Phase 45 | Pending |
-| DEV-02 | Phase 45 | Pending |
-| DEV-03 | Phase 45 | Pending |
-| API-01 | Phase 45 | Pending |
-| API-02 | Phase 45 | Pending |
-| API-03 | Phase 45 | Pending |
-| CLEAN-01 | Phase 46 | Pending |
-| CLEAN-02 | Phase 46 | Pending |
-| CLEAN-03 | Phase 46 | Pending |
+| DEV-01 | Phase 45 | Complete |
+| DEV-02 | Phase 45 | Complete |
+| DEV-03 | Phase 45 | Complete |
+| API-01 | Phase 45 | Complete |
+| API-02 | Phase 45 | Complete |
+| API-03 | Phase 45 | Complete |
+| CLEAN-01 | Phase 46 | Complete |
+| CLEAN-02 | Phase 46 | Complete |
+| CLEAN-03 | Phase 46 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 29 total
@@ -208,4 +208,4 @@
 
 ---
 
-*Last updated: 2026-02-20 — traceability table completed, all 29 requirements mapped to phases 41-46*
+*Last updated: 2026-02-23 — all 29 requirements complete, v2.0 milestone done*

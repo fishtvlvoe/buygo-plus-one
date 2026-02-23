@@ -52,6 +52,9 @@ class Database
 
         // 建立賣家賦予記錄表（Phase 39）
         self::create_seller_grants_table($wpdb, $charset_collate);
+
+        // 建立邀請 Token 表
+        self::create_invite_tokens_table($wpdb, $charset_collate);
     }
 
     /**
@@ -582,6 +585,39 @@ class Database
             KEY idx_user_id (user_id),
             KEY idx_status (status),
             KEY idx_created_at (created_at)
+        ) {$charset_collate};";
+
+        dbDelta($sql);
+    }
+
+    /**
+     * 建立邀請 Token 表
+     *
+     * 用於上架幫手邀請連結機制
+     */
+    private static function create_invite_tokens_table($wpdb, $charset_collate): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_invite_tokens';
+
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            token varchar(64) NOT NULL,
+            seller_id bigint(20) UNSIGNED NOT NULL,
+            role varchar(50) NOT NULL DEFAULT 'buygo_lister',
+            status varchar(20) NOT NULL DEFAULT 'pending',
+            used_by bigint(20) UNSIGNED,
+            expires_at datetime NOT NULL,
+            used_at datetime,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_token (token),
+            KEY idx_seller_id (seller_id),
+            KEY idx_status (status),
+            KEY idx_expires_at (expires_at)
         ) {$charset_collate};";
 
         dbDelta($sql);

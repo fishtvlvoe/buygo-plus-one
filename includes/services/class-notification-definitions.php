@@ -157,6 +157,40 @@ class NotificationDefinitions {
                 'line' => [
                     'message' => "📋 複製以下格式發送 (多樣)：\n\n商品名稱\n價格：\n數量：\n款式1：\n款式2："
                 ]
+            ],
+
+            // 上架幫手加入通知（發送給賣家）
+            'lister_joined' => [
+                'line' => [
+                    'message' => "📬 新上架幫手加入！\n\n{display_name} 已透過邀請連結加入您的上架團隊。\n現在他可以透過 LINE 幫您上架商品了。"
+                ]
+            ],
+
+            // 幫手通知（發送給幫手本人）
+            'helper_joined_welcome' => [
+                'line' => [
+                    'message' => "🎉 歡迎加入！\n\n你已成為 {seller_name} 的小幫手。\n現在你可以協助管理商品和訂單了。"
+                ]
+            ],
+            'helper_removed_notice' => [
+                'line' => [
+                    'message' => "📋 角色變更通知\n\n你已不再是 {seller_name} 的小幫手。\n如有疑問請聯繫賣家。"
+                ]
+            ],
+            'helper_role_changed' => [
+                'line' => [
+                    'message' => "📋 權限變更通知\n\n你在 {seller_name} 的角色已從「{old_role}」變更為「{new_role}」。"
+                ]
+            ],
+            'lister_joined_welcome' => [
+                'line' => [
+                    'message' => "🎉 歡迎加入！\n\n你已成為 {seller_name} 的上架幫手。\n現在你可以透過 LINE 傳送商品圖片來幫忙上架了。"
+                ]
+            ],
+            'lister_removed_notice' => [
+                'line' => [
+                    'message' => "📋 角色變更通知\n\n你已不再是 {seller_name} 的上架幫手。\n如有疑問請聯繫賣家。"
+                ]
             ]
         ];
     }
