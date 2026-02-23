@@ -1,7 +1,7 @@
 # Roadmap: BuyGo+1
 
 **Created:** 2026-02-04 (v1.5)
-**Updated:** 2026-02-22 (Phase 44 plans created)
+**Updated:** 2026-02-22 (Phase 45 plans created)
 
 ## Milestones
 
@@ -229,11 +229,12 @@ Plans:
   3. POST /buygo-plus-one/v1/products/batch-create 端點存在，回傳 HTTP 501 Not Implemented
   4. POST 和 GET /products/{id}/images 端點存在，回傳 HTTP 501；GET 和 PUT /products/{id}/custom-fields 端點存在，回傳 HTTP 501
 
-**Plans:** TBD
+**Status:** ✅ Complete (2026-02-22)
+**Plans:** 2/2
 
 Plans:
-- [ ] 45-01: 開發者 Tab 整合（三工具合併到 developer-tab.php + .bgo-card 包裝）
-- [ ] 45-02: 預留 API 骨架（batch-create + images + custom-fields，全回傳 501）
+- [x] 45-01-PLAN.md — 開發者 Tab 整合（三工具合併到 developer-tab.php + .bgo-card 包裝 + AJAX handlers）
+- [x] 45-02-PLAN.md — 預留 API 骨架（Reserved_API: batch-create + images + custom-fields，全回傳 501）
 
 ---
 
@@ -250,11 +251,12 @@ Plans:
   2. workflow-tab.php、test-tools-tab.php、debug-center-tab.php 三個檔案不存在，其功能已由 developer-tab.php 承接
   3. admin-settings.css 中 .tab-content 和 .status-badge 選擇器不存在，但 modal 和使用者搜尋等功能性樣式保留正常
 
-**Plans:** TBD
+**Status:** ✅ Complete (2026-02-23)
+**Plans:** 2/2
 
 Plans:
-- [ ] 46-01: 刪除廢棄 Tab 檔案（notifications + workflow + test-tools + debug-center）
-- [ ] 46-02: 清理 admin-settings.css（移除被 .bgo-* 取代的舊選擇器）
+- [x] 46-01: 刪除廢棄 Tab 檔案 — notifications-tab.php 已在先前刪除，workflow-tab.php 已刪除（test-tools/debug-center 先前已刪）
+- [x] 46-02: 清理 admin-settings.css — 移除 .status-badge 和 .tab-content 選擇器，保留 modal/搜尋/角色表格樣式
 
 ---
 
@@ -272,8 +274,8 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 | 42. 角色權限優化 | v2.0 | 5/5 | Complete | 2026-02-20 |
 | 43. 資料管理 Tab | v2.0 | 0/2 | Planning complete | — |
 | 44. 功能管理 Tab | v2.0 | 2/2 | Complete | 2026-02-22 |
-| 45. 開發者 Tab + 預留 API | v2.0 | — | UI 風格已套用 | — |
-| 46. 清理 | v2.0 | 1/2 | 棄用 Tab 已刪除，CSS 清理待做 | 2026-02-20 |
+| 45. 開發者 Tab + 預留 API | v2.0 | 2/2 | Complete | 2026-02-22 |
+| 46. 清理 | v2.0 | 2/2 | Complete | 2026-02-23 |
 
 ---
 
@@ -281,3 +283,6 @@ Phases execute in numeric order: 41 → 42 → 43 → 44 → 45 → 46
 *v2.0 phases added: 2026-02-20*
 *Phase 43 plans created: 2026-02-21*
 *Phase 44 plans created: 2026-02-22*
+*Phase 45 plans created: 2026-02-22*
+*Phase 45 executed: 2026-02-22*
+*Phase 46 executed: 2026-02-23 — v2.0 milestone complete*

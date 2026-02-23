@@ -1,6 +1,6 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-22
+**最後更新:** 2026-02-23
 **專案版本:** v2.0 後台 UI 統一化
 
 ---
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v2.0 — 後台 UI 統一化（Phase 44 完成，Phase 45 待開始）
+**當前焦點:** v2.0 — 後台 UI 統一化（全部 6 Phase 完成，待 milestone archive）
 
 **PROJECT.md 最後更新:** 2026-02-20
 
@@ -18,12 +18,12 @@
 ## 當前位置
 
 **Milestone:** v2.0 - 後台 UI 統一化
-**Phase:** 44 - 功能管理 Tab
+**Phase:** 46 - 清理
 **Plan:** 02 complete (all plans done)
-**Status:** Milestone complete
+**Status:** Milestone complete — all 6 phases done
 
 ```
-進度 [███░░░] 3/6 phases complete
+進度 [██████] 6/6 phases complete ✓
 ```
 
 **已完成的 Milestones:**
@@ -34,7 +34,7 @@
 - **v1.4** — 會員前台子訂單顯示功能 (Phases 35-37) — Shipped 2026-02-02
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 
-**Last activity:** 2026-02-22 — Phase 44 complete (Plan 02: FeatureManagement_API with 6 REST endpoints)
+**Last activity:** 2026-02-23 — Phase 46 complete (清理: 刪除 workflow-tab.php, 清理 admin-settings.css). v2.0 milestone 全部完成
 
 ---
 
@@ -42,12 +42,12 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 41 | 基礎架構 | ARCH-01~04 | Not started |
-| 42 | 角色權限優化 | ROLE-01~07 | Not started |
+| 41 | 基礎架構 | ARCH-01~04 | Complete |
+| 42 | 角色權限優化 | ROLE-01~07 | Complete |
 | 43 | 資料管理 Tab | DATA-01~05 | Complete (Plan 01+02) |
 | 44 | 功能管理 Tab | FEAT-01~04 | Complete (Plan 01+02) |
-| 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Not started |
-| 46 | 清理 | CLEAN-01~03 | Not started |
+| 45 | 開發者 Tab + 預留 API | DEV-01~03, API-01~03 | Complete (Plan 01+02) |
+| 46 | 清理 | CLEAN-01~03 | Complete |
 
 ---
 
@@ -83,6 +83,13 @@
 - Pro 功能開關預設全部啟用
 - is_pro() 永遠回傳 true，加 TODO 標記未來改接授權伺服器
 
+**Phase 45 決策:**
+- developer-tab.php 合併三工具為 .bgo-card 區塊，AJAX handlers 內嵌在同一檔案
+- SQL Console 伺服器端驗證 SELECT-only（白名單 + 黑名單雙重檢查）
+- Data Cleanup 使用 prompt() 要求輸入 "DELETE" 確認
+- Reserved_API 使用 not_implemented() 共用方法產生 501 回應
+- 所有預留端點使用 API::check_permission（標準 BuyGo 權限，非管理員限定）
+
 **v2.0 Out of Scope:**
 - 前端 Vue Portal 改版（只改 wp-admin）
 - 授權伺服器（buygo_is_pro() 先回傳 true）
@@ -93,4 +100,4 @@
 
 ---
 
-*State updated: 2026-02-22 — Phase 44 complete (Plan 02: FeatureManagement_API REST endpoints), current_phase = 44, next = 45*
+*State updated: 2026-02-23 — Phase 46 complete (清理完成), v2.0 milestone all 6 phases done, ready for /gsd:complete-milestone*

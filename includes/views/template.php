@@ -129,8 +129,7 @@ if (!is_user_logged_in()) {
 // 已登入，檢查是否有賣場後台權限
 $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_admin')
-    || current_user_can('buygo_helper')
-    || current_user_can('buygo_lister');
+    || current_user_can('buygo_helper');
 
 if (!$has_portal_access) {
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/no-access.php';

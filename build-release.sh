@@ -54,6 +54,11 @@ rsync -av \
     --exclude='/simple-debug.php' \
     --exclude='.zipignore' \
     --exclude='.github' \
+    --exclude='test-scripts' \
+    --exclude='templates' \
+    --exclude='docs' \
+    --exclude='*.bak' \
+    --exclude='*.backup' \
     ./ "$BUILD_DIR/$PLUGIN_NAME/"
 
 echo "🗜️  壓縮成 ZIP 檔案..."

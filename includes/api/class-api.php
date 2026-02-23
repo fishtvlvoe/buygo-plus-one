@@ -57,6 +57,16 @@ class API {
         // 註冊功能管理 API（僅管理員）
         $feature_management_api = new FeatureManagement_API();
         $feature_management_api->register_routes();
+
+        // 註冊邀請連結 API
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-invite-api.php';
+        $invite_api = new Invite_API();
+        $invite_api->register_routes();
+
+        // 註冊預留 API（Pro 功能骨架，全回傳 501）
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-reserved-api.php';
+        $reserved_api = new Reserved_API();
+        $reserved_api->register_routes();
     }
     
     /**

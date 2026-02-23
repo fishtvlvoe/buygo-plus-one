@@ -45,14 +45,33 @@ class Routes {
         add_rewrite_rule('^buygo-portal/customers/?$', 'index.php?buygo_page=customers', 'top');
         add_rewrite_rule('^buygo-portal/settings/?$', 'index.php?buygo_page=settings', 'top');
         add_rewrite_rule('^buygo-portal/search/?$', 'index.php?buygo_page=search', 'top');
+
+        // 邀請連結路由（公開頁面，不走 Portal template）
+        add_rewrite_rule('^buygo-invite/accept/?$', 'index.php?buygo_invite=accept', 'top');
+        add_rewrite_rule('^buygo-invite/([a-f0-9]{48})/?$', 'index.php?buygo_invite=landing&invite_token=$matches[1]', 'top');
     }
     
     public function add_query_vars($vars) {
         $vars[] = 'buygo_page';
+        $vars[] = 'buygo_invite';
+        $vars[] = 'invite_token';
         return $vars;
     }
     
     public function handle_buygo_pages() {
+        // 處理邀請連結路由（公開頁面）
+        $invite_action = get_query_var('buygo_invite');
+        if ($invite_action) {
+            if ($invite_action === 'landing') {
+                require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/invite-landing.php';
+                exit;
+            }
+            if ($invite_action === 'accept') {
+                require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/invite-accept.php';
+                exit;
+            }
+        }
+
         $page = get_query_var('buygo_page');
         if ($page) {
             // 如果是首頁，重定向到 dashboard
