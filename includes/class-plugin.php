@@ -219,7 +219,64 @@ class Plugin {
                 'message' => $template_data['line']['message'],
             ]);
 
-            error_log("$log_prefix: DONE — line_hub/send/text action fired");
+            error_log("$log_prefix: DONE — line_hub/send/text action fired for seller");
+
+            // 通知上架幫手本人（歡迎訊息）
+            $seller_user = get_userdata($data['seller_id']);
+            $seller_name = $seller_user ? $seller_user->display_name : '賣家';
+
+            $welcome_template = \BuyGoPlus\Services\NotificationTemplates::get('lister_joined_welcome', [
+                'seller_name' => $seller_name,
+            ]);
+
+            if (!empty($welcome_template['line']['message']) && !empty($data['user_id'])) {
+                do_action('line_hub/send/text', [
+                    'user_id' => $data['user_id'],
+                    'message' => $welcome_template['line']['message'],
+                ]);
+                error_log("$log_prefix: WELCOME sent to lister user_id={$data['user_id']}");
+            }
+        });
+
+        // 監聽小幫手加入事件 → 發 LINE 通知給賣家和小幫手本人
+        add_action('buygo_helper_joined', function ($data) {
+            $log_prefix = '[BuyGo] helper_joined notification';
+
+            if (empty($data['seller_id']) || empty($data['user_id'])) {
+                error_log("$log_prefix: SKIP — missing seller_id or user_id: " . json_encode($data, JSON_UNESCAPED_UNICODE));
+                return;
+            }
+
+            error_log("$log_prefix: START — seller_id={$data['seller_id']}, user_id={$data['user_id']}, display_name=" . ($data['display_name'] ?? ''));
+
+            // 通知賣家：有新小幫手加入
+            $template_data = \BuyGoPlus\Services\NotificationTemplates::get('lister_joined', [
+                'display_name' => $data['display_name'] ?? '新用戶',
+            ]);
+            if (!empty($template_data['line']['message'])) {
+                $message = str_replace('上架幫手', '小幫手', $template_data['line']['message']);
+                do_action('line_hub/send/text', [
+                    'user_id' => $data['seller_id'],
+                    'message' => $message,
+                ]);
+                error_log("$log_prefix: SENT to seller user_id={$data['seller_id']}");
+            }
+
+            // 通知小幫手本人：歡迎訊息
+            $seller_user = get_userdata($data['seller_id']);
+            $seller_name = $seller_user ? $seller_user->display_name : '賣家';
+            $welcome = \BuyGoPlus\Services\NotificationTemplates::get('helper_joined_welcome', [
+                'seller_name' => $seller_name,
+            ]);
+            if (!empty($welcome['line']['message'])) {
+                do_action('line_hub/send/text', [
+                    'user_id' => $data['user_id'],
+                    'message' => $welcome['line']['message'],
+                ]);
+                error_log("$log_prefix: WELCOME sent to helper user_id={$data['user_id']}");
+            }
+
+            error_log("$log_prefix: DONE");
         });
 
         // 初始化訂單通知（Phase 31）
