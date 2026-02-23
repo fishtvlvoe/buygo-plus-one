@@ -144,6 +144,13 @@ class SettingsPage
             'developer' => '開發者',
         ];
 
+        /**
+         * Filter: 允許外部外掛註冊自訂 Tab
+         *
+         * @param array $tabs Tab 鍵值陣列 ['slug' => '顯示名稱']
+         */
+        $tabs = apply_filters('buygo_settings_tabs', $tabs);
+
         // 驗證 Tab 有效性
         if (!isset($tabs[$current_tab])) {
             $current_tab = 'roles';
@@ -168,25 +175,37 @@ class SettingsPage
 
             <div class="bgo-tab-content">
                 <?php
-                switch ($current_tab) {
-                    case 'roles':
-                        $this->render_roles_tab();
-                        break;
-                    case 'templates':
-                        $this->render_templates_tab();
-                        break;
-                    case 'checkout':
-                        $this->render_checkout_tab();
-                        break;
-                    case 'data':
-                        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/data-tab.php';
-                        break;
-                    case 'features':
-                        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/features-tab.php';
-                        break;
-                    case 'developer':
-                        $this->render_workflow_tab();
-                        break;
+                // 內建 Tab 路由
+                $builtin_tabs = ['roles', 'templates', 'checkout', 'data', 'features', 'developer'];
+
+                if (in_array($current_tab, $builtin_tabs, true)) {
+                    switch ($current_tab) {
+                        case 'roles':
+                            $this->render_roles_tab();
+                            break;
+                        case 'templates':
+                            $this->render_templates_tab();
+                            break;
+                        case 'checkout':
+                            $this->render_checkout_tab();
+                            break;
+                        case 'data':
+                            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/data-tab.php';
+                            break;
+                        case 'features':
+                            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/features-tab.php';
+                            break;
+                        case 'developer':
+                            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/developer-tab.php';
+                            break;
+                    }
+                } else {
+                    /**
+                     * Action: 渲染外部外掛註冊的自訂 Tab 內容
+                     *
+                     * @param string $current_tab 當前 Tab slug
+                     */
+                    do_action('buygo_settings_tab_content', $current_tab);
                 }
                 ?>
             </div>
@@ -213,10 +232,6 @@ class SettingsPage
         require BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/checkout-tab.php';
     }
 
-    private function render_workflow_tab(): void
-    {
-        require BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/admin/tabs/workflow-tab.php';
-    }
 
     // ──────────────────────────────────────────────
     // 表單處理（委派到 ajax/form-handlers.php）
