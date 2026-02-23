@@ -543,9 +543,13 @@ function useShipmentProducts() {
             }
         });
 
-        // 監聯頁面可見性變化
+        // 監聽頁面可見性變化
+        // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
+                if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('shipment-products')) {
+                    return;
+                }
                 loadShipments();
             }
         });

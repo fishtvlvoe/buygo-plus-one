@@ -393,6 +393,11 @@ if (isset($page_permission_map[$current_page])) {
     app.component('page-header-component', PageHeaderComponent);
 
     app.mount('#buygo-app');
+
+    // 預載其他頁面資料（背景靜默，不阻塞當前頁面）
+    if (window.BuyGoCache && window.BuyGoCache.preload) {
+        window.BuyGoCache.preload(window.buygoWpNonce);
+    }
     </script>
 </body>
 </html>
