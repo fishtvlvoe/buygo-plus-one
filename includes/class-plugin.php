@@ -20,7 +20,7 @@ class Plugin {
      *
      * @var string
      */
-    const DB_VERSION = '1.3.1';
+    const DB_VERSION = '1.4.0';
 
     /**
      * 單例實例
@@ -191,6 +191,36 @@ class Plugin {
         // 初始化商品上架通知（Phase 30）
         // 當賣家透過 LINE 上架商品時，通知賣家和小幫手
         new \BuyGoPlus\Services\ProductNotificationHandler();
+
+        // 監聯上架幫手加入事件 → 發 LINE 通知給賣家
+        add_action('buygo_lister_joined', function ($data) {
+            $log_prefix = '[BuyGo] lister_joined notification';
+
+            if (empty($data['seller_id']) || empty($data['display_name'])) {
+                error_log("$log_prefix: SKIP — missing seller_id or display_name: " . json_encode($data, JSON_UNESCAPED_UNICODE));
+                return;
+            }
+
+            error_log("$log_prefix: START — seller_id={$data['seller_id']}, display_name={$data['display_name']}");
+
+            $template_data = \BuyGoPlus\Services\NotificationTemplates::get('lister_joined', [
+                'display_name' => $data['display_name'],
+            ]);
+
+            if (!$template_data || empty($template_data['line']['message'])) {
+                error_log("$log_prefix: SKIP — template empty: " . json_encode($template_data, JSON_UNESCAPED_UNICODE));
+                return;
+            }
+
+            error_log("$log_prefix: SENDING — message=" . mb_substr($template_data['line']['message'], 0, 50));
+
+            do_action('line_hub/send/text', [
+                'user_id' => $data['seller_id'],
+                'message' => $template_data['line']['message'],
+            ]);
+
+            error_log("$log_prefix: DONE — line_hub/send/text action fired");
+        });
 
         // 初始化訂單通知（Phase 31）
         // 新訂單：通知賣家 + 小幫手 + 買家
