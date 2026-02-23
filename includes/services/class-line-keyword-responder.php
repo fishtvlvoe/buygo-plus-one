@@ -154,6 +154,9 @@ class LineKeywordResponder {
 			if ( in_array( 'buygo_helper', $roles, true ) ) {
 				$role_labels[] = '小幫手';
 			}
+			if ( in_array( 'buygo_lister', $roles, true ) ) {
+				$role_labels[] = '上架幫手';
+			}
 			if ( in_array( 'seller', $roles, true ) || in_array( 'fct_seller', $roles, true ) ) {
 				$role_labels[] = '賣家';
 			}
