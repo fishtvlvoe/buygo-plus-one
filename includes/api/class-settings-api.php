@@ -131,6 +131,20 @@ class Settings_API {
             'permission_callback' => [$this, 'check_permission_for_admin'],
         ]);
 
+        // POST /settings/notifications/test-send - 測試發送通知
+        register_rest_route($this->namespace, '/settings/notifications/test-send', [
+            'methods' => 'POST',
+            'callback' => [$this, 'test_send_notification'],
+            'permission_callback' => [$this, 'check_permission'],
+            'args' => [
+                'template_key' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+            ],
+        ]);
+
         // DELETE /settings/templates/{template_key} - 重設模板為預設值
         register_rest_route($this->namespace, '/settings/templates/(?P<key>[a-z_]+)', [
             'methods' => 'DELETE',
@@ -265,6 +279,118 @@ class Settings_API {
     }
 
     /**
+     * 測試發送通知
+     * 使用測試變數填充模板，發送到當前用戶的 LINE
+     */
+    public function test_send_notification($request) {
+        try {
+            $template_key = $request->get_param('template_key');
+            $user_id = get_current_user_id();
+
+            if (!$user_id) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '未登入'
+                ], 401);
+            }
+
+            $current_user = get_userdata($user_id);
+
+            // 測試用變數
+            $test_args = [
+                'display_name'           => $current_user->display_name,
+                'seller_name'            => $current_user->display_name,
+                'product_name'           => '測試商品',
+                'price'                  => '999',
+                'quantity'               => '10',
+                'currency_symbol'        => 'NT$',
+                'product_url'            => home_url('/'),
+                'old_role'               => '上架幫手',
+                'new_role'               => '小幫手',
+                'original_price_section' => '',
+                'category_section'       => '',
+                'arrival_date_section'   => '',
+                'preorder_date_section'  => '',
+                'order_id'               => '20260224001',
+                'order_total'            => 'NT$ 999',
+                'payment_status'         => '已付款',
+                'buyer_name'             => '測試買家',
+                'shipping_method'        => '宅配',
+                'estimated_delivery'     => '2026-03-01',
+                'product_list'           => "測試商品 x10",
+                'procurement_status'     => '備貨中',
+            ];
+
+            // 取得填充後的模板
+            $result = \BuyGoPlus\Services\NotificationTemplates::get($template_key, $test_args);
+
+            if (!$result) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '找不到模板：' . $template_key
+                ], 404);
+            }
+
+            $template_type = $result['type'] ?? 'text';
+
+            // 透過 LineHub hook 發送
+            if ($template_type === 'flex') {
+                $flex_template = $result['line']['flex_template'] ?? [];
+                $flex_json = \BuyGoPlus\Services\NotificationTemplates::build_flex_message($flex_template);
+
+                if ($flex_json) {
+                    do_action('line_hub/send/flex', [
+                        'user_id'  => $user_id,
+                        'alt_text' => '測試通知',
+                        'flex_json' => $flex_json,
+                    ]);
+                } else {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => 'Flex Message 組裝失敗'
+                    ], 500);
+                }
+
+                $preview = '[Flex Message] ' . ($flex_template['title'] ?? '(無標題)');
+            } else {
+                $message = $result['line']['text'] ?? $result['line']['message'] ?? '';
+
+                if (empty($message)) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => '模板內容為空，請先編輯模板'
+                    ], 400);
+                }
+
+                do_action('line_hub/send/text', [
+                    'user_id' => $user_id,
+                    'message' => $message,
+                ]);
+
+                // 預覽：只取前 100 字
+                $preview = mb_substr($message, 0, 100);
+                if (mb_strlen($message) > 100) {
+                    $preview .= '...';
+                }
+            }
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'message' => '測試通知已發送',
+                'data'    => [
+                    'preview' => $preview,
+                    'type'    => $template_type,
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '發送測試通知失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * 取得小幫手列表（含 LINE 綁定狀態）
      *
      * Phase 25: API-01
@@ -328,9 +454,31 @@ class Settings_API {
 
             SettingsService::add_helper($user_id, $role, $seller_id);
 
+            // 觸發通知（小幫手或上架幫手加入）
+            if (in_array($role, ['buygo_helper', 'buygo_lister'], true)) {
+                $display_name = $user->display_name ?: '新用戶';
+
+                if ($role === 'buygo_lister') {
+                    // 上架幫手：使用既有的 buygo_lister_joined action
+                    do_action('buygo_lister_joined', [
+                        'seller_id'    => $seller_id,
+                        'user_id'      => $user_id,
+                        'display_name' => $display_name,
+                    ]);
+                } else {
+                    // 小幫手：使用新的 buygo_helper_joined action
+                    do_action('buygo_helper_joined', [
+                        'seller_id'    => $seller_id,
+                        'user_id'      => $user_id,
+                        'display_name' => $display_name,
+                        'role'         => $role,
+                    ]);
+                }
+            }
+
             $role_names = ['buygo_admin' => '管理員', 'buygo_helper' => '小幫手', 'buygo_lister' => '上架幫手'];
             $role_name = $role_names[$role] ?? '小幫手';
-            
+
             return new \WP_REST_Response([
                 'success' => true,
                 'message' => "{$role_name}已新增",
@@ -363,8 +511,31 @@ class Settings_API {
                 ], 400);
             }
 
+            // 移除前取得角色資訊（移除後就查不到了）
+            $user_data = get_userdata($user_id);
+            $user_roles = $user_data ? (array) $user_data->roles : [];
+            $is_lister = in_array('buygo_lister', $user_roles, true);
+
             SettingsService::remove_helper($user_id, $seller_id);
-            
+
+            // 發送移除通知給被移除者
+            if ($seller_id && $user_data) {
+                $seller_user = get_userdata($seller_id);
+                $seller_name = $seller_user ? $seller_user->display_name : '賣家';
+                $template_key = $is_lister ? 'lister_removed_notice' : 'helper_removed_notice';
+
+                $removed_template = \BuyGoPlus\Services\NotificationTemplates::get($template_key, [
+                    'seller_name' => $seller_name,
+                ]);
+                if (!empty($removed_template['line']['message'])) {
+                    do_action('line_hub/send/text', [
+                        'user_id' => $user_id,
+                        'message' => $removed_template['line']['message'],
+                    ]);
+                    error_log("[BuyGo] remove_helper notification: SENT {$template_key} to user_id={$user_id}");
+                }
+            }
+
             return new \WP_REST_Response([
                 'success' => true,
                 'message' => '小幫手已移除'

@@ -527,8 +527,16 @@ $settings_component_template .= <<<'HTML'
                                                 rows="8"
                                                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-sm font-mono bg-white"
                                                 placeholder="輸入模板內容..."></textarea>
-                                            <!-- 重設為預設值按鈕 -->
-                                            <div class="mt-2 flex justify-end">
+                                            <!-- 操作按鈕列 -->
+                                            <div class="mt-2 flex justify-between items-center">
+                                                <button
+                                                    type="button"
+                                                    @click="testSendNotification(template.key)"
+                                                    :disabled="testSending === template.key"
+                                                    class="text-xs text-slate-500 hover:text-primary transition border border-slate-300 rounded px-2 py-1 hover:border-primary"
+                                                    title="發送測試通知到你的 LINE">
+                                                    {{ testSending === template.key ? '發送中...' : '測試發送' }}
+                                                </button>
                                                 <button
                                                     @click="resetTemplate(template.key)"
                                                     class="text-xs text-slate-600 hover:text-primary transition">
@@ -536,7 +544,7 @@ $settings_component_template .= <<<'HTML'
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- 卡片式訊息編輯器 -->
                                         <div v-else class="space-y-4">
                                             <div>
@@ -604,7 +612,15 @@ $settings_component_template .= <<<'HTML'
                                                 </div>
                                             </div>
                                             <!-- 重設為預設值按鈕（Flex Message） -->
-                                            <div class="mt-4 flex justify-end">
+                                            <div class="mt-4 flex justify-between items-center">
+                                                <button
+                                                    type="button"
+                                                    @click="testSendNotification(template.key)"
+                                                    :disabled="testSending === template.key"
+                                                    class="text-xs text-slate-500 hover:text-primary transition border border-slate-300 rounded px-2 py-1 hover:border-primary"
+                                                    title="發送測試通知到你的 LINE">
+                                                    {{ testSending === template.key ? '發送中...' : '測試發送' }}
+                                                </button>
                                                 <button
                                                     @click="resetTemplate(template.key)"
                                                     class="text-xs text-slate-600 hover:text-primary transition">
@@ -940,13 +956,24 @@ $settings_component_template .= <<<'HTML'
                                     </div>
                                 </div>
                             </div>
+                        <!-- 測試發送按鈕 -->
+                        <div class="mt-3 flex justify-start">
+                            <button
+                                type="button"
+                                @click="testSendNotification(template.key)"
+                                :disabled="testSending === template.key"
+                                class="text-xs text-slate-500 hover:text-primary transition border border-slate-300 rounded px-2 py-1 hover:border-primary"
+                                title="發送測試通知到你的 LINE">
+                                {{ testSending === template.key ? '發送中...' : '測試發送' }}
+                            </button>
+                        </div>
                         </div>
                             </div>
                         </template>
                     </draggable>
                 </template>
             </div>
-            
+
             <div class="mt-6 flex justify-end">
                 <button
                     @click="saveTemplates"
@@ -1104,6 +1131,7 @@ const SettingsPageComponent = {
         const variableDropdownOpen = ref(new Set()); // 新增：追蹤哪些模板的下拉選單已打開
         const templateEdits = ref({});
         const savingTemplates = ref(false);
+        const testSending = ref(null);
         const copyToast = ref({ show: false, message: '' });
         const keywords = ref([]);
         const loadingKeywords = ref(false);
@@ -1882,6 +1910,33 @@ const SettingsPageComponent = {
             }
         };
 
+        // 測試發送通知
+        const testSendNotification = async (templateKey) => {
+            testSending.value = templateKey;
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/settings/notifications/test-send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce,
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ template_key: templateKey }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('測試通知已發送到你的 LINE', 'success');
+                } else {
+                    showToast('發送失敗：' + (data.message || '未知錯誤'), 'error');
+                }
+            } catch (e) {
+                console.error('測試發送錯誤:', e);
+                showToast('發送失敗：' + e.message, 'error');
+            } finally {
+                testSending.value = null;
+            }
+        };
+
         // 載入小幫手列表
         const loadHelpers = async (preloadedResult = null) => {
             loadingHelpers.value = true;
@@ -2514,6 +2569,8 @@ const SettingsPageComponent = {
             loadTemplates,
             saveTemplates,
             resetTemplate,
+            testSending,
+            testSendNotification,
             helpers,
             loadingHelpers,
             isAdmin,
