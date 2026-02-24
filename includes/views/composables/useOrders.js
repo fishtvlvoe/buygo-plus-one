@@ -6,7 +6,7 @@
  * Dependencies: Vue 3, BuyGoRouter, useCurrency, BuyGoSmartSearchBox, BuyGoCache
  */
 function useOrders() {
-        const { ref, computed, onMounted, watch } = Vue;
+        const { ref, computed, onMounted, onUnmounted, watch } = Vue;
 
         // WordPress REST API nonce（用於 API 認證）
         const wpNonce = window.buygoWpNonce || '';
@@ -1202,6 +1202,36 @@ function useOrders() {
             return true;
         };
 
+        // ============================================
+        // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
+        // ============================================
+        const handleDocClickOrders = () => {
+            if (openStatusDropdown.value !== null) {
+                openStatusDropdown.value = null;
+            }
+        };
+        const handleStorageChange = (e) => {
+            if (e.key === 'buygo_allocation_updated' && e.newValue) {
+                loadOrders();
+                localStorage.removeItem('buygo_allocation_updated');
+            }
+        };
+        const handlePageshowOrders = (e) => {
+            if (e.persisted) {
+                loadOrders();
+            }
+        };
+        const handleVisibilityChangeOrders = () => {
+            if (document.visibilityState === 'visible') {
+                if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('orders')) {
+                    return;
+                }
+                loadOrders();
+                localStorage.removeItem('buygo_allocation_updated');
+            }
+        };
+        let removePopstateListenerOrders = null;
+
         // 初始化
         onMounted(() => {
             // 優先使用預注入資料，失敗則 fallback 到 API
@@ -1235,46 +1265,30 @@ function useOrders() {
             }
             // 檢查 URL 參數（使用 BuyGoRouter 核心模組）
             checkUrlParams();
-            // 監聽瀏覽器上一頁/下一頁
-            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+            // 監聽瀏覽器上一頁/下一頁（儲存 cleanup 函式）
+            removePopstateListenerOrders = window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
             // 點擊外部關閉狀態下拉選單
-            document.addEventListener('click', () => {
-                if (openStatusDropdown.value !== null) {
-                    openStatusDropdown.value = null;
-                }
-            });
+            document.addEventListener('click', handleDocClickOrders);
 
             // 監聽商品分配更新事件（同步執行出貨按鈕狀態）
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'buygo_allocation_updated' && e.newValue) {
-                    // 重新載入訂單列表以更新 allocated_quantity
-                    loadOrders();
-                    // 清除標記
-                    localStorage.removeItem('buygo_allocation_updated');
-                }
-            });
+            window.addEventListener('storage', handleStorageChange);
 
-            // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
-            // 當使用者從其他頁面切換回來時，重新載入資料
-            window.addEventListener('pageshow', (e) => {
-                // persisted 表示頁面是從 bfcache 恢復的
-                if (e.persisted) {
-                    loadOrders();
-                }
-            });
+            // 監聯頁面顯示事件（處理 bfcache 和頁面切換）
+            window.addEventListener('pageshow', handlePageshowOrders);
 
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
             // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('orders')) {
-                        return; // 快取新鮮，不需要重新載入
-                    }
-                    loadOrders();
-                    localStorage.removeItem('buygo_allocation_updated');
-                }
-            });
+            document.addEventListener('visibilitychange', handleVisibilityChangeOrders);
+        });
+
+        // SPA 清理：移除所有 event listener，防止記憶體洩漏
+        onUnmounted(() => {
+            if (removePopstateListenerOrders) removePopstateListenerOrders();
+            document.removeEventListener('click', handleDocClickOrders);
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('pageshow', handlePageshowOrders);
+            document.removeEventListener('visibilitychange', handleVisibilityChangeOrders);
         });
 
         // Smart Search Box 事件處理器

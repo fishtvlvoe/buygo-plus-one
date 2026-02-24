@@ -61,7 +61,7 @@ $products_component_template .= <<<'HTML'
 
             <!-- 列表檢視 -->
             <div v-show="currentView === 'list'" class="p-2 xs:p-4 md:p-6 w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
-                
+
                 <!-- Toolbar: Search + View Toggle -->
                 <div class="flex items-center gap-2 md:gap-3">
                     <div class="flex-1 flex items-center">
@@ -96,9 +96,18 @@ $products_component_template .= <<<'HTML'
                     </div>
                 </div>
 
-                <!-- Loading -->
-                <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
-                
+                <!-- Loading Skeleton -->
+                <div v-if="loading" class="space-y-4 p-4">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="buygo-content-skeleton h-10 w-full mb-3"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full" style="width:95%"></div>
+                    </div>
+                </div>
+
                 <!-- Content (Desktop & Mobile) -->
                 <div v-else>
                     <!-- Desktop Table View -->
@@ -673,74 +682,177 @@ $products_component_template .= <<<'HTML'
                         </div>
 
                         <!-- Edit Form -->
-                        <div v-show="currentView === 'edit'" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                             <div class="md:col-span-2 space-y-4 md:space-y-6">
-                                <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                                    <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">基本資訊 #{{ editingProduct.id }}</h3>
-                                    <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">商品名稱</label><input type="text" v-model="editingProduct.name" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"></div>
-                                    <!-- 多樣式商品區塊 -->
-                                    <div v-if="editingProduct.has_variations" class="bg-indigo-50/50 border border-indigo-200 rounded-lg p-3 md:p-4 space-y-3">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">多樣式</span>
-                                            <span class="text-xs text-slate-500">共 {{ editingProduct.variations?.length || 0 }} 個樣式</span>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-slate-700 mb-1">選擇樣式</label>
-                                            <select v-model="editingProduct.editing_variation_id" @change="onEditVariationChange()" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:border-primary focus:outline-none">
-                                                <option v-for="v in editingProduct.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-slate-700 mb-1">樣式名稱</label>
-                                            <input type="text" v-model="editingProduct.editing_variation_title" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="block text-xs font-medium text-slate-700 mb-1">樣式價格</label>
-                                                <input type="number" :value="editingProduct.editing_variation_price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                        <div v-show="currentView === 'edit'">
+                            <!-- 編輯頁 Tab 切換（Phase 49） -->
+                            <div class="flex border-b border-slate-200 mb-4">
+                                <button @click="editTab = 'basic'"
+                                    :class="editTab === 'basic' ? 'border-b-2 border-primary text-primary font-medium' : 'text-slate-500 hover:text-slate-700'"
+                                    class="px-4 py-2 text-sm transition-colors">
+                                    基本資訊
+                                </button>
+                                <button @click="editTab = 'cost'"
+                                    :class="editTab === 'cost' ? 'border-b-2 border-primary text-primary font-medium' : 'text-slate-500 hover:text-slate-700'"
+                                    class="px-4 py-2 text-sm transition-colors">
+                                    進階資訊
+                                </button>
+                            </div>
+
+                            <!-- Tab 1: 基本資訊 -->
+                            <div v-show="editTab === 'basic'" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                                 <div class="md:col-span-2 space-y-4 md:space-y-6">
+                                    <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                        <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">基本資訊 #{{ editingProduct.id }}</h3>
+                                        <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">商品名稱</label><input type="text" v-model="editingProduct.name" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"></div>
+                                        <!-- 多樣式商品區塊 -->
+                                        <div v-if="editingProduct.has_variations" class="bg-indigo-50/50 border border-indigo-200 rounded-lg p-3 md:p-4 space-y-3">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">多樣式</span>
+                                                <span class="text-xs text-slate-500">共 {{ editingProduct.variations?.length || 0 }} 個樣式</span>
                                             </div>
                                             <div>
-                                                <label class="block text-xs font-medium text-slate-700 mb-1">樣式採購數量</label>
-                                                <input type="number" v-model.number="editingProduct.editing_variation_purchased" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                                <label class="block text-xs font-medium text-slate-700 mb-1">選擇樣式</label>
+                                                <select v-model="editingProduct.editing_variation_id" @change="onEditVariationChange()" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:border-primary focus:outline-none">
+                                                    <option v-for="v in editingProduct.variations" :key="v.id" :value="v.id">{{ v.variation_title }}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-700 mb-1">樣式名稱</label>
+                                                <input type="text" v-model="editingProduct.editing_variation_title" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式價格</label>
+                                                    <input type="number" :value="editingProduct.editing_variation_price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式成本價</label>
+                                                    <input v-if="customFields" v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="成本價">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式採購數量</label>
+                                                    <input type="number" v-model.number="editingProduct.editing_variation_purchased" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 價格 + 成本價（同一行） -->
+                                        <div class="grid grid-cols-2 gap-3 md:gap-4">
+                                            <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" :class="editingProduct.has_variations ? 'bg-slate-50 text-slate-500' : ''" :readonly="editingProduct.has_variations"></div>
+                                            <div v-if="customFields && !editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">成本價</label><input v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm" placeholder="輸入成本價"></div>
+                                        </div>
+                                        <!-- 已採購 + 狀態（同一行） -->
+                                        <div class="grid grid-cols-2 gap-3 md:gap-4">
+                                            <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                            <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
+                                        </div>
+                                        <!-- 已下單 -->
+                                        <div>
+                                            <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" :value="editingProduct.ordered || 0" readonly class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                                <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
+                                                    客戶名單
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- 利潤與利潤率（最底部） -->
+                                        <div v-if="profit !== null" class="p-3 rounded-lg" :class="profit >= 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+                                            <div class="flex items-center gap-4">
+                                                <div>
+                                                    <span class="text-xs text-slate-600">利潤</span>
+                                                    <p class="text-sm font-semibold" :class="profit >= 0 ? 'text-green-700' : 'text-red-700'">
+                                                        {{ profit >= 0 ? '+' : '' }}{{ profit.toFixed(2) }}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-xs text-slate-600">利潤率</span>
+                                                    <p class="text-sm font-semibold" :class="profit >= 0 ? 'text-green-700' : 'text-red-700'">
+                                                        {{ profitMargin }}%
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3 md:gap-4">
-                                        <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" :class="editingProduct.has_variations ? 'bg-slate-50 text-slate-500' : ''" :readonly="editingProduct.has_variations"></div>
-                                        <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
+                                </div>
+
+                                <!-- Image Management Column -->
+                                 <div class="space-y-4">
+                                    <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">商品圖片</h3>
+                                        <div class="relative group aspect-square bg-slate-50 rounded-lg border-2 border-dashed border-slate-300 hover:border-primary hover:bg-slate-100 transition-colors cursor-pointer overflow-hidden flex flex-col items-center justify-center" @click="openImageModal(editingProduct)">
+                                            <img v-if="editingProduct.image" :src="editingProduct.image" class="absolute inset-0 w-full h-full object-cover">
+                                            <div v-else class="text-slate-400 flex flex-col items-center">
+                                                <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                <span class="text-xs font-medium">點擊上傳圖片</span>
+                                            </div>
+                                            <!-- Hover Overlay -->
+                                            <div v-if="editingProduct.image" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span class="text-white text-xs md:text-sm font-bold bg-white/20 backdrop-blur px-3 py-1.5 rounded-full border border-white/50">更換圖片</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-2 text-center">支援 JPG, PNG, GIF</p>
                                     </div>
-                                    <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: 進階資訊（原成本與來源，移除成本價和利潤） -->
+                            <div v-show="editTab === 'cost'" class="space-y-4">
+                                <div v-if="customFieldsLoading" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <div class="buygo-content-skeleton h-10 w-full mb-3 rounded"></div>
+                                    <div class="buygo-content-skeleton h-10 w-full mb-3 rounded"></div>
+                                    <div class="buygo-content-skeleton h-10 w-full rounded"></div>
+                                </div>
+                                <div v-else class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- 原價 -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">原價</label>
+                                            <input v-model="customFields.original_price" type="number" step="0.01" min="0"
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                                placeholder="輸入原價" />
+                                        </div>
+                                        <!-- 購買地 -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">購買地</label>
+                                            <input v-model="customFields.purchase_location" type="text"
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                                placeholder="輸入購買地" />
+                                        </div>
+                                        <!-- 供應商 -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">供應商</label>
+                                            <input v-model="customFields.supplier" type="text"
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                                placeholder="輸入供應商" />
+                                        </div>
+                                        <!-- 條碼 -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">條碼</label>
+                                            <input v-model="customFields.barcode" type="text"
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                                placeholder="輸入條碼" />
+                                        </div>
+                                    </div>
+                                    <!-- 製造內容（獨立一行，textarea） -->
                                     <div>
-                                        <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
-                                        <div class="flex items-center gap-2">
-                                            <input type="number" :value="editingProduct.ordered || 0" readonly class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
-                                            <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
-                                                查看
-                                            </button>
-                                        </div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">製造內容</label>
+                                        <textarea v-model="customFields.manufacturing_notes" rows="3"
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                                            placeholder="輸入製造相關備註"></textarea>
+                                    </div>
+
+                                    <!-- 儲存按鈕 -->
+                                    <div class="flex justify-end">
+                                        <button @click="saveCustomFields" :disabled="customFieldsSaving"
+                                            class="btn btn-primary btn-sm">
+                                            <svg v-if="customFieldsSaving" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            {{ customFieldsSaving ? '儲存中...' : '儲存' }}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Image Management Column -->
-                             <div class="space-y-4">
-                                <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
-                                    <h3 class="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-4">商品圖片</h3>
-                                    <div class="relative group aspect-square bg-slate-50 rounded-lg border-2 border-dashed border-slate-300 hover:border-primary hover:bg-slate-100 transition-colors cursor-pointer overflow-hidden flex flex-col items-center justify-center" @click="openImageModal(editingProduct)">
-                                        <img v-if="editingProduct.image" :src="editingProduct.image" class="absolute inset-0 w-full h-full object-cover">
-                                        <div v-else class="text-slate-400 flex flex-col items-center">
-                                            <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                            <span class="text-xs font-medium">點擊上傳圖片</span>
-                                        </div>
-                                        <!-- Hover Overlay -->
-                                        <div v-if="editingProduct.image" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span class="text-white text-xs md:text-sm font-bold bg-white/20 backdrop-blur px-3 py-1.5 rounded-full border border-white/50">更換圖片</span>
-                                        </div>
-                                    </div>
-                                    <p class="text-xs text-slate-500 mt-2 text-center">支援 JPG, PNG, GIF</p>
-                                </div>
-                            </div>
-
                         </div>
 
                         <!-- Allocation View -->
@@ -878,7 +990,7 @@ $products_component_template .= <<<'HTML'
             <!-- </transition> -->
         </div>
     </main>
-    
+
     <!-- Image Modal -->
     <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="!imageUploading && closeImageModal()">
         <div class="bg-white rounded-2xl p-6 shadow-xl max-w-lg w-full mx-4">
@@ -915,7 +1027,7 @@ $products_component_template .= <<<'HTML'
             <input ref="fileInput" type="file" @change="handleFileSelect" class="hidden" accept="image/*">
         </div>
     </div>
-    
+
     <!-- Toast -->
     <div v-if="toastMessage.show" class="fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg bg-slate-800 text-white animate-in fade-in slide-in-from-top-4">{{ toastMessage.message }}</div>
 
@@ -939,4 +1051,3 @@ window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
 <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useProducts.js'; ?></script>
 <script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ProductsPage.js'; ?></script>
-

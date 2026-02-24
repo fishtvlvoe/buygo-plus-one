@@ -25,27 +25,27 @@
 }
 
 /* ============================================ */
-/* 統計卡片網格（精簡版） */
+/* 統計卡片網格（精簡版，6 張卡片） */
 /* ============================================ */
 
 .stats-grid-compact {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: var(--spacing-3);
     margin-bottom: var(--spacing-4);
 }
 
-/* 平板：2欄 */
+/* 平板：3 欄 × 2 排 */
 @media (max-width: 1024px) {
     .stats-grid-compact {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
-/* 手機版：精簡版 2x2 grid，減小尺寸 */
+/* 手機版：3 欄 × 2 排，字體縮小 */
 @media (max-width: 768px) {
     .stats-grid-compact {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: var(--spacing-2);
         margin-bottom: var(--spacing-3);
     }
@@ -84,6 +84,16 @@
     opacity: 1;
 }
 
+/* 利潤卡片特殊裝飾：綠色漸層頂部 */
+.stat-card-compact.profit-card::before {
+    background: linear-gradient(to right, var(--color-success-600, #16a34a), var(--color-success-400, #4ade80));
+}
+
+/* 成本卡片特殊裝飾：amber 色漸層頂部 */
+.stat-card-compact.cost-card::before {
+    background: linear-gradient(to right, var(--color-warning, #f59e0b), var(--color-warning-300, #fcd34d));
+}
+
 /* 統計卡片內容 - 更緊湊 */
 .stat-card-compact .stat-card-label {
     font-size: var(--font-size-xs);
@@ -113,14 +123,25 @@
     background: var(--color-slate-100);
 }
 
-/* 手機版卡片更小 */
+/* 手機版卡片更小、字體縮小 */
 @media (max-width: 768px) {
     .stat-card-compact {
-        padding: var(--spacing-3);
+        padding: var(--spacing-2);
+    }
+
+    .stat-card-compact .stat-card-label {
+        font-size: 10px;
+        margin-bottom: 2px;
     }
 
     .stat-card-compact .stat-card-value {
-        font-size: var(--font-size-xl);
+        font-size: var(--font-size-base);
+        line-height: 1.2;
+    }
+
+    .stat-card-compact .stat-card-change {
+        font-size: 10px;
+        padding: 1px 4px;
     }
 }
 
@@ -133,6 +154,12 @@
 .stat-card-change.negative {
     color: var(--color-error-600);
     background: var(--color-error-50);
+}
+
+/* 中性變化（成本卡片等） */
+.stat-card-change.neutral {
+    color: var(--color-text-secondary);
+    background: var(--color-slate-100);
 }
 
 /* ============================================ */
@@ -234,7 +261,7 @@
 /* ============================================ */
 
 .products-section {
-    margin-top: auto; /* 置底 */
+    margin-bottom: var(--spacing-4);
 }
 
 .products-stats {
@@ -296,6 +323,98 @@
 
     .product-label {
         font-size: 10px;
+    }
+}
+
+/* ============================================ */
+/* 利潤 Top 5 商品列表 */
+/* ============================================ */
+
+.profit-top-section {
+    margin-bottom: var(--spacing-4);
+}
+
+.profit-top-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.profit-top-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-2) 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.profit-top-item:last-child {
+    border-bottom: none;
+}
+
+.profit-top-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    min-width: 0;
+    flex: 1;
+}
+
+.profit-top-rank {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.profit-top-name {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profit-top-right {
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: var(--spacing-2);
+}
+
+.profit-top-amount {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-success-600, #16a34a);
+    font-family: var(--font-fira-code, monospace);
+    font-feature-settings: 'tnum';
+}
+
+.profit-top-margin {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* 手機版：利潤列表變成獨立網格 */
+@media (max-width: 768px) {
+    .profit-top-section {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .profit-top-name {
+        font-size: 12px;
+    }
+
+    .profit-top-amount {
+        font-size: 12px;
+    }
+
+    .profit-top-margin {
+        font-size: 11px;
     }
 }
 

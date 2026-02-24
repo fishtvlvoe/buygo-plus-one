@@ -75,11 +75,14 @@ register_activation_hook(__FILE__, function () {
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-plugin-compatibility.php';
     \BuyGoPlus\PluginCompatibility::on_activation();
 
-    // 2. 建立資料表
+    // 2. 載入 autoloader（Database::create_tables 會呼叫子類別，需要 autoloader）
+    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/autoload.php';
+
+    // 3. 建立資料表
     require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/class-database.php';
     \BuyGoPlus\Database::create_tables();
 
-    // 3. 升級現有資料表結構
+    // 4. 升級現有資料表結構
     \BuyGoPlus\Database::upgrade_tables();
     
     // 建立 Webhook Logger 資料表

@@ -10,7 +10,7 @@ use BuyGoPlus\Monitoring\SlowQueryMonitor;
  * 封裝儀表板統計查詢邏輯，為 API 層提供乾淨的資料介面
  *
  * @package BuyGoPlus\Services
- * @version 1.0.0
+ * @version 1.1.0
  */
 class DashboardService
 {
@@ -145,6 +145,146 @@ class DashboardService
             ], 'error');
 
             throw new \Exception('無法計算儀表板統計：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 計算利潤統計（已完成訂單）
+     *
+     * JOIN fct_order_items + buygo_product_meta 計算每個商品的利潤。
+     * 注意：cost_price 以「元」儲存，subtotal 以「分」儲存，需要單位轉換。
+     * 只計算 status = 'completed' 且 mode = 'live' 的訂單。
+     * 注意：fct_order_items 用 object_id（FluentCart 商品 ID）對應 buygo_product_meta.product_id。
+     *
+     * @return array 利潤統計（total_profit, avg_profit_margin, top_products, by_currency）
+     */
+    public function calculateProfitStats(): array
+    {
+        $this->debugService->log('DashboardService', '開始計算利潤統計', []);
+
+        try {
+            $table_product_meta = $this->wpdb->prefix . 'buygo_product_meta';
+
+            // 查詢有成本價的商品利潤（按商品+幣別分組）
+            // cost_price 以「元」儲存，subtotal 以「分」儲存
+            // 利潤 = subtotal（分）- quantity * cost_price（元）* 100
+            // 商品名稱直接取 order_items.title（訂單建立時已記錄）
+            $query = "SELECT
+                    oi.object_id,
+                    MAX(oi.title) as product_name,
+                    o.currency,
+                    SUM(oi.quantity) as total_quantity,
+                    SUM(oi.subtotal) as total_revenue,
+                    MAX(pm.meta_value) as cost_price,
+                    SUM(oi.subtotal) - SUM(oi.quantity * CAST(pm.meta_value AS DECIMAL(10,2)) * 100) as profit
+                FROM {$this->table_order_items} oi
+                JOIN {$this->table_orders} o ON oi.order_id = o.id
+                JOIN {$table_product_meta} pm ON oi.object_id = pm.product_id AND pm.meta_key = 'cost_price'
+                WHERE o.status = 'completed'
+                  AND o.mode = 'live'
+                  AND pm.meta_value != '' AND pm.meta_value != '0'
+                GROUP BY oi.object_id, o.currency
+                ORDER BY profit DESC";
+
+            $results = $this->executeResultsWithMonitoring($query, 'calculateProfitStats');
+
+            // 按幣別彙總利潤
+            $by_currency = [];
+            // 按商品彙總利潤（用於 Top 5，跨幣別合計以「分」為單位）
+            $product_profits = [];
+
+            foreach ($results as $row) {
+                $currency = $row['currency'] ?? 'JPY';
+                $profit = (int)$row['profit'];
+                $revenue = (int)$row['total_revenue'];
+                $product_id = (int)$row['object_id'];
+                $product_name = $row['product_name'] ?? '未知商品';
+
+                // 按幣別彙總
+                if (!isset($by_currency[$currency])) {
+                    $by_currency[$currency] = [
+                        'total_profit' => 0,
+                        'total_revenue' => 0,
+                    ];
+                }
+                $by_currency[$currency]['total_profit'] += $profit;
+                $by_currency[$currency]['total_revenue'] += $revenue;
+
+                // 按商品彙總（同一商品不同幣別的利潤分開記錄）
+                $key = $product_id . '_' . $currency;
+                if (!isset($product_profits[$key])) {
+                    $product_profits[$key] = [
+                        'product_id' => $product_id,
+                        'product_name' => $product_name,
+                        'currency' => $currency,
+                        'profit' => 0,
+                        'revenue' => 0,
+                    ];
+                }
+                $product_profits[$key]['profit'] += $profit;
+                $product_profits[$key]['revenue'] += $revenue;
+            }
+
+            // 計算各幣別的利潤率
+            foreach ($by_currency as $currency => &$data) {
+                $data['profit_margin'] = $data['total_revenue'] > 0
+                    ? round(($data['total_profit'] / $data['total_revenue']) * 100, 1)
+                    : 0.0;
+            }
+            unset($data);
+
+            // 排序商品利潤（高到低），取 Top 5
+            usort($product_profits, function ($a, $b) {
+                return $b['profit'] - $a['profit'];
+            });
+
+            $top_products = array_slice(array_map(function ($item) {
+                $margin = $item['revenue'] > 0
+                    ? round(($item['profit'] / $item['revenue']) * 100, 1)
+                    : 0.0;
+                return [
+                    'product_id' => $item['product_id'],
+                    'product_name' => $item['product_name'],
+                    'currency' => $item['currency'],
+                    'profit' => $item['profit'],       // 分為單位
+                    'revenue' => $item['revenue'],      // 分為單位
+                    'margin' => $margin,                // 百分比
+                ];
+            }, $product_profits), 0, 5);
+
+            // 計算總利潤（所有幣別加總，分為單位）— 用於簡易顯示
+            $total_profit = 0;
+            $total_revenue_with_cost = 0;
+            foreach ($by_currency as $data) {
+                $total_profit += $data['total_profit'];
+                $total_revenue_with_cost += $data['total_revenue'];
+            }
+
+            $avg_profit_margin = $total_revenue_with_cost > 0
+                ? round(($total_profit / $total_revenue_with_cost) * 100, 1)
+                : 0.0;
+
+            $this->debugService->log('DashboardService', '利潤統計計算完成', [
+                'currencies' => array_keys($by_currency),
+                'total_profit' => $total_profit,
+                'avg_margin' => $avg_profit_margin,
+                'top_products_count' => count($top_products),
+            ]);
+
+            return [
+                'total_profit' => $total_profit,                       // 分為單位（跨幣別加總）
+                'total_revenue_with_cost' => $total_revenue_with_cost, // 分為單位
+                'avg_profit_margin' => $avg_profit_margin,             // 百分比
+                'top_products' => $top_products,                       // Top 5 利潤商品
+                'by_currency' => $by_currency,                         // 按幣別分組的利潤
+            ];
+
+        } catch (\Exception $e) {
+            $this->debugService->log('DashboardService', '利潤統計計算失敗', [
+                'error' => $e->getMessage()
+            ], 'error');
+
+            throw new \Exception('無法計算利潤統計：' . $e->getMessage());
         }
     }
 

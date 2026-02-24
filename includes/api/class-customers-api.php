@@ -2,6 +2,7 @@
 namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\SettingsService;
+use BuyGoPlus\Services\CustomerEditService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -58,6 +59,23 @@ class Customers_API {
             ]
         ]);
         
+        // PUT /customers/{id} - 更新客戶資料
+        register_rest_route($this->namespace, '/customers/(?P<id>\d+)', [
+            'methods' => 'PUT',
+            'callback' => [$this, 'update_customer'],
+            'permission_callback' => function () {
+                return API::check_permission_with_scope('customers');
+            },
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'validate_callback' => function ($param) {
+                        return is_numeric($param);
+                    }
+                ]
+            ]
+        ]);
+
         // PUT /customers/{id}/note - 更新客戶備註
         register_rest_route($this->namespace, '/customers/(?P<id>\d+)/note', [
             'methods' => 'PUT',
@@ -333,13 +351,40 @@ class Customers_API {
                 $customer['full_name'] = $customer['email'];
             }
 
-            // 取得 LINE 名稱和身分證字號（從 wp_usermeta）
+            // 取得 LINE 名稱、身分證字號、自訂編號（從 wp_usermeta）
             if (!empty($customer['user_id'])) {
                 $customer['line_display_name'] = get_user_meta($customer['user_id'], 'buygo_line_display_name', true) ?: '';
                 $customer['taiwan_id_number'] = get_user_meta($customer['user_id'], 'buygo_taiwan_id_number', true) ?: '';
+                $customer['custom_id'] = get_user_meta($customer['user_id'], 'buygo_custom_id', true) ?: '';
             } else {
                 $customer['line_display_name'] = '';
                 $customer['taiwan_id_number'] = '';
+                $customer['custom_id'] = '';
+            }
+
+            // 取得地址子欄位（供 inline 編輯使用）
+            $address_detail = $wpdb->get_row($wpdb->prepare(
+                "SELECT address_1, address_2, city, state, postcode, country
+                 FROM {$table_addresses}
+                 WHERE customer_id = %d AND is_primary = 1
+                 LIMIT 1",
+                $customer_id
+            ), ARRAY_A);
+
+            if ($address_detail) {
+                $customer['address_1'] = $address_detail['address_1'] ?: '';
+                $customer['address_2'] = $address_detail['address_2'] ?: '';
+                $customer['city']      = $address_detail['city'] ?: '';
+                $customer['state']     = $address_detail['state'] ?: '';
+                $customer['postcode']  = $address_detail['postcode'] ?: '';
+                $customer['country']   = $address_detail['country'] ?: '';
+            } else {
+                $customer['address_1'] = '';
+                $customer['address_2'] = '';
+                $customer['city']      = '';
+                $customer['state']     = '';
+                $customer['postcode']  = '';
+                $customer['country']   = '';
             }
 
             return new \WP_REST_Response([
@@ -356,6 +401,34 @@ class Customers_API {
         }
     }
     
+    /**
+     * 更新客戶資料（inline 編輯）
+     */
+    public function update_customer($request) {
+        $customer_id = (int) $request->get_param('id');
+        $body = $request->get_json_params();
+
+        if (empty($body)) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '無更新資料'
+            ], 400);
+        }
+
+        // 跨賣場檢查
+        if (!CustomerEditService::check_ownership($customer_id)) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '無權限編輯此客戶'
+            ], 403);
+        }
+
+        $result = CustomerEditService::update($customer_id, $body);
+        $status = $result['success'] ? 200 : 400;
+
+        return new \WP_REST_Response($result, $status);
+    }
+
     /**
      * 更新客戶備註
      */

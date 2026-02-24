@@ -92,17 +92,66 @@ window.BuyGoCache = {
     },
 
     /**
+     * 頁面→端點對應表
+     * SPA 導航時根據頁面名稱取得對應的 API 端點
+     * preload() 和 preloadPage() 共用此對應表
+     */
+    _pageEndpoints: {
+        'orders': [
+            { key: 'orders', url: '/wp-json/buygo-plus-one/v1/orders?page=1&per_page=30' }
+        ],
+        'products': [
+            { key: 'products', url: '/wp-json/buygo-plus-one/v1/products' }
+        ],
+        'dashboard': [
+            { key: 'dashboard-stats', url: '/wp-json/buygo-plus-one/v1/dashboard/stats' },
+            { key: 'dashboard-revenue', url: '/wp-json/buygo-plus-one/v1/dashboard/revenue?period=30' },
+            { key: 'dashboard-products', url: '/wp-json/buygo-plus-one/v1/dashboard/products' },
+            { key: 'dashboard-activities', url: '/wp-json/buygo-plus-one/v1/dashboard/activities?limit=10' }
+        ],
+        'customers': [
+            { key: 'customers', url: '/wp-json/buygo-plus-one/v1/customers?page=1&per_page=5' }
+        ],
+        'shipment-products': [
+            { key: 'shipment-products', url: '/wp-json/buygo-plus-one/v1/shipments?per_page=-1' }
+        ],
+        'shipment-details': [
+            { key: 'shipment-details', url: '/wp-json/buygo-plus-one/v1/shipments?per_page=-1' }
+        ],
+        'settings': [
+            { key: 'settings-templates', url: '/wp-json/buygo-plus-one/v1/settings/templates' },
+            { key: 'settings-helpers', url: '/wp-json/buygo-plus-one/v1/settings/helpers' }
+        ],
+        'search': []
+    },
+
+    /**
      * 預載常用頁面資料
      * 登入後呼叫，背景靜默抓取，不阻塞畫面
      * @param {string} wpNonce - WordPress REST API nonce
      */
     preload: function(wpNonce) {
         var self = this;
-        var endpoints = [
-            { key: 'orders', url: '/wp-json/buygo-plus-one/v1/orders?page=1&per_page=100' },
-            { key: 'products', url: '/wp-json/buygo-plus-one/v1/products' },
-            { key: 'shipment-products', url: '/wp-json/buygo-plus-one/v1/shipments?per_page=-1' }
-        ];
+
+        // 從 _pageEndpoints 扁平化生成所有端點
+        var endpoints = [];
+        var pageKeys = Object.keys(this._pageEndpoints);
+        for (var i = 0; i < pageKeys.length; i++) {
+            var pageEps = this._pageEndpoints[pageKeys[i]];
+            for (var j = 0; j < pageEps.length; j++) {
+                // 避免重複（shipment-products 和 shipment-details 共用同 key）
+                var exists = false;
+                for (var k = 0; k < endpoints.length; k++) {
+                    if (endpoints[k].key === pageEps[j].key) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    endpoints.push(pageEps[j]);
+                }
+            }
+        }
 
         // 延遲 2 秒後開始，不搶當前頁面的載入資源
         setTimeout(function() {
@@ -126,5 +175,39 @@ window.BuyGoCache = {
                 .catch(function() { /* 預載失敗靜默忽略 */ });
             });
         }, 2000);
+    },
+
+    /**
+     * 預載指定頁面的資料
+     * SPA 導航時呼叫，提前載入下一頁資料
+     * @param {string} pageKey - 頁面名稱（對應 _pageEndpoints 的 key）
+     * @param {string} wpNonce - WordPress REST API nonce
+     */
+    preloadPage: function(pageKey, wpNonce) {
+        var self = this;
+        var pageEps = this._pageEndpoints[pageKey];
+
+        // 無對應端點或空陣列，不做任何事
+        if (!pageEps || pageEps.length === 0) return;
+
+        pageEps.forEach(function(ep) {
+            // 如果已有新鮮資料，跳過
+            if (self.isFresh(ep.key)) return;
+
+            fetch(ep.url, {
+                credentials: 'include',
+                headers: {
+                    'X-WP-Nonce': wpNonce,
+                    'X-BuyGo-Preload': '1'
+                }
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && (data.success || data.data)) {
+                    self.set(ep.key, data);
+                }
+            })
+            .catch(function() { /* 預載失敗靜默忽略 */ });
+        });
     }
 };

@@ -10,11 +10,12 @@ if (!defined('ABSPATH')) {
 /**
  * Dashboard_API - Dashboard REST API 端點
  *
- * 提供 4 個 REST API endpoints:
+ * 提供 5 個 REST API endpoints:
  * - GET /dashboard/stats - 總覽統計
  * - GET /dashboard/revenue - 營收趨勢
  * - GET /dashboard/products - 商品概覽
  * - GET /dashboard/activities - 最近活動
+ * - GET /dashboard/profit - 利潤統計
  *
  * @package BuyGoPlus\Api
  * @since 0.0.1
@@ -47,7 +48,7 @@ class Dashboard_API {
     /**
      * 註冊 REST API 路由
      *
-     * 註冊 4 個端點，每個端點都有權限檢查和參數驗證
+     * 註冊 5 個端點，每個端點都有權限檢查和參數驗證
      *
      * @return void
      */
@@ -90,6 +91,13 @@ class Dashboard_API {
                     'sanitize_callback' => 'absint'
                 ]
             ]
+        ]);
+
+        // GET /dashboard/profit - 利潤統計
+        register_rest_route($this->namespace, '/dashboard/profit', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_profit'],
+            'permission_callback' => [API::class, 'check_permission']
         ]);
     }
 
@@ -288,6 +296,61 @@ class Dashboard_API {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '取得最近活動失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 取得利潤統計
+     *
+     * 回傳已完成訂單的利潤統計資料：
+     * - total_profit: 總利潤（分為單位）
+     * - avg_profit_margin: 平均利潤率（%）
+     * - top_products: Top 5 利潤商品
+     * - by_currency: 按幣別分組的利潤
+     *
+     * 使用快取機制（15 分鐘）
+     *
+     * @param \WP_REST_Request $request REST API 請求
+     * @return \WP_REST_Response
+     */
+    public function get_profit($request) {
+        try {
+            // 定義快取鍵
+            $cache_key = 'buygo_dashboard_profit';
+
+            // 嘗試從 transient 讀取快取
+            $cached = get_transient($cache_key);
+
+            if ($cached !== false) {
+                $cached_time = get_transient($cache_key . '_time');
+
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'data' => $cached,
+                    'cached_at' => $cached_time ?: current_time('mysql')
+                ], 200);
+            }
+
+            // 快取不存在，調用 DashboardService 計算利潤統計
+            $profit_data = $this->dashboardService->calculateProfitStats();
+
+            // 快取 15 分鐘（與營收趨勢一致）
+            set_transient($cache_key, $profit_data, 15 * MINUTE_IN_SECONDS);
+            set_transient($cache_key . '_time', current_time('mysql'), 15 * MINUTE_IN_SECONDS);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => $profit_data,
+                'cached_at' => current_time('mysql')
+            ], 200);
+
+        } catch (\Exception $e) {
+            error_log('BuyGo Dashboard API Error (get_profit): ' . $e->getMessage());
+
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '取得利潤統計失敗：' . $e->getMessage()
             ], 500);
         }
     }

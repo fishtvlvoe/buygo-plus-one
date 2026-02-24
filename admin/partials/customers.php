@@ -47,10 +47,16 @@ $customers_component_template .= <<<'HTML'
             @select="handleCustomerSelect"
         ></smart-search-box>
 
-        <!-- 載入狀態 -->
-        <div v-if="loading" class="text-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p class="mt-2 text-slate-500">載入中...</p>
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="space-y-4 p-4">
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="buygo-content-skeleton h-10 w-full mb-3"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full" style="width:95%"></div>
+            </div>
         </div>
 
         <!-- 客戶列表 -->
@@ -203,16 +209,16 @@ $customers_component_template .= <<<'HTML'
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <div class="flex border-b border-slate-200">
                         <button
-                            @click="activeTab = 'orders'"
-                            :class="activeTab === 'orders' ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
-                            class="flex-1 px-4 py-3 font-medium transition-colors text-sm">
-                            訂單記錄 <span v-if="selectedCustomer.order_count > 0" class="text-xs ml-1">({{ selectedCustomer.order_count }})</span>
-                        </button>
-                        <button
                             @click="activeTab = 'info'"
                             :class="activeTab === 'info' ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
                             class="flex-1 px-4 py-3 font-medium transition-colors text-sm">
                             客戶資訊
+                        </button>
+                        <button
+                            @click="activeTab = 'orders'"
+                            :class="activeTab === 'orders' ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'"
+                            class="flex-1 px-4 py-3 font-medium transition-colors text-sm">
+                            訂單記錄 <span v-if="selectedCustomer.order_count > 0" class="text-xs ml-1">({{ selectedCustomer.order_count }})</span>
                         </button>
                     </div>
 
@@ -325,20 +331,49 @@ $customers_component_template .= <<<'HTML'
 
                         <!-- Tab 2: 客戶資訊 -->
                         <div v-show="activeTab === 'info'">
+                            <!-- 編輯/儲存/取消按鈕 -->
+                            <div class="flex justify-end mb-4">
+                                <button v-if="!isEditing" @click="startEdit"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    編輯
+                                </button>
+                                <template v-else>
+                                    <button @click="cancelEdit" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors mr-2">取消</button>
+                                    <button @click="saveEdit" :disabled="saving" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                        {{ saving ? '儲存中...' : '儲存' }}
+                                    </button>
+                                </template>
+                            </div>
+
                             <div class="space-y-4">
-                                <!-- 基本資訊 -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="bg-slate-50 rounded-lg p-3">
-                                        <span class="text-xs text-slate-500 block mb-1">姓名</span>
-                                        <div class="text-sm font-medium text-slate-900">{{ selectedCustomer.full_name || '-' }}</div>
-                                    </div>
-                                    <div class="bg-slate-50 rounded-lg p-3">
-                                        <span class="text-xs text-slate-500 block mb-1">電話</span>
-                                        <div class="text-sm font-medium text-slate-900">{{ selectedCustomer.phone || '-' }}</div>
+                                <!-- 自訂編號（移到姓名上方） -->
+                                <div class="bg-slate-50 rounded-lg p-3" v-if="selectedCustomer.custom_id || isEditing">
+                                    <span class="text-xs text-slate-500 block mb-1">自訂編號</span>
+                                    <div v-if="!isEditing" class="text-sm font-medium text-slate-900">{{ selectedCustomer.custom_id || '-' }}</div>
+                                    <input v-else v-model="editForm.custom_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                </div>
+
+                                <!-- 姓名 -->
+                                <div class="bg-slate-50 rounded-lg p-3">
+                                    <span class="text-xs text-slate-500 block mb-1">姓名</span>
+                                    <div v-if="!isEditing" class="text-sm font-medium text-slate-900">{{ selectedCustomer.full_name || '-' }}</div>
+                                    <div v-else class="flex gap-2">
+                                        <input v-model="editForm.first_name" placeholder="姓" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                        <input v-model="editForm.last_name" placeholder="名" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
                                     </div>
                                 </div>
 
-                                <!-- LINE 名稱 -->
+                                <!-- 電話 -->
+                                <div class="bg-slate-50 rounded-lg p-3">
+                                    <span class="text-xs text-slate-500 block mb-1">電話</span>
+                                    <div v-if="!isEditing" class="text-sm font-medium text-slate-900">{{ selectedCustomer.phone || '-' }}</div>
+                                    <input v-else v-model="editForm.phone" type="tel" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                </div>
+
+                                <!-- LINE 名稱（始終唯讀） -->
                                 <div v-if="selectedCustomer.line_display_name" class="bg-green-50 rounded-lg p-3 border border-green-200">
                                     <span class="text-xs text-green-600 block mb-1 flex items-center gap-1">
                                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -350,24 +385,39 @@ $customers_component_template .= <<<'HTML'
                                 </div>
 
                                 <!-- 身分證字號 -->
-                                <div v-if="selectedCustomer.taiwan_id_number" class="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                                    <span class="text-xs text-amber-600 block mb-1 flex items-center gap-1">
+                                <div class="bg-amber-50 rounded-lg p-3 border border-amber-200" :class="{'bg-amber-50 border-amber-200': !isEditing, 'bg-slate-50 border-slate-200': isEditing}" v-if="selectedCustomer.taiwan_id_number || isEditing">
+                                    <span class="text-xs block mb-1 flex items-center gap-1" :class="isEditing ? 'text-slate-500' : 'text-amber-600'">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
                                         </svg>
                                         身分證字號
                                     </span>
-                                    <div class="text-sm font-medium text-amber-800 font-mono">{{ selectedCustomer.taiwan_id_number }}</div>
+                                    <div v-if="!isEditing" class="text-sm font-medium text-amber-800 font-mono">{{ selectedCustomer.taiwan_id_number }}</div>
+                                    <input v-else v-model="editForm.taiwan_id_number" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-mono" />
                                 </div>
 
+                                <!-- Email（始終唯讀） -->
                                 <div class="bg-slate-50 rounded-lg p-3">
                                     <span class="text-xs text-slate-500 block mb-1">Email</span>
                                     <div class="text-sm font-medium text-slate-900 break-all">{{ selectedCustomer.email || '-' }}</div>
                                 </div>
 
-                                <div v-if="selectedCustomer.address" class="bg-slate-50 rounded-lg p-3">
+                                <!-- 地址 -->
+                                <div class="bg-slate-50 rounded-lg p-3" v-if="selectedCustomer.address || isEditing">
                                     <span class="text-xs text-slate-500 block mb-1">地址</span>
-                                    <div class="text-sm font-medium text-slate-900">{{ selectedCustomer.address }}</div>
+                                    <div v-if="!isEditing" class="text-sm font-medium text-slate-900">{{ selectedCustomer.address || '-' }}</div>
+                                    <div v-else class="space-y-2">
+                                        <input v-model="editForm.address_1" placeholder="地址 1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                        <input v-model="editForm.address_2" placeholder="地址 2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <input v-model="editForm.city" placeholder="城市" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                            <input v-model="editForm.state" placeholder="州/省" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <input v-model="editForm.postcode" placeholder="郵遞區號" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                            <input v-model="editForm.country" placeholder="國家" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm" />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- 統計資訊 -->
@@ -412,16 +462,16 @@ $customers_component_template .= <<<'HTML'
             </div>
         </div>
     </div>
-    
+
     <!-- Toast 通知 -->
-    <div 
-        v-if="toastMessage.show" 
+    <div
+        v-if="toastMessage.show"
         class="fixed top-4 right-4 z-50 animate-slide-in"
     >
         <div :class="[
             'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
-            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 
-            toastMessage.type === 'error' ? 'bg-red-500 text-white' : 
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' :
+            toastMessage.type === 'error' ? 'bg-red-500 text-white' :
             'bg-blue-500 text-white'
         ]">
             <svg v-if="toastMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,4 +498,3 @@ HTML;
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
 <script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/CustomersPage.js'; ?></script>
-

@@ -21,7 +21,7 @@ const CustomersPageComponent = {
     },
     template: '#customers-page-template',
     setup() {
-        const { ref, computed, onMounted, watch } = Vue;
+        const { ref, computed, onMounted, onUnmounted, watch } = Vue;
 
         // WordPress REST API nonce（用於 API 認證）
         const wpNonce = window.buygoWpNonce || '';
@@ -73,8 +73,8 @@ const CustomersPageComponent = {
         // 訂單搜尋（子頁面內用）
         const orderSearchQuery = ref('');
 
-        // Tab 分頁狀態
-        const activeTab = ref('orders');
+        // Tab 分頁狀態（預設顯示客戶資訊）
+        const activeTab = ref('info');
 
         // 備註狀態
         const customerNote = ref('');
@@ -85,6 +85,72 @@ const CustomersPageComponent = {
         const expandedOrderId = ref(null);
         const orderItems = ref({});
         const loadingOrderItems = ref(false);
+
+        // ========== 編輯模式狀態 ==========
+        const isEditing = ref(false);
+        const editForm = ref({});
+        const saving = ref(false);
+
+        const startEdit = () => {
+            editForm.value = {
+                first_name: selectedCustomer.value.first_name || '',
+                last_name: selectedCustomer.value.last_name || '',
+                phone: selectedCustomer.value.phone || '',
+                address_1: selectedCustomer.value.address_1 || '',
+                address_2: selectedCustomer.value.address_2 || '',
+                city: selectedCustomer.value.city || '',
+                state: selectedCustomer.value.state || '',
+                postcode: selectedCustomer.value.postcode || '',
+                country: selectedCustomer.value.country || 'TW',
+                taiwan_id_number: selectedCustomer.value.taiwan_id_number || '',
+                custom_id: selectedCustomer.value.custom_id || '',
+            };
+            isEditing.value = true;
+        };
+
+        const cancelEdit = () => {
+            isEditing.value = false;
+        };
+
+        const saveEdit = async () => {
+            saving.value = true;
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/customers/${selectedCustomer.value.id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    body: JSON.stringify(editForm.value)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // 更新本地資料
+                    Object.assign(selectedCustomer.value, editForm.value);
+                    // 更新組合名稱
+                    selectedCustomer.value.full_name = (editForm.value.first_name + ' ' + editForm.value.last_name).trim();
+                    // 更新組合地址
+                    const parts = [
+                        editForm.value.address_1,
+                        editForm.value.address_2,
+                        editForm.value.city,
+                        editForm.value.state,
+                        editForm.value.postcode,
+                        editForm.value.country
+                    ].filter(Boolean);
+                    selectedCustomer.value.address = parts.join(', ');
+                    isEditing.value = false;
+                    showToast('客戶資料已更新', 'success');
+                } else {
+                    showToast(result.message || '儲存失敗', 'error');
+                }
+            } catch (e) {
+                showToast('儲存失敗：' + e.message, 'error');
+            } finally {
+                saving.value = false;
+            }
+        };
 
         // 批次操作
         const selectedItems = ref([]);
@@ -178,7 +244,8 @@ const CustomersPageComponent = {
                 // 返回列表
                 currentCustomerId.value = null;
                 selectedCustomer.value = null;
-                activeTab.value = 'orders';
+                activeTab.value = 'info';
+                isEditing.value = false;
                 orderSearchQuery.value = '';
                 expandedOrderId.value = null;
                 orderItems.value = {};
@@ -515,6 +582,9 @@ const CustomersPageComponent = {
             return true;
         };
 
+        // popstate listener 清理用
+        let removePopstateListener = null;
+
         // 初始化
         onMounted(() => {
             if (!initFromPreloadedData()) {
@@ -533,13 +603,18 @@ const CustomersPageComponent = {
 
             // 檢查 URL 參數並設置監聯
             checkUrlParams();
-            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+            removePopstateListener = window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
             // 從 localStorage 讀取使用者幣別偏好
             const savedCurrency = localStorage.getItem('buygo_display_currency');
             if (savedCurrency) {
                 displayCurrency.value = savedCurrency;
             }
+        });
+
+        // 清理 event listeners（SPA 頁面切換時避免記憶體洩漏）
+        onUnmounted(() => {
+            if (removePopstateListener) removePopstateListener();
         });
 
         return {
@@ -601,7 +676,14 @@ const CustomersPageComponent = {
             toggleCurrency,
             navigateToOrder,
             // 幣別切換
-            onCurrencyChange
+            onCurrencyChange,
+            // 編輯模式
+            isEditing,
+            editForm,
+            saving,
+            startEdit,
+            cancelEdit,
+            saveEdit
         };
     }
 };
