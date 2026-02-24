@@ -524,11 +524,22 @@ Plans:
 
 **Goal:** 實作 POST /products/batch-create API，讓賣家可一次上架多個商品
 
+**Depends on:** Phase 45（Reserved_API 501 骨架）
+
+**Requirements:** BATCH-01, BATCH-02, BATCH-03, BATCH-04
+
 **Success Criteria:**
   1. POST /products/batch-create 接受 JSON 陣列，每個物件含 title、price 等商品資料
   2. 驗證必填欄位和賣家商品配額，超過配額時回傳錯誤
   3. 逐筆建立商品，部分失敗不影響已成功的
   4. 回傳結果包含每筆的成功/失敗狀態和原因
+
+**Status:** Planning complete
+**Plans:** 2 plans
+
+Plans:
+- [ ] 56-01-PLAN.md — BatchCreateService 服務層 TDD（驗證 + 配額檢查 + 逐筆建立 + 結果彙整）
+- [ ] 56-02-PLAN.md — Reserved_API 端點替換（501 → 真實邏輯）+ 載入整合
 
 ---
 
@@ -543,7 +554,7 @@ Plans:
 | 53. 開發者事件分類 | v3.1 | 0/? | Not started | — |
 | 54. 資料管理前端 | v3.1 | 0/? | Not started | — |
 | 55. 功能管理前端 | v3.1 | 0/? | Not started | — |
-| 56. 批量上架後端 | v3.1 | 0/? | Not started | — |
+| 56. 批量上架後端 | v3.1 | 0/2 | Planning complete | — |
 
 ---
 
@@ -557,3 +568,4 @@ Plans:
 *v3.0 phases added: 2026-02-24 — 5 phases (47-51), 14 requirements*
 *Phase 47-51 executed: 2026-02-24 — v3.0 milestone complete (Phase 48 skipped)*
 *v3.1 phases added: 2026-02-24 — 5 phases (52-56), WP 後台完善 + 批量上架*
+*Phase 56 plans created: 2026-02-24 — 2 plans (TDD service + API wiring)*
