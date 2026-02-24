@@ -8,7 +8,7 @@
     'use strict';
     var cfg = window.bgoDataManagement || {};
     var restUrl = cfg.restUrl || '', nonce = cfg.restNonce || '';
-    var curType = 'orders', curPage = 1, totPages = 1;
+    var curType = 'orders', curPage = 1, totPages = 1, curPerPage = 20;
 
     // --- 工具函數 ---
     function $(id) { return document.getElementById(id); }
@@ -55,6 +55,12 @@
         $('bgo-dm-edit-cancel').addEventListener('click', closeEditModal);
         $('bgo-dm-edit-modal').querySelector('.bgo-modal-overlay').addEventListener('click', closeEditModal);
         $('bgo-dm-edit-save').addEventListener('click', doSave);
+        // 筆數篩選
+        $('bgo-dm-per-page').addEventListener('change', function () {
+            curPerPage = parseInt(this.value, 10);
+            curPage = 1;
+            queryData();
+        });
         // 預設載入
         queryData();
     }
@@ -63,7 +69,7 @@
     function queryData() {
         var params = new URLSearchParams({
             type: curType, date_from: $('bgo-dm-date-from').value, date_to: $('bgo-dm-date-to').value,
-            keyword: $('bgo-dm-keyword').value, page: curPage, per_page: 20
+            keyword: $('bgo-dm-keyword').value, page: curPerPage === -1 ? 1 : curPage, per_page: curPerPage === -1 ? 9999 : curPerPage
         });
         $('bgo-dm-tbody').innerHTML = '<tr><td colspan="8" class="bgo-dm-loading">載入中...</td></tr>';
         $('bgo-dm-select-all').checked = false; updateDelBtn();
@@ -72,7 +78,8 @@
             .then(function (resp) {
                 if (resp.success && resp.data) {
                     renderTable(resp.data);
-                    totPages = Math.ceil((resp.data.total || 0) / (resp.data.per_page || 20));
+                    var effectivePerPage = curPerPage === -1 ? (resp.data.total || 1) : curPerPage;
+                    totPages = Math.ceil((resp.data.total || 0) / effectivePerPage);
                     renderPagination(resp.data.total || 0);
                 } else { showEmpty(resp.message || '查詢失敗'); }
             })
