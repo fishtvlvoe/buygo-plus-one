@@ -1,0 +1,205 @@
+/**
+ * BGO Feature Management Tab 樣式
+ *
+ * 功能管理頁面：授權狀態卡片 + 功能列表 + toggle 開關
+ * 前綴 .bgo-fm-（Feature Management）
+ *
+ * @package BuyGoPlus
+ * @since 2.0.0
+ */
+
+/* === 授權狀態卡片 === */
+.bgo-fm-license-card {
+    border-top: 3px solid #3b82f6;
+}
+
+.bgo-fm-license-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.bgo-fm-license-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bgo-fm-license-input input[type="text"] {
+    flex: 1;
+    max-width: 360px;
+    padding: 6px 10px;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.bgo-fm-license-input input[type="text"]:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* 停用授權按鈕（紅色） */
+.bgo-fm-deactivate {
+    color: #d63638 !important;
+    border-color: #d63638 !important;
+}
+
+.bgo-fm-deactivate:hover {
+    background: #d63638 !important;
+    color: #fff !important;
+}
+
+/* === 操作結果訊息 === */
+.bgo-fm-message {
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.bgo-fm-message.success {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.bgo-fm-message.error {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+}
+
+/* === 功能列表 === */
+.bgo-fm-feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* 單個功能卡片 */
+.bgo-fm-feature-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s ease;
+}
+
+.bgo-fm-feature-card:last-child {
+    border-bottom: none;
+}
+
+.bgo-fm-feature-card:hover {
+    background: #f9fafb;
+}
+
+/* 功能資訊 */
+.bgo-fm-feature-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bgo-fm-feature-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.4;
+}
+
+.bgo-fm-feature-desc {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+/* 免費功能「已啟用」標籤（取代 Toggle） */
+.bgo-fm-feature-included {
+    font-size: 12px;
+    color: #22c55e;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-left: 16px;
+}
+
+/* === CSS-only Toggle 開關 === */
+.bgo-fm-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+.bgo-fm-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.bgo-fm-toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ccc;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background 0.25s ease;
+}
+
+.bgo-fm-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 2px;
+    bottom: 2px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* 開啟狀態（綠色） */
+.bgo-fm-toggle input:checked + .bgo-fm-toggle-slider {
+    background: #22c55e;
+}
+
+.bgo-fm-toggle input:checked + .bgo-fm-toggle-slider::before {
+    transform: translateX(22px);
+}
+
+/* 禁用狀態（灰色） */
+.bgo-fm-toggle input:disabled + .bgo-fm-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* === 響應式 === */
+@media screen and (max-width: 782px) {
+    .bgo-fm-license-input {
+        flex-wrap: wrap;
+    }
+
+    .bgo-fm-license-input input[type="text"] {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .bgo-fm-feature-card {
+        padding: 10px 12px;
+    }
+
+    .bgo-fm-feature-name {
+        font-size: 13px;
+    }
+}
