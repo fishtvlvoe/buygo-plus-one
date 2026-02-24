@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.1 — WP 後台完善 + 批量上架
+**當前焦點:** v3.1 已完成，等待下一個 milestone
 
 **PROJECT.md 最後更新:** 2026-02-24
 
@@ -18,12 +18,11 @@
 ## 當前位置
 
 **Milestone:** v3.1 - WP 後台完善 + 批量上架
-**Phase:** 52 (R2 Tab 位置調整) — 未開始
-**Plan:** —
-**Status:** Ready to plan
+**Phase:** All complete
+**Status:** ✅ Milestone complete
 
 ```
-進度 [░░░░░░░░░░] 0/5 phases (52-56)
+進度 [██████████] 5/5 phases (52-56)
 ```
 
 **已完成的 Milestones:**
@@ -35,8 +34,9 @@
 - **v1.5** — 賣家商品數量限制與 ID 對應系統 (Phases 38-39) — Shipped 2026-02-20
 - **v2.0** — 後台 UI 統一化 (Phases 41-46) — Shipped 2026-02-23
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
+- **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-02-24 — v3.1 ROADMAP + REQUIREMENTS 建立完成（5 Phases），等待開始執行
+**Last activity:** 2026-02-24 — v3.1 所有 Phase 完成（52-56），127 單元測試全部通過
 
 ---
 
@@ -44,13 +44,13 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 52 | R2 Tab 位置調整 | TAB-01 | Not started |
-| 53 | 開發者 Tab 事件分類重構 | EVT-01~04 | Not started |
-| 54 | 資料管理 Tab 前端 | DMF-01~04 | Not started |
-| 55 | 功能管理 Tab 前端 | FMF-01~04 | Not started |
-| 56 | 批量上架 API 後端 | BATCH-01~04 | Not started |
+| 52 | R2 Tab 位置調整 | TAB-01 | ✅ Complete |
+| 53 | 開發者 Tab 事件分類重構 | EVT-01~04 | ✅ Complete |
+| 54 | 資料管理 Tab 前端 | DMF-01~04 | ✅ Complete |
+| 55 | 功能管理 Tab 前端 | FMF-01~04 | ✅ Complete |
+| 56 | 批量上架 API 後端 | BATCH-01~04 | ✅ Complete |
 
-**Execution Order:** 52（順手做）→ 56（核心後端）→ 53 → 54 → 55（UI 接線可批次）
+**Execution Order:** 52 → 56 → 53 → 54 → 55（全部完成）
 
 ---
 
@@ -136,7 +136,7 @@
 **v2.0 Out of Scope:**
 - 前端 Vue Portal 改版（只改 wp-admin）
 - 授權伺服器（buygo_is_pro() 先回傳 true）
-- 批量上架前端 UI（只留 API 骨架）→ v3.1 Phase 56 實作後端
+- 批量上架前端 UI（只留 API 骨架）→ v3.1 Phase 56 已實作後端
 - 自定義欄位前端 UI（只留 API 骨架）→ v3.0 Phase 49 已實作
 - 多圖片輪播（只留 API 骨架）
 - 異地備份模組
@@ -151,4 +151,4 @@
 
 ---
 
-*State updated: 2026-02-24 — v3.1 milestone 建立完成，等待 Phase Plan 執行*
+*State updated: 2026-02-24 — v3.1 milestone 完成 (5/5 phases)*
