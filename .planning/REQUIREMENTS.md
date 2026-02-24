@@ -4,7 +4,129 @@
 
 ---
 
-## v2.0 Requirements (Active)
+## v3.1 Requirements (Active)
+
+**Milestone:** v3.1 - WP 後台完善 + 批量上架
+**Defined:** 2026-02-24
+
+**Goal:** 完善 WP 後台 6 個 Tab 的功能（資料管理、功能管理、開發者事件分類），調整 Tab 順序整合 R2 設定，並實作批量上架 API 後端。
+
+### Tab 順序調整 (TAB)
+
+- [x] **TAB-01**: R2 Tab 位置調整
+  - Tab 順序從「角色權限 → LINE 模板 → 結帳設定 → ...」改為「角色權限 → R2 圖床 → LINE 模板 → 結帳設定 → 資料管理 → 功能管理 → 開發者」
+  - 改動範圍：`bgo-r2/admin/class-settings.php` — `register_buygo_tab()` 方法的優先級
+
+### 事件分類 (EVT)
+
+- [ ] **EVT-01**: 事件按 event_type 分組顯示
+  - 從平面列表改為分組摺疊式顯示
+  - 每組顯示事件計數和時間範圍
+
+- [ ] **EVT-02**: error 類預設展開
+  - error / permission_denied 類別預設展開
+  - 其他類別預設收合
+
+- [ ] **EVT-03**: 展開查看個別事件明細
+  - 點擊分組可展開查看個別事件明細
+
+- [ ] **EVT-04**: 事件明細分頁
+  - 展開明細支援分頁（每頁 20 筆）
+  - 有上一頁/下一頁導航
+
+### 資料管理前端 (DMF)
+
+- [ ] **DMF-01**: 三個子 Tab 切換
+  - 訂單/商品/客戶子 Tab 可切換
+  - 各自顯示查詢表格
+
+- [ ] **DMF-02**: 查詢篩選功能
+  - 支援日期範圍篩選和關鍵字搜尋
+  - 結果分頁顯示
+
+- [ ] **DMF-03**: 批次刪除 UI
+  - 勾選多筆後點「刪除」
+  - Modal 要求輸入 DELETE 確認
+  - 呼叫對應已完成的 REST API（Phase 43）
+
+- [ ] **DMF-04**: 客戶編輯 Modal
+  - 客戶列表有「編輯」按鈕
+  - Modal 可修改姓名/電話/地址/身分證
+  - 儲存後更新表格
+  - 呼叫已完成的客戶編輯 API（Phase 43）
+
+### 功能管理前端 (FMF)
+
+- [ ] **FMF-01**: 授權狀態卡片
+  - 頂部顯示授權狀態（Free/Pro）
+  - 授權碼輸入欄和驗證按鈕
+
+- [ ] **FMF-02**: 功能列表卡片
+  - 功能以卡片形式顯示
+  - 每張卡片有名稱、說明、toggle 開關
+
+- [ ] **FMF-03**: Free/Pro 功能區分
+  - Free 功能 toggle 可直接操作
+  - Pro 功能需先驗證授權碼
+
+- [ ] **FMF-04**: toggle 即時生效
+  - toggle 操作即時生效
+  - 呼叫已完成的功能管理 API（Phase 44）儲存狀態
+
+### 批量上架 (BATCH)
+
+- [ ] **BATCH-01**: batch-create API 接收 JSON 陣列
+  - POST /products/batch-create 接受 JSON 陣列
+  - 每個物件含 title、price 等商品資料
+  - 替換 Phase 45 預留的 501 骨架
+
+- [ ] **BATCH-02**: 必填欄位和配額驗證
+  - 驗證每筆商品的必填欄位
+  - 檢查賣家商品配額，超過配額時回傳錯誤
+
+- [ ] **BATCH-03**: 部分失敗容錯
+  - 逐筆建立商品
+  - 部分失敗不影響已成功的商品
+
+- [ ] **BATCH-04**: 回傳結果明細
+  - 回傳結果包含每筆的成功/失敗狀態和原因
+
+### Out of Scope (v3.1)
+
+- **批量上架前端 UI** — 只做 API 後端，前端 UI 之後再做
+- **資料管理賣家側** — Portal 前台的賣家刪除另外做，資料管理 Tab 是給管理員用的
+- **授權伺服器** — buygo_is_pro() 繼續回傳 true
+- **多圖片輪播** — 預留 API 骨架不變
+
+### Traceability (v3.1)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TAB-01 | Phase 52 | Not started |
+| EVT-01 | Phase 53 | Not started |
+| EVT-02 | Phase 53 | Not started |
+| EVT-03 | Phase 53 | Not started |
+| EVT-04 | Phase 53 | Not started |
+| DMF-01 | Phase 54 | Not started |
+| DMF-02 | Phase 54 | Not started |
+| DMF-03 | Phase 54 | Not started |
+| DMF-04 | Phase 54 | Not started |
+| FMF-01 | Phase 55 | Not started |
+| FMF-02 | Phase 55 | Not started |
+| FMF-03 | Phase 55 | Not started |
+| FMF-04 | Phase 55 | Not started |
+| BATCH-01 | Phase 56 | Not started |
+| BATCH-02 | Phase 56 | Not started |
+| BATCH-03 | Phase 56 | Not started |
+| BATCH-04 | Phase 56 | Not started |
+
+**Coverage:**
+- v3.1 requirements: 17 total
+- Mapped to phases: 17/17 (100%)
+
+---
+
+## v2.0 Requirements (Complete)
 
 **Milestone:** v2.0 - 後台 UI 統一化
 **Defined:** 2026-02-20
@@ -208,4 +330,4 @@
 
 ---
 
-*Last updated: 2026-02-23 — all 29 requirements complete, v2.0 milestone done*
+*Last updated: 2026-02-24 — v3.1 requirements added (17 total), v2.0 all 29 requirements complete*
