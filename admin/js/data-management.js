@@ -45,9 +45,9 @@
         });
         // 刪除按鈕 → 開 Modal
         $('bgo-dm-delete-btn').addEventListener('click', openDeleteModal);
-        // 刪除 Modal
+        // 刪除 Modal — 輸入「確認刪除」才啟用按鈕
         var delInput = $('bgo-dm-delete-confirm-input'), delConfirm = $('bgo-dm-delete-confirm');
-        delInput.addEventListener('input', function () { delConfirm.disabled = delInput.value.trim() !== 'DELETE'; });
+        delInput.addEventListener('input', function () { delConfirm.disabled = delInput.value.trim() !== '確認刪除'; });
         $('bgo-dm-delete-cancel').addEventListener('click', closeDelModal);
         $('bgo-dm-delete-modal').querySelector('.bgo-modal-overlay').addEventListener('click', closeDelModal);
         delConfirm.addEventListener('click', doDelete);
@@ -181,7 +181,7 @@
         var ids = []; document.querySelectorAll('.bgo-dm-row-check:checked').forEach(function (cb) { ids.push(parseInt(cb.value, 10)); });
         if (!ids.length) return;
         var btn = $('bgo-dm-delete-confirm'); btn.disabled = true; btn.textContent = '刪除中...';
-        api('POST', '/data-management/delete-' + curType, { ids: ids, confirmation_token: 'DELETE' })
+        api('POST', '/data-management/delete-' + curType, { ids: ids, confirmation_token: '確認刪除' })
             .then(function (resp) { closeDelModal(); resp.success ? queryData() : alert('刪除失敗：' + (resp.message||'未知錯誤')); })
             .catch(function (e) { closeDelModal(); alert('請求失敗：' + e.message); })
             .finally(function () { btn.disabled = false; btn.textContent = '確認刪除'; });

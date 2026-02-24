@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * - PUT  /data-management/customers/{id}  編輯客戶資料
  *
  * 所有端點僅限管理員（buygo_admin 或 manage_options）存取。
- * 刪除端點需要 confirmation_token = 'DELETE' 作為二次確認（DATA-05）。
+ * 刪除端點需要 confirmation_token = '確認刪除' 作為二次確認（DATA-05）。
  *
  * @package BuyGoPlus\Api
  * @version 1.0.0
@@ -244,11 +244,11 @@ class DataManagement_API
             $ids  = $body['ids'] ?? [];
             $confirmation_token = $body['confirmation_token'] ?? '';
 
-            // DATA-05: 伺服器端二次確認驗證
-            if ($confirmation_token !== 'DELETE') {
+            // DATA-05: 伺服器端二次確認驗證（需輸入「確認刪除」）
+            if ($confirmation_token !== '確認刪除') {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'message' => '需要輸入 DELETE 確認刪除',
+                    'message' => '需要輸入「確認刪除」以確認操作',
                 ], 400);
             }
 
@@ -280,11 +280,11 @@ class DataManagement_API
             $ids  = $body['ids'] ?? [];
             $confirmation_token = $body['confirmation_token'] ?? '';
 
-            // DATA-05: 伺服器端二次確認驗證
-            if ($confirmation_token !== 'DELETE') {
+            // DATA-05: 伺服器端二次確認驗證（需輸入「確認刪除」）
+            if ($confirmation_token !== '確認刪除') {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'message' => '需要輸入 DELETE 確認刪除',
+                    'message' => '需要輸入「確認刪除」以確認操作',
                 ], 400);
             }
 
@@ -316,11 +316,11 @@ class DataManagement_API
             $ids  = $body['ids'] ?? [];
             $confirmation_token = $body['confirmation_token'] ?? '';
 
-            // DATA-05: 伺服器端二次確認驗證
-            if ($confirmation_token !== 'DELETE') {
+            // DATA-05: 伺服器端二次確認驗證（需輸入「確認刪除」）
+            if ($confirmation_token !== '確認刪除') {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'message' => '需要輸入 DELETE 確認刪除',
+                    'message' => '需要輸入「確認刪除」以確認操作',
                 ], 400);
             }
 

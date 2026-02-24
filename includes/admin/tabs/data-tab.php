@@ -56,7 +56,7 @@ window.bgoDataManagement = {
         <h3>確認刪除</h3>
         <p>即將刪除 <strong id="bgo-dm-delete-count">0</strong> 筆<span id="bgo-dm-delete-type">資料</span>，此操作不可復原。</p>
         <div style="margin: 16px 0;">
-            <input type="text" id="bgo-dm-delete-confirm-input" placeholder="請輸入 DELETE 確認" style="width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+            <input type="text" id="bgo-dm-delete-confirm-input" placeholder="請輸入「確認刪除」" style="width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="button" id="bgo-dm-delete-cancel">取消</button>
