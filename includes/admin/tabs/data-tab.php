@@ -38,7 +38,14 @@ window.bgoDataManagement = {
     <div class="bgo-dm-toolbar">
         <label><input type="checkbox" id="bgo-dm-select-all"> 全選</label>
         <span id="bgo-dm-selected-info" class="bgo-dm-selected-info"></span>
-        <button class="bgo-dm-delete-btn" id="bgo-dm-delete-btn" disabled>刪除選取</button>
+        <div class="bgo-dm-toolbar-right">
+            <select id="bgo-dm-per-page" class="bgo-dm-per-page-select">
+                <option value="20">20 筆</option>
+                <option value="50">50 筆</option>
+                <option value="-1">全部</option>
+            </select>
+            <button class="bgo-dm-delete-btn" id="bgo-dm-delete-btn" disabled>刪除選取</button>
+        </div>
     </div>
     <table class="bgo-dev-table" id="bgo-dm-table">
         <thead id="bgo-dm-thead"></thead>
