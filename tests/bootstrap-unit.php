@@ -364,3 +364,7 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-identity-servi
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-notification-handler.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-checker.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-batch-create-service.php';
