@@ -1,7 +1,6 @@
 /**
  * 資料管理 Tab 樣式
  * 子 Tab 導航、篩選區、工具列、分頁、Modal
- * 表格複用 .bgo-dev-table（developer-tab.php 已定義）
  * @package BuyGoPlus
  * @since 3.1.0
  */
@@ -68,3 +67,35 @@
     .bgo-dm-form-row { flex-direction: column; align-items: stretch; gap: 4px; }
     .bgo-dm-form-row label { width: auto; text-align: left; }
 }
+
+/* === 表格樣式（從 developer-tab 抽出的共用樣式） === */
+.bgo-dev-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.bgo-dev-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #6b7280;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+}
+.bgo-dev-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    font-size: 13px;
+}
+.bgo-dev-table tbody tr:nth-child(odd) td { background: #fff; }
+.bgo-dev-table tbody tr:nth-child(even) td { background: #f9fafb; }
+.bgo-dev-table tbody tr:hover td { background: #f0f7ff; }
+
+/* === Badge 狀態標籤 === */
+.bgo-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.bgo-badge-success { background: #dcfce7; color: #15803d; }
+.bgo-badge-warning { background: #fef9c3; color: #854d0e; }
+.bgo-badge-error { background: #fee2e2; color: #b91c1c; }
+.bgo-badge-info { background: #dbeafe; color: #1d4ed8; }
+.bgo-badge-default { background: #f3f4f6; color: #4b5563; }
+
+.bgo-dev-empty { text-align: center; padding: 32px 20px; color: #999; font-size: 13px; }

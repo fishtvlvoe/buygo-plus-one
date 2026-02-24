@@ -118,6 +118,15 @@
     line-height: 1.4;
 }
 
+/* 免費功能「已啟用」標籤（取代 Toggle） */
+.bgo-fm-feature-included {
+    font-size: 12px;
+    color: #22c55e;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-left: 16px;
+}
+
 /* === CSS-only Toggle 開關 === */
 .bgo-fm-toggle {
     position: relative;

@@ -115,7 +115,7 @@ class DataManagementService
     /**
      * 查詢商品（依日期範圍和關鍵字）
      *
-     * 查詢 FluentCart 商品：wp_posts (fc_product) JOIN fct_product_variations
+     * 查詢 FluentCart 商品：wp_posts (fluent-products) JOIN fct_product_variations
      *
      * @param array $params 查詢參數：date_from, date_to, keyword, page, per_page
      * @return array 分頁結果
@@ -134,8 +134,8 @@ class DataManagementService
         $table_variations = $wpdb->prefix . 'fct_product_variations';
         $table_posts      = $wpdb->posts;
 
-        // 建立 WHERE 條件
-        $where_conditions = ["p.post_type = 'fc_product'"];
+        // 建立 WHERE 條件（FluentCart 使用 fluent-products 作為 post_type）
+        $where_conditions = ["p.post_type = 'fluent-products'"];
         $query_params = [];
 
         // 只顯示非 inactive 的商品
@@ -177,7 +177,7 @@ class DataManagementService
                         pv.id,
                         pv.post_id,
                         p.post_title AS name,
-                        pv.price,
+                        pv.item_price AS price,
                         p.post_status AS status,
                         pv.item_status,
                         p.post_date AS created_at

@@ -45,7 +45,7 @@
     }
 
     /**
-     * 渲染 Free 功能（toggle 永遠 on + disabled，純視覺展示）
+     * 渲染 Free 功能（顯示「已啟用」文字標籤，免費功能不可關閉）
      *
      * @param {Array} features Free 功能列表
      */
@@ -59,10 +59,7 @@
                     '<div class="bgo-fm-feature-name">' + escHtml(f.name) + '</div>' +
                     '<div class="bgo-fm-feature-desc">' + escHtml(f.description) + '</div>' +
                 '</div>' +
-                '<label class="bgo-fm-toggle">' +
-                    '<input type="checkbox" checked disabled>' +
-                    '<span class="bgo-fm-toggle-slider"></span>' +
-                '</label>' +
+                '<span class="bgo-fm-feature-included">✓ 已啟用</span>' +
             '</div>';
         }).join('');
     }
