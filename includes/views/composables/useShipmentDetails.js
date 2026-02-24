@@ -12,7 +12,7 @@
  * - window.buygoWpNonce: WordPress REST API nonce
  */
 function useShipmentDetails() {
-    const { ref, computed, watch, onMounted, nextTick } = Vue;
+    const { ref, computed, watch, onMounted, onUnmounted, nextTick } = Vue;
 
     // WordPress Nonce for API authentication
     const wpNonce = window.buygoWpNonce || '';
@@ -759,6 +759,32 @@ function useShipmentDetails() {
         return true;
     };
 
+    // ========================================
+    // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
+    // ========================================
+    let removePopstateListenerShipDetails = null;
+
+    const handlePageshowShipDetails = (e) => {
+        if (e.persisted) {
+            loadShipments();
+            loadStats();
+        }
+    };
+    const handleVisibilityChangeShipDetails = () => {
+        if (document.visibilityState === 'visible') {
+            if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('shipment-details')) {
+                return;
+            }
+            loadShipments();
+            loadStats();
+        }
+    };
+    const handleDocClickShipDetails = (e) => {
+        if (showShippingMethodDropdown.value && !e.target.closest('.relative')) {
+            showShippingMethodDropdown.value = false;
+        }
+    };
+
     onMounted(() => {
         if (!initFromPreloadedData()) {
             // 快取 fallback：使用 sessionStorage 快取加速重複訪問
@@ -786,35 +812,31 @@ function useShipmentDetails() {
         // 檢查 URL 參數（支援直接訪問詳情頁）
         checkUrlParams();
 
-        // 監聽瀏覽器上一頁/下一頁
-        window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+        // 監聽瀏覽器上一頁/下一頁（儲存 cleanup 函式）
+        removePopstateListenerShipDetails = window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
         // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
-        window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
-                loadShipments();
-                loadStats();
-            }
-        });
+        window.addEventListener('pageshow', handlePageshowShipDetails);
 
         // 監聽頁面可見性變化
         // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('shipment-details')) {
-                    return;
-                }
-                loadShipments();
-                loadStats();
-            }
-        });
+        document.addEventListener('visibilitychange', handleVisibilityChangeShipDetails);
 
         // 點擊外部關閉物流下拉選單
-        document.addEventListener('click', (e) => {
-            if (showShippingMethodDropdown.value && !e.target.closest('.relative')) {
-                showShippingMethodDropdown.value = false;
-            }
-        });
+        document.addEventListener('click', handleDocClickShipDetails);
+    });
+
+    // SPA 清理：移除所有 event listener + flatpickr，防止記憶體洩漏
+    onUnmounted(() => {
+        if (removePopstateListenerShipDetails) removePopstateListenerShipDetails();
+        window.removeEventListener('pageshow', handlePageshowShipDetails);
+        document.removeEventListener('visibilitychange', handleVisibilityChangeShipDetails);
+        document.removeEventListener('click', handleDocClickShipDetails);
+        // 清理 flatpickr instance
+        if (flatpickrInstance) {
+            flatpickrInstance.destroy();
+            flatpickrInstance = null;
+        }
     });
 
     return {

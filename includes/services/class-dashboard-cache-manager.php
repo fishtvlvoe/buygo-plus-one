@@ -10,7 +10,7 @@ namespace BuyGoPlus\Services;
  * - 確保統計數據即時性
  *
  * @package BuyGoPlus\Services
- * @version 1.0.0
+ * @version 1.1.0
  * @since B21-05 技術債修復
  */
 class DashboardCacheManager
@@ -24,7 +24,8 @@ class DashboardCacheManager
         'buygo_dashboard_stats',
         'buygo_dashboard_revenue',
         'buygo_dashboard_products',
-        'buygo_dashboard_activities'
+        'buygo_dashboard_activities',
+        'buygo_dashboard_profit'
     ];
 
     /**
@@ -119,7 +120,7 @@ class DashboardCacheManager
     /**
      * 手動清除指定快取
      *
-     * @param string $cache_type 快取類型 (stats, revenue, products, activities)
+     * @param string $cache_type 快取類型 (stats, revenue, products, activities, profit)
      * @return bool 是否成功
      */
     public static function clear_specific_cache(string $cache_type): bool

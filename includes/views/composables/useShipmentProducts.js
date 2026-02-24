@@ -22,7 +22,7 @@
  * @version 1.0.0
  */
 function useShipmentProducts() {
-    const { ref, computed, onMounted, watch } = Vue;
+    const { ref, computed, onMounted, onUnmounted, watch } = Vue;
 
     // WordPress REST API nonce（用於 API 認證）
     const wpNonce = window.buygoWpNonce || '';
@@ -518,6 +518,23 @@ function useShipmentProducts() {
     };
 
     // ========================================
+    // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
+    // ========================================
+    const handlePageshowShipProducts = (e) => {
+        if (e.persisted) {
+            loadShipments();
+        }
+    };
+    const handleVisibilityChangeShipProducts = () => {
+        if (document.visibilityState === 'visible') {
+            if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('shipment-products')) {
+                return;
+            }
+            loadShipments();
+        }
+    };
+
+    // ========================================
     // 生命週期
     // ========================================
     onMounted(() => {
@@ -537,22 +554,17 @@ function useShipmentProducts() {
         }
 
         // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
-        window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
-                loadShipments();
-            }
-        });
+        window.addEventListener('pageshow', handlePageshowShipProducts);
 
         // 監聽頁面可見性變化
         // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('shipment-products')) {
-                    return;
-                }
-                loadShipments();
-            }
-        });
+        document.addEventListener('visibilitychange', handleVisibilityChangeShipProducts);
+    });
+
+    // SPA 清理：移除所有 event listener，防止記憶體洩漏
+    onUnmounted(() => {
+        window.removeEventListener('pageshow', handlePageshowShipProducts);
+        document.removeEventListener('visibilitychange', handleVisibilityChangeShipProducts);
     });
 
     // 幣別切換處理（Header 元件會呼叫此方法）

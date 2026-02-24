@@ -36,17 +36,11 @@ class Routes {
         // 註冊首頁路由（重定向到 dashboard）
         add_rewrite_rule('^buygo-portal/?$', 'index.php?buygo_page=portal_home', 'top');
 
-        // 註冊 8 個子頁面路由
-        add_rewrite_rule('^buygo-portal/dashboard/?$', 'index.php?buygo_page=dashboard', 'top');
-        add_rewrite_rule('^buygo-portal/products/?$', 'index.php?buygo_page=products', 'top');
-        add_rewrite_rule('^buygo-portal/orders/?$', 'index.php?buygo_page=orders', 'top');
-        add_rewrite_rule('^buygo-portal/shipment-products/?$', 'index.php?buygo_page=shipment-products', 'top');
-        add_rewrite_rule('^buygo-portal/shipment-details/?$', 'index.php?buygo_page=shipment-details', 'top');
-        add_rewrite_rule('^buygo-portal/customers/?$', 'index.php?buygo_page=customers', 'top');
-        add_rewrite_rule('^buygo-portal/settings/?$', 'index.php?buygo_page=settings', 'top');
-        add_rewrite_rule('^buygo-portal/search/?$', 'index.php?buygo_page=search', 'top');
+        // SPA catch-all：所有 /buygo-portal/* 都指向同一個 template.php
+        // JS 端的 BuyGoRouter 負責解析路徑和切換元件
+        add_rewrite_rule('^buygo-portal/([a-z-]+)/?$', 'index.php?buygo_page=$matches[1]', 'top');
 
-        // 邀請連結路由（公開頁面，不走 Portal template）
+        // 邀請連結路由（公開頁面，不走 SPA）
         add_rewrite_rule('^buygo-invite/accept/?$', 'index.php?buygo_invite=accept', 'top');
         add_rewrite_rule('^buygo-invite/([a-f0-9]{48})/?$', 'index.php?buygo_invite=landing&invite_token=$matches[1]', 'top');
     }
@@ -80,17 +74,10 @@ class Routes {
                 exit;
             }
 
-            // 載入對應的頁面檔案（新路徑：admin/partials/）
-            $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $page . '.php';
-            if (file_exists($page_file)) {
-                // 載入 template.php（包含側邊導航和基本結構）
-                require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/template.php';
-                exit;
-            } else {
-                // 如果頁面檔案不存在，載入預設模板
-                require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/template.php';
-                exit;
-            }
+            // SPA 模式：所有頁面統一載入 template.php
+            // JS 端的 BuyGoRouter 負責解析路徑和切換元件
+            require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/template.php';
+            exit;
         }
     }
 }

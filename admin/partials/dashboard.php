@@ -44,7 +44,7 @@ $dashboard_component_template = <<<'HTML'
 
         <!-- 主要內容 -->
         <div v-else>
-            <!-- 統計卡片區（精簡版） -->
+            <!-- 統計卡片區（精簡版，6 張卡片） -->
             <section class="stats-grid-compact">
                 <div class="stat-card-compact">
                     <div class="stat-card-label">營收</div>
@@ -81,20 +81,32 @@ $dashboard_component_template = <<<'HTML'
                         <span>{{ Math.abs(stats.avg_order_value.change_percent).toFixed(1) }}%</span>
                     </div>
                 </div>
+
+                <!-- 利潤卡片（無資料時顯示 0） -->
+                <div class="stat-card-compact profit-card">
+                    <div class="stat-card-label">利潤</div>
+                    <div class="stat-card-value">{{ profitData ? formatProfitCurrency(profitData) : formatCurrency(0) }}</div>
+                    <div class="stat-card-change" :class="profitData && profitData.avg_profit_margin > 0 ? 'positive' : 'neutral'">
+                        <span>利潤率</span>
+                        <span>{{ profitData ? profitData.avg_profit_margin.toFixed(1) : '0.0' }}%</span>
+                    </div>
+                </div>
+
+                <!-- 成本卡片（無資料時顯示 0） -->
+                <div class="stat-card-compact cost-card">
+                    <div class="stat-card-label">成本</div>
+                    <div class="stat-card-value">{{ profitData ? formatProfitCostCurrency(profitData) : formatCurrency(0) }}</div>
+                    <div class="stat-card-change neutral">
+                        <span>有成本商品</span>
+                        <span>{{ profitData && profitData.top_products ? profitData.top_products.length : 0 }}</span>
+                    </div>
+                </div>
             </section>
 
             <!-- 兩欄式主要內容區 -->
             <div class="dashboard-main-grid">
-                <!-- 左欄：營收趨勢 + 產品管理 -->
+                <!-- 左欄：產品管理 + 營收趨勢 + 利潤 Top 5 -->
                 <section class="dashboard-left-column">
-                    <!-- 營收趨勢圖 -->
-                    <div class="chart-card-merged">
-                        <h3 class="section-title-merged">營收趨勢（過去 30 天）</h3>
-                        <div class="chart-container-merged">
-                            <canvas ref="revenueChart"></canvas>
-                        </div>
-                    </div>
-
                     <!-- 產品管理 -->
                     <div class="products-section">
                         <h3 class="section-title-merged">產品管理</h3>
@@ -110,6 +122,31 @@ $dashboard_component_template = <<<'HTML'
                             <div class="product-stat-item">
                                 <span class="product-label">待上架</span>
                                 <span class="product-value product-value-warning">{{ productsData.draft }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 營收趨勢圖 -->
+                    <div class="chart-card-merged">
+                        <h3 class="section-title-merged">營收趨勢（過去 30 天）</h3>
+                        <div class="chart-container-merged">
+                            <canvas ref="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 利潤最高商品 Top 5 -->
+                    <div class="profit-top-section" v-if="profitData && profitData.top_products && profitData.top_products.length > 0">
+                        <h3 class="section-title-merged">利潤最高商品 Top 5</h3>
+                        <div class="profit-top-list">
+                            <div v-for="(item, index) in profitData.top_products.slice(0, 5)" :key="index" class="profit-top-item">
+                                <div class="profit-top-left">
+                                    <span class="profit-top-rank">{{ index + 1 }}</span>
+                                    <span class="profit-top-name">{{ item.product_name }}</span>
+                                </div>
+                                <div class="profit-top-right">
+                                    <div class="profit-top-amount">{{ formatProfitItemCurrency(item) }}</div>
+                                    <div class="profit-top-margin">{{ item.margin.toFixed(1) }}%</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -211,7 +248,10 @@ const DashboardPageComponent = {
             rawActivities: [],
 
             // 活動列表（已換算）
-            activities: []
+            activities: [],
+
+            // 利潤統計數據
+            profitData: null
         };
     },
 
@@ -222,7 +262,12 @@ const DashboardPageComponent = {
         this.currencySymbols = this.currencyHelper.currencySymbols;
         console.log('[Dashboard] 初始幣別:', this.currentCurrency);
 
-        if (!this.initFromPreloadedData()) {
+        if (this.initFromPreloadedData()) {
+            // 首次載入用 preload 資料，不需重新 fetch
+        } else if (this.initFromCache()) {
+            // 有快取先顯示，背景永遠刷新（SPA 頁面切換回來時確保資料最新）
+            this.loadAllData();
+        } else {
             await this.loadAllData();
         }
 
@@ -232,6 +277,14 @@ const DashboardPageComponent = {
                 this.renderRevenueChart();
             }
         });
+    },
+
+    // 清理 Chart.js 實例（SPA 頁面切換時避免記憶體洩漏）
+    beforeUnmount() {
+        if (this.revenueChart) {
+            this.revenueChart.destroy();
+            this.revenueChart = null;
+        }
     },
 
     methods: {
@@ -269,12 +322,65 @@ const DashboardPageComponent = {
                 hasData = true;
             }
 
+            // profit
+            if (initial.profit?.success && initial.profit?.data) {
+                this.profitData = initial.profit.data;
+                hasData = true;
+            }
+
             if (hasData) {
                 this.loading = false;
                 delete window.buygoInitialData;
+                // 利潤資料不阻塞載入，背景補載
+                if (!this.profitData) {
+                    this.loadProfit();
+                }
                 return true;
             }
             return false;
+        },
+
+        // 從 BuyGoCache 快取初始化（preload 失敗時的 fallback）
+        initFromCache() {
+            if (!window.BuyGoCache) return false;
+            let hasData = false;
+
+            const statsCache = window.BuyGoCache.get('dashboard-stats');
+            if (statsCache?.success && statsCache?.data) {
+                this.rawStats = statsCache.data;
+                this.calculateConvertedStats();
+                hasData = true;
+            }
+
+            const revenueCache = window.BuyGoCache.get('dashboard-revenue');
+            if (revenueCache?.data) {
+                this.rawRevenueData = revenueCache.data;
+                this.calculateConvertedRevenue();
+                hasData = true;
+            }
+
+            const productsCache = window.BuyGoCache.get('dashboard-products');
+            if (productsCache?.data) {
+                this.productsData = productsCache.data;
+                hasData = true;
+            }
+
+            const activitiesCache = window.BuyGoCache.get('dashboard-activities');
+            if (activitiesCache?.data) {
+                this.rawActivities = activitiesCache.data || [];
+                this.calculateConvertedActivities();
+                hasData = true;
+            }
+
+            const profitCache = window.BuyGoCache.get('dashboard-profit');
+            if (profitCache?.success && profitCache?.data) {
+                this.profitData = profitCache.data;
+            }
+
+            if (hasData) {
+                this.loading = false;
+            }
+            return hasData;
         },
 
         async loadAllData() {
@@ -287,7 +393,8 @@ const DashboardPageComponent = {
                     this.loadStats(),
                     this.loadRevenue(),
                     this.loadProducts(),
-                    this.loadActivities()
+                    this.loadActivities(),
+                    this.loadProfit()
                 ]);
             } catch (err) {
                 console.error('載入 Dashboard 資料失敗:', err);
@@ -313,6 +420,8 @@ const DashboardPageComponent = {
                 this.rawStats = result.data;
                 // 計算換算後的統計數據
                 this.calculateConvertedStats();
+                // 寫入快取
+                if (window.BuyGoCache) window.BuyGoCache.set('dashboard-stats', result);
             } else {
                 console.error('BuyGo Dashboard API 回傳格式不正確:', result);
             }
@@ -395,6 +504,8 @@ const DashboardPageComponent = {
             this.rawRevenueData = result.data;
             // 計算換算後的營收趨勢
             this.calculateConvertedRevenue();
+            // 寫入快取
+            if (window.BuyGoCache) window.BuyGoCache.set('dashboard-revenue', result);
         },
 
         // 計算換算後的營收趨勢
@@ -440,6 +551,8 @@ const DashboardPageComponent = {
 
             const result = await response.json();
             this.productsData = result.data;
+            // 寫入快取
+            if (window.BuyGoCache) window.BuyGoCache.set('dashboard-products', result);
         },
 
         async loadActivities() {
@@ -455,6 +568,31 @@ const DashboardPageComponent = {
             this.rawActivities = result.data || [];
             // 計算換算後的活動列表
             this.calculateConvertedActivities();
+            // 寫入快取
+            if (window.BuyGoCache) window.BuyGoCache.set('dashboard-activities', result);
+        },
+
+        // 載入利潤統計
+        async loadProfit() {
+            try {
+                const response = await fetch('/wp-json/buygo-plus-one/v1/dashboard/profit', {
+                    headers: { 'X-WP-Nonce': window.buygoWpNonce }
+                });
+
+                if (!response.ok) {
+                    console.warn('利潤 API 回傳錯誤:', response.status);
+                    return;
+                }
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    this.profitData = result.data;
+                    if (window.BuyGoCache) window.BuyGoCache.set('dashboard-profit', result);
+                }
+            } catch (err) {
+                // 利潤統計載入失敗不影響整體 Dashboard
+                console.warn('利潤統計載入失敗:', err);
+            }
         },
 
         // 計算換算後的活動列表金額
@@ -525,6 +663,47 @@ const DashboardPageComponent = {
             return `${symbol}${amount.toLocaleString()}`;
         },
 
+        // 格式化利潤卡片金額（按幣別換算後顯示）
+        formatProfitCurrency(profitData) {
+            if (!profitData || !profitData.by_currency || !this.currencyHelper) {
+                return this.formatCurrency(profitData?.total_profit || 0);
+            }
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+            let total = 0;
+            for (const [currency, data] of Object.entries(profitData.by_currency)) {
+                total += convertCurrency(data.total_profit, currency, targetCurrency);
+            }
+            return this.formatCurrency(Math.round(total));
+        },
+
+        // 格式化成本卡片金額（營收 - 利潤 = 成本，按幣別換算後顯示）
+        formatProfitCostCurrency(profitData) {
+            if (!profitData || !profitData.by_currency || !this.currencyHelper) {
+                const totalCost = (profitData?.total_revenue_with_cost || 0) - (profitData?.total_profit || 0);
+                return this.formatCurrency(totalCost);
+            }
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+            let totalCost = 0;
+            for (const [currency, data] of Object.entries(profitData.by_currency)) {
+                const cost = (data.total_revenue || 0) - (data.total_profit || 0);
+                totalCost += convertCurrency(cost, currency, targetCurrency);
+            }
+            return this.formatCurrency(Math.round(totalCost));
+        },
+
+        // 格式化利潤 Top 5 商品金額（按商品原始幣別換算）
+        formatProfitItemCurrency(item) {
+            if (!item || !this.currencyHelper) {
+                return this.formatCurrency(item?.profit || 0);
+            }
+            const { convertCurrency } = this.currencyHelper;
+            const targetCurrency = this.currentCurrency;
+            const converted = convertCurrency(item.profit, item.currency || 'JPY', targetCurrency);
+            return this.formatCurrency(Math.round(converted));
+        },
+
         getChangeClass(percent) {
             return percent >= 0 ? 'positive' : 'negative';
         },
@@ -561,6 +740,7 @@ const DashboardPageComponent = {
             this.calculateConvertedStats();
             this.calculateConvertedRevenue();
             this.calculateConvertedActivities();
+            // 利潤數據不需要重算（by_currency 和 top_products 的換算在 formatProfitCurrency 中動態處理）
 
             // 重新渲染圖表
             this.$nextTick(() => {

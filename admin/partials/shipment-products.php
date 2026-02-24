@@ -52,10 +52,16 @@ $shipment_products_component_template .= <<<'HTML'
 
      <!-- 出貨單列表 -->
     <div>
-        <!-- 載入狀態 -->
-        <div v-if="loading" class="buygo-loading">
-            <div class="buygo-loading-spinner"></div>
-            <p>載入中...</p>
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="space-y-4 p-4">
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="buygo-content-skeleton h-10 w-full mb-3"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                <div class="buygo-content-skeleton h-12 w-full" style="width:95%"></div>
+            </div>
         </div>
 
         <!-- 錯誤訊息 -->

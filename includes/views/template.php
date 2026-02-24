@@ -1,14 +1,16 @@
 <?php
 /**
+ * BuyGo Portal SPA Template
+ *
+ * 單頁應用（SPA）的唯一 HTML 殼。
+ * 所有頁面元件統一載入，由 JS 端的 BuyGoRouter 動態切換。
+ * 第一次進入時預注入當前頁面的資料，其他頁面由 BuyGoCache 預載。
+ */
+
+/**
  * 預注入初始資料（消除 Loading 畫面）
- *
- * 在 PHP 端預先查詢各頁面的初始資料，透過 inline script 注入到前端。
- * Vue 元件啟動時直接使用預注入資料，不再發 API 請求，消除 Loading 狀態。
- *
- * 使用 WordPress rest_do_request() 做內部請求，完全複用現有 API 邏輯。
  */
 function buygo_get_initial_data($page) {
-    // 確保 REST API 已初始化
     if (!did_action('rest_api_init')) {
         do_action('rest_api_init');
     }
@@ -20,7 +22,7 @@ function buygo_get_initial_data($page) {
             case 'orders':
                 $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/orders');
                 $request->set_param('page', 1);
-                $request->set_param('per_page', 100);
+                $request->set_param('per_page', 30);
                 $response = rest_do_request($request);
                 if (!is_wp_error($response) && $response->get_status() === 200) {
                     $data['orders'] = $response->get_data();
@@ -64,12 +66,12 @@ function buygo_get_initial_data($page) {
                 break;
 
             case 'dashboard':
-                // 儀表板有 4 個 API，全部預查
                 $endpoints = [
                     'stats' => '/buygo-plus-one/v1/dashboard/stats',
                     'revenue' => '/buygo-plus-one/v1/dashboard/revenue',
                     'products' => '/buygo-plus-one/v1/dashboard/products',
                     'activities' => '/buygo-plus-one/v1/dashboard/activities',
+                    'profit' => '/buygo-plus-one/v1/dashboard/profit',
                 ];
                 foreach ($endpoints as $key => $route) {
                     $request = new \WP_REST_Request('GET', $route);
@@ -87,7 +89,6 @@ function buygo_get_initial_data($page) {
                 break;
 
             case 'settings':
-                // 設定頁需要模板和助手列表
                 $endpoints = [
                     'templates' => '/buygo-plus-one/v1/settings/templates',
                     'helpers' => '/buygo-plus-one/v1/settings/helpers',
@@ -102,7 +103,6 @@ function buygo_get_initial_data($page) {
                 break;
         }
     } catch (\Exception $e) {
-        // 預注入失敗不應該阻擋頁面載入，靜默失敗，Vue 會 fallback 到 API
         error_log('BuyGo initial data injection failed: ' . $e->getMessage());
     }
 
@@ -136,25 +136,14 @@ if (!$has_portal_access) {
     exit;
 }
 
+// SPA：從 URL 取得初始頁面（用於預注入資料）
 $current_page = get_query_var('buygo_page', 'dashboard');
 
-// 頁面→權限對應（未列出的頁面不受限制，如 dashboard、search）
-$page_permission_map = [
-    'products'          => 'products',
-    'orders'            => 'orders',
-    'shipment-products' => 'shipments',
-    'shipment-details'  => 'shipments',
-    'customers'         => 'customers',
-    'settings'          => 'settings',
-];
-
-// 小幫手頁面級權限檢查
-if (isset($page_permission_map[$current_page])) {
-    $required_permission = $page_permission_map[$current_page];
-    if (!\BuyGoPlus\Services\SettingsService::helper_can($required_permission)) {
-        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/no-access.php';
-        exit;
-    }
+// 取得用戶權限（傳給前端做 SPA 頁面級權限控制）
+$user_permissions = [];
+$permission_keys = ['products', 'orders', 'shipments', 'customers', 'settings'];
+foreach ($permission_keys as $perm) {
+    $user_permissions[$perm] = \BuyGoPlus\Services\SettingsService::helper_can($perm);
 }
 ?>
 <!DOCTYPE html>
@@ -163,7 +152,7 @@ if (isset($page_permission_map[$current_page])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BuyGo+1 賣場後台</title>
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tailwind 自訂配置 -->
@@ -182,19 +171,17 @@ if (isset($page_permission_map[$current_page])) {
             }
         }
     </script>
-    
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
-    <!-- Design System CSS (inline 繞過 InstaWP WAF — 展開所有 @import) -->
+
+    <!-- Design System CSS (inline 繞過 InstaWP WAF) -->
     <style>
     <?php
-    // Design Tokens
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/colors.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/spacing.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/typography.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/effects.css';
-    // Component Styles
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/header.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/smart-search-box.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/table.css';
@@ -204,7 +191,6 @@ if (isset($page_permission_map[$current_page])) {
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/status-tag.css';
     include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/pagination.css';
     ?>
-    /* Global Resets */
     * { box-sizing: border-box; }
     a { text-decoration: none; }
     button { font-family: inherit; }
@@ -226,20 +212,28 @@ if (isset($page_permission_map[$current_page])) {
     .buygo-skeleton-row { height: 3rem; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; border-radius: 0.5rem; margin-bottom: 0.75rem; animation: buygo-shimmer 1.5s infinite; }
     @keyframes buygo-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     @media (max-width: 768px) { .buygo-skeleton-sidebar { display: none; } .buygo-skeleton-content { padding: 1rem; } }
+    /* SPA Page Transition */
+    .buygo-page-enter { opacity: 0; }
+    .buygo-page-loaded { opacity: 1; transition: opacity 0.15s ease-in; }
+    /* Page Content Skeleton（SPA 切換時各頁面的 loading 狀態） */
+    .buygo-content-skeleton {
+        animation: buygo-shimmer 1.5s infinite;
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 200% 100%;
+        border-radius: 0.5rem;
+    }
     </style>
 
-    <!-- BuyGo Core JS Modules (inline 繞過 InstaWP WAF) -->
+    <!-- BuyGo Core JS Modules -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/RouterMixin.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/DesignSystem.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/BuyGoCache.js'; ?></script>
+    <!-- SPA Router -->
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useRouter.js'; ?></script>
 
     <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Poppins', sans-serif;
-        }
+        body { font-family: 'Open Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -270,99 +264,134 @@ if (isset($page_permission_map[$current_page])) {
         </div>
     </div>
 
-    <!-- 載入組件定義 -->
+    <!-- 共用組件 -->
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/new-sidebar.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
-
-    <!-- 獨立 Header 元件 (Vue Component - inline 繞過 WAF) -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/header-component.js'; ?></script>
-    
+
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- SortableJS (vuedraggable 依賴) -->
+    <!-- SortableJS + VueDraggable -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <!-- VueDraggable CDN -->
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
 
-    <!-- useCurrency Composable (全站幣別處理邏輯 - inline 繞過 WAF) -->
+    <!-- 全站 Composables -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useCurrency.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useApi.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/usePermissions.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useDataLoader.js'; ?></script>
 
-    <!-- Global WP Nonce for REST API -->
+    <!-- 頁面 Composables（SPA：全部載入） -->
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useOrders.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useProducts.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentProducts.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
+
+    <!-- 全域變數 -->
     <script>
         window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
+        window.buygoUserPermissions = <?php echo wp_json_encode($user_permissions); ?>;
     </script>
 
     <?php
-    // 預注入初始資料（消除 Loading 畫面）
+    // 預注入初始頁面資料
     $initial_data = buygo_get_initial_data($current_page);
     if (!empty($initial_data)) :
     ?>
     <script>
         window.buygoInitialData = <?php echo wp_json_encode($initial_data); ?>;
+        window.buygoInitialPage = '<?php echo esc_js($current_page); ?>';
     </script>
     <?php endif; ?>
 
+    <!-- SPA：載入所有頁面元件 -->
     <?php
-    // 載入頁面元件（如果存在）- 新路徑：admin/partials/
-    $page_file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $current_page . '.php';
-    $has_page_component = false;
-    if (file_exists($page_file)) {
-        require $page_file;
-        $has_page_component = true;
+    $page_partials = [
+        'dashboard', 'products', 'orders',
+        'shipment-products', 'shipment-details',
+        'customers', 'settings', 'search'
+    ];
+    foreach ($page_partials as $partial) {
+        $file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $partial . '.php';
+        if (file_exists($file)) {
+            require $file;
+        }
     }
     ?>
-    
+
     <script>
     const { createApp } = Vue;
 
-    // 載入頁面元件（如果存在）
-    <?php
-    $page_component_name = null;
-    if ($has_page_component) {
-        // 根據頁面名稱決定元件名稱
-        $component_map = [
-            'products' => 'ProductsPageComponent',
-            'orders' => 'OrdersPageComponent',
-            'shipment-products' => 'ShipmentProductsPageComponent',
-            'shipment-details' => 'ShipmentDetailsPageComponent',
-            'customers' => 'CustomersPageComponent',
-            'settings' => 'SettingsPageComponent',
-            'dashboard' => 'DashboardPageComponent',
-            'search' => 'SearchPageComponent'
-        ];
-        $page_component_name = $component_map[$current_page] ?? null;
-    }
-    ?>
-    <?php if ($page_component_name): ?>
-    const pageComponent = <?php echo $page_component_name; ?>;
-    <?php endif; ?>
+    // SPA 元件對應表
+    const pageComponents = {
+        'dashboard':        typeof DashboardPageComponent !== 'undefined' ? DashboardPageComponent : null,
+        'products':         typeof ProductsPageComponent !== 'undefined' ? ProductsPageComponent : null,
+        'orders':           typeof OrdersPageComponent !== 'undefined' ? OrdersPageComponent : null,
+        'shipment-products':typeof ShipmentProductsPageComponent !== 'undefined' ? ShipmentProductsPageComponent : null,
+        'shipment-details': typeof ShipmentDetailsPageComponent !== 'undefined' ? ShipmentDetailsPageComponent : null,
+        'customers':        typeof CustomersPageComponent !== 'undefined' ? CustomersPageComponent : null,
+        'settings':         typeof SettingsPageComponent !== 'undefined' ? SettingsPageComponent : null,
+        'search':           typeof SearchPageComponent !== 'undefined' ? SearchPageComponent : null
+    };
 
-    // 建立主 App
+    // 建立 SPA 主 App
     const app = createApp({
         components: {
             NewSidebar: NewSidebarComponent,
             PageHeader: PageHeader,
             'page-header-component': PageHeaderComponent,
-            SmartSearchBox: BuyGoSmartSearchBox<?php echo $page_component_name ? ', PageContent: pageComponent' : ''; ?>
+            SmartSearchBox: BuyGoSmartSearchBox
         },
         data() {
             return {
-                currentPage: '<?php echo esc_js($current_page); ?>',
+                currentPage: BuyGoRouter.parsePath(),
                 isSidebarCollapsed: false
+            }
+        },
+        computed: {
+            currentComponent() {
+                return pageComponents[this.currentPage] || null;
             }
         },
         methods: {
             handleGlobalSearchSelect(item) {
-                // 根據類型導向不同頁面
                 if (item.url) {
-                    window.location.href = item.url;
+                    // SPA 內部導航
+                    var match = item.url.match(/\/buygo-portal\/([a-z-]+)/);
+                    if (match && pageComponents[match[1]]) {
+                        BuyGoRouter.spaNavigate(match[1]);
+                    } else {
+                        window.location.href = item.url;
+                    }
                 }
             },
             toggleSidebar() {
                 this.isSidebarCollapsed = !this.isSidebarCollapsed;
+            },
+            onPageChange(page) {
+                this.currentPage = page;
+                // 更新頁面標題
+                var titles = {
+                    'dashboard': '儀表板',
+                    'products': '商品',
+                    'orders': '訂單',
+                    'shipment-products': '備貨',
+                    'shipment-details': '出貨',
+                    'customers': '客戶',
+                    'settings': '設定',
+                    'search': '搜尋'
+                };
+                document.title = 'BuyGo+1 ' + (titles[page] || '賣場後台');
             }
+        },
+        mounted() {
+            // 初始化 SPA Router
+            var self = this;
+            BuyGoRouter.initSPA(function(page) {
+                self.onPageChange(page);
+            });
         },
         template: `
             <div>
@@ -373,28 +402,31 @@ if (isset($page_permission_map[$current_page])) {
                 />
                 <div class="min-h-screen transition-all duration-300"
                     :class="isSidebarCollapsed ? 'md:ml-20' : 'md:ml-48 lg:ml-64'">
-                    <!-- 頁面內容 -->
-                    <?php if ($page_component_name): ?>
-                    <PageContent />
-                    <?php else: ?>
-                    <main class="p-6">
+                    <div v-if="currentComponent" class="buygo-page-loaded">
+                        <component :is="currentComponent" :key="currentPage" />
+                    </div>
+                    <main v-else class="p-6">
                         <div class="max-w-7xl mx-auto">
-                            <h1 class="text-3xl font-bold text-gray-900 mb-4">BuyGo+1 載入中...</h1>
-                            <p class="text-gray-600">當前頁面：{{ currentPage }}</p>
+                            <div class="buygo-content-skeleton h-8 w-48 mb-6"></div>
+                            <div class="bg-white rounded-xl p-6">
+                                <div class="buygo-content-skeleton h-12 w-full mb-3"></div>
+                                <div class="buygo-content-skeleton h-12 w-[95%] mb-3"></div>
+                                <div class="buygo-content-skeleton h-12 w-[90%] mb-3"></div>
+                                <div class="buygo-content-skeleton h-12 w-[97%] mb-3"></div>
+                            </div>
                         </div>
                     </main>
-                    <?php endif; ?>
                 </div>
             </div>
         `
     });
 
-    // 全域註冊 Header 元件（讓所有頁面元件都能使用）
+    // 全域註冊 Header 元件
     app.component('page-header-component', PageHeaderComponent);
 
     app.mount('#buygo-app');
 
-    // 預載其他頁面資料（背景靜默，不阻塞當前頁面）
+    // 預載其他頁面資料
     if (window.BuyGoCache && window.BuyGoCache.preload) {
         window.BuyGoCache.preload(window.buygoWpNonce);
     }

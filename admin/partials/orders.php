@@ -133,8 +133,17 @@ $orders_component_template .= <<<'HTML'
                     </div>
                 </div>
 
-                <!-- Loading -->
-                <div v-if="loading" class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-slate-500">載入中...</p></div>
+                <!-- Loading Skeleton -->
+                <div v-if="loading" class="space-y-4 p-4">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="buygo-content-skeleton h-10 w-full mb-3"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full mb-2"></div>
+                        <div class="buygo-content-skeleton h-12 w-full" style="width:95%"></div>
+                    </div>
+                </div>
 
                 <!-- Error -->
                 <div v-else-if="error" class="text-center py-12">

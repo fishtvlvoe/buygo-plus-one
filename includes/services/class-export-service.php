@@ -357,19 +357,7 @@ class ExportService
             }
         }
 
-        // 優先級 1: wp_buygo_line_users.display_name（舊 buygo-line-notify 表）
-        $table_line_users = $wpdb->prefix . 'buygo_line_users';
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_line_users}'") === $table_line_users) {
-            $display_name = $wpdb->get_var($wpdb->prepare(
-                "SELECT display_name FROM {$table_line_users} WHERE user_id = %d LIMIT 1",
-                $user_id
-            ));
-            if (!empty($display_name)) {
-                return $display_name;
-            }
-        }
-
-        // 優先級 2: wp_usermeta.buygo_line_display_name（舊表）
+        // 優先級 1: wp_usermeta.buygo_line_display_name（舊表）
         $display_name = get_user_meta($user_id, 'buygo_line_display_name', true);
         if (!empty($display_name)) {
             return $display_name;

@@ -54,14 +54,13 @@
     margin-top: 20px;
 }
 
-/* 卡片樣式（對齊 LineHub .line-hub-card） */
+/* 卡片樣式 — 滿版設計（不設 max-width，由內容自然撐滿） */
 .bgo-card {
     background: #fff;
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0,0,0,.04);
     margin: 20px 0;
     padding: 20px;
-    max-width: 1000px;
 }
 
 .bgo-card h2 {

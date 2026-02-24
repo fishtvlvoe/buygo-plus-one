@@ -55,6 +55,9 @@ class Database
 
         // 建立邀請 Token 表
         self::create_invite_tokens_table($wpdb, $charset_collate);
+
+        // 建立商品自訂欄位表（Phase 49）
+        \BuyGoPlus\Database\ProductMetaTable::create_table();
     }
 
     /**

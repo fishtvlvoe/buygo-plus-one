@@ -6,7 +6,7 @@
  * Dependencies: Vue 3, BuyGoRouter, useCurrency, BuyGoSmartSearchBox, BuyGoCache
  */
 function useProducts() {
-        const { ref, computed, watch, onMounted } = Vue;
+        const { ref, computed, watch, onMounted, onUnmounted } = Vue;
 
         // WordPress REST API nonce（用於 API 認證）
         const wpNonce = window.buygoWpNonce || '';
@@ -245,10 +245,23 @@ function useProducts() {
         const notification = ref(null);
         const fileInput = ref(null);
         const currentProduct = ref(null); // Ensure this is defined once
-        
+
         // Ensure editingProduct has default structure
         // const editingProduct = ref(...); // Already defined above
-        
+
+        // --- 成本與來源自訂欄位（Phase 49）---
+        const editTab = ref('basic'); // 'basic' | 'cost'
+        const customFields = ref({
+            cost_price: '',
+            original_price: '',
+            purchase_location: '',
+            supplier: '',
+            barcode: '',
+            manufacturing_notes: ''
+        });
+        const customFieldsLoading = ref(false);
+        const customFieldsSaving = ref(false);
+
         // Toast
         const toastMessage = ref({ show: false, message: '', type: 'success' });
         
@@ -306,6 +319,15 @@ function useProducts() {
         };
 
         const handleNavigation = async (view, product = null, updateUrl = true) => {
+            // 離開編輯頁時重置 Tab 和自訂欄位（Phase 49）
+            if (view !== 'edit') {
+                editTab.value = 'basic';
+                customFields.value = {
+                    cost_price: '', original_price: '', purchase_location: '',
+                    supplier: '', barcode: '', manufacturing_notes: ''
+                };
+            }
+
             currentView.value = view;
 
             if (product) {
@@ -344,6 +366,13 @@ function useProducts() {
                         }
                     } else {
                         editingProduct.value = { ...product };
+                    }
+                    // 載入自訂欄位（Phase 49）— 多樣式用 variation ID
+                    if (product.has_variations && product.variations?.length > 0) {
+                        const varId = editingProduct.value.editing_variation_id;
+                        loadCustomFields(varId);
+                    } else {
+                        loadCustomFields(product.id);
                     }
                 } else if (view === 'allocation') {
                     await loadProductOrders(product.id);
@@ -544,6 +573,75 @@ function useProducts() {
             return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
         };
 
+        // --- 自訂欄位 API 方法（Phase 49）---
+
+        // 載入商品自訂欄位
+        const loadCustomFields = async (productId) => {
+            customFieldsLoading.value = true;
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/products/${productId}/custom-fields`, {
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': wpNonce }
+                });
+                const result = await response.json();
+                if (result.success && result.data) {
+                    Object.assign(customFields.value, result.data);
+                }
+            } catch (e) {
+                console.error('[Products] 載入自訂欄位失敗:', e);
+            } finally {
+                customFieldsLoading.value = false;
+            }
+        };
+
+        // 儲存商品自訂欄位
+        const saveCustomFields = async () => {
+            const ep = editingProduct.value;
+            // 多樣式商品用 variation ID，單一商品用主商品 ID
+            const targetId = (ep.has_variations && ep.editing_variation_id) ? ep.editing_variation_id : ep.id;
+            if (!targetId) return;
+            customFieldsSaving.value = true;
+            try {
+                const response = await fetch(`/wp-json/buygo-plus-one/v1/products/${targetId}/custom-fields`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    body: JSON.stringify(customFields.value)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('自訂欄位已儲存');
+                } else {
+                    showToast('儲存失敗', 'error');
+                }
+            } catch (e) {
+                showToast('儲存失敗：' + e.message, 'error');
+            } finally {
+                customFieldsSaving.value = false;
+            }
+        };
+
+        // 利潤計算（前端即時）
+        const profit = computed(() => {
+            const ep = editingProduct.value;
+            // 多樣式商品用樣式價格，單一商品用主商品價格
+            const price = ep.has_variations
+                ? (parseFloat(ep.editing_variation_price) || 0)
+                : (parseFloat(ep.price) || 0);
+            const cost = parseFloat(customFields.value.cost_price) || 0;
+            if (!cost) return null;
+            return price - cost;
+        });
+
+        const profitMargin = computed(() => {
+            const price = parseFloat(editingProduct.value.price) || 0;
+            if (!price || profit.value === null) return null;
+            return ((profit.value / price) * 100).toFixed(1);
+        });
+
         const loadProductOrders = async (id) => {
             allocationLoading.value = true;
              try {
@@ -593,6 +691,8 @@ function useProducts() {
                 }
 
                 if (data.success) {
+                    // 同時儲存自訂欄位（成本價等）
+                    await saveCustomFields();
                     const idx = products.value.findIndex(p => p.id === ep.id);
                     if (idx !== -1) products.value[idx] = { ...products.value[idx], ...ep };
                     showToast('儲存成功');
@@ -920,6 +1020,9 @@ function useProducts() {
             } catch (e) {
                 console.error('載入 Variation 統計失敗:', e);
             }
+
+            // 切換樣式時重新載入該樣式的自訂欄位（成本價等）
+            loadCustomFields(variation.id);
         };
 
         // Smart Search Box 處理函數
@@ -966,6 +1069,51 @@ function useProducts() {
             return true;
         };
 
+        // ============================================
+        // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
+        // ============================================
+        // 平板響應式視圖自動切換
+        let userPreferredMode = 'table';
+        let isAutoSwitched = false;
+
+        const handlePageshowProducts = async (e) => {
+            if (e.persisted) {
+                await loadProducts();
+                await checkUrlParams();
+            }
+        };
+        const handleVisibilityChangeProducts = async () => {
+            if (document.visibilityState === 'visible') {
+                if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('products')) {
+                    return;
+                }
+                await loadProducts();
+                await checkUrlParams();
+            }
+        };
+        const handleViewModeByWidth = () => {
+            const width = window.innerWidth;
+
+            // 只在列表視圖時自動切換
+            if (currentView.value !== 'list') return;
+
+            // 平板直向（768px-1024px）→ 強制網格模式
+            if (width >= 768 && width < 1024) {
+                if (viewMode.value !== 'grid') {
+                    isAutoSwitched = true;
+                    viewMode.value = 'grid';
+                }
+            }
+            // 桌面/平板橫向（>= 1024px）→ 恢復用戶偏好或預設表格模式
+            else if (width >= 1024) {
+                if (viewMode.value !== userPreferredMode) {
+                    isAutoSwitched = true;
+                    viewMode.value = userPreferredMode;
+                }
+            }
+        };
+        let removePopstateListenerProducts = null;
+
         onMounted(async () => {
             if (!initFromPreloadedData()) {
                 // 快取 fallback：使用 sessionStorage 快取加速重複訪問
@@ -991,70 +1139,40 @@ function useProducts() {
             // 頁面載入後立即檢查 URL 參數
             await checkUrlParams();
 
-            // 使用 BuyGoRouter 核心模組的 popstate 監聯
-            window.BuyGoRouter.setupPopstateListener(checkUrlParams);
+            // 使用 BuyGoRouter 核心模組的 popstate 監聽（儲存 cleanup 函式）
+            removePopstateListenerProducts = window.BuyGoRouter.setupPopstateListener(checkUrlParams);
 
             // 監聽頁面顯示事件（處理 bfcache 和頁面切換）
-            window.addEventListener('pageshow', async (e) => {
-                if (e.persisted) {
-                    await loadProducts();
-                    await checkUrlParams();
-                }
-            });
+            window.addEventListener('pageshow', handlePageshowProducts);
 
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
             // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
-                    if (window.BuyGoCache && window.BuyGoCache.isFresh && window.BuyGoCache.isFresh('products')) {
-                        return;
-                    }
-                    await loadProducts();
-                    await checkUrlParams();
-                }
-            });
+            document.addEventListener('visibilitychange', handleVisibilityChangeProducts);
 
-            // 平板響應式視圖自動切換
-            // 記錄用戶偏好的視圖模式（桌面尺寸下的選擇）
-            let userPreferredMode = viewMode.value;
-            let isAutoSwitched = false; // 標記是否為自動切換
+            // 初始化用戶偏好的視圖模式
+            userPreferredMode = viewMode.value;
 
             // 監聽用戶手動切換視圖模式
             watch(viewMode, (newMode) => {
-                // 如果不是自動切換，則記錄為用戶偏好
                 if (!isAutoSwitched && window.innerWidth >= 1024) {
                     userPreferredMode = newMode;
                 }
                 isAutoSwitched = false;
             });
 
-            const handleViewModeByWidth = () => {
-                const width = window.innerWidth;
-
-                // 只在列表視圖時自動切換
-                if (currentView.value !== 'list') return;
-
-                // 平板直向（768px-1024px）→ 強制網格模式
-                if (width >= 768 && width < 1024) {
-                    if (viewMode.value !== 'grid') {
-                        isAutoSwitched = true;
-                        viewMode.value = 'grid';
-                    }
-                }
-                // 桌面/平板橫向（>= 1024px）→ 恢復用戶偏好或預設表格模式
-                else if (width >= 1024) {
-                    if (viewMode.value !== userPreferredMode) {
-                        isAutoSwitched = true;
-                        viewMode.value = userPreferredMode;
-                    }
-                }
-            };
-
             // 初次檢查
             handleViewModeByWidth();
 
             // 監聽視窗尺寸變化
             window.addEventListener('resize', handleViewModeByWidth);
+        });
+
+        // SPA 清理：移除所有 event listener，防止記憶體洩漏
+        onUnmounted(() => {
+            if (removePopstateListenerProducts) removePopstateListenerProducts();
+            window.removeEventListener('pageshow', handlePageshowProducts);
+            document.removeEventListener('visibilitychange', handleVisibilityChangeProducts);
+            window.removeEventListener('resize', handleViewModeByWidth);
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）
@@ -1071,6 +1189,8 @@ function useProducts() {
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
             showImageModal, currentImage, imageUploading, imageError, toastMessage,
+            // 自訂欄位（Phase 49）
+            editTab, customFields, customFieldsLoading, customFieldsSaving, profit, profitMargin,
             currentPage, perPage, totalProducts, menuItems: [
                 { id: 'products', label: '商品管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>' },
                 { id: 'orders', label: '訂單管理', icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>' },
@@ -1086,6 +1206,8 @@ function useProducts() {
             handleProductSelect,
             handleProductSearch,
             handleProductSearchClear,
+            // 自訂欄位方法（Phase 49）
+            loadCustomFields, saveCustomFields,
             // Variation 方法
             getDisplayTitle,
             getDisplayPrice,
