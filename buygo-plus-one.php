@@ -42,7 +42,7 @@ if (defined('BUYGO_PLUS_ONE_VERSION')) {
 }
 
 // Define plugin constants
-define('BUYGO_PLUS_ONE_VERSION', '0.3.0-dev');
+define('BUYGO_PLUS_ONE_VERSION', '0.3.1');
 
 // 新版專用的常數（舊版不會定義這些）
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', plugin_dir_path(__FILE__));
