@@ -17,7 +17,11 @@ add_action('wp_ajax_buygo_dev_reset_data', function () {
         $results['order_items'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_order_items");
         $results['orders'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_orders");
 
-        $product_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'product'");
+        // FluentCart：先刪變體與詳情，再刪商品 post（無 fct_products 表，用 fct_product_details + fluent-products）
+        $results['fct_variations'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_variations");
+        $results['fct_product_details'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_details");
+
+        $product_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'");
         if (!empty($product_ids)) {
             $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
             $wpdb->query($wpdb->prepare(
@@ -29,9 +33,7 @@ add_action('wp_ajax_buygo_dev_reset_data', function () {
                 ...$product_ids
             ));
         }
-        $results['products'] = $wpdb->query("DELETE FROM {$wpdb->prefix}posts WHERE post_type = 'product'");
-        $results['fct_variations'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_product_variations");
-        $results['fct_products'] = $wpdb->query("DELETE FROM {$wpdb->prefix}fct_products");
+        $results['fluent_products'] = $wpdb->query("DELETE FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'");
 
         $wpdb->query('COMMIT');
         wp_send_json_success($results);
@@ -191,9 +193,9 @@ $default_open_types = ['error', 'permission_denied'];
 // Data stats
 global $wpdb;
 $data_stats = [
-    'products'     => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'"),
-    'fct_products' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}fct_products"),
-    'orders'       => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders"),
+    'products'      => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'product'"),
+    'fct_products'  => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}posts WHERE post_type = 'fluent-products'"),
+    'orders'        => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}fct_orders"),
     'order_items'  => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}fct_order_items"),
     'shipments'    => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}buygo_shipments"),
     'customers'    => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}fct_customers"),
