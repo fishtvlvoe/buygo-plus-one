@@ -126,28 +126,28 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROUTE-01 | — | Not started |
-| ROUTE-02 | — | Not started |
-| SELECT-01 | — | Not started |
-| SELECT-02 | — | Not started |
-| SELECT-03 | — | Not started |
-| SELECT-04 | — | Not started |
-| FORM-01 | — | Not started |
-| FORM-02 | — | Not started |
-| FORM-03 | — | Not started |
-| FORM-04 | — | Not started |
-| FORM-05 | — | Not started |
-| CSV-01 | — | Not started |
-| CSV-02 | — | Not started |
-| CSV-03 | — | Not started |
-| SUBMIT-01 | — | Not started |
-| SUBMIT-02 | — | Not started |
-| SUBMIT-03 | — | Not started |
-| SUBMIT-04 | — | Not started |
+| ROUTE-01 | Phase 57 | Not started |
+| ROUTE-02 | Phase 57 | Not started |
+| SELECT-01 | Phase 57 | Not started |
+| SELECT-02 | Phase 57 | Not started |
+| SELECT-03 | Phase 57 | Not started |
+| SELECT-04 | Phase 57 | Not started |
+| FORM-01 | Phase 58 | Not started |
+| FORM-02 | Phase 58 | Not started |
+| FORM-03 | Phase 58 | Not started |
+| FORM-04 | Phase 58 | Not started |
+| FORM-05 | Phase 58 | Not started |
+| CSV-01 | Phase 58 | Not started |
+| CSV-02 | Phase 58 | Not started |
+| CSV-03 | Phase 58 | Not started |
+| SUBMIT-01 | Phase 59 | Not started |
+| SUBMIT-02 | Phase 59 | Not started |
+| SUBMIT-03 | Phase 59 | Not started |
+| SUBMIT-04 | Phase 59 | Not started |
 
 **Coverage:**
 - v3.2 requirements: 18 total
-- Mapped to phases: 0/18 (0%) — pending roadmap
+- Mapped to phases: 18/18 (100%)
 
 ---
 
@@ -477,4 +477,4 @@
 
 ---
 
-*Last updated: 2026-03-01 — v3.2 requirements added (18 total), v3.1 complete (17), v2.0 complete (29)*
+*Last updated: 2026-03-01 — v3.2 roadmap complete (18/18 mapped, Phases 57-59), v3.1 complete (17), v2.0 complete (29)*

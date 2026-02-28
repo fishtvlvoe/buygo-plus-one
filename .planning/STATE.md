@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — 定義需求中
+**當前焦點:** v3.2 批量上架前端 — Phase 57 準備開始
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -18,11 +18,11 @@
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** Not started (defining requirements)
-**Status:** Defining requirements
+**Phase:** 57 (Not started)
+**Status:** Roadmap complete, ready to plan
 
 ```
-進度 [░░░░░░░░░░] 0/? phases
+進度 [░░░░░░░░░░] 0/3 phases
 ```
 
 **已完成的 Milestones:**
@@ -36,7 +36,21 @@
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-03-01 — v3.2 Milestone 開始，設計圖已完成（.planning/designs/）
+**Last activity:** 2026-03-01 — v3.2 Roadmap 建立（3 Phases, 18 requirements 全覆蓋）
+
+---
+
+## v3.2 Phase 結構
+
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | Not started |
+| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | Not started |
+| 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
+
+**Execution Order:** 57 → 58 → 59（線性依賴）
+
+**Coverage:** 18/18 requirements mapped (100%)
 
 ---
 
@@ -80,6 +94,15 @@
 ---
 
 ## 累積決策
+
+**v3.2 核心決策:**
+- 純前端 Milestone — Phase 56 後端 API 已完成，不修改後端
+- ROUTE + SELECT 合為 Phase 57（都是流程入口設置，體量小但關聯緊密）
+- FORM + CSV 合為 Phase 58（CSV 匯入是表單的延伸功能，同一頁面，拆開無意義）
+- SUBMIT 獨立為 Phase 59（收尾環節，含 API 呼叫 + 結果分支處理）
+- 響應式設計：手機版卡片式 / 桌面版表格式（設計圖已定案）
+- 配額資料從現有 ProductLimitChecker API 取得
+- CSV 解析在前端做（不送後端解析），數量缺失預設 0
 
 **v3.1 核心決策（對話中確認）:**
 - 先做 WP 後台（wp-admin），Portal 前台 UI 之後再加
@@ -151,4 +174,4 @@
 
 ---
 
-*State updated: 2026-02-24 — v3.1 milestone 完成 (5/5 phases)*
+*State updated: 2026-03-01 — v3.2 Roadmap 建立，3 phases (57-59)，18/18 需求已覆蓋*
