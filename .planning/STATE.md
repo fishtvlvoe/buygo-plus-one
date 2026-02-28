@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-02-24
-**專案版本:** v3.1 WP 後台完善 + 批量上架
+**最後更新:** 2026-03-01
+**專案版本:** v3.2 批量上架前端
 
 ---
 
@@ -9,20 +9,20 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.1 已完成，等待下一個 milestone
+**當前焦點:** v3.2 批量上架前端 — 定義需求中
 
-**PROJECT.md 最後更新:** 2026-02-24
+**PROJECT.md 最後更新:** 2026-03-01
 
 ---
 
 ## 當前位置
 
-**Milestone:** v3.1 - WP 後台完善 + 批量上架
-**Phase:** All complete
-**Status:** ✅ Milestone complete
+**Milestone:** v3.2 - 批量上架前端
+**Phase:** Not started (defining requirements)
+**Status:** Defining requirements
 
 ```
-進度 [██████████] 5/5 phases (52-56)
+進度 [░░░░░░░░░░] 0/? phases
 ```
 
 **已完成的 Milestones:**
@@ -36,7 +36,7 @@
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-02-24 — v3.1 所有 Phase 完成（52-56），127 單元測試全部通過
+**Last activity:** 2026-03-01 — v3.2 Milestone 開始，設計圖已完成（.planning/designs/）
 
 ---
 
