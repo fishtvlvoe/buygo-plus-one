@@ -257,6 +257,8 @@ class FluentCartService {
 		// FluentCart 使用「分」為單位儲存價格，所以 350 元要存成 35000
 		$price = intval( $data['price'] ?? 0 ) * 100;
 		$quantity = intval( $data['quantity'] ?? 0 );
+		// quantity = 0 代表無限量上架（不追蹤庫存）
+		$is_unlimited = ( 0 === $quantity );
 
 		$detail_data = array(
 			'post_id' => $product_id,
@@ -265,12 +267,12 @@ class FluentCartService {
 			'max_price' => $price,
 			'default_variation_id' => null,
 			'default_media' => null,
-			'manage_stock' => 1,
-			'stock_availability' => $quantity > 0 ? 'in-stock' : 'out-of-stock',
+			'manage_stock' => $is_unlimited ? 0 : 1,
+			'stock_availability' => 'in-stock',
 			'variation_type' => 'simple',
 			'manage_downloadable' => 0,
 			'other_info' => wp_json_encode( array(
-				'stock_quantity' => $quantity,
+				'stock_quantity' => $is_unlimited ? 0 : $quantity,
 			) ),
 			'created_at' => current_time( 'mysql' ),
 			'updated_at' => current_time( 'mysql' ),
@@ -358,6 +360,8 @@ class FluentCartService {
 
 		$min_price = ! empty( $prices ) ? min( $prices ) * 100 : 0; // 轉換為分
 		$max_price = ! empty( $prices ) ? max( $prices ) * 100 : 0; // 轉換為分
+		// total_quantity = 0 代表無限量（不追蹤庫存）
+		$is_unlimited = ( 0 === $total_quantity );
 
 		// 建立商品詳情
 		$detail_data = array(
@@ -367,12 +371,12 @@ class FluentCartService {
 			'max_price' => $max_price,
 			'default_variation_id' => null,
 			'default_media' => null,
-			'manage_stock' => 1,
-			'stock_availability' => $total_quantity > 0 ? 'in-stock' : 'out-of-stock',
+			'manage_stock' => $is_unlimited ? 0 : 1,
+			'stock_availability' => 'in-stock',
 			'variation_type' => 'variable', // 多樣式商品
 			'manage_downloadable' => 0,
 			'other_info' => wp_json_encode( array(
-				'stock_quantity' => $total_quantity,
+				'stock_quantity' => $is_unlimited ? 0 : $total_quantity,
 			) ),
 			'created_at' => current_time( 'mysql' ),
 			'updated_at' => current_time( 'mysql' ),
@@ -484,6 +488,8 @@ class FluentCartService {
 
 		$price = intval( $variation['price'] ?? $product_data['price'] ?? 0 ) * 100; // 轉換為分
 		$quantity = intval( $variation['quantity'] ?? 0 );
+		// quantity = 0 代表無限量（不追蹤庫存）
+		$is_unlimited = ( 0 === $quantity );
 		$variation_title = $variation['variation_title'] ?? $variation['name'] ?? $product_data['name'] ?? '';
 
 		// 處理原價 (compare_price / original_price)
@@ -507,10 +513,10 @@ class FluentCartService {
 			'post_id' => $product_id,
 			'variation_title' => sanitize_text_field( $variation_title ),
 			'variation_identifier' => 'BUYGO-' . $product_id . '-' . ( $variation['code'] ?? '' ),
-			'manage_stock' => 1,
-			'stock_status' => $quantity > 0 ? 'in-stock' : 'out-of-stock',
-			'total_stock' => $quantity,
-			'available' => $quantity,
+			'manage_stock' => $is_unlimited ? 0 : 1,
+			'stock_status' => 'in-stock',
+			'total_stock' => $is_unlimited ? 0 : $quantity,
+			'available' => $is_unlimited ? 0 : $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
 			'compare_price' => $compare_price ?? 0, // 【關鍵修復】儲存原價到資料庫欄位
@@ -561,6 +567,8 @@ class FluentCartService {
 		// FluentCart 使用「分」為單位儲存價格，所以 350 元要存成 35000
 		$price = intval( $data['price'] ?? 0 ) * 100;
 		$quantity = intval( $data['quantity'] ?? 0 );
+		// quantity = 0 代表無限量（不追蹤庫存）
+		$is_unlimited = ( 0 === $quantity );
 
 		// 處理原價 (compare_price / original_price)
 		$compare_price = null;
@@ -601,10 +609,10 @@ class FluentCartService {
 			'post_id' => $product_id,
 			'variation_title' => sanitize_text_field( $data['name'] ?? '' ),
 			'variation_identifier' => 'BUYGO-' . $product_id,
-			'manage_stock' => 1,
-			'stock_status' => $quantity > 0 ? 'in-stock' : 'out-of-stock',
-			'total_stock' => $quantity,
-			'available' => $quantity,
+			'manage_stock' => $is_unlimited ? 0 : 1,
+			'stock_status' => 'in-stock',
+			'total_stock' => $is_unlimited ? 0 : $quantity,
+			'available' => $is_unlimited ? 0 : $quantity,
 			'item_status' => 'active',
 			'item_price' => $price,
 			'compare_price' => $compare_price ?? 0, // 【關鍵修復】儲存原價到資料庫欄位
