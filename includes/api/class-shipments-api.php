@@ -424,14 +424,22 @@ class Shipments_API
 
             // 處理商品名稱、圖片和價格
             foreach ($items as &$item) {
-                // 取得商品名稱（優先使用 title，其次使用 post_title）
-                $product_name = $item['title'] ?? $item['post_title'] ?? null;
+                // 取得商品名稱：先從 product_id 取真名，再用 order_items 的 title 備援
+                $product_name = null;
 
-                // 如果從 order_items 沒有取得名稱，嘗試從 product_id 獲取
-                if (empty($product_name) && !empty($item['product_id'])) {
+                // 優先從 wp_posts 取商品真實名稱
+                if (!empty($item['product_id'])) {
                     $product = get_post($item['product_id']);
                     if ($product) {
                         $product_name = $product->post_title;
+                    }
+                }
+
+                // 備援：用 order_items 的 title（排除 FluentCart 預設的 variation 名稱）
+                if (empty($product_name)) {
+                    $raw_name = $item['title'] ?? $item['post_title'] ?? null;
+                    if (!empty($raw_name) && $raw_name !== '預設' && $raw_name !== 'Default') {
+                        $product_name = $raw_name;
                     }
                 }
 
@@ -925,14 +933,22 @@ class Shipments_API
 
             // 處理商品名稱和價格
             foreach ($items as &$item) {
-                // 取得商品名稱（優先使用 title，其次 post_title，處理空字串情況）
-                $product_name = !empty($item['title']) ? $item['title'] : (!empty($item['post_title']) ? $item['post_title'] : null);
+                // 取得商品名稱：先從 product_id 取真名，再用 order_items 的 title 備援
+                $product_name = null;
 
-                // 如果沒有名稱，從 product_id 獲取 WordPress 商品名稱
-                if (empty($product_name) && !empty($item['product_id'])) {
+                // 優先從 wp_posts 取商品真實名稱
+                if (!empty($item['product_id'])) {
                     $product = get_post($item['product_id']);
                     if ($product) {
                         $product_name = $product->post_title;
+                    }
+                }
+
+                // 備援：用 order_items 的 title（排除 FluentCart 預設的 variation 名稱）
+                if (empty($product_name)) {
+                    $raw_name = $item['title'] ?? $item['post_title'] ?? null;
+                    if (!empty($raw_name) && $raw_name !== '預設' && $raw_name !== 'Default') {
+                        $product_name = $raw_name;
                     }
                 }
 
@@ -1105,16 +1121,24 @@ class Shipments_API
                     $shipment_id
                 ), ARRAY_A);
 
-                // 處理商品名稱（處理空字串情況，與 get_shipment_detail 一致）
+                // 處理商品名稱（與 get_shipment_detail 一致）
                 foreach ($items as &$item) {
-                    // 優先使用 title，其次 post_title（處理空字串情況）
-                    $product_name = !empty($item['title']) ? $item['title'] : (!empty($item['post_title']) ? $item['post_title'] : null);
+                    // 先從 product_id 取真名，再用 order_items 的 title 備援
+                    $product_name = null;
 
-                    // 如果沒有名稱，從 product_id 獲取 WordPress 商品名稱
-                    if (empty($product_name) && !empty($item['product_id'])) {
+                    // 優先從 wp_posts 取商品真實名稱
+                    if (!empty($item['product_id'])) {
                         $product = get_post($item['product_id']);
                         if ($product) {
                             $product_name = $product->post_title;
+                        }
+                    }
+
+                    // 備援：用 order_items 的 title（排除 FluentCart 預設的 variation 名稱）
+                    if (empty($product_name)) {
+                        $raw_name = $item['title'] ?? $item['post_title'] ?? null;
+                        if (!empty($raw_name) && $raw_name !== '預設' && $raw_name !== 'Default') {
+                            $product_name = $raw_name;
                         }
                     }
 
