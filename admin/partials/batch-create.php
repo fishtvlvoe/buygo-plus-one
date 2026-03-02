@@ -209,6 +209,101 @@
     .bp-mobile-only { display: none; }
     .bp-desktop-only { display: block; }
 }
+
+/* ===== Phase 58 Plan 02: CSV 匯入樣式 ===== */
+
+/* 手機版 pill 切換 */
+.bp-pill-group {
+    display: inline-flex;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    background: #f8fafc;
+}
+.bp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.bp-pill.active {
+    background: #2563EB;
+    color: white;
+}
+.bp-pill:not(.active):hover {
+    background: #e2e8f0;
+}
+
+/* CSV 上傳區域 */
+.bp-csv-upload {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+}
+.bp-csv-upload:hover {
+    border-color: #2563EB;
+    background: #f0f5ff;
+}
+.bp-csv-upload.dragging {
+    border-color: #2563EB;
+    background: #eff6ff;
+}
+
+/* 提示訊息 */
+.bp-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+.bp-toast-success {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+.bp-toast-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* 桌面版 CSV 按鈕 */
+.bp-csv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.bp-csv-btn:hover {
+    border-color: #2563EB;
+    color: #2563EB;
+    background: #f0f5ff;
+}
 </style>
 
 <script type="text/x-template" id="batch-create-page-template">
@@ -334,6 +429,16 @@
             </svg>
             配額 {{ quotaUsed }}/{{ quota.limit === 0 ? '∞' : quota.limit }}
           </span>
+          <!-- 桌面版右側按鈕區 -->
+          <div class="ml-auto flex items-center gap-2">
+            <label class="bp-csv-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              匯入 CSV
+              <input type="file" accept=".csv" @change="handleCsvUpload" class="hidden">
+            </label>
+          </div>
         </div>
       </div>
 
@@ -354,11 +459,66 @@
         </div>
       </div>
 
+      <!-- === 手機版 pill 切換 (FORM-05) === -->
+      <div class="bp-mobile-only">
+        <div class="px-4 pt-3">
+          <div class="bp-pill-group">
+            <button @click="setFormMode('manual')" class="bp-pill" :class="{ active: formMode === 'manual' }">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              手動輸入
+            </button>
+            <button @click="setFormMode('csv')" class="bp-pill" :class="{ active: formMode === 'csv' }">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              CSV 匯入
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- === 表單主體 === -->
       <div class="flex-1 overflow-y-auto">
 
+        <!-- CSV 匯入結果提示（成功/錯誤） -->
+        <div class="px-4 pt-3" v-if="csvSuccessMsg || csvError">
+          <div v-if="csvSuccessMsg" class="bp-toast bp-toast-success">
+            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{{ csvSuccessMsg }}</span>
+            <button @click="clearCsvMessages" class="ml-auto text-green-500 hover:text-green-700">&times;</button>
+          </div>
+          <div v-if="csvError" class="bp-toast bp-toast-error">
+            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{{ csvError }}</span>
+            <button @click="clearCsvMessages" class="ml-auto text-red-500 hover:text-red-700">&times;</button>
+          </div>
+        </div>
+
+        <!-- 手機版 CSV 上傳區（formMode === 'csv' 時顯示，支援點擊和拖放） -->
+        <div v-if="formMode === 'csv'" class="bp-mobile-only px-4 py-4">
+          <label class="bp-csv-upload block" :class="{ dragging: isDragging }"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleDrop">
+            <input type="file" accept=".csv" @change="handleCsvUpload" class="hidden">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              <p class="text-sm font-semibold text-slate-600">點擊或拖放 CSV 檔案到此處</p>
+              <p class="text-xs text-slate-400">欄位：名稱、售價、數量、描述</p>
+            </div>
+          </label>
+        </div>
+
         <!-- ===== 手機版：卡片式表單 (FORM-01) ===== -->
-        <div class="bp-mobile-only px-4 py-4">
+        <div v-if="formMode === 'manual'" class="bp-mobile-only px-4 py-4">
           <div v-for="(item, index) in items" :key="item.id" class="bp-card">
             <!-- 卡片標題 -->
             <div class="bp-card-header">
