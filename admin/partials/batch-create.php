@@ -34,6 +34,181 @@
     margin-top: 2px;
     opacity: 0.8;
 }
+
+/* ===== Phase 58: 批量表單樣式 ===== */
+
+/* 配額進度條 */
+.bp-quota-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+    flex: 1;
+    min-width: 80px;
+}
+.bp-quota-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: #2563EB;
+    transition: width 0.3s ease;
+}
+.bp-quota-bar-fill.over {
+    background: #dc2626;
+}
+
+/* 手機版卡片 */
+.bp-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.bp-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.bp-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1e293b;
+}
+.bp-card-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2563EB;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+.bp-field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 4px;
+}
+.bp-field-label .required {
+    color: #dc2626;
+}
+.bp-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.bp-input:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+.bp-input::placeholder {
+    color: #94a3b8;
+}
+.bp-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bp-delete-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+.bp-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    background: transparent;
+    color: #2563EB;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bp-add-btn:hover {
+    border-color: #2563EB;
+    background: #f0f5ff;
+}
+
+/* 桌面版表格 */
+.bp-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.bp-table th {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+.bp-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+.bp-table .bp-row-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #2563EB;
+    font-size: 12px;
+    font-weight: 700;
+}
+.bp-table input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.bp-table input:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+.bp-table input::placeholder {
+    color: #94a3b8;
+}
+
+/* 響應式斷點：768px */
+.bp-mobile-only { display: block; }
+.bp-desktop-only { display: none; }
+@media (min-width: 768px) {
+    .bp-mobile-only { display: none; }
+    .bp-desktop-only { display: block; }
+}
 </style>
 
 <script type="text/x-template" id="batch-create-page-template">
@@ -146,13 +321,135 @@
       </div>
     </div>
 
-    <!-- 步驟 2: 表單填寫（Phase 58 實作） -->
-    <div v-if="step === 'form'" class="flex-1 flex items-center justify-center p-4">
-      <div class="text-center text-slate-500">
-        <p class="text-lg font-bold mb-2">表單填寫</p>
-        <p>Phase 58 實作</p>
+    <!-- 步驟 2: 表單填寫 (FORM-01 ~ FORM-05) -->
+    <div v-if="step === 'form'" class="flex-1 flex flex-col">
+
+      <!-- === 桌面版配額 badge (FORM-04 桌面) === -->
+      <div class="bp-desktop-only">
+        <div class="flex items-center gap-3 px-6 py-3 border-b border-slate-200 bg-white">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+            :class="isFormOverQuota ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            配額 {{ quotaUsed }}/{{ quota.limit === 0 ? '∞' : quota.limit }}
+          </span>
+        </div>
       </div>
-    </div>
+
+      <!-- === 手機版配額進度條 (FORM-04) === -->
+      <div class="bp-mobile-only">
+        <div class="px-4 py-3 bg-white border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 shrink-0" :class="isFormOverQuota ? 'text-red-500' : 'text-blue-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <span class="text-sm font-semibold" :class="isFormOverQuota ? 'text-red-600' : 'text-slate-700'">
+              商品配額：{{ quotaUsed }} / {{ quota.limit === 0 ? '∞' : quota.limit }}
+            </span>
+            <div v-if="quota.limit > 0" class="bp-quota-bar">
+              <div class="bp-quota-bar-fill" :class="{ over: isFormOverQuota }" :style="{ width: quotaPercent + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === 表單主體 === -->
+      <div class="flex-1 overflow-y-auto">
+
+        <!-- ===== 手機版：卡片式表單 (FORM-01) ===== -->
+        <div class="bp-mobile-only px-4 py-4">
+          <div v-for="(item, index) in items" :key="item.id" class="bp-card">
+            <!-- 卡片標題 -->
+            <div class="bp-card-header">
+              <div class="bp-card-title">
+                <span class="bp-card-num">{{ index + 1 }}</span>
+                商品 #{{ index + 1 }}
+              </div>
+              <button v-if="items.length > 1" @click="removeItem(item.id)" class="bp-delete-btn" title="刪除此商品">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+            <!-- 商品名稱 -->
+            <div class="mb-3">
+              <div class="bp-field-label">商品名稱 <span class="required">*</span></div>
+              <input type="text" v-model="item.name" class="bp-input" placeholder="輸入商品名稱">
+            </div>
+            <!-- 售價 + 數量（並排） -->
+            <div class="flex gap-3 mb-3">
+              <div class="flex-1">
+                <div class="bp-field-label">售價 <span class="required">*</span></div>
+                <input type="number" v-model="item.price" class="bp-input" placeholder="售價" min="0">
+              </div>
+              <div class="flex-1">
+                <div class="bp-field-label">數量 (0=無限)</div>
+                <input type="number" v-model="item.quantity" class="bp-input" placeholder="數量" min="0">
+              </div>
+            </div>
+            <!-- 描述 -->
+            <div>
+              <div class="bp-field-label">描述（選填）</div>
+              <input type="text" v-model="item.description" class="bp-input" placeholder="商品描述...">
+            </div>
+          </div>
+
+          <!-- 新增商品按鈕 (FORM-03) -->
+          <button @click="addItem" class="bp-add-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            新增商品
+          </button>
+        </div>
+
+        <!-- ===== 桌面版：表格式表單 (FORM-02) ===== -->
+        <div class="bp-desktop-only px-6 py-4">
+          <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <table class="bp-table">
+              <thead>
+                <tr>
+                  <th style="width:48px">#</th>
+                  <th>商品名稱</th>
+                  <th style="width:120px">售價</th>
+                  <th style="width:100px">數量</th>
+                  <th>描述</th>
+                  <th style="width:60px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in items" :key="item.id">
+                  <td><span class="bp-row-num">{{ index + 1 }}</span></td>
+                  <td><input type="text" v-model="item.name" placeholder="商品名稱"></td>
+                  <td><input type="number" v-model="item.price" placeholder="售價" min="0"></td>
+                  <td><input type="number" v-model="item.quantity" placeholder="數量" min="0"></td>
+                  <td><input type="text" v-model="item.description" placeholder="描述（選填）"></td>
+                  <td>
+                    <button v-if="items.length > 1" @click="removeItem(item.id)" class="bp-delete-btn" title="刪除">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- 新增商品列按鈕 (FORM-03) -->
+            <div class="p-3 border-t border-slate-100">
+              <button @click="addItem" class="bp-add-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                新增商品列
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /overflow-y-auto -->
+
+    </div><!-- /step === 'form' -->
 
   </main>
 </div>
