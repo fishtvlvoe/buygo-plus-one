@@ -288,6 +288,7 @@ foreach ($permission_keys as $perm) {
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useProducts.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentProducts.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useBatchCreate.js'; ?></script>
 
     <!-- 全域變數 -->
     <script>
