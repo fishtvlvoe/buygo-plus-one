@@ -318,6 +318,13 @@ function useProducts() {
             await handleNavigation(view, product, updateUrl);
         };
 
+        // 批量上架入口（Phase 57 ROUTE-01）
+        const goToBatchCreate = () => {
+            if (window.BuyGoRouter && window.BuyGoRouter.spaNavigate) {
+                window.BuyGoRouter.spaNavigate('batch-create');
+            }
+        };
+
         const handleNavigation = async (view, product = null, updateUrl = true) => {
             // 離開編輯頁時重置 Tab 和自訂欄位（Phase 49）
             if (view !== 'edit') {
@@ -1198,7 +1205,7 @@ function useProducts() {
             ],
 
             // Methods
-            navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
+            navigateTo, goToBatchCreate, checkUrlParams, getSubPageTitle, isAllSelected,
             loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete, allocateOrder, viewBuyers, formatDate,
             getStatusClass, getStatusText,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,

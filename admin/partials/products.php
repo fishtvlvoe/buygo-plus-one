@@ -74,6 +74,14 @@ $products_component_template .= <<<'HTML'
                             class="w-full"
                         ></smart-search-box>
                     </div>
+                    <!-- 批量上架按鈕 (ROUTE-01) -->
+                    <button @click="goToBatchCreate"
+                        class="flex items-center gap-1 px-3 py-2 md:px-4 md:py-2.5 bg-primary text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm whitespace-nowrap shrink-0 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span>上架</span>
+                    </button>
                     <!-- View Mode Toggle (支援手機版和桌面版) -->
                     <div class="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 md:p-1 shadow-sm shrink-0">
                         <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-primary text-white' : 'text-slate-500 hover:bg-slate-100'" class="p-1.5 md:p-2 rounded-md transition" title="列表檢視">
