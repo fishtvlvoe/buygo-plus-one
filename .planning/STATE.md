@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: 後台 UI 統一化
-status: completed
-last_updated: "2026-03-02T12:48:31.829Z"
-last_activity: 2026-03-02 — Phase 57 Plan 02 完成（數量選擇 UI + useBatchCreate composable）
+status: in_progress
+last_updated: "2026-03-03T00:53:00.000Z"
+last_activity: 2026-03-03 — Phase 58 Plan 01 完成（響應式批量表單 UI + useBatchCreate 表單狀態管理）
 progress:
   total_phases: 33
   completed_phases: 19
   total_plans: 55
-  completed_plans: 45
+  completed_plans: 46
 ---
 
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-03-02
-**專案版本:** v3.2 批量上架前端 (Phase 57 完成)
+**最後更新:** 2026-03-03
+**專案版本:** v3.2 批量上架前端 (Phase 58 進行中)
 
 ---
 
@@ -23,7 +23,7 @@ progress:
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 57 完整完成（Plan 01 + Plan 02），等待 Phase 58
+**當前焦點:** v3.2 批量上架前端 — Phase 58 Plan 01 完成，等待 Plan 02 (CSV 匯入)
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -32,8 +32,8 @@ progress:
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 57 (Complete) → 58 (Next)
-**Status:** Milestone complete
+**Phase:** 58 (Plan 01 Complete) → 58-02 (Next)
+**Status:** In progress
 
 ```
 進度 [███░░░░░░░] Phase 57 完成 (1/3 phases done)
@@ -50,7 +50,7 @@ progress:
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-03-02 — Phase 57 Plan 02 完成（數量選擇 UI + useBatchCreate composable）
+**Last activity:** 2026-03-03 — Phase 58 Plan 01 完成（響應式批量表單 UI + useBatchCreate 表單狀態管理）
 
 ---
 
@@ -59,7 +59,7 @@ progress:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | ✅ Complete |
-| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | Not started |
+| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | 🔄 Plan 01 Done (FORM-01~04) |
 | 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
 
 **Execution Order:** 57 → 58 → 59（線性依賴）
@@ -122,6 +122,12 @@ progress:
 - class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
 - 按鈕放在 v-show="currentView === 'list'" 範圍內，自動只在列表視圖顯示
 - goToBatchCreate 放在 useProducts.js 而非模板內聯，維持 composable 集中邏輯的慣例
+
+**Phase 58 Plan 01 決策（2026-03-03）:**
+- price/quantity 存字串而非 number，避免 number input 的 0 預設值問題（延續 Phase 57 的 customQuantity 慣例）
+- isFormOverQuota 獨立計算（不複用 isOverQuota）：表單階段用 itemCount，數量選擇階段用 quantity，語意不同
+- quotaUsed = quota.current + itemCount：動態反映新增/刪除商品時的配額佔用（含已存在商品數）
+- Last activity: 2026-03-03 — Phase 58 Plan 01（響應式批量表單 + composable 表單狀態管理）
 
 **Phase 57 Plan 02 決策（2026-03-02）:**
 - customQuantity 存字串而非 number，避免 number input 的 0 預設值問題
