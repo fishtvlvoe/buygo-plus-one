@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: 後台 UI 統一化
+status: completed
+last_updated: "2026-03-02T12:48:31.829Z"
+last_activity: 2026-03-02 — Phase 57 Plan 02 完成（數量選擇 UI + useBatchCreate composable）
+progress:
+  total_phases: 33
+  completed_phases: 19
+  total_plans: 55
+  completed_plans: 45
+---
+
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-03-02
@@ -19,7 +33,7 @@
 
 **Milestone:** v3.2 - 批量上架前端
 **Phase:** 57 (Complete) → 58 (Next)
-**Status:** Phase 57 完成（Plan 01 路由入口 + Plan 02 數量選擇 UI），Phase 58 待執行
+**Status:** Milestone complete
 
 ```
 進度 [███░░░░░░░] Phase 57 完成 (1/3 phases done)
