@@ -1,7 +1,7 @@
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-03-02
-**專案版本:** v3.2 批量上架前端
+**專案版本:** v3.2 批量上架前端 (Phase 57 完成)
 
 ---
 
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 57 Plan 01 完成，等待 Plan 02
+**當前焦點:** v3.2 批量上架前端 — Phase 57 完整完成（Plan 01 + Plan 02），等待 Phase 58
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -18,11 +18,11 @@
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 57 (In Progress — Plan 01 Done)
-**Status:** Plan 01 完成（路由入口 + 上架按鈕），Plan 02 待執行
+**Phase:** 57 (Complete) → 58 (Next)
+**Status:** Phase 57 完成（Plan 01 路由入口 + Plan 02 數量選擇 UI），Phase 58 待執行
 
 ```
-進度 [█░░░░░░░░░] 1/3 phases (Plan 01 done)
+進度 [███░░░░░░░] Phase 57 完成 (1/3 phases done)
 ```
 
 **已完成的 Milestones:**
@@ -36,7 +36,7 @@
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-03-01 — v3.2 Roadmap 建立（3 Phases, 18 requirements 全覆蓋）
+**Last activity:** 2026-03-02 — Phase 57 Plan 02 完成（數量選擇 UI + useBatchCreate composable）
 
 ---
 
@@ -44,7 +44,7 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | Not started |
+| 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | ✅ Complete |
 | 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | Not started |
 | 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
 
@@ -108,6 +108,13 @@
 - class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
 - 按鈕放在 v-show="currentView === 'list'" 範圍內，自動只在列表視圖顯示
 - goToBatchCreate 放在 useProducts.js 而非模板內聯，維持 composable 集中邏輯的慣例
+
+**Phase 57 Plan 02 決策（2026-03-02）:**
+- customQuantity 存字串而非 number，避免 number input 的 0 預設值問題
+- quota.limit === 0 定義為無限制，remaining 為 Infinity，isOverQuota 永遠 false
+- CSS class 加 bp- 前綴（bp-number, bp-unit）避免全站樣式衝突
+- BatchCreatePage.js 獨立成檔，維持 composable/component/partial 三層分離慣例
+- startFilling() 預留 step.value = 'form' 接口，Phase 58 直接解除註解
 
 **v3.1 核心決策（對話中確認）:**
 - 先做 WP 後台（wp-admin），Portal 前台 UI 之後再加
