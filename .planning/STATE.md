@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: 後台 UI 統一化
 status: in_progress
-last_updated: "2026-03-03T00:53:00.000Z"
-last_activity: 2026-03-03 — Phase 58 Plan 01 完成（響應式批量表單 UI + useBatchCreate 表單狀態管理）
+last_updated: "2026-03-03T01:07:00.000Z"
+last_activity: 2026-03-03 — Phase 58 Plan 02 完成（CSV 匯入功能 + 模式切換 UI）
 progress:
   total_phases: 33
   completed_phases: 19
   total_plans: 55
-  completed_plans: 46
+  completed_plans: 47
 ---
 
 # BuyGo Plus One - 專案狀態
@@ -23,7 +23,7 @@ progress:
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 58 Plan 01 完成，等待 Plan 02 (CSV 匯入)
+**當前焦點:** v3.2 批量上架前端 — Phase 58 Plan 02 完成，等待 Phase 59 (提交與結果回饋)
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -32,7 +32,7 @@ progress:
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 58 (Plan 01 Complete) → 58-02 (Next)
+**Phase:** 58 (Complete) → 59 (Next)
 **Status:** In progress
 
 ```
@@ -50,7 +50,7 @@ progress:
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
 
-**Last activity:** 2026-03-03 — Phase 58 Plan 01 完成（響應式批量表單 UI + useBatchCreate 表單狀態管理）
+**Last activity:** 2026-03-03 — Phase 58 Plan 02 完成（CSV 匯入功能 + 模式切換 UI）
 
 ---
 
@@ -59,7 +59,7 @@ progress:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | ✅ Complete |
-| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | 🔄 Plan 01 Done (FORM-01~04) |
+| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | ✅ Complete (FORM-01~05, CSV-01~03) |
 | 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
 
 **Execution Order:** 57 → 58 → 59（線性依賴）
@@ -122,6 +122,13 @@ progress:
 - class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
 - 按鈕放在 v-show="currentView === 'list'" 範圍內，自動只在列表視圖顯示
 - goToBatchCreate 放在 useProducts.js 而非模板內聯，維持 composable 集中邏輯的慣例
+
+**Phase 58 Plan 02 決策（2026-03-03）:**
+- CSV 解析在前端做（FileReader + 字串分割），不送後端，已定案
+- 匯入策略：保留已填寫 items（name/price 非空）+ 追加 CSV 資料，避免覆蓋手動輸入
+- 數量缺失或非數字預設 '0'（無限上架），延續 items 字串型態慣例
+- 手機版 CSV 模式：隱藏卡片（v-if）顯示上傳區；桌面版表格永遠顯示，CSV 按鈕獨立
+- Last activity: 2026-03-03 — Phase 58 Plan 02（CSV 匯入功能 + 模式切換 UI）
 
 **Phase 58 Plan 01 決策（2026-03-03）:**
 - price/quantity 存字串而非 number，避免 number input 的 0 預設值問題（延續 Phase 57 的 customQuantity 慣例）
