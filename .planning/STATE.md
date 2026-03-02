@@ -1,6 +1,6 @@
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-03-01
+**最後更新:** 2026-03-02
 **專案版本:** v3.2 批量上架前端
 
 ---
@@ -9,7 +9,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 57 準備開始
+**當前焦點:** v3.2 批量上架前端 — Phase 57 Plan 01 完成，等待 Plan 02
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -18,11 +18,11 @@
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 57 (Not started)
-**Status:** Roadmap complete, ready to plan
+**Phase:** 57 (In Progress — Plan 01 Done)
+**Status:** Plan 01 完成（路由入口 + 上架按鈕），Plan 02 待執行
 
 ```
-進度 [░░░░░░░░░░] 0/3 phases
+進度 [█░░░░░░░░░] 1/3 phases (Plan 01 done)
 ```
 
 **已完成的 Milestones:**
@@ -103,6 +103,11 @@
 - 響應式設計：手機版卡片式 / 桌面版表格式（設計圖已定案）
 - 配額資料從現有 ProductLimitChecker API 取得
 - CSV 解析在前端做（不送後端解析），數量缺失預設 0
+
+**Phase 57 Plan 01 決策（2026-03-02）:**
+- class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
+- 按鈕放在 v-show="currentView === 'list'" 範圍內，自動只在列表視圖顯示
+- goToBatchCreate 放在 useProducts.js 而非模板內聯，維持 composable 集中邏輯的慣例
 
 **v3.1 核心決策（對話中確認）:**
 - 先做 WP 後台（wp-admin），Portal 前台 UI 之後再加
