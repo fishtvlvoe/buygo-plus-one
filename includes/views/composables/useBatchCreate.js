@@ -6,15 +6,16 @@
  * - 配額查詢（呼叫 /products/limit-check API）
  * - 超額檢查與 CTA 按鈕狀態控制
  * - SPA 導航（返回商品列表 / 進入下一步）
+ * - 表單狀態管理（items CRUD + 配額進度）
  *
  * 步驟控制:
  * - 'select' = 數量選擇（Phase 57 實作）
- * - 'form'   = 表單填寫（Phase 58 實作）
+ * - 'form'   = 表單填寫（Phase 58 實作 ✓）
  *
  * 使用方式:
  * const { quantity, selectPreset, canProceed, ... } = useBatchCreate();
  *
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-03-02
  */
 
@@ -110,6 +111,83 @@ function useBatchCreate() {
         }
     };
 
+    // ========== 表單狀態（Phase 58） ==========
+
+    /**
+     * 商品表單項目陣列
+     * 每個 item: { id: number, name: '', price: '', quantity: '0', description: '' }
+     * id 用於 Vue v-for :key 追蹤
+     */
+    const items = ref([]);
+    let nextId = 1;
+
+    /**
+     * 建立單一空白商品物件
+     */
+    const createEmptyItem = () => ({
+        id: nextId++,
+        name: '',
+        price: '',
+        quantity: '0',
+        description: ''
+    });
+
+    /**
+     * 初始化 N 個空白商品
+     * 由 startFilling() 呼叫
+     */
+    const initItems = (count) => {
+        items.value = [];
+        nextId = 1;
+        for (let i = 0; i < count; i++) {
+            items.value.push(createEmptyItem());
+        }
+    };
+
+    /**
+     * 新增一個空白商品
+     */
+    const addItem = () => {
+        items.value.push(createEmptyItem());
+    };
+
+    /**
+     * 刪除指定商品（至少保留 1 個）
+     */
+    const removeItem = (id) => {
+        if (items.value.length <= 1) return;
+        items.value = items.value.filter(item => item.id !== id);
+    };
+
+    /**
+     * 目前表單中的商品數量
+     */
+    const itemCount = computed(() => items.value.length);
+
+    /**
+     * 配額進度（已用 + 目前表單中的商品數量）
+     * 用於頂部進度條顯示
+     */
+    const quotaUsed = computed(() => quota.value.current + itemCount.value);
+
+    /**
+     * 配額進度百分比（0-100）
+     * limit === 0 表示無限制，回傳 0（不顯示進度條）
+     */
+    const quotaPercent = computed(() => {
+        if (quota.value.limit === 0) return 0;
+        return Math.min(100, Math.round((quotaUsed.value / quota.value.limit) * 100));
+    });
+
+    /**
+     * 表單階段的「超額」判斷
+     * 和數量選擇階段不同 — 這裡用 itemCount 而非 quantity
+     */
+    const isFormOverQuota = computed(() => {
+        if (quota.value.limit === 0) return false;
+        return quotaUsed.value > quota.value.limit;
+    });
+
     // ========== 導航 ==========
 
     /**
@@ -123,12 +201,11 @@ function useBatchCreate() {
 
     /**
      * 開始填寫（進入 Phase 58 表單步驟）
-     * Phase 58 實作前暫時只記錄 log
      */
     const startFilling = () => {
         if (!canProceed.value) return;
-        // Phase 58 實作：step.value = 'form';
-        console.log('開始填寫', quantity.value, '個商品');
+        step.value = 'form';
+        initItems(quantity.value);
     };
 
     // ========== 生命週期 ==========
@@ -153,6 +230,9 @@ function useBatchCreate() {
         isOverQuota,
         canProceed,
         loadQuota,
+        // 表單（Phase 58）
+        items, createEmptyItem, initItems, addItem, removeItem,
+        itemCount, quotaUsed, quotaPercent, isFormOverQuota,
         // 導航
         goBack,
         startFilling
