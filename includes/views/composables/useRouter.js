@@ -24,7 +24,8 @@
             'shipment-details': 'ShipmentDetailsPageComponent',
             'customers':        'CustomersPageComponent',
             'settings':         'SettingsPageComponent',
-            'search':           'SearchPageComponent'
+            'search':           'SearchPageComponent',
+            'batch-create':     'BatchCreatePageComponent'
         },
 
         // 頁面→權限對應（與 PHP 端一致）
@@ -34,7 +35,8 @@
             'shipment-products': 'shipments',
             'shipment-details':  'shipments',
             'customers':         'customers',
-            'settings':          'settings'
+            'settings':          'settings',
+            'batch-create':      'products'
         },
 
         // 防重複初始化 flag
