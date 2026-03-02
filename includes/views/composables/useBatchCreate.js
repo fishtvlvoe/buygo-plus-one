@@ -7,6 +7,7 @@
  * - 超額檢查與 CTA 按鈕狀態控制
  * - SPA 導航（返回商品列表 / 進入下一步）
  * - 表單狀態管理（items CRUD + 配額進度）
+ * - CSV 匯入（前端解析 + 模式切換）
  *
  * 步驟控制:
  * - 'select' = 數量選擇（Phase 57 實作）
@@ -188,6 +189,268 @@ function useBatchCreate() {
         return quotaUsed.value > quota.value.limit;
     });
 
+    // ========== 模式切換 + CSV 匯入（Phase 58 Plan 02） ==========
+
+    /**
+     * 表單模式：'manual' = 手動輸入, 'csv' = CSV 匯入
+     * 切換時保留已填寫的手動資料
+     */
+    const formMode = ref('manual');
+
+    /**
+     * CSV 匯入相關狀態
+     */
+    const csvError = ref('');           // CSV 解析錯誤訊息
+    const csvSuccessMsg = ref('');      // CSV 匯入成功提示（例如「成功匯入 8 筆」）
+    const csvUploading = ref(false);    // 上傳中狀態
+
+    /**
+     * 切換表單模式
+     * 切換到 csv 模式時保留 items（不清空）
+     */
+    const setFormMode = (mode) => {
+        formMode.value = mode;
+        csvError.value = '';
+        csvSuccessMsg.value = '';
+    };
+
+    /**
+     * 解析 CSV 文字內容
+     * 支援中英文表頭，自動對應欄位
+     * @param {string} text - CSV 原始文字
+     * @returns {{ data: Array, error: string }}
+     */
+    const parseCSV = (text) => {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) {
+            return { data: [], error: 'CSV 至少需要表頭和一行資料' };
+        }
+
+        // 解析表頭 — 支援中英文欄位名
+        const headerLine = lines[0];
+        const headers = headerLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+
+        // 欄位對照表
+        const fieldMap = {};
+        const nameAliases = ['名稱', 'name', '商品名稱', '品名'];
+        const priceAliases = ['售價', 'price', '價格', '單價'];
+        const qtyAliases = ['數量', 'quantity', 'qty', '庫存'];
+        const descAliases = ['描述', 'description', 'desc', '說明'];
+
+        headers.forEach((h, i) => {
+            if (nameAliases.includes(h)) fieldMap.name = i;
+            else if (priceAliases.includes(h)) fieldMap.price = i;
+            else if (qtyAliases.includes(h)) fieldMap.quantity = i;
+            else if (descAliases.includes(h)) fieldMap.description = i;
+        });
+
+        // 驗證必要欄位
+        if (fieldMap.name === undefined) {
+            return { data: [], error: 'CSV 缺少「名稱」欄位（支援：名稱、name、商品名稱、品名）' };
+        }
+        if (fieldMap.price === undefined) {
+            return { data: [], error: 'CSV 缺少「售價」欄位（支援：售價、price、價格、單價）' };
+        }
+
+        // 解析資料行
+        const data = [];
+        const errors = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;  // 跳過空行
+
+            const cols = line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+
+            const name = cols[fieldMap.name] || '';
+            const price = cols[fieldMap.price] || '';
+            const qty = fieldMap.quantity !== undefined ? cols[fieldMap.quantity] : '';
+            const desc = fieldMap.description !== undefined ? cols[fieldMap.description] : '';
+
+            // 驗證每行必填
+            if (!name) {
+                errors.push('第 ' + (i + 1) + ' 行缺少商品名稱');
+                continue;
+            }
+            if (!price || isNaN(Number(price))) {
+                errors.push('第 ' + (i + 1) + ' 行售價無效');
+                continue;
+            }
+
+            // 數量缺失或非數字 → 預設 0（無限）
+            const parsedQty = qty && !isNaN(Number(qty)) ? String(Math.max(0, Math.floor(Number(qty)))) : '0';
+
+            data.push({
+                name: name,
+                price: String(price),
+                quantity: parsedQty,
+                description: desc
+            });
+        }
+
+        if (data.length === 0) {
+            const errMsg = errors.length > 0
+                ? '無有效資料。' + errors.join('；')
+                : '無有效資料行';
+            return { data: [], error: errMsg };
+        }
+
+        return {
+            data: data,
+            error: errors.length > 0 ? '部分行有錯誤（已跳過）：' + errors.join('；') : ''
+        };
+    };
+
+    /**
+     * 處理 CSV 檔案上傳
+     * 前端解析 CSV → 填入 items 陣列
+     * @param {Event} event - file input change event
+     */
+    const handleCsvUpload = (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        csvError.value = '';
+        csvSuccessMsg.value = '';
+        csvUploading.value = true;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target.result;
+                const result = parseCSV(text);
+
+                if (result.error && result.data.length === 0) {
+                    // 完全失敗
+                    csvError.value = result.error;
+                    csvUploading.value = false;
+                    return;
+                }
+
+                // 將解析結果填入 items
+                // 策略：保留已填寫的手動資料 + 追加 CSV 資料
+                const newItems = result.data.map(d => ({
+                    id: nextId++,
+                    name: d.name,
+                    price: d.price,
+                    quantity: d.quantity,
+                    description: d.description
+                }));
+
+                // 保留已有手動填寫資料的 items，只替換空白的
+                const filledItems = items.value.filter(item =>
+                    item.name.trim() !== '' || item.price.trim() !== ''
+                );
+
+                items.value = [...filledItems, ...newItems];
+
+                // 如果合併後沒有項目，至少保留 CSV 的
+                if (items.value.length === 0 && newItems.length > 0) {
+                    items.value = newItems;
+                }
+
+                csvSuccessMsg.value = '成功匯入 ' + result.data.length + ' 筆商品';
+                if (result.error) {
+                    csvSuccessMsg.value += '（' + result.error + '）';
+                }
+
+                // 切回手動模式讓使用者編輯
+                formMode.value = 'manual';
+            } catch (err) {
+                csvError.value = '檔案讀取失敗：' + err.message;
+            } finally {
+                csvUploading.value = false;
+                // 重置 file input，允許重複上傳同一檔案
+                event.target.value = '';
+            }
+        };
+        reader.onerror = () => {
+            csvError.value = '檔案讀取失敗';
+            csvUploading.value = false;
+        };
+        reader.readAsText(file);
+    };
+
+    /**
+     * 拖放狀態（控制上傳區的 .dragging 視覺回饋）
+     */
+    const isDragging = ref(false);
+
+    /**
+     * 處理拖放上傳
+     * 從 dataTransfer 取得檔案，走和 handleCsvUpload 相同的 FileReader 路徑
+     * @param {DragEvent} event - drop event
+     */
+    const handleDrop = (event) => {
+        isDragging.value = false;
+        const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (!file) return;
+        if (!file.name.endsWith('.csv')) {
+            csvError.value = '請上傳 .csv 格式的檔案';
+            return;
+        }
+
+        csvError.value = '';
+        csvSuccessMsg.value = '';
+        csvUploading.value = true;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target.result;
+                const result = parseCSV(text);
+
+                if (result.error && result.data.length === 0) {
+                    csvError.value = result.error;
+                    csvUploading.value = false;
+                    return;
+                }
+
+                const newItems = result.data.map(d => ({
+                    id: nextId++,
+                    name: d.name,
+                    price: d.price,
+                    quantity: d.quantity,
+                    description: d.description
+                }));
+
+                const filledItems = items.value.filter(item =>
+                    item.name.trim() !== '' || item.price.trim() !== ''
+                );
+
+                items.value = [...filledItems, ...newItems];
+
+                if (items.value.length === 0 && newItems.length > 0) {
+                    items.value = newItems;
+                }
+
+                csvSuccessMsg.value = '成功匯入 ' + result.data.length + ' 筆商品';
+                if (result.error) {
+                    csvSuccessMsg.value += '（' + result.error + '）';
+                }
+
+                formMode.value = 'manual';
+            } catch (err) {
+                csvError.value = '檔案讀取失敗：' + err.message;
+            } finally {
+                csvUploading.value = false;
+            }
+        };
+        reader.onerror = () => {
+            csvError.value = '檔案讀取失敗';
+            csvUploading.value = false;
+        };
+        reader.readAsText(file);
+    };
+
+    /**
+     * 清除 CSV 提示訊息
+     */
+    const clearCsvMessages = () => {
+        csvError.value = '';
+        csvSuccessMsg.value = '';
+    };
+
     // ========== 導航 ==========
 
     /**
@@ -233,6 +496,9 @@ function useBatchCreate() {
         // 表單（Phase 58）
         items, createEmptyItem, initItems, addItem, removeItem,
         itemCount, quotaUsed, quotaPercent, isFormOverQuota,
+        // CSV 匯入（Phase 58 Plan 02）
+        formMode, csvError, csvSuccessMsg, csvUploading, isDragging,
+        setFormMode, parseCSV, handleCsvUpload, handleDrop, clearCsvMessages,
         // 導航
         goBack,
         startFilling
