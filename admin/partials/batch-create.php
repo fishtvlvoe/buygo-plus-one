@@ -931,7 +931,7 @@
                         <span v-else class="bp-img-placeholder">+</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" @change="uploadItemImage(item, $event)" class="hidden">
                         <div v-if="item.imageUploading" class="bp-spinner-sm"></div>
-                        <button v-if="item.imageUrl && !item.imageUploading" type="button" @click.prevent="removeItemImage(item)" class="bp-img-remove">&times;</button>
+                        <button v-if="item.imageUrl && !item.imageUploading" type="button" @click.stop.prevent="removeItemImage(item)" class="bp-img-remove">&times;</button>
                       </label>
                     </td>
                     <td><input type="text" v-model="item.name" placeholder="商品名稱"></td>
