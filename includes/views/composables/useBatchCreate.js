@@ -23,7 +23,7 @@
 // 注意: 全域函式，不使用 ES6 import/export（WordPress 環境相容）
 function useBatchCreate() {
     const { ref, computed, onMounted } = Vue;
-    const { get } = useApi();
+    const { get, post } = useApi();
 
     // ========== 步驟控制 ==========
     // 'select' = 數量選擇（Phase 57）
@@ -451,6 +451,152 @@ function useBatchCreate() {
         csvSuccessMsg.value = '';
     };
 
+    // ========== 提交與結果（Phase 59） ==========
+
+    /**
+     * 提交中狀態（控制按鈕 disabled + spinner）
+     */
+    const submitting = ref(false);
+
+    /**
+     * 全局提交錯誤訊息（網路錯誤等）
+     */
+    const submitError = ref('');
+
+    /**
+     * 有效商品：name 和 price 都已填寫且 price > 0
+     */
+    const validItems = computed(() => {
+        return items.value.filter(item =>
+            item.name.trim() !== '' &&
+            item.price.trim() !== '' &&
+            Number(item.price) > 0
+        );
+    });
+
+    /**
+     * 有效商品數量
+     */
+    const validItemCount = computed(() => validItems.value.length);
+
+    /**
+     * 清除所有 items 的 _error 屬性
+     * 在重新提交前呼叫
+     */
+    const clearItemErrors = () => {
+        items.value.forEach(item => {
+            delete item._error;
+        });
+    };
+
+    /**
+     * 提交批量上架
+     * 呼叫 POST /products/batch-create API
+     * 處理三種結果：全部成功 / 部分失敗 / 全部失敗
+     */
+    const submitBatch = async () => {
+        // 防重複
+        if (submitting.value) return;
+        // 前置驗證
+        if (validItemCount.value === 0) return;
+
+        submitting.value = true;
+        submitError.value = '';
+        clearItemErrors();
+
+        // 構建 payload
+        const payload = {
+            items: validItems.value.map(item => ({
+                name: item.name.trim(),
+                price: item.price.trim(),
+                quantity: item.quantity || '0',
+                description: item.description.trim()
+            }))
+        };
+
+        try {
+            const res = await post('/wp-json/buygo-plus-one/v1/products/batch-create', payload, {
+                showError: false,
+                showSuccess: false
+            });
+
+            if (res && res.data) {
+                if (res.data.failed === 0) {
+                    // 全部成功 — toast + 跳回商品列表
+                    if (window.showToast) {
+                        window.showToast('成功上架 ' + res.data.created + ' 個商品', 'success');
+                    }
+                    setTimeout(() => {
+                        goBack();
+                    }, 800);
+                } else if (res.data.created > 0 && res.data.failed > 0) {
+                    // 部分失敗 — 移除成功的，標記失敗的
+                    if (window.showToast) {
+                        window.showToast('成功 ' + res.data.created + ' 個，失敗 ' + res.data.failed + ' 個', 'error');
+                    }
+
+                    // 建立 validItems 到原始 items 的對應
+                    const validItemIds = validItems.value.map(item => item.id);
+                    const failedIndices = new Set();
+                    const failedErrors = {};
+
+                    if (res.data.results) {
+                        res.data.results.forEach(result => {
+                            if (!result.success) {
+                                // result.index 對應 payload.items 的 index，也就是 validItems 的 index
+                                const itemId = validItemIds[result.index];
+                                failedIndices.add(itemId);
+                                failedErrors[itemId] = result.error || '上架失敗';
+                            }
+                        });
+                    }
+
+                    // 只保留失敗的 + 無效的（未提交的）
+                    items.value = items.value.filter(item => {
+                        // 保留無效商品（不在 validItems 中的）
+                        if (!validItemIds.includes(item.id)) return true;
+                        // 保留失敗的
+                        return failedIndices.has(item.id);
+                    });
+
+                    // 標記錯誤
+                    items.value.forEach(item => {
+                        if (failedErrors[item.id]) {
+                            item._error = failedErrors[item.id];
+                        }
+                    });
+                } else {
+                    // 全部失敗（created === 0）
+                    const errorMsg = (res.data.results && res.data.results[0] && res.data.results[0].error)
+                        || '請檢查商品資料';
+                    if (window.showToast) {
+                        window.showToast('上架失敗：' + errorMsg, 'error');
+                    }
+                    // 標記所有 items 的 _error
+                    if (res.data.results) {
+                        const validItemIds = validItems.value.map(item => item.id);
+                        res.data.results.forEach(result => {
+                            if (!result.success && validItemIds[result.index]) {
+                                const targetItem = items.value.find(item => item.id === validItemIds[result.index]);
+                                if (targetItem) {
+                                    targetItem._error = result.error || '上架失敗';
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            // 網路錯誤 / API 完全無回應
+            submitError.value = err.message || '網路錯誤，請稍後重試';
+            if (window.showToast) {
+                window.showToast('上架失敗：' + (err.message || '網路錯誤，請稍後重試'), 'error');
+            }
+        } finally {
+            submitting.value = false;
+        }
+    };
+
     // ========== 導航 ==========
 
     /**
@@ -499,6 +645,9 @@ function useBatchCreate() {
         // CSV 匯入（Phase 58 Plan 02）
         formMode, csvError, csvSuccessMsg, csvUploading, isDragging,
         setFormMode, parseCSV, handleCsvUpload, handleDrop, clearCsvMessages,
+        // 提交（Phase 59）
+        submitting, submitError, validItems, validItemCount,
+        submitBatch, clearItemErrors,
         // 導航
         goBack,
         startFilling
