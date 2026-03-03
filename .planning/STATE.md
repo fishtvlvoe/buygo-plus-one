@@ -3,19 +3,19 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: 後台 UI 統一化
 status: completed
-last_updated: "2026-03-02T19:06:11.150Z"
-last_activity: 2026-03-03 — Phase 58 Plan 02 完成（CSV 匯入功能 + 模式切換 UI）
+last_updated: "2026-03-03T09:47:16Z"
+last_activity: 2026-03-03 — Phase 59 Plan 01 完成（提交按鈕 + API 呼叫 + 結果回饋），v3.2 milestone 完成
 progress:
   total_phases: 35
-  completed_phases: 20
+  completed_phases: 21
   total_plans: 57
-  completed_plans: 47
+  completed_plans: 48
 ---
 
 # BuyGo Plus One - 專案狀態
 
 **最後更新:** 2026-03-03
-**專案版本:** v3.2 批量上架前端 (Phase 58 進行中)
+**專案版本:** v3.2 批量上架前端 (Complete)
 
 ---
 
@@ -23,7 +23,7 @@ progress:
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 58 Plan 02 完成，等待 Phase 59 (提交與結果回饋)
+**當前焦點:** v3.2 批量上架前端 — 全部完成（Phase 57 + 58 + 59），18/18 需求已交付
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -32,11 +32,11 @@ progress:
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 58 (Complete) → 59 (Next)
+**Phase:** 59 (Complete)
 **Status:** Milestone complete
 
 ```
-進度 [███░░░░░░░] Phase 57 完成 (1/3 phases done)
+進度 [██████████] 3/3 phases done — v3.2 shipped
 ```
 
 **已完成的 Milestones:**
@@ -49,8 +49,9 @@ progress:
 - **v2.0** — 後台 UI 統一化 (Phases 41-46) — Shipped 2026-02-23
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
+- **v3.2** — 批量上架前端 (Phases 57-59) — Shipped 2026-03-03
 
-**Last activity:** 2026-03-03 — Phase 58 Plan 02 完成（CSV 匯入功能 + 模式切換 UI）
+**Last activity:** 2026-03-03 — Phase 59 Plan 01 完成（提交按鈕 + API 呼叫 + 結果回饋），v3.2 milestone shipped
 
 ---
 
@@ -60,7 +61,7 @@ progress:
 |-------|------|--------------|--------|
 | 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | ✅ Complete |
 | 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | ✅ Complete (FORM-01~05, CSV-01~03) |
-| 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
+| 59 | 提交與結果回饋 | SUBMIT-01~04 | ✅ Complete (SUBMIT-01~04) |
 
 **Execution Order:** 57 → 58 → 59（線性依賴）
 
@@ -117,6 +118,12 @@ progress:
 - 響應式設計：手機版卡片式 / 桌面版表格式（設計圖已定案）
 - 配額資料從現有 ProductLimitChecker API 取得
 - CSV 解析在前端做（不送後端解析），數量缺失預設 0
+
+**Phase 59 Plan 01 決策（2026-03-03）:**
+- useApi() 改為解構 get + post，submitBatch 直接使用 post() 呼叫 batch-create API
+- 部分失敗時 index 對應：API results[i].index -> validItems[index].id -> items 找回原始商品
+- 桌面版錯誤行用 template v-for 包裝（確保 item scope 正確），手機版在卡片底部直接顯示
+- Last activity: 2026-03-03 — Phase 59 Plan 01（提交按鈕 + API 呼叫 + 結果回饋），v3.2 shipped
 
 **Phase 57 Plan 01 決策（2026-03-02）:**
 - class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
@@ -213,4 +220,4 @@ progress:
 
 ---
 
-*State updated: 2026-03-01 — v3.2 Roadmap 建立，3 phases (57-59)，18/18 需求已覆蓋*
+*State updated: 2026-03-03 — v3.2 Milestone shipped，3/3 phases complete (57-59)，18/18 需求已交付*
