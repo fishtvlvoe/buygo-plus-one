@@ -938,16 +938,16 @@ function useProducts() {
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
 
         // 商品短連結
-        const getProductLink = (productId) => window.location.origin + '/item/' + productId;
+        const getProductLink = (productId) => window.location.origin + '/item/' + parseInt(productId, 10);
         const copyProductLink = async (productId) => {
             const url = getProductLink(productId);
             try {
                 await navigator.clipboard.writeText(url);
                 showToast('已複製商品連結');
             } catch {
-                // fallback
                 const ta = document.createElement('textarea');
                 ta.value = url;
+                ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
                 document.body.appendChild(ta);
                 ta.select();
                 document.execCommand('copy');
