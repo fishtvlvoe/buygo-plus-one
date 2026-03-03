@@ -130,7 +130,10 @@ function useBatchCreate() {
         name: '',
         price: '',
         quantity: '0',
-        description: ''
+        description: '',
+        imageId: null,
+        imageUrl: null,
+        imageUploading: false
     });
 
     /**
@@ -203,6 +206,27 @@ function useBatchCreate() {
     const csvError = ref('');           // CSV 解析錯誤訊息
     const csvSuccessMsg = ref('');      // CSV 匯入成功提示（例如「成功匯入 8 筆」）
     const csvUploading = ref(false);    // 上傳中狀態
+
+    /**
+     * CSV Modal 顯示狀態（桌面版用）
+     */
+    const showCsvModal = ref(false);
+
+    /**
+     * 下載 CSV 範本
+     * 前端生成 Blob + 觸發下載
+     */
+    const downloadCsvTemplate = () => {
+        const bom = '\uFEFF';  // UTF-8 BOM，確保 Excel 正確讀取中文
+        const content = bom + '名稱,售價,數量,描述\n範例商品,100,10,這是商品說明\n';
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'batch-create-template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     /**
      * 切換表單模式
@@ -334,7 +358,10 @@ function useBatchCreate() {
                     name: d.name,
                     price: d.price,
                     quantity: d.quantity,
-                    description: d.description
+                    description: d.description,
+                    imageId: null,
+                    imageUrl: null,
+                    imageUploading: false
                 }));
 
                 // 保留已有手動填寫資料的 items，只替換空白的
@@ -354,7 +381,8 @@ function useBatchCreate() {
                     csvSuccessMsg.value += '（' + result.error + '）';
                 }
 
-                // 切回手動模式讓使用者編輯
+                // 關閉 CSV modal（桌面版）+ 切回手動模式
+                showCsvModal.value = false;
                 formMode.value = 'manual';
             } catch (err) {
                 csvError.value = '檔案讀取失敗：' + err.message;
@@ -411,7 +439,10 @@ function useBatchCreate() {
                     name: d.name,
                     price: d.price,
                     quantity: d.quantity,
-                    description: d.description
+                    description: d.description,
+                    imageId: null,
+                    imageUrl: null,
+                    imageUploading: false
                 }));
 
                 const filledItems = items.value.filter(item =>
@@ -429,6 +460,8 @@ function useBatchCreate() {
                     csvSuccessMsg.value += '（' + result.error + '）';
                 }
 
+                // 關閉 CSV modal（桌面版）+ 切回手動模式
+                showCsvModal.value = false;
                 formMode.value = 'manual';
             } catch (err) {
                 csvError.value = '檔案讀取失敗：' + err.message;
@@ -449,6 +482,77 @@ function useBatchCreate() {
     const clearCsvMessages = () => {
         csvError.value = '';
         csvSuccessMsg.value = '';
+    };
+
+    // ========== 圖片上傳（Phase 60） ==========
+
+    /**
+     * 上傳單一商品圖片到暫存端點
+     * @param {Object} item - items 中的某個 item 物件
+     * @param {Event} event - file input change event
+     */
+    const uploadItemImage = async (item, event) => {
+        const file = event.target && event.target.files && event.target.files[0];
+        if (!file) return;
+
+        // 前端驗證
+        if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+            if (window.showToast) {
+                window.showToast('僅支援 JPG、PNG、WebP 格式', 'error');
+            }
+            event.target.value = '';
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            if (window.showToast) {
+                window.showToast('圖片大小不能超過 5MB', 'error');
+            }
+            event.target.value = '';
+            return;
+        }
+
+        item.imageUploading = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await window.fetch('/wp-json/buygo-plus-one/v1/products/upload-temp-image', {
+                method: 'POST',
+                headers: {
+                    'X-WP-Nonce': window.buygoWpNonce || ''
+                },
+                credentials: 'include',
+                body: formData
+            });
+
+            const res = await response.json();
+
+            if (res.success && res.data) {
+                item.imageId = res.data.attachment_id;
+                item.imageUrl = res.data.image_url;
+            } else {
+                if (window.showToast) {
+                    window.showToast(res.message || '圖片上傳失敗', 'error');
+                }
+            }
+        } catch (err) {
+            if (window.showToast) {
+                window.showToast('圖片上傳失敗：' + (err.message || '網路錯誤'), 'error');
+            }
+        } finally {
+            item.imageUploading = false;
+            event.target.value = '';
+        }
+    };
+
+    /**
+     * 清除商品圖片
+     * @param {Object} item - items 中的某個 item 物件
+     */
+    const removeItemImage = (item) => {
+        item.imageId = null;
+        item.imageUrl = null;
     };
 
     // ========== 提交與結果（Phase 59） ==========
@@ -506,12 +610,18 @@ function useBatchCreate() {
 
         // 構建 payload（後端 API 欄位名稱為 title，非 name）
         const payload = {
-            items: validItems.value.map(item => ({
-                title: item.name.trim(),
-                price: String(item.price).trim(),
-                quantity: item.quantity || '0',
-                description: item.description.trim()
-            }))
+            items: validItems.value.map(item => {
+                const data = {
+                    title: item.name.trim(),
+                    price: String(item.price).trim(),
+                    quantity: item.quantity || '0',
+                    description: item.description.trim()
+                };
+                if (item.imageId) {
+                    data.image_attachment_id = item.imageId;
+                }
+                return data;
+            })
         };
 
         try {
@@ -658,6 +768,10 @@ function useBatchCreate() {
         // CSV 匯入（Phase 58 Plan 02）
         formMode, csvError, csvSuccessMsg, csvUploading, isDragging,
         setFormMode, parseCSV, handleCsvUpload, handleDrop, clearCsvMessages,
+        // CSV Modal + 範本（Phase 60）
+        showCsvModal, downloadCsvTemplate,
+        // 圖片上傳（Phase 60）
+        uploadItemImage, removeItemImage,
         // 提交（Phase 59）
         submitting, submitError, validItems, validItemCount,
         submitBatch, clearItemErrors,

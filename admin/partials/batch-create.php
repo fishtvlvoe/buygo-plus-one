@@ -413,6 +413,200 @@
     padding: 8px 0 0;
     line-height: 1.6;
 }
+
+/* ===== Phase 60: CSV Modal + 圖片上傳 ===== */
+
+/* CSV Modal 對話框 */
+.bp-csv-modal {
+    max-width: 480px;
+    width: 90%;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+.bp-csv-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+.bp-csv-modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+.bp-csv-modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.bp-csv-modal-close:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+.bp-csv-modal-body {
+    padding: 20px;
+}
+.bp-csv-format {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+}
+.bp-csv-format code {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    background: #e2e8f0;
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: #1e293b;
+}
+.bp-csv-template-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #2563EB;
+    border-radius: 8px;
+    background: white;
+    color: #2563EB;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+}
+.bp-csv-template-btn:hover {
+    background: #eff6ff;
+}
+
+/* 圖片上傳 — 桌面版 */
+.bp-img-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s;
+}
+.bp-img-upload:hover {
+    border-color: #2563EB;
+    background: #eff6ff;
+}
+.bp-img-upload.has-image {
+    border-style: solid;
+    border-color: #e2e8f0;
+}
+.bp-img-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}
+.bp-img-placeholder {
+    font-size: 18px;
+    color: #94a3b8;
+    line-height: 1;
+}
+.bp-img-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #dc2626;
+    color: white;
+    border: none;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+.bp-spinner-sm {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.8);
+    border-radius: 6px;
+}
+.bp-spinner-sm::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #2563EB;
+    border-radius: 50%;
+    animation: bp-spin 0.6s linear infinite;
+}
+
+/* 圖片上傳 — 手機版 */
+.bp-img-upload-mobile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+.bp-img-upload-mobile .bp-img-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.bp-img-upload-mobile .bp-img-box.has-image {
+    border-style: solid;
+    border-color: #e2e8f0;
+}
+.bp-img-upload-mobile .bp-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+.bp-img-upload-mobile .bp-img-add-icon {
+    color: #94a3b8;
+    font-size: 12px;
+}
+.bp-img-upload-mobile .bp-img-add-text {
+    font-size: 11px;
+    color: #94a3b8;
+}
 </style>
 
 <script type="text/x-template" id="batch-create-page-template">
@@ -540,13 +734,12 @@
           </span>
           <!-- 桌面版右側按鈕區 -->
           <div class="ml-auto flex items-center gap-2">
-            <label class="bp-csv-btn">
+            <button class="bp-csv-btn" @click="showCsvModal = true">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
               </svg>
               匯入 CSV
-              <input type="file" accept=".csv" @change="handleCsvUpload" class="hidden">
-            </label>
+            </button>
             <button @click="submitBatch"
               :disabled="validItemCount === 0 || submitting"
               class="bp-submit-desktop">
@@ -631,6 +824,12 @@
               <p class="text-xs text-slate-400">欄位：名稱、售價、數量、描述</p>
             </div>
           </label>
+          <button @click="downloadCsvTemplate" class="bp-csv-template-btn mt-3 w-full justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            下載 CSV 範本
+          </button>
         </div>
 
         <!-- ===== 手機版：卡片式表單 (FORM-01) ===== -->
@@ -647,6 +846,26 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
               </button>
+            </div>
+            <!-- 圖片上傳（Phase 60） -->
+            <div class="mb-3">
+              <label class="bp-img-upload-mobile">
+                <div class="bp-img-box" :class="{ 'has-image': item.imageUrl }">
+                  <img v-if="item.imageUrl" :src="item.imageUrl">
+                  <template v-else>
+                    <svg class="w-5 h-5 bp-img-add-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="bp-img-add-text">新增圖片</span>
+                  </template>
+                  <div v-if="item.imageUploading" class="bp-spinner-sm"></div>
+                </div>
+                <div v-if="item.imageUrl" class="flex flex-col gap-1">
+                  <span class="text-xs text-green-600 font-medium">已上傳</span>
+                  <button type="button" @click.prevent="removeItemImage(item)" class="text-xs text-red-500 hover:text-red-700">移除</button>
+                </div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" @change="uploadItemImage(item, $event)" class="hidden">
+              </label>
             </div>
             <!-- 商品名稱 -->
             <div class="mb-3">
@@ -694,6 +913,7 @@
               <thead>
                 <tr>
                   <th style="width:48px">#</th>
+                  <th style="width:56px">圖片</th>
                   <th>商品名稱</th>
                   <th style="width:120px">售價</th>
                   <th style="width:100px">數量</th>
@@ -705,6 +925,15 @@
                 <template v-for="(item, index) in items" :key="item.id">
                   <tr :class="{ error: item._error }">
                     <td><span class="bp-row-num">{{ index + 1 }}</span></td>
+                    <td>
+                      <label class="bp-img-upload" :class="{ 'has-image': item.imageUrl }">
+                        <img v-if="item.imageUrl" :src="item.imageUrl" class="bp-img-thumb">
+                        <span v-else class="bp-img-placeholder">+</span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" @change="uploadItemImage(item, $event)" class="hidden">
+                        <div v-if="item.imageUploading" class="bp-spinner-sm"></div>
+                        <button v-if="item.imageUrl && !item.imageUploading" type="button" @click.prevent="removeItemImage(item)" class="bp-img-remove">&times;</button>
+                      </label>
+                    </td>
                     <td><input type="text" v-model="item.name" placeholder="商品名稱"></td>
                     <td><input type="number" v-model="item.price" placeholder="售價" min="0"></td>
                     <td><input type="number" v-model="item.quantity" placeholder="數量" min="0"></td>
@@ -718,7 +947,7 @@
                     </td>
                   </tr>
                   <tr v-if="item._error" class="error">
-                    <td colspan="6" style="padding: 2px 12px 8px; border-bottom: 1px solid #fecaca;">
+                    <td colspan="7" style="padding: 2px 12px 8px; border-bottom: 1px solid #fecaca;">
                       <div class="bp-error-msg">
                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -747,6 +976,54 @@
         </div>
 
       </div><!-- /overflow-y-auto -->
+
+      <!-- === CSV 匯入對話框（Phase 60） === -->
+      <div v-if="showCsvModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCsvModal = false">
+        <div class="bp-csv-modal">
+          <div class="bp-csv-modal-header">
+            <h3>匯入 CSV</h3>
+            <button class="bp-csv-modal-close" @click="showCsvModal = false">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="bp-csv-modal-body">
+            <p class="text-sm text-slate-600 mb-3">CSV 檔案格式說明：</p>
+            <div class="bp-csv-format">
+              <div class="mb-1"><code>名稱</code>（必填）— 商品名稱</div>
+              <div class="mb-1"><code>售價</code>（必填）— 商品價格</div>
+              <div class="mb-1"><code>數量</code>（選填）— 0 代表無限上架</div>
+              <div><code>描述</code>（選填）— 商品描述</div>
+            </div>
+            <button @click="downloadCsvTemplate" class="bp-csv-template-btn">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              下載 CSV 範本
+            </button>
+            <label class="bp-csv-upload block"
+              :class="{ dragging: isDragging }"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+              @drop.prevent="handleDrop($event)">
+              <input type="file" accept=".csv" @change="handleCsvUpload" class="hidden">
+              <div class="flex flex-col items-center gap-2">
+                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>
+                <p class="text-sm font-semibold text-slate-600">點擊或拖放 CSV 檔案到此處</p>
+              </div>
+            </label>
+            <div v-if="csvError" class="bp-toast bp-toast-error mt-3">
+              <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>{{ csvError }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 手機版底部提交欄 (SUBMIT-01) -->
       <div class="bp-submit-bar bp-mobile-only">

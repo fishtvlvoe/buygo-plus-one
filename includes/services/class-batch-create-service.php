@@ -220,7 +220,7 @@ class BatchCreateService
      */
     private function prepareProductData(array $item, int $user_id): array
     {
-        return [
+        $data = [
             'name' => trim($item['title']),
             'price' => (int) $item['price'],
             'quantity' => (int) ($item['quantity'] ?? 0),
@@ -228,6 +228,13 @@ class BatchCreateService
             'currency' => $item['currency'] ?? 'TWD',
             'user_id' => $user_id,
         ];
+
+        // 圖片（Phase 60 批量上架圖片上傳）
+        if (!empty($item['image_attachment_id'])) {
+            $data['image_attachment_id'] = (int) $item['image_attachment_id'];
+        }
+
+        return $data;
     }
 
     /**
