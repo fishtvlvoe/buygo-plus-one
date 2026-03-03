@@ -304,6 +304,115 @@
     color: #2563EB;
     background: #f0f5ff;
 }
+
+/* ===== Phase 59: 提交按鈕與結果回饋樣式 ===== */
+
+/* 手機版底部固定欄 */
+.bp-submit-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.bp-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.bp-submit-btn.primary {
+    background: #2563EB;
+    color: white;
+}
+.bp-submit-btn.primary:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+.bp-submit-btn:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+/* spinner 動畫 */
+.bp-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: bp-spin 0.6s linear infinite;
+}
+@keyframes bp-spin {
+    to { transform: rotate(360deg); }
+}
+/* 失敗商品紅色邊框 */
+.bp-card.error {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+.bp-table tr.error td {
+    background: #fef2f2;
+}
+.bp-table tr.error td:first-child {
+    border-left: 3px solid #dc2626;
+}
+.bp-error-msg {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+/* 桌面版提交按鈕 */
+.bp-submit-desktop {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: none;
+    background: #2563EB;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.bp-submit-desktop:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+.bp-submit-desktop:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+.bp-submit-desktop .bp-spinner {
+    width: 14px;
+    height: 14px;
+}
+/* 提示文字 */
+.bp-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 8px 0 0;
+    line-height: 1.6;
+}
 </style>
 
 <script type="text/x-template" id="batch-create-page-template">
@@ -438,6 +547,13 @@
               匯入 CSV
               <input type="file" accept=".csv" @change="handleCsvUpload" class="hidden">
             </label>
+            <button @click="submitBatch"
+              :disabled="validItemCount === 0 || submitting"
+              class="bp-submit-desktop">
+              <span v-if="submitting" class="bp-spinner"></span>
+              <span v-if="submitting">上架中...</span>
+              <span v-else>批量上架 ({{ validItemCount }})</span>
+            </button>
           </div>
         </div>
       </div>
@@ -519,7 +635,7 @@
 
         <!-- ===== 手機版：卡片式表單 (FORM-01) ===== -->
         <div v-if="formMode === 'manual'" class="bp-mobile-only px-4 py-4">
-          <div v-for="(item, index) in items" :key="item.id" class="bp-card">
+          <div v-for="(item, index) in items" :key="item.id" class="bp-card" :class="{ error: item._error }">
             <!-- 卡片標題 -->
             <div class="bp-card-header">
               <div class="bp-card-title">
@@ -553,6 +669,13 @@
               <div class="bp-field-label">描述（選填）</div>
               <input type="text" v-model="item.description" class="bp-input" placeholder="商品描述...">
             </div>
+            <!-- 失敗原因 -->
+            <div v-if="item._error" class="bp-error-msg">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              {{ item._error }}
+            </div>
           </div>
 
           <!-- 新增商品按鈕 (FORM-03) -->
@@ -579,20 +702,32 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in items" :key="item.id">
-                  <td><span class="bp-row-num">{{ index + 1 }}</span></td>
-                  <td><input type="text" v-model="item.name" placeholder="商品名稱"></td>
-                  <td><input type="number" v-model="item.price" placeholder="售價" min="0"></td>
-                  <td><input type="number" v-model="item.quantity" placeholder="數量" min="0"></td>
-                  <td><input type="text" v-model="item.description" placeholder="描述（選填）"></td>
-                  <td>
-                    <button v-if="items.length > 1" @click="removeItem(item.id)" class="bp-delete-btn" title="刪除">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
+                <template v-for="(item, index) in items" :key="item.id">
+                  <tr :class="{ error: item._error }">
+                    <td><span class="bp-row-num">{{ index + 1 }}</span></td>
+                    <td><input type="text" v-model="item.name" placeholder="商品名稱"></td>
+                    <td><input type="number" v-model="item.price" placeholder="售價" min="0"></td>
+                    <td><input type="number" v-model="item.quantity" placeholder="數量" min="0"></td>
+                    <td><input type="text" v-model="item.description" placeholder="描述（選填）"></td>
+                    <td>
+                      <button v-if="items.length > 1" @click="removeItem(item.id)" class="bp-delete-btn" title="刪除">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="item._error" class="error">
+                    <td colspan="6" style="padding: 2px 12px 8px; border-bottom: 1px solid #fecaca;">
+                      <div class="bp-error-msg">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {{ item._error }}
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
             <!-- 新增商品列按鈕 (FORM-03) -->
@@ -605,9 +740,25 @@
               </button>
             </div>
           </div>
+          <!-- 桌面版提示文字 (SUBMIT-04) -->
+          <div class="bp-hint">
+            商品名稱和售價為必填。數量填 0 代表無限上架。支援 CSV 匯入（欄位：名稱、售價、數量、描述）。
+          </div>
         </div>
 
       </div><!-- /overflow-y-auto -->
+
+      <!-- 手機版底部提交欄 (SUBMIT-01) -->
+      <div class="bp-submit-bar bp-mobile-only">
+        <span class="text-sm font-semibold text-slate-700">{{ validItemCount }} 件商品</span>
+        <button @click="submitBatch"
+          :disabled="validItemCount === 0 || submitting"
+          class="bp-submit-btn primary">
+          <span v-if="submitting" class="bp-spinner"></span>
+          <span v-if="submitting">上架中...</span>
+          <span v-else>批量上架</span>
+        </button>
+      </div>
 
     </div><!-- /step === 'form' -->
 
