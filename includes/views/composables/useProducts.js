@@ -937,6 +937,25 @@ function useProducts() {
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
 
+        // 商品短連結
+        const getProductLink = (productId) => window.location.origin + '/item/' + productId;
+        const copyProductLink = async (productId) => {
+            const url = getProductLink(productId);
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast('已複製商品連結');
+            } catch {
+                // fallback
+                const ta = document.createElement('textarea');
+                ta.value = url;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('已複製商品連結');
+            }
+        };
+
         // Variation 相關方法
         const getDisplayTitle = (product) => {
             if (!product) return '';
@@ -1213,6 +1232,7 @@ function useProducts() {
             handleProductSelect,
             handleProductSearch,
             handleProductSearchClear,
+            getProductLink, copyProductLink,
             // 自訂欄位方法（Phase 49）
             loadCustomFields, saveCustomFields,
             // Variation 方法
