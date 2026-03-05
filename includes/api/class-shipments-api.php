@@ -353,9 +353,21 @@ class Shipments_API
                 LEFT JOIN {$table_shipment_items} si_search ON si_search.shipment_id = s.id
                 LEFT JOIN {$wpdb->posts} p_search ON si_search.product_id = p_search.ID
             ";
+            // 去除空白的搜尋詞，處理「萬 宣萱」→「萬宣萱」
+            $search_no_space = str_replace(' ', '', $search);
+            $like_no_space = '%' . $wpdb->esc_like($search_no_space) . '%';
             $where_conditions[] = $wpdb->prepare(
-                "(s.shipment_number LIKE %s OR CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,'')) LIKE %s OR c.first_name LIKE %s OR c.last_name LIKE %s OR p_search.post_title LIKE %s)",
-                $like, $like, $like, $like, $like
+                "(s.shipment_number LIKE %s
+                OR c.first_name LIKE %s
+                OR c.last_name LIKE %s
+                OR CONCAT(COALESCE(c.last_name,''), COALESCE(c.first_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.last_name,''), ' ', COALESCE(c.first_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.first_name,''), COALESCE(c.last_name,'')) LIKE %s
+                OR p_search.post_title LIKE %s)",
+                $like, $like, $like,
+                $like_no_space, $like, $like, $like_no_space,
+                $like
             );
         }
 
