@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
  *
  * 已實作端點：
  * - POST /products/batch-create       批量上架（Phase 56）
+ * - POST /products/upload-temp-image  暫存圖片上傳（Phase 60）
  * - GET  /products/{id}/custom-fields  自訂欄位讀取（Phase 49）
  * - PUT  /products/{id}/custom-fields  自訂欄位更新（Phase 49）
  *
@@ -42,6 +43,15 @@ class Reserved_API
                     'type'     => 'array',
                 ],
             ],
+        ]);
+
+        // API: POST /products/upload-temp-image（Phase 60 — 批量上架暫存圖片）
+        register_rest_route($this->namespace, '/products/upload-temp-image', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'upload_temp_image'],
+            'permission_callback' => function () {
+                return API::check_permission_with_scope('products');
+            },
         ]);
 
         // API-02: POST /products/{id}/images
@@ -146,6 +156,93 @@ class Reserved_API
         return new \WP_REST_Response($result, 200);
     }
 
+    /**
+     * 上傳暫存圖片（不關聯商品）
+     * 用於批量上架時先上傳圖片，取得 attachment_id
+     *
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response
+     */
+    public function upload_temp_image($request)
+    {
+        try {
+            $files = $request->get_file_params();
+
+            if (empty($files['image'])) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '沒有上傳檔案'
+                ], 400);
+            }
+
+            $file = $files['image'];
+
+            // 檔案大小上限 5MB
+            if ($file['size'] > 5 * 1024 * 1024) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '檔案大小超過 5MB'
+                ], 400);
+            }
+
+            // 副檔名驗證
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'webp'];
+            $file_type = wp_check_filetype($file['name']);
+
+            if (empty($file_type['ext']) || !in_array(strtolower($file_type['ext']), $allowed_extensions)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '僅支援 JPG、PNG、WebP 格式'
+                ], 400);
+            }
+
+            // 實際 MIME 內容驗證（防止偽造副檔名）
+            $allowed_mimes = ['image/jpeg', 'image/png', 'image/webp'];
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $real_mime = $finfo->file($file['tmp_name']);
+
+            if (!in_array($real_mime, $allowed_mimes)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '檔案內容不是有效的圖片格式'
+                ], 400);
+            }
+
+            // 載入 WordPress 檔案處理函數
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+            // 上傳到 Media Library（不關聯任何 post）
+            $attachment_id = media_handle_upload('image', 0);
+
+            if (is_wp_error($attachment_id)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '上傳失敗：' . $attachment_id->get_error_message()
+                ], 500);
+            }
+
+            // 標記為暫存上傳，供定期清理
+            update_post_meta($attachment_id, '_buygo_temp_upload', time());
+
+            $image_url = wp_get_attachment_image_url($attachment_id, 'thumbnail');
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data' => [
+                    'attachment_id' => $attachment_id,
+                    'image_url' => $image_url
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function upload_images($request)
     {
         return $this->not_implemented('Image upload');
@@ -217,5 +314,41 @@ class Reserved_API
             'message' => "{$feature} is not yet implemented. This endpoint is reserved for future Pro features.",
             'code'    => 'not_implemented',
         ], 501);
+    }
+
+    /**
+     * 清理超過 24 小時的暫存圖片附件
+     * 由 WP-Cron 每日執行一次
+     */
+    public static function cleanup_temp_uploads()
+    {
+        $cutoff = time() - DAY_IN_SECONDS;
+
+        $attachments = get_posts([
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'meta_key'       => '_buygo_temp_upload',
+            'meta_value'     => $cutoff,
+            'meta_compare'   => '<',
+            'meta_type'      => 'NUMERIC',
+            'posts_per_page' => 50,
+            'fields'         => 'ids',
+        ]);
+
+        foreach ($attachments as $att_id) {
+            wp_delete_attachment($att_id, true);
+        }
+    }
+
+    /**
+     * 註冊暫存圖片清理 cron
+     */
+    public static function schedule_cleanup()
+    {
+        add_action('buygo_cleanup_temp_uploads', [self::class, 'cleanup_temp_uploads']);
+
+        if (!wp_next_scheduled('buygo_cleanup_temp_uploads')) {
+            wp_schedule_event(time(), 'daily', 'buygo_cleanup_temp_uploads');
+        }
     }
 }

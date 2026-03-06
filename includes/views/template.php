@@ -288,6 +288,7 @@ foreach ($permission_keys as $perm) {
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useProducts.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentProducts.js'; ?></script>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
+    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useBatchCreate.js'; ?></script>
 
     <!-- 全域變數 -->
     <script>
@@ -311,7 +312,8 @@ foreach ($permission_keys as $perm) {
     $page_partials = [
         'dashboard', 'products', 'orders',
         'shipment-products', 'shipment-details',
-        'customers', 'settings', 'search'
+        'customers', 'settings', 'search',
+        'batch-create'
     ];
     foreach ($page_partials as $partial) {
         $file = BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/partials/' . $partial . '.php';
@@ -333,7 +335,8 @@ foreach ($permission_keys as $perm) {
         'shipment-details': typeof ShipmentDetailsPageComponent !== 'undefined' ? ShipmentDetailsPageComponent : null,
         'customers':        typeof CustomersPageComponent !== 'undefined' ? CustomersPageComponent : null,
         'settings':         typeof SettingsPageComponent !== 'undefined' ? SettingsPageComponent : null,
-        'search':           typeof SearchPageComponent !== 'undefined' ? SearchPageComponent : null
+        'search':           typeof SearchPageComponent !== 'undefined' ? SearchPageComponent : null,
+        'batch-create':     typeof BatchCreatePageComponent !== 'undefined' ? BatchCreatePageComponent : null
     };
 
     // 建立 SPA 主 App
@@ -381,7 +384,8 @@ foreach ($permission_keys as $perm) {
                     'shipment-details': '出貨',
                     'customers': '客戶',
                     'settings': '設定',
-                    'search': '搜尋'
+                    'search': '搜尋',
+                    'batch-create': '批量上架'
                 };
                 document.title = 'BuyGo+1 ' + (titles[page] || '賣場後台');
             }
