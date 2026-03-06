@@ -310,6 +310,7 @@ class Shipments_API
         $per_page = $request->get_param('per_page') ?: 10;
         $status = $request->get_param('status'); // 'all', 'pending', 'shipped'
         $id = $request->get_param('id'); // 單一出貨單 ID
+        $search = $request->get_param('search') ? sanitize_text_field($request->get_param('search')) : '';
 
         $table_shipments = $wpdb->prefix . 'buygo_shipments';
         $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
@@ -343,12 +344,40 @@ class Shipments_API
             $where_conditions[] = $wpdb->prepare('s.status = %s', $status);
         }
 
+        // 搜尋條件：支援出貨單號、客戶名稱、商品名稱
+        $search_join = '';
+        if (!empty($search)) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $search_join = "
+                LEFT JOIN {$table_customers} c ON s.customer_id = c.id
+                LEFT JOIN {$table_shipment_items} si_search ON si_search.shipment_id = s.id
+                LEFT JOIN {$wpdb->posts} p_search ON si_search.product_id = p_search.ID
+            ";
+            // 去除空白的搜尋詞，處理「萬 宣萱」→「萬宣萱」
+            $search_no_space = str_replace(' ', '', $search);
+            $like_no_space = '%' . $wpdb->esc_like($search_no_space) . '%';
+            $where_conditions[] = $wpdb->prepare(
+                "(s.shipment_number LIKE %s
+                OR c.first_name LIKE %s
+                OR c.last_name LIKE %s
+                OR CONCAT(COALESCE(c.last_name,''), COALESCE(c.first_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.last_name,''), ' ', COALESCE(c.first_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,'')) LIKE %s
+                OR CONCAT(COALESCE(c.first_name,''), COALESCE(c.last_name,'')) LIKE %s
+                OR p_search.post_title LIKE %s)",
+                $like, $like, $like,
+                $like_no_space, $like, $like, $like_no_space,
+                $like
+            );
+        }
+
         $where_clause = implode(' AND ', $where_conditions);
 
         // 計算總數
         $total_query = "
             SELECT COUNT(DISTINCT s.id)
             FROM {$table_shipments} s
+            {$search_join}
             WHERE {$where_clause}
         ";
         $total = $wpdb->get_var($total_query);
@@ -357,9 +386,16 @@ class Shipments_API
         $offset = ($page - 1) * $per_page;
         $limit = $per_page === -1 ? '' : "LIMIT {$per_page} OFFSET {$offset}";
 
-        // 查詢出貨單列表（不 JOIN orders 表，避免笛卡兒積）
+        // 先用子查詢找出符合條件的 ID（避免 DISTINCT + ORDER BY 在 MySQL 8 的相容問題）
+        $ids_query = "
+            SELECT DISTINCT s.id
+            FROM {$table_shipments} s
+            {$search_join}
+            WHERE {$where_clause}
+        ";
+
         $query = "
-            SELECT 
+            SELECT
                 s.id,
                 s.shipment_number,
                 s.customer_id,
@@ -369,7 +405,7 @@ class Shipments_API
                 s.shipped_at,
                 s.updated_at
             FROM {$table_shipments} s
-            WHERE {$where_clause}
+            WHERE s.id IN ({$ids_query})
             ORDER BY s.created_at DESC
             {$limit}
         ";

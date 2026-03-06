@@ -318,6 +318,13 @@ function useProducts() {
             await handleNavigation(view, product, updateUrl);
         };
 
+        // 批量上架入口（Phase 57 ROUTE-01）
+        const goToBatchCreate = () => {
+            if (window.BuyGoRouter && window.BuyGoRouter.spaNavigate) {
+                window.BuyGoRouter.spaNavigate('batch-create');
+            }
+        };
+
         const handleNavigation = async (view, product = null, updateUrl = true) => {
             // 離開編輯頁時重置 Tab 和自訂欄位（Phase 49）
             if (view !== 'edit') {
@@ -930,6 +937,25 @@ function useProducts() {
         const calculateReserved = (p) => Math.max(0, (p.ordered || 0) - (p.purchased || 0));
         const showToast = (msg, type='success') => { toastMessage.value = { show: true, message: msg, type }; setTimeout(()=> toastMessage.value.show=false, 3000); };
 
+        // 商品短連結
+        const getProductLink = (productId) => window.location.origin + '/item/' + parseInt(productId, 10);
+        const copyProductLink = async (productId) => {
+            const url = getProductLink(productId);
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast('已複製商品連結');
+            } catch {
+                const ta = document.createElement('textarea');
+                ta.value = url;
+                ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('已複製商品連結');
+            }
+        };
+
         // Variation 相關方法
         const getDisplayTitle = (product) => {
             if (!product) return '';
@@ -1191,7 +1217,7 @@ function useProducts() {
             ],
 
             // Methods
-            navigateTo, checkUrlParams, getSubPageTitle, isAllSelected,
+            navigateTo, goToBatchCreate, checkUrlParams, getSubPageTitle, isAllSelected,
             loadProducts, saveProduct, savePurchased, toggleStatus, deleteProduct, batchDelete, allocateOrder, viewBuyers, formatDate,
             getStatusClass, getStatusText,
             handleSubPageSave, openImageModal, closeImageModal, triggerFileInput, handleFileSelect,
@@ -1199,6 +1225,7 @@ function useProducts() {
             handleProductSelect,
             handleProductSearch,
             handleProductSearchClear,
+            getProductLink, copyProductLink,
             // 自訂欄位方法（Phase 49）
             loadCustomFields, saveCustomFields,
             // Variation 方法

@@ -117,6 +117,11 @@ class BatchCreateService
                 ];
                 $failed++;
             } else {
+                // 商品建立成功，清除暫存圖片標記（避免被 cron 清理）
+                if (!empty($item['image_attachment_id'])) {
+                    delete_post_meta((int) $item['image_attachment_id'], '_buygo_temp_upload');
+                }
+
                 $results[] = [
                     'index' => $index,
                     'success' => true,
@@ -220,7 +225,7 @@ class BatchCreateService
      */
     private function prepareProductData(array $item, int $user_id): array
     {
-        return [
+        $data = [
             'name' => trim($item['title']),
             'price' => (int) $item['price'],
             'quantity' => (int) ($item['quantity'] ?? 0),
@@ -228,6 +233,16 @@ class BatchCreateService
             'currency' => $item['currency'] ?? 'TWD',
             'user_id' => $user_id,
         ];
+
+        // 圖片（Phase 60 批量上架圖片上傳）
+        if (!empty($item['image_attachment_id'])) {
+            $att_id = (int) $item['image_attachment_id'];
+            if (wp_attachment_is_image($att_id)) {
+                $data['image_attachment_id'] = $att_id;
+            }
+        }
+
+        return $data;
     }
 
     /**

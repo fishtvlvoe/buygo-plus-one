@@ -151,6 +151,9 @@ class Plugin {
         // 初始化 FluentCart 產品頁面自訂
         FluentCartProductPage::instance();
         
+        // 暫存圖片清理 cron（Phase 60）
+        \BuyGoPlus\Api\Reserved_API::schedule_cleanup();
+
         // 初始化 API
         // API 類別會自動載入並註冊所有 REST API 端點
         // (Products, Orders, Shipments, Customers, GlobalSearch, Dashboard)

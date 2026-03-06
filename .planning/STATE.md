@@ -1,7 +1,21 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: 後台 UI 統一化
+status: completed
+last_updated: "2026-03-03T09:54:28.615Z"
+last_activity: 2026-03-03 — Phase 59 Plan 01 完成（提交按鈕 + API 呼叫 + 結果回饋），v3.2 milestone shipped
+progress:
+  total_phases: 36
+  completed_phases: 21
+  total_plans: 58
+  completed_plans: 48
+---
+
 # BuyGo Plus One - 專案狀態
 
-**最後更新:** 2026-03-01
-**專案版本:** v3.2 批量上架前端
+**最後更新:** 2026-03-03
+**專案版本:** v3.2 批量上架前端 (Complete)
 
 ---
 
@@ -9,7 +23,7 @@
 
 **核心價值:** 讓 LINE 社群賣家能夠在一個統一的後台管理所有銷售活動，每個賣家只能看到自己的商品和訂單
 
-**當前焦點:** v3.2 批量上架前端 — Phase 57 準備開始
+**當前焦點:** v3.2 批量上架前端 — 全部完成（Phase 57 + 58 + 59），18/18 需求已交付
 
 **PROJECT.md 最後更新:** 2026-03-01
 
@@ -18,11 +32,11 @@
 ## 當前位置
 
 **Milestone:** v3.2 - 批量上架前端
-**Phase:** 57 (Not started)
-**Status:** Roadmap complete, ready to plan
+**Phase:** 59 (Complete)
+**Status:** Milestone complete
 
 ```
-進度 [░░░░░░░░░░] 0/3 phases
+進度 [██████████] 3/3 phases done — v3.2 shipped
 ```
 
 **已完成的 Milestones:**
@@ -35,8 +49,9 @@
 - **v2.0** — 後台 UI 統一化 (Phases 41-46) — Shipped 2026-02-23
 - **v3.0** — SPA 改造 + 商品欄位擴充 + 客戶編輯 (Phases 47-51) — Shipped 2026-02-24
 - **v3.1** — WP 後台完善 + 批量上架 (Phases 52-56) — Shipped 2026-02-24
+- **v3.2** — 批量上架前端 (Phases 57-59) — Shipped 2026-03-03
 
-**Last activity:** 2026-03-01 — v3.2 Roadmap 建立（3 Phases, 18 requirements 全覆蓋）
+**Last activity:** 2026-03-03 — Phase 59 Plan 01 完成（提交按鈕 + API 呼叫 + 結果回饋），v3.2 milestone shipped
 
 ---
 
@@ -44,9 +59,9 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | Not started |
-| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | Not started |
-| 59 | 提交與結果回饋 | SUBMIT-01~04 | Not started |
+| 57 | 路由與數量選擇 | ROUTE-01, ROUTE-02, SELECT-01~04 | ✅ Complete |
+| 58 | 批量表單 + CSV 匯入 | FORM-01~05, CSV-01~03 | ✅ Complete (FORM-01~05, CSV-01~03) |
+| 59 | 提交與結果回饋 | SUBMIT-01~04 | ✅ Complete (SUBMIT-01~04) |
 
 **Execution Order:** 57 → 58 → 59（線性依賴）
 
@@ -103,6 +118,37 @@
 - 響應式設計：手機版卡片式 / 桌面版表格式（設計圖已定案）
 - 配額資料從現有 ProductLimitChecker API 取得
 - CSV 解析在前端做（不送後端解析），數量缺失預設 0
+
+**Phase 59 Plan 01 決策（2026-03-03）:**
+- useApi() 改為解構 get + post，submitBatch 直接使用 post() 呼叫 batch-create API
+- 部分失敗時 index 對應：API results[i].index -> validItems[index].id -> items 找回原始商品
+- 桌面版錯誤行用 template v-for 包裝（確保 item scope 正確），手機版在卡片底部直接顯示
+- Last activity: 2026-03-03 — Phase 59 Plan 01（提交按鈕 + API 呼叫 + 結果回饋），v3.2 shipped
+
+**Phase 57 Plan 01 決策（2026-03-02）:**
+- class-routes.php 不需修改 — 現有 catch-all regex [a-z-]+ 已涵蓋含連字符的 batch-create
+- 按鈕放在 v-show="currentView === 'list'" 範圍內，自動只在列表視圖顯示
+- goToBatchCreate 放在 useProducts.js 而非模板內聯，維持 composable 集中邏輯的慣例
+
+**Phase 58 Plan 02 決策（2026-03-03）:**
+- CSV 解析在前端做（FileReader + 字串分割），不送後端，已定案
+- 匯入策略：保留已填寫 items（name/price 非空）+ 追加 CSV 資料，避免覆蓋手動輸入
+- 數量缺失或非數字預設 '0'（無限上架），延續 items 字串型態慣例
+- 手機版 CSV 模式：隱藏卡片（v-if）顯示上傳區；桌面版表格永遠顯示，CSV 按鈕獨立
+- Last activity: 2026-03-03 — Phase 58 Plan 02（CSV 匯入功能 + 模式切換 UI）
+
+**Phase 58 Plan 01 決策（2026-03-03）:**
+- price/quantity 存字串而非 number，避免 number input 的 0 預設值問題（延續 Phase 57 的 customQuantity 慣例）
+- isFormOverQuota 獨立計算（不複用 isOverQuota）：表單階段用 itemCount，數量選擇階段用 quantity，語意不同
+- quotaUsed = quota.current + itemCount：動態反映新增/刪除商品時的配額佔用（含已存在商品數）
+- Last activity: 2026-03-03 — Phase 58 Plan 01（響應式批量表單 + composable 表單狀態管理）
+
+**Phase 57 Plan 02 決策（2026-03-02）:**
+- customQuantity 存字串而非 number，避免 number input 的 0 預設值問題
+- quota.limit === 0 定義為無限制，remaining 為 Infinity，isOverQuota 永遠 false
+- CSS class 加 bp- 前綴（bp-number, bp-unit）避免全站樣式衝突
+- BatchCreatePage.js 獨立成檔，維持 composable/component/partial 三層分離慣例
+- startFilling() 預留 step.value = 'form' 接口，Phase 58 直接解除註解
 
 **v3.1 核心決策（對話中確認）:**
 - 先做 WP 後台（wp-admin），Portal 前台 UI 之後再加
@@ -174,4 +220,4 @@
 
 ---
 
-*State updated: 2026-03-01 — v3.2 Roadmap 建立，3 phases (57-59)，18/18 需求已覆蓋*
+*State updated: 2026-03-03 — v3.2 Milestone shipped，3/3 phases complete (57-59)，18/18 需求已交付*
