@@ -933,14 +933,7 @@ function useProducts() {
         // Variation 相關方法
         const getDisplayTitle = (product) => {
             if (!product) return '';
-            if (product.has_variations && product.selected_variation) {
-                const varTitle = product.selected_variation.variation_title;
-                // 排除「預設」這個無意義的 variation_title
-                return (varTitle && varTitle !== '預設') ? varTitle : product.name;
-            }
-            const varTitle = product.variation_title;
-            // 排除「預設」這個無意義的 variation_title
-            return (varTitle && varTitle !== '預設') ? varTitle : product.name;
+            return product.name || '';
         };
 
         const getDisplayPrice = (product) => {
