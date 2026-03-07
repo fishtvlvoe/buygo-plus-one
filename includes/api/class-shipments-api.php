@@ -299,11 +299,6 @@ class Shipments_API
      */
     public function get_shipments(WP_REST_Request $request)
     {
-        // 設置 no-cache 標頭，確保瀏覽器不會快取 API 回應
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
         global $wpdb;
 
         $page = $request->get_param('page') ?: 1;
@@ -514,13 +509,17 @@ class Shipments_API
             $shipment['items_count'] = count($items);
         }
 
-        return new WP_REST_Response([
+        $response = new WP_REST_Response([
             'success' => true,
             'data' => $shipments,
             'total' => (int) $total,
             'page' => (int) $page,
             'per_page' => $per_page === -1 ? $total : (int) $per_page,
         ]);
+        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', '0');
+        return $response;
     }
 
     /**
