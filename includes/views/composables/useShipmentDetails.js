@@ -428,6 +428,31 @@ function useShipmentDetails() {
         );
     };
 
+    // 合併顯示開關
+    const mergeEnabled = ref(true);
+
+    // 合併同商品顯示（按 product_id 歸組，數量和金額加總）
+    const mergeItemsByProduct = (items) => {
+        if (!items || items.length === 0) return [];
+        const map = {};
+        items.forEach(item => {
+            const pid = item.product_id;
+            if (map[pid]) {
+                map[pid].quantity += Number(item.quantity);
+            } else {
+                map[pid] = { ...item, quantity: Number(item.quantity) };
+            }
+        });
+        return Object.values(map);
+    };
+
+    const mergedDetailItems = computed(() =>
+        mergeEnabled.value ? mergeItemsByProduct(detailModal.value.items) : detailModal.value.items
+    );
+    const mergedMarkShippedItems = computed(() =>
+        mergeEnabled.value ? mergeItemsByProduct(markShippedData.value.items) : markShippedData.value.items
+    );
+
     // 匯出單張出貨單
     const exportShipment = async (shipmentId) => {
         if (!shipmentId) {
@@ -909,6 +934,10 @@ function useShipmentDetails() {
         getShippingMethodColor,
         // Flatpickr ref
         estimatedDeliveryInput,
+        // 合併顯示
+        mergeEnabled,
+        mergedDetailItems,
+        mergedMarkShippedItems,
         // Header 事件處理
         onCurrencyChange
     };
