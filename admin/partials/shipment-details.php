@@ -475,8 +475,15 @@ $shipment_details_template .= <<<'HTML'
 
             <!-- 商品明細 -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 md:p-6 border-b border-slate-200">
+                <div class="p-4 md:p-6 border-b border-slate-200 flex items-center justify-between">
                     <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
+                    <button @click="mergeEnabled = !mergeEnabled"
+                        class="text-xs px-3 py-1.5 rounded-full transition-colors"
+                        :class="mergeEnabled
+                            ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                        {{ mergeEnabled ? '合併顯示中' : '展開顯示中' }}
+                    </button>
                 </div>
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50 border-b border-slate-200">
@@ -498,7 +505,7 @@ $shipment_details_template .= <<<'HTML'
                                 </div>
                             </td>
                         </tr>
-                        <tr v-for="item in detailModal.items" :key="item.id" class="hover:bg-slate-50">
+                        <tr v-for="item in mergedDetailItems" :key="item.product_id" class="hover:bg-slate-50">
                             <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
                             <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
                             <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
@@ -592,8 +599,15 @@ $shipment_details_template .= <<<'HTML'
 
             <!-- 商品明細 -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 md:p-6 border-b border-slate-200">
+                <div class="p-4 md:p-6 border-b border-slate-200 flex items-center justify-between">
                     <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
+                    <button @click="mergeEnabled = !mergeEnabled"
+                        class="text-xs px-3 py-1.5 rounded-full transition-colors"
+                        :class="mergeEnabled
+                            ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                        {{ mergeEnabled ? '合併顯示中' : '展開顯示中' }}
+                    </button>
                 </div>
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50 border-b border-slate-200">
@@ -615,7 +629,7 @@ $shipment_details_template .= <<<'HTML'
                                 </div>
                             </td>
                         </tr>
-                        <tr v-for="item in markShippedData.items" :key="item.id" class="hover:bg-slate-50">
+                        <tr v-for="item in mergedMarkShippedItems" :key="item.product_id" class="hover:bg-slate-50">
                             <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
                             <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
                             <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
