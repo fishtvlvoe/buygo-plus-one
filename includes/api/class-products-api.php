@@ -293,6 +293,7 @@ class Products_API {
                     'price' => $product['price'],
                     'currency' => $product['currency'],
                     'status' => $status,
+                    'stock' => (int) ($product['stock'] ?? 0),
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $purchased,
                     'allocated' => $allocated,
@@ -382,6 +383,7 @@ class Products_API {
                     'price' => $product['price'], // ProductService 已經轉換為元
                     'currency' => $product['currency'],
                     'status' => $status,
+                    'stock' => (int) ($product['stock'] ?? 0),
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $purchased,
                     'allocated' => $allocated,
