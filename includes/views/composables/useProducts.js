@@ -355,7 +355,8 @@ function useProducts() {
                             editing_variation_id: String(selectedVar.id),
                             editing_variation_title: selectedVar.variation_title || '',
                             editing_variation_price: selectedVar.price || 0,
-                            editing_variation_purchased: 0
+                            editing_variation_purchased: 0,
+                            editing_variation_stock: selectedVar.available > 0 ? selectedVar.available : ''
                         };
                         // 從 API 取得選中 variation 的真實採購數量
                         try {
@@ -368,6 +369,8 @@ function useProducts() {
                             if (data.success) {
                                 editingProduct.value.editing_variation_purchased = data.data.purchased || 0;
                             }
+                            // 庫存從 variation 本身的 available 欄位取得
+                            editingProduct.value.editing_variation_stock = selectedVar.available > 0 ? selectedVar.available : '';
                         } catch (e) {
                             console.error('載入 Variation 採購數量失敗:', e);
                         }
@@ -669,11 +672,13 @@ function useProducts() {
                 const ep = editingProduct.value;
 
                 // 儲存主商品
+                const saveBody = { ...ep };
+                if (saveBody.stock === '' || saveBody.stock === null) delete saveBody.stock;
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${ep.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': wpNonce },
                     credentials: 'include',
-                    body: JSON.stringify(ep)
+                    body: JSON.stringify(saveBody)
                 });
                 const data = await res.json();
 
@@ -685,15 +690,19 @@ function useProducts() {
                         credentials: 'include',
                         body: JSON.stringify({
                             purchased: ep.editing_variation_purchased,
-                            variation_title: ep.editing_variation_title
+                            variation_title: ep.editing_variation_title,
+                            ...(ep.editing_variation_stock !== '' ? { stock: ep.editing_variation_stock } : {})
                         })
                     });
                     // 同步 variation 採購數量回列表的 product.purchased
                     if (varRes.ok) {
                         ep.purchased = ep.editing_variation_purchased;
-                        // 更新 variation 陣列中的 title
+                        // 同步 variation 陣列中的 title 和庫存
                         const v = ep.variations?.find(v => String(v.id) === String(ep.editing_variation_id));
-                        if (v) v.variation_title = ep.editing_variation_title;
+                        if (v) {
+                            v.variation_title = ep.editing_variation_title;
+                            v.available = ep.editing_variation_stock;
+                        }
                     }
                 }
 
@@ -1024,6 +1033,7 @@ function useProducts() {
 
             ep.editing_variation_title = variation.variation_title || '';
             ep.editing_variation_price = variation.price || 0;
+            ep.editing_variation_stock = variation.available > 0 ? variation.available : '';
 
             // 取得該 variation 的統計資料（含採購數量）
             try {

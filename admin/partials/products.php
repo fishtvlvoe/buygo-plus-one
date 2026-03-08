@@ -748,18 +748,22 @@ $products_component_template .= <<<'HTML'
                                                 <label class="block text-xs font-medium text-slate-700 mb-1">樣式名稱</label>
                                                 <input type="text" v-model="editingProduct.editing_variation_title" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
                                             </div>
-                                            <div class="grid grid-cols-3 gap-3">
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                 <div>
-                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式價格</label>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">價格</label>
                                                     <input type="number" :value="editingProduct.editing_variation_price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式成本價</label>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">成本價</label>
                                                     <input v-if="customFields" v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="成本價">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-slate-700 mb-1">樣式採購數量</label>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">採購數量</label>
                                                     <input type="number" v-model.number="editingProduct.editing_variation_purchased" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-slate-700 mb-1">庫存 <span class="font-normal text-slate-400">（留空=無限制）</span></label>
+                                                    <input type="number" v-model.number="editingProduct.editing_variation_stock" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white" placeholder="留空=無限制">
                                                 </div>
                                             </div>
                                         </div>
@@ -768,9 +772,10 @@ $products_component_template .= <<<'HTML'
                                             <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" :class="editingProduct.has_variations ? 'bg-slate-50 text-slate-500' : ''" :readonly="editingProduct.has_variations"></div>
                                             <div v-if="customFields && !editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">成本價</label><input v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm" placeholder="輸入成本價"></div>
                                         </div>
-                                        <!-- 已採購 + 狀態（同一行） -->
-                                        <div class="grid grid-cols-2 gap-3 md:gap-4">
+                                        <!-- 已採購 / 庫存 / 狀態（同一行） -->
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                             <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                            <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">庫存 <span class="font-normal text-slate-400">（留空=無限制）</span></label><input type="number" v-model.number="editingProduct.stock" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="留空=無限制"></div>
                                             <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
                                         </div>
                                         <!-- 已下單 -->

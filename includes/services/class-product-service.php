@@ -278,6 +278,11 @@ class ProductService
                 update_post_meta($product->post_id, '_buygo_purchased', (int) $updateData['purchased']);
             }
 
+            // 更新庫存（同步到 FluentCart 的 available 欄位）
+            if (isset($updateData['stock'])) {
+                $product->available = (int) $updateData['stock'];
+            }
+
             // 更新狀態
             if (isset($updateData['status'])) {
                 wp_update_post([
