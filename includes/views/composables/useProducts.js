@@ -375,7 +375,7 @@ function useProducts() {
                             console.error('載入 Variation 採購數量失敗:', e);
                         }
                     } else {
-                        editingProduct.value = { ...product };
+                        editingProduct.value = { ...product, stock: product.stock > 0 ? product.stock : '' };
                     }
                     // 載入自訂欄位（Phase 49）— 多樣式用 variation ID
                     if (product.has_variations && product.variations?.length > 0) {

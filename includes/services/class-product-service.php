@@ -621,6 +621,7 @@ class ProductService
             // 轉換價格單位（分 → 元）並取得圖片 URL
             foreach ($variations as &$v) {
                 $v['price'] = $v['item_price'] / 100;
+                $v['available'] = (int) ($v['available'] ?? 0);
                 unset($v['item_price']);
 
                 // 取得 variation 的圖片 URL
