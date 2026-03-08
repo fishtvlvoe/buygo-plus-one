@@ -465,7 +465,12 @@ class Products_API {
                 $updateData['purchased'] = (int) $params['purchased'];
                 error_log('準備更新已採購: ' . $updateData['purchased']);
             }
-            
+
+            // 庫存數量（同步到 FluentCart）
+            if (isset($params['stock'])) {
+                $updateData['stock'] = (int) $params['stock'];
+            }
+
             // 商品狀態
             if (isset($params['status'])) {
                 $updateData['status'] = $params['status'] === 'published' ? 'publish' : 'private';
@@ -1270,10 +1275,20 @@ class Products_API {
                 $productService->updateVariationMeta($variation_id, '_buygo_purchased', $purchased);
             }
 
+            // 更新庫存（同步到 FluentCart 的 available 欄位）
+            if (isset($data['stock'])) {
+                $stock = (int) $data['stock'];
+                $variation->available = $stock;
+            }
+
             // 更新樣式名稱
             if (isset($data['variation_title'])) {
                 $title = sanitize_text_field($data['variation_title']);
                 $variation->variation_title = $title;
+            }
+
+            // 有任何 variation 欄位變更時統一儲存
+            if (isset($data['stock']) || isset($data['variation_title'])) {
                 $variation->save();
             }
 

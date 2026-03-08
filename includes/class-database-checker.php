@@ -24,7 +24,7 @@ class DatabaseChecker
             'id', 'shipment_id', 'order_id', 'order_item_id', 'product_id', 'quantity', 'created_at'
         ],
         'buygo_helpers' => [
-            'id', 'user_id', 'seller_id', 'created_at'
+            'id', 'helper_id', 'seller_id', 'created_at'
         ],
         'buygo_line_bindings' => [
             'id', 'user_id', 'line_uid', 'binding_code', 'status', 'created_at'
@@ -33,10 +33,10 @@ class DatabaseChecker
             'id', 'level', 'module', 'message', 'data', 'created_at'
         ],
         'buygo_notification_logs' => [
-            'id', 'receiver', 'channel', 'status', 'content', 'created_at'
+            'id', 'user_id', 'channel', 'status', 'message', 'created_at'
         ],
         'buygo_workflow_logs' => [
-            'id', 'workflow_name', 'status', 'created_at'
+            'id', 'workflow_id', 'status', 'created_at'
         ],
         'buygo_webhook_logs' => [
             'id', 'event_type', 'event_data', 'created_at'
