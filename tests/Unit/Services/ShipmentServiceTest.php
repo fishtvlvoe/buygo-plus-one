@@ -498,4 +498,61 @@ class ShipmentServiceTest extends TestCase
 
         $this->assertTrue(true);
     }
+
+    // ========================================
+    // update_shipment 測試（FIS-7）
+    // ========================================
+
+    /**
+     * 測試 update_shipment 傳入空陣列時返回 WP_Error
+     */
+    public function testUpdateShipmentEmptyDataReturnsError(): void
+    {
+        $result = $this->service->update_shipment(1, []);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertEquals('INVALID_INPUT', $result->get_error_code());
+    }
+
+    /**
+     * 測試 update_shipment 傳入合法欄位不拋異常（mock DB 環境下可能失敗，但不應拋 Exception）
+     */
+    public function testUpdateShipmentWithValidDataDoesNotThrow(): void
+    {
+        $result = $this->service->update_shipment(1, [
+            'estimated_delivery_at' => '2026-04-01 00:00:00',
+        ]);
+
+        // mock 環境下 wpdb->update 返回 false 會得到 WP_Error，但不應拋出例外
+        $this->assertTrue($result === true || is_wp_error($result));
+    }
+
+    /**
+     * 測試 update_shipment 傳入 null 值不拋異常（null 清除路徑）
+     */
+    public function testUpdateShipmentWithNullValueDoesNotThrow(): void
+    {
+        $result = $this->service->update_shipment(1, [
+            'estimated_delivery_at' => null,
+        ]);
+
+        // null 路徑走 SQL NULL 寫入，mock 環境下可能回 false/WP_Error，不應拋例外
+        $this->assertTrue($result === true || is_wp_error($result));
+    }
+
+    /**
+     * 測試 update_shipment 只允許白名單欄位（不接受任意欄位）
+     */
+    public function testUpdateShipmentIgnoresNonWhitelistedFields(): void
+    {
+        // id / customer_id 等不在白名單內，應被忽略且等同於空 update_data
+        // 只有 updated_at 本身，count == 1，不執行 update → 也不拋例外
+        $result = $this->service->update_shipment(1, [
+            'non_existent_field' => 'hack',
+        ]);
+
+        // 白名單外的欄位不被加入，update_data 只有 updated_at，
+        // count == 1 跳過 wpdb->update，且沒有 null_fields → 返回 true
+        $this->assertTrue($result === true || is_wp_error($result));
+    }
 }

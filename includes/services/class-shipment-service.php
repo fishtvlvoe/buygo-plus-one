@@ -296,6 +296,80 @@ class ShipmentService
     }
 
     /**
+     * 更新出貨單欄位（FIS-7）
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @param array $data 要更新的欄位（鍵值對）
+     * @return bool|WP_Error 成功返回 true，失敗返回 WP_Error
+     */
+    public function update_shipment($shipment_id, array $data)
+    {
+        global $wpdb;
+
+        if (empty($data)) {
+            return new WP_Error('INVALID_INPUT', '沒有要更新的欄位');
+        }
+
+        $update_data = ['updated_at' => current_time('mysql')];
+        $update_format = ['%s'];
+
+        // 支援的可更新欄位
+        $allowed_fields = [
+            'status'               => '%s',
+            'estimated_delivery_at'=> '%s',
+            'shipping_method'      => '%s',
+            'tracking_number'      => '%s',
+        ];
+
+        // 分離出 null 欄位（wpdb->update 無法寫入 NULL，需單獨用 SQL 處理）
+        $null_fields = [];
+        foreach ($allowed_fields as $field => $format) {
+            // 使用 array_key_exists 以支援設定為 null（清除欄位）
+            if (array_key_exists($field, $data)) {
+                if ($data[$field] === null) {
+                    $null_fields[] = "`{$field}` = NULL";
+                } else {
+                    $update_data[$field] = $data[$field];
+                    $update_format[] = $format;
+                }
+            }
+        }
+
+        // 先更新非 null 欄位
+        if (count($update_data) > 1) { // 1 是 updated_at 本身
+            $result = $wpdb->update(
+                $wpdb->prefix . 'buygo_shipments',
+                $update_data,
+                ['id' => $shipment_id],
+                $update_format,
+                ['%d']
+            );
+
+            if ($result === false) {
+                return new WP_Error('UPDATE_FAILED', '更新出貨單失敗：' . $wpdb->last_error);
+            }
+        }
+
+        // 再處理需要寫入 NULL 的欄位（wpdb->update 不支援 NULL，改用直接 SQL）
+        if (!empty($null_fields)) {
+            $null_sql = implode(', ', $null_fields);
+            $result = $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$wpdb->prefix}buygo_shipments SET {$null_sql}, `updated_at` = %s WHERE `id` = %d",
+                    current_time('mysql'),
+                    $shipment_id
+                )
+            );
+
+            if ($result === false) {
+                return new WP_Error('UPDATE_FAILED', '清除欄位失敗：' . $wpdb->last_error);
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * 標記出貨單為已出貨
      *
      * @param array $shipment_ids 出貨單 ID 陣列
