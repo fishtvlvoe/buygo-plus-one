@@ -576,9 +576,10 @@ function useShipmentDetails() {
             if (result.success) {
                 // 將 estimated_delivery_at 轉換為 date input 格式
                 const shipmentData = result.data.shipment;
-                if (shipmentData.estimated_delivery_at) {
-                    shipmentData.estimated_delivery_date = formatDateForInput(shipmentData.estimated_delivery_at);
-                }
+                // 無論有無值都初始化，避免 v-model 綁定 undefined（null 時設空字串）
+                shipmentData.estimated_delivery_date = shipmentData.estimated_delivery_at
+                    ? formatDateForInput(shipmentData.estimated_delivery_at)
+                    : '';
 
                 detailModal.value = {
                     show: true,
@@ -641,9 +642,10 @@ function useShipmentDetails() {
     };
 
     // 取得今天日期（YYYY-MM-DD 格式，用於 date input 的 min 屬性）
+    // 用本地時間而非 toISOString()（UTC），避免台灣時區在午夜前後顯示昨天
     const getTodayDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0]; // 返回 YYYY-MM-DD 格式
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
     // 取得當前日期時間（用於出貨時間顯示）
@@ -669,6 +671,9 @@ function useShipmentDetails() {
         if (!shipmentId || !detailModal.value.shipment) return;
 
         const estimatedDeliveryDate = detailModal.value.shipment.estimated_delivery_date || '';
+        // 記錄儲存前的舊值，失敗時還原
+        const previousDeliveryAt = detailModal.value.shipment.estimated_delivery_at;
+        const previousDeliveryDate = estimatedDeliveryDate;
 
         try {
             const requestData = {};
@@ -691,14 +696,23 @@ function useShipmentDetails() {
 
             if (result.success) {
                 showToast('預計送達時間已儲存');
-                // 更新本地資料的 estimated_delivery_at
                 if (detailModal.value.shipment) {
                     detailModal.value.shipment.estimated_delivery_at = requestData.estimated_delivery_at;
                 }
             } else {
+                // 還原前端顯示，避免前後端不同步
+                if (detailModal.value.shipment) {
+                    detailModal.value.shipment.estimated_delivery_at = previousDeliveryAt;
+                    detailModal.value.shipment.estimated_delivery_date = previousDeliveryDate;
+                }
                 showToast(result.message || '儲存失敗', 'error');
             }
         } catch (err) {
+            // 網路錯誤也還原前端顯示
+            if (detailModal.value.shipment) {
+                detailModal.value.shipment.estimated_delivery_at = previousDeliveryAt;
+                detailModal.value.shipment.estimated_delivery_date = previousDeliveryDate;
+            }
             console.error('儲存出貨單失敗:', err);
             showToast('儲存失敗', 'error');
         }
