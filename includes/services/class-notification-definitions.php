@@ -69,6 +69,27 @@ class NotificationDefinitions {
                 ]
             ],
 
+            // 新訂單通知（FIS-6: 訂單成立時發送給買家）
+            'new_order' => [
+                'line' => [
+                    'message' => "🛒 感謝您的訂購！\n\n訂單編號：#{order_id}\n訂單金額：{order_total}\n\n商品清單：\n{product_list}\n\n{shop_name} 收到您的訂單，我們將盡快為您處理。"
+                ]
+            ],
+
+            // 訂單狀態變更通知（FIS-6: 訂單狀態變更時發送給買家）
+            'order_status_changed' => [
+                'line' => [
+                    'message' => "📋 您的訂單狀態已更新\n\n訂單編號：#{order_id}\n原本狀態：{old_status}\n目前狀態：{new_status}\n\n如有問題請聯繫 {shop_name}。"
+                ]
+            ],
+
+            // 商品到貨通知（FIS-6: 商品補貨到貨時發送給等候中的買家）
+            'product_available' => [
+                'line' => [
+                    'message' => "✅ 好消息！您等待的商品已到貨\n\n商品名稱：{product_name}\n\n立即下單：{product_url}\n\n— {shop_name}"
+                ]
+            ],
+
             // 商品上架通知（Phase 30: 發送給賣家和小幫手）
             'product_created' => [
                 'line' => [
