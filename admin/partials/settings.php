@@ -1225,7 +1225,6 @@ const SettingsPageComponent = {
                     variables: ['product_name', 'quantity', 'total']
                 },
                 {
-                    key: 'product_available',
                     key: 'shipment_shipped',
                     name: '出貨通知',
                     description: '出貨單標記為「已出貨」時發送給買家',
