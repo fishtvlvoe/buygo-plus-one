@@ -626,15 +626,20 @@ class Shipments_API
             }
         }
 
-        if (!empty($update_data)) {
-            $result = $this->shipmentService->update_shipment($shipment_id, $update_data);
-
-            if (is_wp_error($result)) {
-                return $result;
-            }
-
-            $shipment = $this->shipmentService->get_shipment($shipment_id);
+        if (empty($update_data)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => '未提供任何可更新的欄位',
+            ], 400);
         }
+
+        $result = $this->shipmentService->update_shipment($shipment_id, $update_data);
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        $shipment = $this->shipmentService->get_shipment($shipment_id);
 
         return new WP_REST_Response([
             'success' => true,
