@@ -664,6 +664,46 @@ function useShipmentDetails() {
         return datetime.split(' ')[0]; // 取 YYYY-MM-DD 部分
     };
 
+    // 儲存出貨單的預計送達時間（供已出貨詳情頁面編輯使用）
+    const saveShipment = async (shipmentId) => {
+        if (!shipmentId || !detailModal.value.shipment) return;
+
+        const estimatedDeliveryDate = detailModal.value.shipment.estimated_delivery_date || '';
+
+        try {
+            const requestData = {};
+            if (estimatedDeliveryDate) {
+                requestData.estimated_delivery_at = estimatedDeliveryDate + ' 00:00:00';
+            } else {
+                requestData.estimated_delivery_at = null;
+            }
+
+            const response = await fetch(`/wp-json/buygo-plus-one/v1/shipments/${shipmentId}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': wpNonce
+                },
+                body: JSON.stringify(requestData)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('預計送達時間已儲存');
+                // 更新本地資料的 estimated_delivery_at
+                if (detailModal.value.shipment) {
+                    detailModal.value.shipment.estimated_delivery_at = requestData.estimated_delivery_at;
+                }
+            } else {
+                showToast(result.message || '儲存失敗', 'error');
+            }
+        } catch (err) {
+            console.error('儲存出貨單失敗:', err);
+            showToast('儲存失敗', 'error');
+        }
+    };
+
     // 物流下拉選單控制（智慧展開：判斷向上或向下）
     const toggleShippingMethodDropdown = (event) => {
         if (!showShippingMethodDropdown.value) {
@@ -925,6 +965,7 @@ function useShipmentDetails() {
         openShipmentDetail,
         closeShipmentDetail,
         loadShipmentDetail,
+        saveShipment,
         // 物流下拉選單相關
         showShippingMethodDropdown,
         dropdownPosition,

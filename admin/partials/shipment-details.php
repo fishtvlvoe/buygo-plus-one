@@ -539,9 +539,22 @@ $shipment_details_template .= <<<'HTML'
                         <span class="text-sm text-slate-600 w-20 shrink-0">追蹤號碼</span>
                         <span class="text-sm text-slate-900">{{ detailModal.shipment?.tracking_number || '-' }}</span>
                     </div>
-                    <div class="flex">
-                        <span class="text-sm text-slate-600 w-20 shrink-0">預計送達</span>
-                        <span class="text-sm text-slate-900">{{ detailModal.shipment?.estimated_delivery_at ? formatDate(detailModal.shipment.estimated_delivery_at) : '-' }}</span>
+                    <div class="flex md:col-span-3 items-start gap-3">
+                        <span class="text-sm text-slate-600 w-20 shrink-0 pt-2">預計送達</span>
+                        <div class="flex items-center gap-2 flex-1">
+                            <input
+                                type="date"
+                                v-model="detailModal.shipment.estimated_delivery_date"
+                                :min="getTodayDate()"
+                                class="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm bg-white"
+                            />
+                            <button
+                                @click="saveShipment(detailModal.shipment?.id)"
+                                class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-medium"
+                            >
+                                儲存
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -296,6 +296,55 @@ class ShipmentService
     }
 
     /**
+     * 更新出貨單欄位（FIS-7）
+     *
+     * @param int $shipment_id 出貨單 ID
+     * @param array $data 要更新的欄位（鍵值對）
+     * @return bool|WP_Error 成功返回 true，失敗返回 WP_Error
+     */
+    public function update_shipment($shipment_id, array $data)
+    {
+        global $wpdb;
+
+        if (empty($data)) {
+            return new WP_Error('INVALID_INPUT', '沒有要更新的欄位');
+        }
+
+        $update_data = ['updated_at' => current_time('mysql')];
+        $update_format = ['%s'];
+
+        // 支援的可更新欄位
+        $allowed_fields = [
+            'status'               => '%s',
+            'estimated_delivery_at'=> '%s',
+            'shipping_method'      => '%s',
+            'tracking_number'      => '%s',
+        ];
+
+        foreach ($allowed_fields as $field => $format) {
+            // 使用 array_key_exists 以支援設定為 null（清除欄位）
+            if (array_key_exists($field, $data)) {
+                $update_data[$field] = $data[$field];
+                $update_format[] = $data[$field] === null ? '%s' : $format;
+            }
+        }
+
+        $result = $wpdb->update(
+            $wpdb->prefix . 'buygo_shipments',
+            $update_data,
+            ['id' => $shipment_id],
+            $update_format,
+            ['%d']
+        );
+
+        if ($result === false) {
+            return new WP_Error('UPDATE_FAILED', '更新出貨單失敗：' . $wpdb->last_error);
+        }
+
+        return true;
+    }
+
+    /**
      * 標記出貨單為已出貨
      *
      * @param array $shipment_ids 出貨單 ID 陣列

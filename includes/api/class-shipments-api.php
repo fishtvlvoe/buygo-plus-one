@@ -602,23 +602,35 @@ class Shipments_API
             return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
         }
 
-        // 目前只支援更新狀態
+        $update_data = [];
+
+        // 支援更新狀態
         if (isset($params['status'])) {
-            global $wpdb;
+            $update_data['status'] = sanitize_text_field($params['status']);
+        }
 
-            $result = $wpdb->update(
-                $wpdb->prefix . 'buygo_shipments',
-                [
-                    'status' => $params['status'],
-                    'updated_at' => current_time('mysql'),
-                ],
-                ['id' => $shipment_id],
-                ['%s', '%s'],
-                ['%d']
-            );
+        // 支援更新預計送達時間（FIS-7）
+        if (array_key_exists('estimated_delivery_at', $params)) {
+            $estimated_delivery_at = $params['estimated_delivery_at'];
+            if ($estimated_delivery_at === null || $estimated_delivery_at === '') {
+                $update_data['estimated_delivery_at'] = null;
+            } else {
+                $estimated_delivery_at = sanitize_text_field($estimated_delivery_at);
+                if (!strtotime($estimated_delivery_at)) {
+                    return new \WP_REST_Response([
+                        'success' => false,
+                        'message' => '預計送達時間格式錯誤'
+                    ], 400);
+                }
+                $update_data['estimated_delivery_at'] = $estimated_delivery_at;
+            }
+        }
 
-            if ($result === false) {
-                return new WP_Error('update_failed', '更新失敗', ['status' => 500]);
+        if (!empty($update_data)) {
+            $result = $this->shipmentService->update_shipment($shipment_id, $update_data);
+
+            if (is_wp_error($result)) {
+                return $result;
             }
 
             $shipment = $this->shipmentService->get_shipment($shipment_id);
