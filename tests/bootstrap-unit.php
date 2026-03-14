@@ -10,7 +10,8 @@
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // 定義測試常數
-define('ABSPATH', dirname(__DIR__) . '/');
+// ABSPATH 指向 tests/stubs/，讓 require ABSPATH . 'wp-admin/includes/upgrade.php' 載入 stub
+define('ABSPATH', __DIR__ . '/stubs/');
 define('WP_CONTENT_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', dirname(__DIR__) . '/buygo-plus-one.php');
