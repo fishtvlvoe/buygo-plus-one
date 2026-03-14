@@ -662,16 +662,6 @@ class FluentCartService {
 	}
 
 	/**
-	 * 計算庫存更新時應設定的 FluentCart 欄位值
-	 *
-	 * 純計算方法（無副作用），方便單元測試。
-	 * API 層呼叫此方法取得正確的欄位值後再寫入 DB。
-	 *
-	 * @param int|null $new_stock 新庫存值（null = 無限量）
-	 * @param array $current 目前的欄位值 ['total_stock', 'available', 'on_hold', 'committed', 'manage_stock']
-	 * @return array 應設定的欄位值
-	 */
-	/**
 	 * 解析商品擁有者（post_author 應為真正賣家）
 	 *
 	 * 如果上架者是小幫手/上架幫手，返回綁定的賣家 ID。
@@ -689,6 +679,16 @@ class FluentCartService {
 		return IdentityService::resolveActualSellerId( $user_id );
 	}
 
+	/**
+	 * 計算庫存更新時應設定的 FluentCart 欄位值
+	 *
+	 * 純計算方法（無副作用），方便單元測試。
+	 * API 層呼叫此方法取得正確的欄位值後再寫入 DB。
+	 *
+	 * @param int|null $new_stock 新庫存值（null = 無限量）
+	 * @param array $current 目前的欄位值 ['total_stock', 'available', 'on_hold', 'committed', 'manage_stock']
+	 * @return array 應設定的欄位值
+	 */
 	public static function calculateStockFields( ?int $new_stock, array $current ): array {
 		$on_hold   = (int) ( $current['on_hold'] ?? 0 );
 		$committed = (int) ( $current['committed'] ?? 0 );
