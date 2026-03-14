@@ -432,7 +432,19 @@ class LineOrderNotifier {
 				], null, null );
 
 				if ( $post && $post->post_author ) {
-					return (int) $post->post_author;
+					$author_id = (int) $post->post_author;
+
+					// 如果 post_author 是小幫手/上架幫手，解析為真正的賣家
+					$actual_seller = IdentityService::resolveActualSellerId( $author_id );
+
+					$webhookLogger->log( 'seller_lookup_resolved', [
+						'order_id'      => (int) $order->id,
+						'post_author'   => $author_id,
+						'actual_seller' => $actual_seller,
+						'is_helper'     => $actual_seller !== $author_id,
+					], null, null );
+
+					return $actual_seller ?? $author_id;
 				}
 			}
 		}
