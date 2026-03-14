@@ -322,4 +322,33 @@ class IdentityService
 
         return in_array($identity['role'], [self::ROLE_SELLER, self::ROLE_HELPER]);
     }
+
+    /**
+     * 解析真正的賣家 ID
+     *
+     * - 如果 user_id 是賣家 → 返回自己
+     * - 如果 user_id 是小幫手/上架幫手 → 返回綁定的賣家
+     * - 其他 → 返回 null
+     *
+     * @param int $user_id WordPress User ID
+     * @return int|null 真正的賣家 ID
+     */
+    public static function resolveActualSellerId(int $user_id): ?int
+    {
+        if ($user_id <= 0) {
+            return null;
+        }
+
+        $identity = self::getIdentityByUserId($user_id);
+
+        if ($identity['role'] === self::ROLE_SELLER) {
+            return $user_id;
+        }
+
+        if ($identity['role'] === self::ROLE_HELPER && !empty($identity['seller_id'])) {
+            return (int) $identity['seller_id'];
+        }
+
+        return null;
+    }
 }

@@ -69,7 +69,10 @@ class FluentCartService {
 
 		try {
 			// 取得賣家 ID（商品擁有者）
-			$seller_id = $product_data['user_id'] ?? 0;
+			// 如果上架者是小幫手/上架幫手，解析為綁定的真正賣家
+			$uploader_id = $product_data['user_id'] ?? 0;
+			$seller_id = self::resolveProductOwner( $product_data ) ?? $uploader_id;
+
 			if ( empty( $seller_id ) ) {
 				$error_message = '無法建立商品：缺少賣家 ID (user_id)';
 				$this->debugService->log( 'FluentCartService', $error_message, array(
@@ -81,6 +84,12 @@ class FluentCartService {
 				), null, $product_data['line_uid'] ?? null );
 				return new \WP_Error( 'missing_seller_id', $error_message );
 			}
+
+			$this->debugService->log( 'FluentCartService', '商品擁有者解析', array(
+				'uploader_id' => $uploader_id,
+				'resolved_seller_id' => $seller_id,
+				'is_helper' => $uploader_id != $seller_id,
+			), 'info' );
 
 			// 使用 WordPress 原生函數建立商品
 			$post_data = array(
@@ -662,6 +671,24 @@ class FluentCartService {
 	 * @param array $current 目前的欄位值 ['total_stock', 'available', 'on_hold', 'committed', 'manage_stock']
 	 * @return array 應設定的欄位值
 	 */
+	/**
+	 * 解析商品擁有者（post_author 應為真正賣家）
+	 *
+	 * 如果上架者是小幫手/上架幫手，返回綁定的賣家 ID。
+	 * 純邏輯方法，方便單元測試。
+	 *
+	 * @param array $product_data 商品資料（含 user_id）
+	 * @return int|null 真正的賣家 ID
+	 */
+	public static function resolveProductOwner( array $product_data ): ?int {
+		$user_id = (int) ( $product_data['user_id'] ?? 0 );
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+
+		return IdentityService::resolveActualSellerId( $user_id );
+	}
+
 	public static function calculateStockFields( ?int $new_stock, array $current ): array {
 		$on_hold   = (int) ( $current['on_hold'] ?? 0 );
 		$committed = (int) ( $current['committed'] ?? 0 );
