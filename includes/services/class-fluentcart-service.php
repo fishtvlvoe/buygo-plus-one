@@ -69,7 +69,10 @@ class FluentCartService {
 
 		try {
 			// 取得賣家 ID（商品擁有者）
-			$seller_id = $product_data['user_id'] ?? 0;
+			// 如果上架者是小幫手/上架幫手，解析為綁定的真正賣家
+			$uploader_id = $product_data['user_id'] ?? 0;
+			$seller_id = self::resolveProductOwner( $product_data ) ?? $uploader_id;
+
 			if ( empty( $seller_id ) ) {
 				$error_message = '無法建立商品：缺少賣家 ID (user_id)';
 				$this->debugService->log( 'FluentCartService', $error_message, array(
@@ -81,6 +84,12 @@ class FluentCartService {
 				), null, $product_data['line_uid'] ?? null );
 				return new \WP_Error( 'missing_seller_id', $error_message );
 			}
+
+			$this->debugService->log( 'FluentCartService', '商品擁有者解析', array(
+				'uploader_id' => $uploader_id,
+				'resolved_seller_id' => $seller_id,
+				'is_helper' => $uploader_id != $seller_id,
+			), 'info' );
 
 			// 使用 WordPress 原生函數建立商品
 			$post_data = array(
@@ -256,9 +265,10 @@ class FluentCartService {
 
 		// FluentCart 使用「分」為單位儲存價格，所以 350 元要存成 35000
 		$price = intval( $data['price'] ?? 0 ) * 100;
-		$quantity = intval( $data['quantity'] ?? 0 );
-		// quantity = 0 代表無限量上架（不追蹤庫存）
-		$is_unlimited = ( 0 === $quantity );
+		// null 代表未設定庫存（無限量）；0 或正整數代表追蹤庫存
+		$quantity = isset( $data['quantity'] ) && $data['quantity'] !== '' ? intval( $data['quantity'] ) : null;
+		// quantity === null → 無限量（不追蹤庫存）；quantity 為數字（含 0）→ 追蹤庫存
+		$is_unlimited = ( null === $quantity );
 
 		$detail_data = array(
 			'post_id' => $product_id,
@@ -487,9 +497,10 @@ class FluentCartService {
 		}
 
 		$price = intval( $variation['price'] ?? $product_data['price'] ?? 0 ) * 100; // 轉換為分
-		$quantity = intval( $variation['quantity'] ?? 0 );
-		// quantity = 0 代表無限量（不追蹤庫存）
-		$is_unlimited = ( 0 === $quantity );
+		// null 代表未設定庫存（無限量）；0 或正整數代表追蹤庫存
+		$quantity = isset( $variation['quantity'] ) && $variation['quantity'] !== '' ? intval( $variation['quantity'] ) : null;
+		// quantity === null → 無限量（不追蹤庫存）；quantity 為數字（含 0）→ 追蹤庫存
+		$is_unlimited = ( null === $quantity );
 		$variation_title = $variation['variation_title'] ?? $variation['name'] ?? $product_data['name'] ?? '';
 
 		// 處理原價 (compare_price / original_price)
@@ -566,9 +577,10 @@ class FluentCartService {
 
 		// FluentCart 使用「分」為單位儲存價格，所以 350 元要存成 35000
 		$price = intval( $data['price'] ?? 0 ) * 100;
-		$quantity = intval( $data['quantity'] ?? 0 );
-		// quantity = 0 代表無限量（不追蹤庫存）
-		$is_unlimited = ( 0 === $quantity );
+		// null 代表未設定庫存（無限量）；0 或正整數代表追蹤庫存
+		$quantity = isset( $data['quantity'] ) && $data['quantity'] !== '' ? intval( $data['quantity'] ) : null;
+		// quantity === null → 無限量（不追蹤庫存）；quantity 為數字（含 0）→ 追蹤庫存
+		$is_unlimited = ( null === $quantity );
 
 		// 處理原價 (compare_price / original_price)
 		$compare_price = null;
@@ -647,5 +659,63 @@ class FluentCartService {
 		), 'info' );
 
 		return true;
+	}
+
+	/**
+	 * 解析商品擁有者（post_author 應為真正賣家）
+	 *
+	 * 如果上架者是小幫手/上架幫手，返回綁定的賣家 ID。
+	 * 純邏輯方法，方便單元測試。
+	 *
+	 * @param array $product_data 商品資料（含 user_id）
+	 * @return int|null 真正的賣家 ID
+	 */
+	public static function resolveProductOwner( array $product_data ): ?int {
+		$user_id = (int) ( $product_data['user_id'] ?? 0 );
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+
+		return IdentityService::resolveActualSellerId( $user_id );
+	}
+
+	/**
+	 * 計算庫存更新時應設定的 FluentCart 欄位值
+	 *
+	 * 純計算方法（無副作用），方便單元測試。
+	 * API 層呼叫此方法取得正確的欄位值後再寫入 DB。
+	 *
+	 * @param int|null $new_stock 新庫存值（null = 無限量）
+	 * @param array $current 目前的欄位值 ['total_stock', 'available', 'on_hold', 'committed', 'manage_stock']
+	 * @return array 應設定的欄位值
+	 */
+	public static function calculateStockFields( ?int $new_stock, array $current ): array {
+		$on_hold   = (int) ( $current['on_hold'] ?? 0 );
+		$committed = (int) ( $current['committed'] ?? 0 );
+
+		// null = 切換為無限量模式
+		if ( $new_stock === null ) {
+			return [
+				'total_stock'  => 0,
+				'available'    => 0,
+				'on_hold'      => $on_hold,
+				'committed'    => $committed,
+				'manage_stock' => 0,
+				'stock_status' => 'in-stock',
+			];
+		}
+
+		// 有明確庫存值 → 啟用庫存追蹤
+		$total_stock = max( 0, $new_stock );
+		$available   = max( 0, $total_stock - $on_hold - $committed );
+
+		return [
+			'total_stock'  => $total_stock,
+			'available'    => $available,
+			'on_hold'      => $on_hold,
+			'committed'    => $committed,
+			'manage_stock' => 1,
+			'stock_status' => $available > 0 ? 'in-stock' : 'out-of-stock',
+		];
 	}
 }
