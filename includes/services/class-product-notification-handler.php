@@ -62,74 +62,58 @@ class ProductNotificationHandler
         ], $product_data['user_id'] ?? null, $line_uid);
 
         try {
-            // 只處理透過 LINE 建立的商品（有 line_uid）
-            if (empty($line_uid)) {
-            $this->debug_service->log('ProductNotificationHandler', '跳過通知：非 LINE 建立的商品', [
-                'product_id' => $product_id,
-            ]);
-            return;
-        }
-
-        // 取得賣家 ID（商品擁有者）
-        $seller_id = $product_data['user_id'] ?? null;
-        if (!$seller_id) {
-            $this->debug_service->log('ProductNotificationHandler', '跳過通知：無賣家 ID', [
-                'product_id' => $product_id,
-            ], 'warning');
-            return;
-        }
-
-        // 取得上架者的 user_id（透過 LINE 上架的人）
-        $uploader_id = IdentityService::getUserIdByLineUid($line_uid);
-        if (!$uploader_id) {
-            $this->debug_service->log('ProductNotificationHandler', '跳過通知：無法識別上架者', [
-                'product_id' => $product_id,
-                'line_uid' => $line_uid,
-            ], 'warning');
-            return;
-        }
-
-        // 收集需要通知的用戶（排除上架者本人）
-        $notify_user_ids = [];
-
-        // 取得小幫手列表
-        $helpers = SettingsService::get_helpers($seller_id);
-        $helper_ids = array_map(function($helper) {
-            return (int) $helper['id'];
-        }, $helpers);
-
-        // 判斷上架者身份並決定通知對象
-        if ($uploader_id == $seller_id) {
-            // 賣家本人上架 → 通知所有小幫手
-            $notify_user_ids = $helper_ids;
-            $this->debug_service->log('ProductNotificationHandler', '賣家上架，通知小幫手', [
-                'product_id' => $product_id,
-                'seller_id' => $seller_id,
-                'helper_count' => count($helper_ids),
-            ]);
-        } else {
-            // 小幫手上架 → 通知賣家 + 其他小幫手（排除上架者）
-            $notify_user_ids = [$seller_id];
-            foreach ($helper_ids as $helper_id) {
-                if ($helper_id != $uploader_id) {
-                    $notify_user_ids[] = $helper_id;
-                }
+            // 取得上架者 ID（支援 LINE 和非 LINE 方式）
+            $uploader_id = null;
+            if (!empty($line_uid)) {
+                $uploader_id = IdentityService::getUserIdByLineUid($line_uid);
             }
-            $this->debug_service->log('ProductNotificationHandler', '小幫手上架，通知賣家和其他小幫手', [
-                'product_id' => $product_id,
-                'uploader_id' => $uploader_id,
-                'seller_id' => $seller_id,
-                'notify_count' => count($notify_user_ids),
-            ]);
-        }
 
-        // 如果沒有需要通知的人，跳過
-        if (empty($notify_user_ids)) {
-            $this->debug_service->log('ProductNotificationHandler', '跳過通知：無需通知的用戶', [
-                'product_id' => $product_id,
-            ]);
-            return;
-        }
+            // 如果無法從 LINE UID 識別，使用 product_data 中的 user_id
+            if (!$uploader_id) {
+                $uploader_id = $product_data['user_id'] ?? null;
+            }
+
+            if (!$uploader_id) {
+                $this->debug_service->log('ProductNotificationHandler', '跳過通知：無法識別上架者', [
+                    'product_id' => $product_id,
+                ], 'warning');
+                return;
+            }
+
+            // 解析通知目標（賣家 ID + 需要通知的用戶列表）
+            $targets = $this->resolveNotificationTargets($uploader_id, $product_data);
+
+            if ($targets === null) {
+                // resolveNotificationTargets 內部已記錄日誌
+                return;
+            }
+
+            $notify_user_ids = $targets['notify_user_ids'];
+            $seller_id       = $targets['seller_id'];
+
+            // 記錄通知決策
+            if ($uploader_id == $seller_id) {
+                $this->debug_service->log('ProductNotificationHandler', '賣家上架，通知小幫手', [
+                    'product_id'   => $product_id,
+                    'seller_id'    => $seller_id,
+                    'notify_count' => count($notify_user_ids),
+                ]);
+            } else {
+                $this->debug_service->log('ProductNotificationHandler', '小幫手上架，通知賣家和其他小幫手', [
+                    'product_id'   => $product_id,
+                    'uploader_id'  => $uploader_id,
+                    'seller_id'    => $seller_id,
+                    'notify_count' => count($notify_user_ids),
+                ]);
+            }
+
+            // 如果沒有需要通知的人，跳過
+            if (empty($notify_user_ids)) {
+                $this->debug_service->log('ProductNotificationHandler', '跳過通知：無需通知的用戶', [
+                    'product_id' => $product_id,
+                ]);
+                return;
+            }
 
         // 準備模板變數
         $template_args = $this->buildTemplateArgs($product_id, $product_data);
@@ -176,6 +160,70 @@ class ProductNotificationHandler
                 'trace' => $e->getTraceAsString(),
             ], $product_data['user_id'] ?? null, $line_uid);
         }
+    }
+
+    /**
+     * 解析通知目標
+     *
+     * 根據上架者身份（賣家或小幫手）決定要通知哪些人。
+     * 此方法為 public，方便單元測試直接驗證核心邏輯。
+     *
+     * @param int   $uploader_id  上架者的 WordPress User ID
+     * @param array $product_data 商品資料（目前未使用，預留給未來擴充）
+     * @return array|null 包含 ['seller_id' => int, 'notify_user_ids' => int[]] 的陣列，
+     *                    若無法識別身份則返回 null
+     */
+    public function resolveNotificationTargets(int $uploader_id, array $product_data = []): ?array
+    {
+        // 取得上架者身份（賣家 / 小幫手 / 其他）
+        $identity = IdentityService::getIdentityByUserId($uploader_id);
+
+        // 確定賣家 ID
+        if ($identity['role'] === IdentityService::ROLE_SELLER) {
+            $seller_id = $uploader_id;
+        } elseif ($identity['role'] === IdentityService::ROLE_HELPER) {
+            $seller_id = $identity['seller_id'];
+        } else {
+            $this->debug_service->log('ProductNotificationHandler', '跳過通知：上架者非賣家或小幫手', [
+                'uploader_id' => $uploader_id,
+                'role'        => $identity['role'],
+            ], 'warning');
+            return null;
+        }
+
+        if (!$seller_id) {
+            $this->debug_service->log('ProductNotificationHandler', '跳過通知：無賣家 ID', [
+                'uploader_id' => $uploader_id,
+            ], 'warning');
+            return null;
+        }
+
+        // 取得小幫手列表
+        $helpers    = SettingsService::get_helpers($seller_id);
+        $helper_ids = array_map(function ($helper) {
+            return (int) $helper['id'];
+        }, $helpers);
+
+        // 決定通知對象（排除上架者本人）
+        $notify_user_ids = [];
+
+        if ($uploader_id == $seller_id) {
+            // 賣家本人上架 → 通知所有小幫手
+            $notify_user_ids = $helper_ids;
+        } else {
+            // 小幫手上架 → 通知賣家 + 其他小幫手（排除上架者）
+            $notify_user_ids = [(int) $seller_id];
+            foreach ($helper_ids as $helper_id) {
+                if ($helper_id != $uploader_id) {
+                    $notify_user_ids[] = $helper_id;
+                }
+            }
+        }
+
+        return [
+            'seller_id'       => (int) $seller_id,
+            'notify_user_ids' => $notify_user_ids,
+        ];
     }
 
     /**

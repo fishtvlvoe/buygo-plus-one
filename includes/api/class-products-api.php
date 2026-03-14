@@ -2,6 +2,7 @@
 namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\ProductService;
+use BuyGoPlus\Services\FluentCartService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -1277,10 +1278,20 @@ class Products_API {
                 $productService->updateVariationMeta($variation_id, '_buygo_purchased', $purchased);
             }
 
-            // 更新庫存（同步到 FluentCart 的 available 欄位）
+            // 更新庫存（正確同步 FluentCart 的 total_stock、available、manage_stock、stock_status）
             if (isset($data['stock'])) {
-                $stock = (int) $data['stock'];
-                $variation->available = $stock;
+                $stock = ($data['stock'] === '' || $data['stock'] === null) ? null : (int) $data['stock'];
+                $fields = FluentCartService::calculateStockFields($stock, [
+                    'total_stock'  => $variation->total_stock ?? 0,
+                    'available'    => $variation->available ?? 0,
+                    'on_hold'      => $variation->on_hold ?? 0,
+                    'committed'    => $variation->committed ?? 0,
+                    'manage_stock' => $variation->manage_stock ?? 0,
+                ]);
+                $variation->total_stock  = $fields['total_stock'];
+                $variation->available    = $fields['available'];
+                $variation->manage_stock = $fields['manage_stock'];
+                $variation->stock_status = $fields['stock_status'];
             }
 
             // 更新樣式名稱

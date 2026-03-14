@@ -226,12 +226,14 @@ class BatchCreateService
     private function prepareProductData(array $item, int $user_id): array
     {
         $data = [
-            'name' => trim($item['title']),
-            'price' => (int) $item['price'],
-            'quantity' => (int) ($item['quantity'] ?? 0),
-            'description' => $item['description'] ?? '',
-            'currency' => $item['currency'] ?? 'TWD',
-            'user_id' => $user_id,
+            'name'     => trim($item['title']),
+            'price'    => (int) $item['price'],
+            // quantity 未設定或空字串 → 傳 null（FluentCartService 視為無限量）
+            // quantity 有值（含 0）→ 傳整數（0 表示庫存 0，正整數表示有庫存）
+            'quantity'     => isset($item['quantity']) && $item['quantity'] !== '' ? (int) $item['quantity'] : null,
+            'description'  => $item['description'] ?? '',
+            'currency'     => $item['currency'] ?? 'TWD',
+            'user_id'      => $user_id,
         ];
 
         // 圖片（Phase 60 批量上架圖片上傳）
