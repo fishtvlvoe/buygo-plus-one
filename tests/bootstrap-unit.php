@@ -16,8 +16,20 @@ define('BUYGO_PLUS_ONE_PLUGIN_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', dirname(__DIR__) . '/buygo-plus-one.php');
 
 // Mock WordPress functions that are commonly used
+// 支援透過 $GLOBALS['mock_user_roles'] 控制 get_userdata 返回的角色
+// 格式：[ user_id => ['role1', 'role2', ...], ... ]
+$GLOBALS['mock_user_roles'] = [];
+
 if (!function_exists('get_userdata')) {
     function get_userdata($user_id) {
+        if (isset($GLOBALS['mock_user_roles'][$user_id])) {
+            $obj = new stdClass();
+            $obj->ID = $user_id;
+            $obj->roles = $GLOBALS['mock_user_roles'][$user_id];
+            $obj->display_name = 'User ' . $user_id;
+            $obj->user_email = 'user' . $user_id . '@test.local';
+            return $obj;
+        }
         return null;
     }
 }
@@ -263,6 +275,14 @@ if (!class_exists('WP_Error')) {
 }
 
 // Mock global $wpdb
+// 支援透過 $GLOBALS['mock_helper_rows'] 控制小幫手查詢結果
+// 格式：[ helper_user_id => ['helper_id' => X, 'seller_id' => Y, ...], ... ]
+$GLOBALS['mock_helper_rows'] = [];
+
+// 支援透過 $GLOBALS['mock_helpers_by_seller'] 控制 get_helpers 查詢結果
+// 格式：[ seller_id => [ ['id' => X], ['id' => Y], ... ], ... ]
+$GLOBALS['mock_helpers_by_seller'] = [];
+
 if (!isset($GLOBALS['wpdb'])) {
     $GLOBALS['wpdb'] = new class {
         public $prefix = 'wp_';
@@ -274,14 +294,41 @@ if (!isset($GLOBALS['wpdb'])) {
         }
 
         public function get_var($query) {
+            // SHOW TABLES LIKE 'wp_buygo_helpers' → 始終假設表存在
+            // 這讓 IdentityService::getHelperInfo 和 RolePermissionService::get_helpers
+            // 都走資料表查詢路徑，由 mock_helper_rows / mock_helpers_by_seller 控制結果
+            if (strpos($query, 'SHOW TABLES') !== false && strpos($query, 'buygo_helpers') !== false) {
+                return $this->prefix . 'buygo_helpers';
+            }
+            // 其他 SHOW TABLES → 假設表不存在
+            if (strpos($query, 'SHOW TABLES') !== false) {
+                return null;
+            }
             return null;
         }
 
         public function get_row($query, $output = OBJECT) {
+            // IdentityService::getHelperInfo 查詢：SELECT * FROM wp_buygo_helpers WHERE helper_id = X
+            if (strpos($query, 'buygo_helpers') !== false && preg_match("/helper_id\s*=\s*'?(\d+)'?/", $query, $m)) {
+                $helper_id = (int) $m[1];
+                $row = $GLOBALS['mock_helper_rows'][$helper_id] ?? null;
+                if ($row !== null) {
+                    if ($output === ARRAY_A) {
+                        return $row;
+                    }
+                    return (object) $row;
+                }
+            }
             return null;
         }
 
         public function get_results($query, $output = OBJECT) {
+            // RolePermissionService::get_helpers 查詢：SELECT ... FROM wp_buygo_helpers WHERE seller_id = X
+            if (strpos($query, 'buygo_helpers') !== false && preg_match("/seller_id\s*=\s*'?(\d+)'?/", $query, $m)) {
+                $seller_id = (int) $m[1];
+                $rows = $GLOBALS['mock_helpers_by_seller'][$seller_id] ?? [];
+                return array_map(function($r) { return (object) $r; }, $rows);
+            }
             return [];
         }
 
@@ -301,7 +348,18 @@ if (!isset($GLOBALS['wpdb'])) {
         public function query($query) {
             return true;
         }
+
+        public function get_charset_collate() {
+            return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+        }
     };
+}
+
+// Mock dbDelta（僅在測試環境下）
+if (!function_exists('dbDelta')) {
+    function dbDelta($queries = '', $execute = true) {
+        return [];
+    }
 }
 
 // Define OBJECT constant for wpdb
@@ -350,6 +408,59 @@ if (!function_exists('sanitize_textarea_field')) {
     }
 }
 
+if (!function_exists('wp_insert_post')) {
+    function wp_insert_post($postarr, $wp_error = false, $fire_after_hooks = true) {
+        // 測試用：預設回傳假的 post ID
+        return $GLOBALS['mock_wp_insert_post_return'] ?? 999;
+    }
+}
+
+if (!function_exists('wp_update_post')) {
+    function wp_update_post($postarr = array(), $wp_error = false, $fire_after_hooks = true) {
+        return $postarr['ID'] ?? 0;
+    }
+}
+
+if (!function_exists('wp_delete_post')) {
+    function wp_delete_post($postid = 0, $force_delete = false) {
+        return true;
+    }
+}
+
+if (!function_exists('set_post_thumbnail')) {
+    function set_post_thumbnail($post, $thumbnail_id) {
+        return true;
+    }
+}
+
+if (!function_exists('wp_attachment_is_image')) {
+    function wp_attachment_is_image($post = 0) {
+        return false;
+    }
+}
+
+if (!function_exists('delete_post_meta')) {
+    function delete_post_meta($post_id, $meta_key, $meta_value = '') {
+        return true;
+    }
+}
+
+if (!function_exists('get_avatar_url')) {
+    function get_avatar_url($id_or_email, $args = null) {
+        return 'https://www.gravatar.com/avatar/test';
+    }
+}
+
+if (!function_exists('wp_get_current_user')) {
+    // 返回一個空角色的假用戶，使 RolePermissionService::get_helpers 走 seller 路徑
+    function wp_get_current_user() {
+        $user = new stdClass();
+        $user->ID = 0;
+        $user->roles = [];
+        return $user;
+    }
+}
+
 // 載入需要測試的類別
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-debug-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-encryption-service.php';
@@ -368,3 +479,5 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-checker.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-batch-create-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-product-creator.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-notification-handler.php';
