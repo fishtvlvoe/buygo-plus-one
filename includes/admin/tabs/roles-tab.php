@@ -2,7 +2,7 @@
 
         global $wpdb;
 
-        // v2.0: 只查詢有 BGO 角色的使用者（不含純 WP Admin）
+        // v2.1: 查詢有 BGO 角色的使用者 + 綁定表中的幫手（修正 WP 角色缺失的情況）
         $buygo_admins = get_users(['role' => 'buygo_admin']);
         $buygo_helpers = get_users(['role' => 'buygo_helper']);
         $buygo_listers = get_users(['role' => 'buygo_lister']);
@@ -12,6 +12,20 @@
         foreach (array_merge($buygo_admins, $buygo_helpers, $buygo_listers) as $user) {
             if (!isset($unique_users[$user->ID])) {
                 $unique_users[$user->ID] = $user;
+            }
+        }
+
+        // 補充：從綁定表撈出 WP 角色缺失但有綁定記錄的幫手
+        $helpers_table = $wpdb->prefix . 'buygo_helpers';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$helpers_table}'") === $helpers_table) {
+            $bound_helpers = $wpdb->get_results("SELECT DISTINCT helper_id FROM {$helpers_table}");
+            foreach ($bound_helpers as $row) {
+                if (!isset($unique_users[$row->helper_id])) {
+                    $user = get_userdata($row->helper_id);
+                    if ($user) {
+                        $unique_users[$user->ID] = $user;
+                    }
+                }
             }
         }
 
@@ -26,6 +40,19 @@
             $has_buygo_admin_role = in_array('buygo_admin', (array) $user->roles);
             $has_buygo_helper_role = in_array('buygo_helper', (array) $user->roles);
             $has_buygo_lister_role = in_array('buygo_lister', (array) $user->roles);
+
+            // 從綁定表補充角色判斷（WP 角色缺失時）
+            if (!$has_buygo_admin_role && !$has_buygo_helper_role && !$has_buygo_lister_role) {
+                $bound_role = $wpdb->get_var($wpdb->prepare(
+                    "SELECT role FROM {$helpers_table} WHERE helper_id = %d LIMIT 1",
+                    $user->ID
+                ));
+                if ($bound_role === 'buygo_lister') {
+                    $has_buygo_lister_role = true;
+                } elseif ($bound_role) {
+                    $has_buygo_helper_role = true;
+                }
+            }
 
             if ($has_buygo_admin_role) {
                 $role = '賣家';

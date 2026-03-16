@@ -95,11 +95,18 @@ class RolePermissionService
 
         // 檢查當前用戶角色，判斷查詢方式
         $current_user = wp_get_current_user();
-        $is_helper = in_array('buygo_helper', $current_user->roles);
+        $is_wp_admin = current_user_can('manage_options');
+        $is_helper = in_array('buygo_helper', (array) $current_user->roles)
+                  || in_array('buygo_lister', (array) $current_user->roles);
 
         // 從資料表查詢
-        if ($is_helper) {
-            // Helper 身份：查詢自己被哪個 seller 綁定
+        if ($is_wp_admin) {
+            // WP 管理員：查詢所有幫手記錄
+            $helper_records = $wpdb->get_results(
+                "SELECT helper_id, seller_id, created_at FROM {$table_name} ORDER BY created_at DESC"
+            );
+        } elseif ($is_helper) {
+            // Helper/Lister 身份：查詢自己被哪個 seller 綁定
             $helper_records = $wpdb->get_results($wpdb->prepare(
                 "SELECT helper_id, seller_id, created_at FROM {$table_name} WHERE helper_id = %d ORDER BY created_at DESC",
                 $seller_id
@@ -232,14 +239,15 @@ class RolePermissionService
                     ));
 
                     if (!$exists) {
-                        // 插入到新資料表
+                        // 插入到新資料表（含 role 欄位，區分小幫手/上架幫手）
                         $wpdb->insert(
                             $table_name,
                             [
                                 'helper_id' => $user_id,
                                 'seller_id' => $seller_id,
+                                'role'      => $role,
                             ],
-                            ['%d', '%d']
+                            ['%d', '%d', '%s']
                         );
                     }
                 }
