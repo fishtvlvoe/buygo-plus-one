@@ -189,13 +189,17 @@ class LineSettingsService
         ));
 
         if ($buygo_table_exists) {
-            $line_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT identifier FROM {$buygo_line_users_table} WHERE user_id = %d AND type = 'line' LIMIT 1",
-                $user_id
-            ));
+            // 檢查欄位是否存在，避免正式站表結構不一致時產生 DB 錯誤
+            $columns = $wpdb->get_col("DESCRIBE {$buygo_line_users_table}", 0);
+            if (in_array('identifier', $columns) && in_array('user_id', $columns)) {
+                $line_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT identifier FROM {$buygo_line_users_table} WHERE user_id = %d AND type = 'line' LIMIT 1",
+                    $user_id
+                ));
 
-            if (!empty($line_id)) {
-                return $line_id;
+                if (!empty($line_id)) {
+                    return $line_id;
+                }
             }
         }
 
@@ -211,13 +215,17 @@ class LineSettingsService
         ));
 
         if ($table_exists) {
-            $line_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT identifier FROM {$social_users_table} WHERE ID = %d AND type = 'line' LIMIT 1",
-                $user_id
-            ));
+            $columns = $wpdb->get_col("DESCRIBE {$social_users_table}", 0);
+            if (in_array('identifier', $columns)) {
+                $id_col = in_array('ID', $columns) ? 'ID' : 'user_id';
+                $line_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT identifier FROM {$social_users_table} WHERE {$id_col} = %d AND type = 'line' LIMIT 1",
+                    $user_id
+                ));
 
-            if (!empty($line_id)) {
-                return $line_id;
+                if (!empty($line_id)) {
+                    return $line_id;
+                }
             }
         }
 

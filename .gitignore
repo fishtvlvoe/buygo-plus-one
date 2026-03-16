@@ -33,3 +33,12 @@ coverage/
 BUILD-REPORT.md
 *-TEST-REPORT.md
 AUTOMATION-TEST-REPORT.md
+
+# 敏感檔案
+buygo-ssh.md
+one-ssh.md
+*.ssh.md
+
+# 設計圖與工具
+設計圖/
+.superset/

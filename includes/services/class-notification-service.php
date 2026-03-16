@@ -295,10 +295,13 @@ class NotificationService
         // 收集所有需要通知的用戶 ID
         $user_ids = [$seller_id];
 
-        // 取得小幫手列表
+        // 取得小幫手列表（排除上架幫手，他們不收訂單通知）
         $helpers = SettingsService::get_helpers($seller_id);
         foreach ($helpers as $helper) {
-            $user_ids[] = $helper['id'];
+            $helper_user = get_userdata($helper['id']);
+            if ($helper_user && !in_array('buygo_lister', (array) $helper_user->roles, true)) {
+                $user_ids[] = $helper['id'];
+            }
         }
 
         // 去重

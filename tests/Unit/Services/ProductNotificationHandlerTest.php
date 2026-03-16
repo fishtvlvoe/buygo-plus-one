@@ -338,6 +338,200 @@ class ProductNotificationHandlerTest extends TestCase
         $this->assertEmpty($result['notify_user_ids'], '沒有小幫手時通知列表應為空');
     }
 
+    // ========================================
+    // 上架幫手（lister）通知邏輯測試
+    // ========================================
+
+    /**
+     * 測試 9：上架幫手上架商品 → 通知賣家和小幫手，不通知上架幫手本人
+     *
+     * 情境：賣家 ID=10，小幫手 ID=50，上架幫手 ID=80
+     * - 上架幫手 80 上架商品
+     * - 系統應通知：賣家（10）和小幫手（50）
+     * - 不應通知：上架幫手本人（80），因為他是上架者
+     *
+     * 注意：此為 TDD 測試，resolveNotificationTargets 需要新增對 ROLE_LISTER 的處理
+     */
+    public function testListerUploadNotifiesSellerAndHelpers(): void
+    {
+        $seller_id = 10;
+        $helper_id = 50;
+        $lister_id = 80;
+
+        // mock：各角色設定
+        $GLOBALS['mock_user_roles'][$seller_id] = ['buygo_admin'];
+        $GLOBALS['mock_user_roles'][$helper_id] = ['buygo_helper'];
+        $GLOBALS['mock_user_roles'][$lister_id] = ['buygo_lister'];
+
+        // mock：上架幫手 80 在綁定表中，屬於賣家 10
+        $GLOBALS['mock_helper_rows'][$lister_id] = [
+            'helper_id' => $lister_id,
+            'seller_id' => $seller_id,
+            'role'      => 'buygo_lister',
+            'created_at' => '2026-01-01 00:00:00',
+        ];
+
+        // mock：賣家 10 旗下的所有幫手（小幫手 50 + 上架幫手 80）
+        // get_helpers 會依 mock_user_roles 設定 role 欄位
+        $GLOBALS['mock_helpers_by_seller'][$seller_id] = [
+            ['helper_id' => $helper_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+            ['helper_id' => $lister_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+        ];
+
+        $handler = $this->makeHandler();
+        $result  = $handler->resolveNotificationTargets($lister_id);
+
+        $this->assertNotNull($result, '上架幫手上架應返回通知目標，不應為 null');
+        $this->assertSame($seller_id, $result['seller_id'], '賣家 ID 應為 10');
+
+        // 賣家和小幫手都應在通知列表
+        $this->assertContains($seller_id, $result['notify_user_ids'], '通知列表應包含賣家（10）');
+        $this->assertContains($helper_id, $result['notify_user_ids'], '通知列表應包含小幫手（50）');
+
+        // 上架幫手本人不應在通知列表
+        $this->assertNotContains($lister_id, $result['notify_user_ids'], '通知列表不應包含上架幫手本人（80）');
+    }
+
+    /**
+     * 測試 10：小幫手上架時，上架幫手不應收到通知
+     *
+     * 情境：賣家 ID=10，小幫手 ID=50（上架者），上架幫手 ID=80
+     * - 小幫手 50 上架商品，呼叫 resolveNotificationTargets(50)
+     * - 系統應通知：賣家（10）
+     * - 不應通知：小幫手本人（50），也不應通知上架幫手（80）
+     *
+     * 設計決策：上架幫手只負責上架，不參與上架通知的接收
+     */
+    public function testHelperUploadDoesNotNotifyLister(): void
+    {
+        $seller_id = 10;
+        $helper_id = 50; // 上架者
+        $lister_id = 80;
+
+        // mock：各角色設定
+        $GLOBALS['mock_user_roles'][$seller_id] = ['buygo_admin'];
+        $GLOBALS['mock_user_roles'][$helper_id] = ['buygo_helper'];
+        $GLOBALS['mock_user_roles'][$lister_id] = ['buygo_lister'];
+
+        // mock：小幫手 50 在綁定表中，屬於賣家 10
+        $GLOBALS['mock_helper_rows'][$helper_id] = [
+            'helper_id' => $helper_id,
+            'seller_id' => $seller_id,
+            'created_at' => '2026-01-01 00:00:00',
+        ];
+
+        // mock：賣家 10 旗下有小幫手 50 和上架幫手 80
+        $GLOBALS['mock_helpers_by_seller'][$seller_id] = [
+            ['helper_id' => $helper_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+            ['helper_id' => $lister_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+        ];
+
+        $handler = $this->makeHandler();
+        // 由小幫手 50 上架
+        $result  = $handler->resolveNotificationTargets($helper_id);
+
+        $this->assertNotNull($result, '小幫手上架應返回通知目標');
+
+        // 賣家應被通知
+        $this->assertContains($seller_id, $result['notify_user_ids'], '通知列表應包含賣家（10）');
+
+        // 上架者本人不應在通知列表
+        $this->assertNotContains($helper_id, $result['notify_user_ids'], '通知列表不應包含上架者小幫手（50）');
+
+        // 上架幫手不應收到別人上架的通知
+        $this->assertNotContains($lister_id, $result['notify_user_ids'], '通知列表不應包含上架幫手（80）');
+    }
+
+    /**
+     * 測試 11：賣家上架時，上架幫手不應收到通知
+     *
+     * 情境：賣家 ID=10（上架者），小幫手 ID=50，上架幫手 ID=80
+     * - 賣家 10 上架商品
+     * - 應通知：小幫手（50）
+     * - 不應通知：上架幫手（80）（上架幫手不接收上架通知）
+     *
+     * 設計決策：上架幫手是「執行者」不是「接收者」，上架通知只發給 buygo_helper 角色
+     */
+    public function testSellerUploadNotifiesHelpersButNotListers(): void
+    {
+        $seller_id = 10; // 上架者
+        $helper_id = 50;
+        $lister_id = 80;
+
+        // mock：各角色設定
+        $GLOBALS['mock_user_roles'][$seller_id] = ['buygo_admin'];
+        $GLOBALS['mock_user_roles'][$helper_id] = ['buygo_helper'];
+        $GLOBALS['mock_user_roles'][$lister_id] = ['buygo_lister'];
+
+        // 賣家不在綁定表中
+        $GLOBALS['mock_helper_rows'] = [];
+
+        // mock：賣家 10 旗下有小幫手 50 和上架幫手 80
+        $GLOBALS['mock_helpers_by_seller'][$seller_id] = [
+            ['helper_id' => $helper_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+            ['helper_id' => $lister_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+        ];
+
+        $handler = $this->makeHandler();
+        // 由賣家 10 上架
+        $result  = $handler->resolveNotificationTargets($seller_id);
+
+        $this->assertNotNull($result, '賣家上架應返回通知目標');
+        $this->assertSame($seller_id, $result['seller_id']);
+
+        // 小幫手應被通知
+        $this->assertContains($helper_id, $result['notify_user_ids'], '通知列表應包含小幫手（50）');
+
+        // 賣家本人和上架幫手都不應在通知列表
+        $this->assertNotContains($seller_id, $result['notify_user_ids'], '不應通知賣家本人（10）');
+        $this->assertNotContains($lister_id, $result['notify_user_ids'], '通知列表不應包含上架幫手（80）');
+    }
+
+    /**
+     * 測試 12：上架幫手透過批次上架（無 LINE UID）也能正確觸發通知
+     *
+     * 情境：上架幫手 80 透過 API 批次上架（沒有 LINE UID），
+     *       fallback 到 product_data['user_id'] 後，resolveNotificationTargets 應能正確處理
+     * 預期：通知賣家（10）和小幫手（50）
+     *
+     * 這是現有 testHelperUploadWithoutLineUidStillResolvesTargets（test 5）的上架幫手版本
+     */
+    public function testListerUploadWithNoLineUidStillWorks(): void
+    {
+        $seller_id = 10;
+        $helper_id = 50;
+        $lister_id = 80;
+
+        // mock：各角色設定（上架幫手透過批次，無 LINE UID 但有 user_id）
+        $GLOBALS['mock_user_roles'][$seller_id] = ['buygo_admin'];
+        $GLOBALS['mock_user_roles'][$helper_id] = ['buygo_helper'];
+        $GLOBALS['mock_user_roles'][$lister_id] = ['buygo_lister'];
+
+        // mock：上架幫手 80 在綁定表中，屬於賣家 10
+        $GLOBALS['mock_helper_rows'][$lister_id] = [
+            'helper_id' => $lister_id,
+            'seller_id' => $seller_id,
+            'role'      => 'buygo_lister',
+            'created_at' => '2026-01-01 00:00:00',
+        ];
+
+        // mock：賣家 10 旗下有小幫手 50 和上架幫手 80
+        $GLOBALS['mock_helpers_by_seller'][$seller_id] = [
+            ['helper_id' => $helper_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+            ['helper_id' => $lister_id, 'seller_id' => $seller_id, 'created_at' => '2026-01-01 00:00:00'],
+        ];
+
+        // 直接傳入上架幫手 ID（等同 onProductCreated fallback 到 product_data['user_id'] 的結果）
+        $handler = $this->makeHandler();
+        $result  = $handler->resolveNotificationTargets($lister_id);
+
+        $this->assertNotNull($result, '批次上架的上架幫手（無 LINE UID）也應能解析通知目標');
+        $this->assertSame($seller_id, $result['seller_id'], '應識別綁定的賣家 ID 為 10');
+        $this->assertContains($seller_id, $result['notify_user_ids'], '賣家應在通知列表中');
+        $this->assertContains($helper_id, $result['notify_user_ids'], '小幫手應在通知列表中');
+        $this->assertNotContains($lister_id, $result['notify_user_ids'], '上架幫手本人不應在通知列表中');
+    }
+
     /**
      * 測試 8：resolveNotificationTargets 返回結構驗證
      */
