@@ -232,14 +232,15 @@ class RolePermissionService
                     ));
 
                     if (!$exists) {
-                        // 插入到新資料表
+                        // 插入到新資料表（含 role 欄位，區分小幫手/上架幫手）
                         $wpdb->insert(
                             $table_name,
                             [
                                 'helper_id' => $user_id,
                                 'seller_id' => $seller_id,
+                                'role'      => $role,
                             ],
-                            ['%d', '%d']
+                            ['%d', '%d', '%s']
                         );
                     }
                 }

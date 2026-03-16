@@ -32,6 +32,7 @@ class IdentityService
     const ROLE_HELPER = 'helper';
     const ROLE_BUYER = 'buyer';
     const ROLE_UNBOUND = 'unbound';
+    const ROLE_LISTER = 'lister';
 
     /**
      * Debug Service 實例
@@ -114,7 +115,30 @@ class IdentityService
             'seller_id' => null,
         ];
 
-        // 檢查是否為賣家
+        // 【改動】先查綁定表（幫手身份優先於 WP 角色）
+        $helper_info = self::getHelperInfo($user_id);
+        if ($helper_info) {
+            // 根據 WP 角色區分小幫手和上架幫手
+            $user = get_userdata($user_id);
+            $roles = $user ? (array) $user->roles : [];
+
+            if (in_array('buygo_lister', $roles, true)) {
+                $identity['role'] = self::ROLE_LISTER;
+            } else {
+                $identity['role'] = self::ROLE_HELPER;
+            }
+            $identity['seller_id'] = (int) $helper_info['seller_id'];
+
+            self::$debug_service->log('IdentityService', '識別為' . ($identity['role'] === self::ROLE_LISTER ? '上架幫手' : '小幫手'), [
+                'user_id' => $user_id,
+                'seller_id' => $identity['seller_id'],
+                'is_bound' => $is_bound,
+            ]);
+
+            return $identity;
+        }
+
+        // 再查 WP 角色（賣家判定）
         if (self::isSeller($user_id)) {
             $identity['role'] = self::ROLE_SELLER;
             $identity['seller_id'] = $user_id;
@@ -127,22 +151,7 @@ class IdentityService
             return $identity;
         }
 
-        // 檢查是否為小幫手
-        $helper_info = self::getHelperInfo($user_id);
-        if ($helper_info) {
-            $identity['role'] = self::ROLE_HELPER;
-            $identity['seller_id'] = $helper_info['seller_id'];
-
-            self::$debug_service->log('IdentityService', '識別為小幫手', [
-                'user_id' => $user_id,
-                'seller_id' => $helper_info['seller_id'],
-                'is_bound' => $is_bound,
-            ]);
-
-            return $identity;
-        }
-
-        // 非賣家也非小幫手
+        // 非賣家也非幫手
         self::$debug_service->log('IdentityService', '識別為買家或未綁定', [
             'user_id' => $user_id,
             'role' => $identity['role'],
@@ -320,7 +329,7 @@ class IdentityService
     {
         $identity = self::getIdentityByLineUid($line_uid);
 
-        return in_array($identity['role'], [self::ROLE_SELLER, self::ROLE_HELPER]);
+        return in_array($identity['role'], [self::ROLE_SELLER, self::ROLE_HELPER, self::ROLE_LISTER], true);
     }
 
     /**
@@ -345,7 +354,8 @@ class IdentityService
             return $user_id;
         }
 
-        if ($identity['role'] === self::ROLE_HELPER && !empty($identity['seller_id'])) {
+        // 小幫手或上架幫手，都指向綁定的賣家
+        if (in_array($identity['role'], [self::ROLE_HELPER, self::ROLE_LISTER], true) && !empty($identity['seller_id'])) {
             return (int) $identity['seller_id'];
         }
 
