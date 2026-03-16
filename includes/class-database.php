@@ -78,6 +78,9 @@ class Database
 
         // 修復 buygo_helpers 資料表（user_id -> helper_id）
         self::upgrade_helpers_table($wpdb, $charset_collate);
+
+        // 升級 buygo_helpers 表：新增 role 欄位（區分小幫手/上架幫手）
+        self::upgrade_helpers_role_column($wpdb);
     }
 
     /**
@@ -591,6 +594,48 @@ class Database
         ) {$charset_collate};";
 
         dbDelta($sql);
+    }
+
+    /**
+     * 升級 buygo_helpers 表：新增 role 欄位
+     *
+     * 用於區分小幫手（buygo_helper）和上架幫手（buygo_lister）。
+     * 向後相容：舊記錄預設填入 buygo_helper，並根據 WP 用戶角色回填上架幫手。
+     */
+    private static function upgrade_helpers_role_column($wpdb): void
+    {
+        $table_name = $wpdb->prefix . 'buygo_helpers';
+
+        // 檢查表是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            return;
+        }
+
+        // 檢查 role 欄位是否已存在
+        $columns = $wpdb->get_col("DESCRIBE {$table_name}", 0);
+        if (in_array('role', $columns)) {
+            return;
+        }
+
+        // 新增 role 欄位，預設值為 buygo_helper（向後相容）
+        $wpdb->query(
+            "ALTER TABLE {$table_name} ADD COLUMN role varchar(50) DEFAULT 'buygo_helper' AFTER seller_id"
+        );
+
+        // 根據 WP 用戶角色回填現有記錄
+        $records = $wpdb->get_results("SELECT id, helper_id FROM {$table_name}");
+        foreach ($records as $record) {
+            $user = get_userdata($record->helper_id);
+            if ($user && in_array('buygo_lister', (array) $user->roles, true)) {
+                $wpdb->update(
+                    $table_name,
+                    ['role' => 'buygo_lister'],
+                    ['id' => $record->id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+        }
     }
 
     /**

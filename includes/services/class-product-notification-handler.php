@@ -175,16 +175,16 @@ class ProductNotificationHandler
      */
     public function resolveNotificationTargets(int $uploader_id, array $product_data = []): ?array
     {
-        // 取得上架者身份（賣家 / 小幫手 / 其他）
+        // 取得上架者身份（賣家 / 小幫手 / 上架幫手 / 其他）
         $identity = IdentityService::getIdentityByUserId($uploader_id);
 
-        // 確定賣家 ID
+        // 確定賣家 ID — seller、helper、lister 都能觸發
         if ($identity['role'] === IdentityService::ROLE_SELLER) {
             $seller_id = $uploader_id;
-        } elseif ($identity['role'] === IdentityService::ROLE_HELPER) {
+        } elseif ($identity['role'] === IdentityService::ROLE_HELPER || $identity['role'] === IdentityService::ROLE_LISTER) {
             $seller_id = $identity['seller_id'];
         } else {
-            $this->debug_service->log('ProductNotificationHandler', '跳過通知：上架者非賣家或小幫手', [
+            $this->debug_service->log('ProductNotificationHandler', '跳過通知：上架者非賣家或幫手', [
                 'uploader_id' => $uploader_id,
                 'role'        => $identity['role'],
             ], 'warning');
@@ -198,23 +198,27 @@ class ProductNotificationHandler
             return null;
         }
 
-        // 取得小幫手列表
+        // 取得幫手列表
         $helpers    = SettingsService::get_helpers($seller_id);
         $helper_ids = array_map(function ($helper) {
             return (int) $helper['id'];
         }, $helpers);
 
-        // 決定通知對象（排除上架者本人）
+        // 決定通知對象
         $notify_user_ids = [];
 
         if ($uploader_id == $seller_id) {
-            // 賣家本人上架 → 通知所有小幫手
-            $notify_user_ids = $helper_ids;
+            // 賣家本人上架 → 通知小幫手（排除上架幫手）
+            foreach ($helper_ids as $helper_id) {
+                if (!self::isListerRole($helper_id)) {
+                    $notify_user_ids[] = $helper_id;
+                }
+            }
         } else {
-            // 小幫手上架 → 通知賣家 + 其他小幫手（排除上架者）
+            // 小幫手或上架幫手上架 → 通知賣家 + 小幫手（排除上架者本人 + 排除其他上架幫手）
             $notify_user_ids = [(int) $seller_id];
             foreach ($helper_ids as $helper_id) {
-                if ($helper_id != $uploader_id) {
+                if ($helper_id != $uploader_id && !self::isListerRole($helper_id)) {
                     $notify_user_ids[] = $helper_id;
                 }
             }
@@ -224,6 +228,21 @@ class ProductNotificationHandler
             'seller_id'       => (int) $seller_id,
             'notify_user_ids' => $notify_user_ids,
         ];
+    }
+
+    /**
+     * 判斷用戶是否為上架幫手角色
+     *
+     * @param int $user_id WordPress User ID
+     * @return bool
+     */
+    private static function isListerRole(int $user_id): bool
+    {
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return false;
+        }
+        return in_array('buygo_lister', (array) $user->roles, true);
     }
 
     /**
