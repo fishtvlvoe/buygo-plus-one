@@ -374,6 +374,20 @@ function useProducts() {
                         } catch (e) {
                             console.error('載入 Variation 採購數量失敗:', e);
                         }
+                        // 多樣式商品：取得所有 variant 的訂單加總
+                        try {
+                            const buyersRes = await fetch(`/wp-json/buygo-plus-one/v1/products/${selectedVar.id}/buyers?_t=${Date.now()}`, {
+                                cache: 'no-store',
+                                credentials: 'include',
+                                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'X-WP-Nonce': wpNonce }
+                            });
+                            const buyersData = await buyersRes.json();
+                            if (buyersData.success) {
+                                editingProduct.value.ordered = buyersData.total || 0;
+                            }
+                        } catch (e) {
+                            console.error('載入多樣式商品訂單總數失敗:', e);
+                        }
                     } else {
                         editingProduct.value = { ...product, stock: product.stock > 0 ? product.stock : '' };
                     }
@@ -691,6 +705,7 @@ function useProducts() {
                         body: JSON.stringify({
                             purchased: ep.editing_variation_purchased,
                             variation_title: ep.editing_variation_title,
+                            price: ep.editing_variation_price,
                             ...(ep.editing_variation_stock !== '' ? { stock: ep.editing_variation_stock } : {})
                         })
                     });
@@ -702,6 +717,7 @@ function useProducts() {
                         if (v) {
                             v.variation_title = ep.editing_variation_title;
                             v.available = ep.editing_variation_stock;
+                            v.price = ep.editing_variation_price;
                         }
                     }
                 }

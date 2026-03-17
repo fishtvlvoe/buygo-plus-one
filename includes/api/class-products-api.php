@@ -1300,8 +1300,14 @@ class Products_API {
                 $variation->variation_title = $title;
             }
 
+            // 更新價格（FluentCart 用分為單位）
+            if (isset($data['price'])) {
+                $priceInCents = (int) ($data['price'] * 100);
+                $variation->item_price = $priceInCents;
+            }
+
             // 有任何 variation 欄位變更時統一儲存
-            if (isset($data['stock']) || isset($data['variation_title'])) {
+            if (isset($data['stock']) || isset($data['variation_title']) || isset($data['price'])) {
                 $variation->save();
             }
 
