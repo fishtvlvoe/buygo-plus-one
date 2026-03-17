@@ -325,15 +325,21 @@ class ProductService
     public function getProductBuyers(int $productId): array
     {
         try {
-            // 取得商品資訊（名稱和圖片）
+            // 取得商品資訊（名稱和圖片）— 多樣式商品顯示商品名稱
             $productVariation = \FluentCart\App\Models\ProductVariation::with(['product'])->find($productId);
             $productName = '未知商品';
             $productImage = '';
 
             if ($productVariation) {
-                $productName = $productVariation->variation_title ?? '';
-                if (empty($productName) && $productVariation->product) {
-                    $productName = $productVariation->product->post_title ?? '未知商品';
+                // 優先用商品名稱（post_title），而非 variant 名稱
+                if ($productVariation->post_id) {
+                    $postTitle = get_the_title($productVariation->post_id);
+                    if (!empty($postTitle)) {
+                        $productName = $postTitle;
+                    }
+                }
+                if (empty($productName) || $productName === '未知商品') {
+                    $productName = $productVariation->variation_title ?? '未知商品';
                 }
 
                 // 取得商品圖片
@@ -345,8 +351,11 @@ class ProductService
                 }
             }
 
+            // 多樣式商品：查詢所有 sibling variation 的訂單
+            $allVariationIds = $this->getSiblingVariationIds($productId);
+
             // 查詢訂單項目（只計算父訂單，排除子訂單、已取消和已退款的訂單）
-            $orderItems = OrderItem::where('object_id', $productId)
+            $orderItems = OrderItem::whereIn('object_id', $allVariationIds)
                 ->whereHas('order', function($query) {
                     $query->whereNotIn('status', ['cancelled', 'refunded'])
                           ->whereNull('parent_id');  // 只查詢父訂單
@@ -409,6 +418,13 @@ class ProductService
                     }
                 }
 
+                // 取得此訂單項目的 variant 名稱（多樣式商品用）
+                $variantName = '';
+                if (count($allVariationIds) > 1 && $item->object_id) {
+                    $itemVariation = \FluentCart\App\Models\ProductVariation::find($item->object_id);
+                    $variantName = $itemVariation ? ($itemVariation->variation_title ?? '') : '';
+                }
+
                 $orders[] = [
                     'order_item_id' => $item->id,
                     'order_id' => $order->id,
@@ -423,7 +439,8 @@ class ProductService
                     'status' => $status,
                     'is_allocated' => $isFullyAllocated,  // 保持向後相容
                     'order_date' => $orderDate,
-                    'shipping_status' => $order->shipping_status ?? 'unshipped'
+                    'shipping_status' => $order->shipping_status ?? 'unshipped',
+                    'variant_name' => $variantName
                 ];
             }
 
@@ -460,6 +477,40 @@ class ProductService
                 'message' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * 取得同商品的所有 variation IDs
+     *
+     * 多樣式商品：透過 post_id 找出所有 sibling variation IDs
+     * 單樣式商品：回傳只有自己的陣列
+     *
+     * @param int $variationId 任一 variation ID
+     * @return array 所有 sibling variation IDs
+     */
+    protected function getSiblingVariationIds(int $variationId): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'fct_product_variations';
+
+        // 先查出這個 variation 屬於哪個商品（post_id）
+        $postId = $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$table} WHERE id = %d",
+            $variationId
+        ));
+
+        if (!$postId) {
+            // 找不到 → 降級回傳原始 ID
+            return [$variationId];
+        }
+
+        // 用 post_id 找出所有 active 的 variation IDs
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE post_id = %d AND item_status = 'active' ORDER BY id ASC",
+            $postId
+        ));
+
+        return !empty($ids) ? array_map('intval', $ids) : [$variationId];
     }
 
     /**

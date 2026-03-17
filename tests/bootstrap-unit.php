@@ -446,6 +446,24 @@ if (!function_exists('delete_post_meta')) {
     }
 }
 
+if (!function_exists('get_the_title')) {
+    function get_the_title($post = 0) {
+        return '';
+    }
+}
+
+if (!function_exists('get_post_thumbnail_id')) {
+    function get_post_thumbnail_id($post = null) {
+        return 0;
+    }
+}
+
+if (!function_exists('wp_get_attachment_image_url')) {
+    function wp_get_attachment_image_url($attachment_id, $size = 'thumbnail', $icon = false) {
+        return '';
+    }
+}
+
 if (!function_exists('get_avatar_url')) {
     function get_avatar_url($id_or_email, $args = null) {
         return 'https://www.gravatar.com/avatar/test';
@@ -479,6 +497,33 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipment-servi
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-webhook-logger.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-fluentcart-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-checker.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-stats-calculator.php';
+
+// Mock FluentCart Eloquent Models（讓 ProductService 可被載入）
+if (!class_exists('FluentCart\App\Models\ProductVariation')) {
+    eval('namespace FluentCart\App\Models; class ProductVariation { public static function with($relations) { return new self(); } public static function find($id) { return null; } public function where($col, $val) { return $this; } public function whereIn($col, $vals) { return $this; } public function whereHas($rel, $cb = null) { return $this; } public function get() { return collect([]); } public $post_id; public $variation_title; public $product; }');
+}
+if (!class_exists('FluentCart\App\Models\Product')) {
+    eval('namespace FluentCart\App\Models; class Product {}');
+}
+if (!class_exists('FluentCart\App\Models\OrderItem')) {
+    eval('namespace FluentCart\App\Models; class OrderItem { public static function where($col, $val) { $i = new self(); $i->_wheres[] = [$col, $val]; return $i; } public static function whereIn($col, $vals) { $i = new self(); $i->_wheres[] = [$col, $vals]; return $i; } public function whereHas($rel, $cb = null) { return $this; } public function with($rels) { return $this; } public function get() { return collect([]); } public $_wheres = []; }');
+}
+
+// Mock Laravel collect() 函數
+if (!function_exists('collect')) {
+    function collect($items = []) {
+        return new class($items) implements \IteratorAggregate, \Countable {
+            private $items;
+            public function __construct($items) { $this->items = $items; }
+            public function getIterator(): \Traversable { return new \ArrayIterator($this->items); }
+            public function count(): int { return count($this->items); }
+            public function toArray() { return $this->items; }
+        };
+    }
+}
+
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-batch-create-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-product-creator.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-notification-handler.php';

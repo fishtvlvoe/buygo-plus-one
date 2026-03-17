@@ -607,6 +607,7 @@ $products_component_template .= <<<'HTML'
                                             </td>
                                             <td class="px-4 py-4">
                                                 <div class="text-sm font-medium text-slate-900">{{ order.customer_name }}</div>
+                                                <div v-if="order.variant_name" class="text-xs text-slate-400 mt-0.5">{{ order.variant_name }}</div>
                                             </td>
                                             <td class="px-4 py-4 text-center">
                                                 <div class="text-xl font-bold text-slate-900">{{ order.quantity }}</div>
@@ -649,6 +650,7 @@ $products_component_template .= <<<'HTML'
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <button @click="goToOrderDetail(order.order_id)" class="font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
                                                     <span class="text-sm text-slate-500 truncate">{{ order.customer_name }}</span>
+                                                    <span v-if="order.variant_name" class="text-xs text-slate-400 truncate">· {{ order.variant_name }}</span>
                                                 </div>
                                                 <div class="flex items-center gap-3 text-xs">
                                                     <span><span class="text-slate-400">數量</span> <span class="font-bold text-slate-700">{{ order.quantity }}</span></span>
