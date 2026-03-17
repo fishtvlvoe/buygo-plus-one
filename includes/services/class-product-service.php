@@ -354,6 +354,14 @@ class ProductService
             // 多樣式商品：查詢所有 sibling variation 的訂單
             $allVariationIds = $this->getSiblingVariationIds($productId);
 
+            // 預載所有 variation 名稱（避免 N+1 查詢）
+            $variationNameMap = [];
+            if (count($allVariationIds) > 1) {
+                $variationNameMap = \FluentCart\App\Models\ProductVariation::whereIn('id', $allVariationIds)
+                    ->pluck('variation_title', 'id')
+                    ->toArray();
+            }
+
             // 查詢訂單項目（只計算父訂單，排除子訂單、已取消和已退款的訂單）
             $orderItems = OrderItem::whereIn('object_id', $allVariationIds)
                 ->whereHas('order', function($query) {
@@ -418,12 +426,8 @@ class ProductService
                     }
                 }
 
-                // 取得此訂單項目的 variant 名稱（多樣式商品用）
-                $variantName = '';
-                if (count($allVariationIds) > 1 && $item->object_id) {
-                    $itemVariation = \FluentCart\App\Models\ProductVariation::find($item->object_id);
-                    $variantName = $itemVariation ? ($itemVariation->variation_title ?? '') : '';
-                }
+                // 取得此訂單項目的 variant 名稱（多樣式商品用，從預載 map 取得）
+                $variantName = $variationNameMap[$item->object_id] ?? '';
 
                 $orders[] = [
                     'order_item_id' => $item->id,
