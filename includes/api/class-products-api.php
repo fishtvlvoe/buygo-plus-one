@@ -1021,31 +1021,49 @@ class Products_API {
             $table_items = $wpdb->prefix . 'fct_order_items';
             $table_orders = $wpdb->prefix . 'fct_orders';
 
+            // 【修復】多樣式商品支援：取得同一商品所有 variation IDs
+            $allocationService = new \BuyGoPlus\Services\AllocationService();
+            // 透過反射或直接查表取得所有 variation IDs
+            $varTable = $wpdb->prefix . 'fct_product_variations';
+            $post_id_for_alloc = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT post_id FROM {$varTable} WHERE id = %d LIMIT 1", $product_id
+            ));
+            $allVarIds = [$product_id];
+            if ($post_id_for_alloc) {
+                $ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM {$varTable} WHERE post_id = %d AND item_status = 'active'", $post_id_for_alloc
+                ));
+                if (!empty($ids)) {
+                    $allVarIds = array_map('intval', $ids);
+                }
+            }
+            $varPlaceholders = implode(',', array_fill(0, count($allVarIds), '%d'));
+
             // 如果有 order_item_id，只分配該單筆訂單項目
+            // 【修復】不再用 object_id = product_id 過濾，改用 IN 條件支援所有 variant
             if ($order_item_id > 0) {
                 $order_items = $wpdb->get_results($wpdb->prepare(
-                    "SELECT oi.id as order_item_id, oi.order_id, oi.quantity, o.invoice_no
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, o.invoice_no
                      FROM {$table_items} oi
                      INNER JOIN {$table_orders} o ON oi.order_id = o.id
                      WHERE oi.id = %d
-                       AND oi.object_id = %d
+                       AND oi.object_id IN ($varPlaceholders)
                        AND o.parent_id IS NULL
                        AND o.status NOT IN ('cancelled', 'refunded')",
                     $order_item_id,
-                    $product_id
+                    ...$allVarIds
                 ));
             } elseif ($customer_id > 0) {
-                // 舊邏輯：分配該客戶的所有訂單
+                // 分配該客戶的所有訂單（支援多樣式商品所有 variant）
                 $order_items = $wpdb->get_results($wpdb->prepare(
-                    "SELECT oi.id as order_item_id, oi.order_id, oi.quantity, o.invoice_no
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, o.invoice_no
                      FROM {$table_items} oi
                      INNER JOIN {$table_orders} o ON oi.order_id = o.id
-                     WHERE oi.object_id = %d
+                     WHERE oi.object_id IN ($varPlaceholders)
                        AND o.customer_id = %d
                        AND o.parent_id IS NULL
                        AND o.status NOT IN ('cancelled', 'refunded')",
-                    $product_id,
-                    $customer_id
+                    ...array_merge($allVarIds, [$customer_id])
                 ));
             } else {
                 return new \WP_REST_Response([
@@ -1159,16 +1177,34 @@ class Products_API {
 
         $table_items = $wpdb->prefix . 'fct_order_items';
         $table_orders = $wpdb->prefix . 'fct_orders';
+        $table_vars = $wpdb->prefix . 'fct_product_variations';
 
-        // 取得該商品所有訂單項目的 line_meta
+        // 【修復】多樣式商品支援：取得所有 variation IDs
+        $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+        if (!$product || !$product->post_id) {
+            return;
+        }
+
+        $allVarIds = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$table_vars} WHERE post_id = %d AND item_status = 'active'",
+            $product->post_id
+        ));
+
+        if (empty($allVarIds)) {
+            $allVarIds = [$product_id];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($allVarIds), '%d'));
+
+        // 取得所有 variant 的訂單項目的 line_meta
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT oi.line_meta
              FROM {$table_items} oi
              INNER JOIN {$table_orders} o ON oi.order_id = o.id
-             WHERE oi.object_id = %d
+             WHERE oi.object_id IN ($placeholders)
                AND o.status NOT IN ('cancelled', 'refunded')
                AND o.parent_id IS NULL",
-            $product_id
+            ...array_map('intval', $allVarIds)
         ));
 
         // 計算總已分配數量
@@ -1182,10 +1218,7 @@ class Products_API {
         }
 
         // 更新商品的 post meta
-        $product = \FluentCart\App\Models\ProductVariation::find($product_id);
-        if ($product && $product->post_id) {
-            update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
-        }
+        update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
     }
 
     /**
