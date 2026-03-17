@@ -594,7 +594,9 @@ $products_component_template .= <<<'HTML'
                                         <tr>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">訂單編號</th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶</th>
-                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">數量</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">下單量</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">已採購</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-amber-600 uppercase tracking-wider bg-amber-50/50">待分配</th>
                                             <th class="px-4 py-3 text-center text-xs font-semibold text-green-600 uppercase tracking-wider bg-green-50/50">已分配</th>
                                             <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">狀態</th>
                                             <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
@@ -607,9 +609,16 @@ $products_component_template .= <<<'HTML'
                                             </td>
                                             <td class="px-4 py-4">
                                                 <div class="text-sm font-medium text-slate-900">{{ order.customer_name }}</div>
+                                                <div v-if="order.variation_title" class="text-xs text-indigo-600 mt-0.5">{{ order.variation_title }}</div>
                                             </td>
                                             <td class="px-4 py-4 text-center">
                                                 <div class="text-xl font-bold text-slate-900">{{ order.quantity }}</div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <div class="text-xl font-bold text-slate-700">{{ order.purchased || 0 }}</div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center bg-amber-50/30">
+                                                <div class="text-xl font-bold text-amber-600">{{ order.pending_quantity }}</div>
                                             </td>
                                             <td class="px-4 py-4 text-center bg-green-50/30">
                                                 <div class="text-xl font-bold text-green-600">{{ order.allocated_quantity }}</div>
@@ -649,9 +658,11 @@ $products_component_template .= <<<'HTML'
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <button @click="goToOrderDetail(order.order_id)" class="font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
                                                     <span class="text-sm text-slate-500 truncate">{{ order.customer_name }}</span>
+                                                    <span v-if="order.variation_title" class="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium shrink-0">{{ order.variation_title }}</span>
                                                 </div>
                                                 <div class="flex items-center gap-3 text-xs">
-                                                    <span><span class="text-slate-400">數量</span> <span class="font-bold text-slate-700">{{ order.quantity }}</span></span>
+                                                    <span><span class="text-slate-400">下單</span> <span class="font-bold text-slate-700">{{ order.quantity }}</span></span>
+                                                    <span><span class="text-slate-400">已採購</span> <span class="font-bold text-slate-600">{{ order.purchased || 0 }}</span></span>
                                                     <span><span class="text-slate-400">已配</span> <span class="font-bold text-green-600">{{ order.allocated_quantity }}</span></span>
                                                     <span><span class="text-slate-400">待配</span> <span class="font-bold text-amber-600">{{ order.pending_quantity }}</span></span>
                                                 </div>
@@ -751,7 +762,7 @@ $products_component_template .= <<<'HTML'
                                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                 <div>
                                                     <label class="block text-xs font-medium text-slate-700 mb-1">價格</label>
-                                                    <input type="number" :value="editingProduct.editing_variation_price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                                    <input type="number" v-model.number="editingProduct.editing_variation_price" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary">
                                                 </div>
                                                 <div>
                                                     <label class="block text-xs font-medium text-slate-700 mb-1">成本價</label>
@@ -762,27 +773,38 @@ $products_component_template .= <<<'HTML'
                                                     <input type="number" v-model.number="editingProduct.editing_variation_purchased" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-slate-700 mb-1">庫存 <span class="font-normal text-slate-400">（留空=無限制）</span></label>
+                                                    <label class="flex items-center gap-1 text-xs font-medium text-slate-700 mb-1">庫存 <span class="text-slate-400 cursor-help" title="留空代表無限制">ⓘ</span></label>
                                                     <input type="number" v-model.number="editingProduct.editing_variation_stock" class="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white" placeholder="留空=無限制">
                                                 </div>
                                             </div>
                                         </div>
-                                        <!-- 價格 + 成本價（同一行） -->
-                                        <div class="grid grid-cols-2 gap-3 md:gap-4">
-                                            <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" :class="editingProduct.has_variations ? 'bg-slate-50 text-slate-500' : ''" :readonly="editingProduct.has_variations"></div>
-                                            <div v-if="customFields && !editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">成本價</label><input v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm" placeholder="輸入成本價"></div>
+                                        <!-- 價格 + 成本價（同一行）— 只有單樣式商品顯示 -->
+                                        <div v-if="!editingProduct.has_variations" class="grid grid-cols-2 gap-3 md:gap-4">
+                                            <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label><input type="number" v-model="editingProduct.price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+                                            <div v-if="customFields"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">成本價</label><input v-model="customFields.cost_price" type="number" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm" placeholder="輸入成本價"></div>
                                         </div>
-                                        <!-- 已採購 / 庫存 / 狀態（同一行） -->
+                                        <!-- 已採購 / 庫存 / 狀態（同一行）— 只有單樣式商品顯示已採購和庫存 -->
                                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                             <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已採購</label><input type="number" v-model="editingProduct.purchased" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
-                                            <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">庫存 <span class="font-normal text-slate-400">（留空=無限制）</span></label><input type="number" v-model.number="editingProduct.stock" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="留空=無限制"></div>
-                                            <div><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
+                                            <div v-if="!editingProduct.has_variations"><label class="flex items-center gap-1 text-xs md:text-sm font-medium text-slate-700 mb-1">庫存 <span class="text-slate-400 cursor-help" title="留空代表無限制">ⓘ</span></label><input type="number" v-model.number="editingProduct.stock" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="留空=無限制"></div>
+                                            <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
                                         </div>
-                                        <!-- 已下單 -->
+                                        <!-- 多樣式商品：價格 / 狀態（同一行） -->
+                                        <div v-if="editingProduct.has_variations" class="grid grid-cols-2 gap-3 md:gap-4">
+                                            <div>
+                                                <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label>
+                                                <input type="number" :value="editingProduct.price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label>
+                                                <select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select>
+                                            </div>
+                                        </div>
+                                        <!-- 已下單 + 客戶名單 -->
                                         <div>
                                             <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
                                             <div class="flex items-center gap-2">
-                                                <input type="number" :value="editingProduct.ordered || 0" readonly class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                                <input type="number" :value="editingProduct.ordered || 0" readonly class="w-full max-w-[200px] px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
                                                 <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
                                                     客戶名單
                                                 </button>
@@ -966,6 +988,7 @@ $products_component_template .= <<<'HTML'
                                                     <div class="flex items-center gap-2 mb-1">
                                                         <button @click="goToOrderDetail(order.order_id)" class="font-bold text-primary hover:text-blue-700 hover:underline transition">#{{ order.order_id }}</button>
                                                         <span class="text-sm text-slate-500 truncate">{{ order.customer || '訪客' }}</span>
+                                                        <span v-if="order.variation_title" class="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium shrink-0">{{ order.variation_title }}</span>
                                                     </div>
                                                     <div class="flex items-center gap-3 text-xs">
                                                         <span><span class="text-slate-400">下單</span> <span class="font-bold text-slate-700">{{ order.required || order.quantity }}</span></span>
