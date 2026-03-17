@@ -780,24 +780,25 @@ $products_component_template .= <<<'HTML'
                                             <div v-if="!editingProduct.has_variations"><label class="flex items-center gap-1 text-xs md:text-sm font-medium text-slate-700 mb-1">庫存 <span class="text-slate-400 cursor-help" title="留空代表無限制">ⓘ</span></label><input type="number" v-model.number="editingProduct.stock" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="留空=無限制"></div>
                                             <div v-if="!editingProduct.has_variations"><label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label><select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select></div>
                                         </div>
-                                        <!-- 多樣式商品：價格 / 狀態 / 已下單（同一行） -->
-                                        <div :class="editingProduct.has_variations ? 'grid grid-cols-3 gap-3 md:gap-4' : ''">
-                                            <div v-if="editingProduct.has_variations">
+                                        <!-- 多樣式商品：價格 / 狀態（同一行） -->
+                                        <div v-if="editingProduct.has_variations" class="grid grid-cols-2 gap-3 md:gap-4">
+                                            <div>
                                                 <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">價格</label>
                                                 <input type="number" :value="editingProduct.price" readonly class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-500">
                                             </div>
-                                            <div v-if="editingProduct.has_variations">
+                                            <div>
                                                 <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">狀態</label>
                                                 <select v-model="editingProduct.status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="published">已上架</option><option value="private">已下架</option></select>
                                             </div>
-                                            <div>
-                                                <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
-                                                <div class="flex items-center gap-2">
-                                                    <input type="number" :value="editingProduct.ordered || 0" readonly class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
-                                                    <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
-                                                        客戶名單
-                                                    </button>
-                                                </div>
+                                        </div>
+                                        <!-- 已下單 + 客戶名單 -->
+                                        <div>
+                                            <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">已下單</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" :value="editingProduct.ordered || 0" readonly class="w-full max-w-[200px] px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-600 cursor-not-allowed">
+                                                <button @click="viewBuyers(editingProduct)" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition shrink-0">
+                                                    客戶名單
+                                                </button>
                                             </div>
                                         </div>
                                         <!-- 利潤與利潤率（最底部） -->
