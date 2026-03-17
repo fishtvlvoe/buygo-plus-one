@@ -114,7 +114,7 @@ class ProductService
 
             $products = $query->orderBy('id', 'desc')->get();
 
-            // 計算下單數量
+            // 計算下單數量（所有 variation IDs）
             $productIds = $products->pluck('id')->toArray();
             $orderCounts = $this->statsCalculator->calculateOrderCounts($productIds);
 
@@ -123,6 +123,16 @@ class ProductService
 
             // 計算已分配到子訂單的數量（取代不可靠的 post_meta）
             $allocatedToChildCounts = $this->statsCalculator->calculateAllocatedToChildOrders($productIds);
+
+            // 【修復】建立 post_id → 所有 variation IDs 的對照表，用於聚合多樣式商品的統計
+            $postIdToVarIds = [];
+            foreach ($products as $p) {
+                $pid = $p->post_id;
+                if (!isset($postIdToVarIds[$pid])) {
+                    $postIdToVarIds[$pid] = [];
+                }
+                $postIdToVarIds[$pid][] = $p->id;
+            }
 
             // 格式化資料
             $formattedProducts = [];
@@ -150,18 +160,28 @@ class ProductService
                     $currency = 'TWD';
                 }
 
-                // 取得已採購數量（從 post_meta）
-                $purchased = (int) get_post_meta($product->post_id, '_buygo_purchased', true);
+                // 【修復】多樣式商品：聚合同一 post_id 下所有 variant 的統計
+                $siblingVarIds = $postIdToVarIds[$product->post_id] ?? [$product->id];
 
-                // 計算已下單數量（只計算父訂單）
-                $ordered = $orderCounts[$product->id] ?? 0;
-
-                // 計算已分配數量（從子訂單計算，而不是 post_meta）
-                // 這樣更準確，因為 post_meta 可能沒有正確同步
-                $allocated = $allocatedToChildCounts[$product->id] ?? 0;
-
-                // 計算已出貨數量（從出貨單計算）
-                $shipped = $shippedCounts[$product->id] ?? 0;
+                // 多樣式商品的 purchased 存在 fct_meta（per variation），單一商品存在 post_meta
+                $purchased = 0;
+                if (count($siblingVarIds) > 1) {
+                    // 多樣式：從 fct_meta 聚合
+                    foreach ($siblingVarIds as $vid) {
+                        $purchased += (int) $this->getVariationMeta($vid, '_buygo_purchased', 0);
+                    }
+                } else {
+                    // 單一商品：從 post_meta 讀取
+                    $purchased = (int) get_post_meta($product->post_id, '_buygo_purchased', true);
+                }
+                $ordered = 0;
+                $allocated = 0;
+                $shipped = 0;
+                foreach ($siblingVarIds as $vid) {
+                    $ordered += $orderCounts[$vid] ?? 0;
+                    $allocated += $allocatedToChildCounts[$vid] ?? 0;
+                    $shipped += $shippedCounts[$vid] ?? 0;
+                }
 
                 // 計算待出貨數量（已分配但還沒出貨的）
                 // 待出貨 = 已分配 - 已出貨
@@ -345,14 +365,61 @@ class ProductService
                 }
             }
 
+            // 【修復】多樣式商品支援：取得同一商品所有 variation 的訂單
+            global $wpdb;
+            $varTable = $wpdb->prefix . 'fct_product_variations';
+            $post_id_for_var = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT post_id FROM {$varTable} WHERE id = %d LIMIT 1",
+                $productId
+            ));
+            $allVariationIds = [$productId];
+            if ($post_id_for_var) {
+                $ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM {$varTable} WHERE post_id = %d AND item_status = 'active'",
+                    $post_id_for_var
+                ));
+                if (!empty($ids)) {
+                    $allVariationIds = array_map('intval', $ids);
+                }
+            }
+
             // 查詢訂單項目（只計算父訂單，排除子訂單、已取消和已退款的訂單）
-            $orderItems = OrderItem::where('object_id', $productId)
+            $orderItems = OrderItem::whereIn('object_id', $allVariationIds)
                 ->whereHas('order', function($query) {
                     $query->whereNotIn('status', ['cancelled', 'refunded'])
                           ->whereNull('parent_id');  // 只查詢父訂單
                 })
                 ->with(['order', 'order.customer'])
                 ->get();
+
+            // 建立 variation_id → title 對照表
+            $variationTitles = [];
+            if (count($allVariationIds) > 1) {
+                $titleRows = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id, variation_title FROM {$varTable} WHERE post_id = %d AND item_status = 'active'",
+                    $post_id_for_var
+                ));
+                foreach ($titleRows as $row) {
+                    $variationTitles[(int)$row->id] = $row->variation_title;
+                }
+            }
+
+            // 建立 variation_id → purchased 對照表
+            $purchasedMap = [];
+            $isMultiVariant = count($allVariationIds) > 1;
+            if ($isMultiVariant) {
+                foreach ($allVariationIds as $vid) {
+                    $purchasedMap[$vid] = (int) $this->getVariationMeta($vid, '_buygo_purchased', 0);
+                }
+            } else {
+                // 單一商品：從 post_meta 讀取
+                $singlePurchased = $post_id_for_var
+                    ? (int) get_post_meta($post_id_for_var, '_buygo_purchased', true)
+                    : 0;
+                foreach ($allVariationIds as $vid) {
+                    $purchasedMap[$vid] = $singlePurchased;
+                }
+            }
 
             // 每筆訂單獨立顯示（不再整合）
             $orders = [];
@@ -409,6 +476,9 @@ class ProductService
                     }
                 }
 
+                // 多樣式商品：加入 variant 名稱
+                $varTitle = $variationTitles[(int)$item->object_id] ?? '';
+
                 $orders[] = [
                     'order_item_id' => $item->id,
                     'order_id' => $order->id,
@@ -416,12 +486,14 @@ class ProductService
                     'customer_id' => $customer->id,
                     'customer_name' => $customer->full_name ?? $customer->email,
                     'customer_email' => $customer->email,
+                    'variation_title' => $varTitle,
                     'quantity' => $quantity,
+                    'purchased' => $purchasedMap[(int)$item->object_id] ?? 0,
                     'allocated_quantity' => $allocatedQty,
                     'shipped_quantity' => $shippedQty,
                     'pending_quantity' => $pendingQty,
                     'status' => $status,
-                    'is_allocated' => $isFullyAllocated,  // 保持向後相容
+                    'is_allocated' => $isFullyAllocated,
                     'order_date' => $orderDate,
                     'shipping_status' => $order->shipping_status ?? 'unshipped'
                 ];

@@ -26,6 +26,72 @@ class AllocationService
     }
 
     /**
+     * 取得同一商品下所有 variation IDs
+     *
+     * 多樣式商品：給定任一 variation ID，找出同 post_id 的所有 variation IDs
+     * 單一商品：回傳只含自己的陣列
+     *
+     * @param int $variation_id 任一 ProductVariation ID
+     * @return array ['post_id' => int, 'variation_ids' => int[]]
+     */
+    private function getAllVariationIds($variation_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'fct_product_variations';
+
+        // 先取得這個 variation 的 post_id
+        $post_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$table} WHERE id = %d LIMIT 1",
+            $variation_id
+        ));
+
+        if (!$post_id) {
+            return ['post_id' => 0, 'variation_ids' => [$variation_id]];
+        }
+
+        // 查詢同 post_id 的所有 active variation IDs
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE post_id = %d AND item_status = 'active' ORDER BY id ASC",
+            $post_id
+        ));
+
+        $variation_ids = !empty($ids) ? array_map('intval', $ids) : [$variation_id];
+
+        return ['post_id' => $post_id, 'variation_ids' => $variation_ids];
+    }
+
+    /**
+     * 取得多樣式商品所有 variation 的「已採購」總量
+     *
+     * @param int $post_id WordPress Post ID
+     * @param array $variation_ids Variation ID 陣列
+     * @return int 已採購總量
+     */
+    private function getTotalPurchased($post_id, $variation_ids)
+    {
+        global $wpdb;
+        $table_meta = $wpdb->prefix . 'fct_meta';
+
+        // 嘗試從 fct_meta 讀取各 variation 的已採購數量（多樣式商品）
+        $placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
+        $total_from_meta = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(CAST(meta_value AS UNSIGNED)), 0)
+             FROM {$table_meta}
+             WHERE object_type = 'variation'
+             AND object_id IN ($placeholders)
+             AND meta_key = '_buygo_purchased'",
+            ...$variation_ids
+        ));
+
+        // 如果 fct_meta 有值就用，否則回退到 post_meta（單一商品）
+        if ($total_from_meta > 0) {
+            return $total_from_meta;
+        }
+
+        return (int) get_post_meta($post_id, '_buygo_purchased', true);
+    }
+
+    /**
      * 分配庫存給訂單
      * 
      * @param int $product_id 商品 ID
@@ -200,20 +266,33 @@ class AllocationService
     {
         global $wpdb;
 
-        // 直接寫入日誌檔案進行除錯
-        $log_file = WP_CONTENT_DIR . '/buygo-plus-one.log';
-        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] getProductOrders called with product_id: %d\n", date('Y-m-d H:i:s'), $product_id), FILE_APPEND);
-
         $this->debugService->log('AllocationService', '取得商品訂單列表', [
             'product_id' => $product_id
         ]);
 
+        // 【修復】多樣式商品支援：取得同一商品的所有 variation IDs
+        $varInfo = $this->getAllVariationIds($product_id);
+        $variation_ids = $varInfo['variation_ids'];
+        $is_multi_variant = count($variation_ids) > 1;
+
+        $this->debugService->log('AllocationService', '多樣式商品檢查', [
+            'product_id' => $product_id,
+            'post_id' => $varInfo['post_id'],
+            'variation_ids' => $variation_ids,
+            'is_multi_variant' => $is_multi_variant
+        ]);
+
+        // 建立 IN 條件的 placeholders
+        $placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
+
         // 查詢訂單項目，並計算已建立出貨單的數量
         // 【重要】只查詢父訂單（parent_id IS NULL），不查詢子訂單
-        $items = $wpdb->get_results($wpdb->prepare(
+        // 【修復】使用 IN 條件查詢所有 variant 的訂單
+        $sql = $wpdb->prepare(
             "SELECT
                 oi.order_id,
                 oi.id as order_item_id,
+                oi.object_id,
                 oi.quantity,
                 oi.line_meta,
                 o.customer_id,
@@ -221,6 +300,7 @@ class AllocationService
                 c.first_name,
                 c.last_name,
                 c.email,
+                pv.variation_title,
                 COALESCE(
                     (SELECT SUM(si.quantity)
                      FROM {$wpdb->prefix}buygo_shipment_items si
@@ -239,21 +319,16 @@ class AllocationService
              FROM {$wpdb->prefix}fct_order_items oi
              LEFT JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
              LEFT JOIN {$wpdb->prefix}fct_customers c ON o.customer_id = c.id
-             WHERE oi.object_id = %d
+             LEFT JOIN {$wpdb->prefix}fct_product_variations pv ON oi.object_id = pv.id
+             WHERE oi.object_id IN ($placeholders)
              AND o.parent_id IS NULL
              AND o.status NOT IN ('cancelled', 'refunded')
              AND (o.shipping_status IS NULL OR o.shipping_status NOT IN ('shipped', 'completed'))
              ORDER BY o.created_at DESC",
-            $product_id
-        ), ARRAY_A);
+            ...$variation_ids
+        );
 
-        // 記錄 SQL 查詢結果
-        file_put_contents($log_file, sprintf("[%s] [ALLOCATION] SQL query returned %d items\n", date('Y-m-d H:i:s'), count($items)), FILE_APPEND);
-        if (empty($items)) {
-            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] No items found. Last SQL error: %s\n", date('Y-m-d H:i:s'), $wpdb->last_error), FILE_APPEND);
-        } else {
-            file_put_contents($log_file, sprintf("[%s] [ALLOCATION] First item: %s\n", date('Y-m-d H:i:s'), json_encode($items[0])), FILE_APPEND);
-        }
+        $items = $wpdb->get_results($sql, ARRAY_A);
 
         $orders = [];
         foreach ($items as $item) {
@@ -263,21 +338,15 @@ class AllocationService
             $allocated_to_child = (int)($item['allocated_to_child'] ?? 0);
 
             // 計算剩餘待分配數量（訂單數量 - 已建立子訂單的數量）
-            // 【重要】使用子訂單數量而非出貨單數量
             $required = (int)$item['quantity'];
             $pending = $required - $allocated_to_child;
 
-            // 【修復】顯示所有待分配的訂單（包括部分分配和未分配）
-            // 即使 pending <= 0，也應該顯示已部分分配或已分配的訂單，以便核對
-            // 只有在沒有任何出貨活動時才考慮隱藏
-            // 保留原邏輯但添加日誌
             if ($pending <= 0) {
                 $this->debugService->log('AllocationService', '訂單已完全分配，但仍顯示以供核對', [
                     'order_item_id' => $item['order_item_id'],
                     'required' => $required,
                     'allocated_to_child' => $allocated_to_child
                 ]);
-                // 不再 continue，而是允許顯示
             }
 
             $first_name = $item['first_name'] ?? '';
@@ -287,16 +356,21 @@ class AllocationService
                 $customer_name = '未知客戶';
             }
 
+            // 多樣式商品：顯示 variant 名稱
+            $variation_title = $item['variation_title'] ?? '';
+
             $orders[] = [
                 'order_id' => (int)$item['order_id'],
                 'order_item_id' => (int)$item['order_item_id'],
+                'object_id' => (int)($item['object_id'] ?? $product_id),
                 'customer' => $customer_name,
                 'email' => $item['email'] ?? '',
-                'required' => $required,                            // 下單量 (訂單總需求)
-                'already_allocated' => $allocated_to_child,         // 已建立子訂單的數量
-                'allocated' => 0,                                   // 本次分配 (前端輸入)
-                'pending' => $pending,                              // 待分配 (剩餘需求)
-                'shipped' => $shipped_to_shipment,                  // 已出貨數量
+                'variation_title' => $variation_title,
+                'required' => $required,
+                'already_allocated' => $allocated_to_child,
+                'allocated' => 0,
+                'pending' => $pending,
+                'shipped' => $shipped_to_shipment,
                 'status' => $allocated_to_child >= $required ? '已分配' : ($allocated_to_child > 0 ? '部分分配' : '未分配')
             ];
         }
