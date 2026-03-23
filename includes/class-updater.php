@@ -64,6 +64,11 @@ class Updater {
             // 設定分支（從 main 分支檢查更新）
             $this->update_checker->setBranch('main');
 
+            // 如果設定了 GitHub Token，用於驗證（避免 API rate limit）
+            if (defined('BUYGO_GITHUB_TOKEN') && BUYGO_GITHUB_TOKEN) {
+                $this->update_checker->setAuthentication(BUYGO_GITHUB_TOKEN);
+            }
+
             // 啟用 GitHub Releases
             $this->update_checker->getVcsApi()->enableReleaseAssets();
 
