@@ -2,7 +2,7 @@
 /**
  * FluentCart Child Orders Integration
  *
- * 使用 WordPress hooks 在 FluentCart 客戶檔案頁面中顯示子訂單資訊
+ * 使用 WordPress hooks 在 FluentCart 會員中心頁面顯示訂單分配狀態摘要
  *
  * @package BuygoPlus
  */
@@ -16,12 +16,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class FluentCartChildOrdersIntegration
  *
- * 在 FluentCart 客戶檔案頁面注入子訂單查看功能
+ * 在 FluentCart 會員中心頁面注入「訂單分配狀態」摘要區塊
  *
  * 設計理念：
- * - 只在「訂單詳情頁」顯示子訂單按鈕和內容
- * - 購買歷史頁不注入按鈕（Vue 動態渲染會覆蓋，太不穩定）
- * - 使用者從訂單詳情頁查看子訂單詳情
+ * - 頁面載入後自動 fetch /allocation-summary API
+ * - 顯示所有父訂單的分配數量摘要
+ * - 點擊可展開查看子訂單明細
+ * - 移除舊的「按鈕觸發」邏輯，改為自動載入
  */
 class FluentCartChildOrdersIntegration {
 
@@ -29,8 +30,8 @@ class FluentCartChildOrdersIntegration {
 	 * 註冊 hooks
 	 */
 	public static function register_hooks(): void {
-		// 在 FluentCart 客戶檔案頁面的 Vue app 之後注入子訂單區塊
-		// 使用 fluent_cart/customer_app hook，priority 100 確保在 Vue App 之後載入
+		// 在 FluentCart 會員中心 Vue app 之後注入分配摘要區塊
+		// priority 100 確保在 Vue App 之後載入
 		\add_action( 'fluent_cart/customer_app', [ __CLASS__, 'render_child_orders_section' ], 100 );
 
 		// 載入 JavaScript 和 CSS
@@ -38,73 +39,26 @@ class FluentCartChildOrdersIntegration {
 	}
 
 	/**
-	 * 渲染子訂單區塊
+	 * 渲染分配狀態摘要區塊
 	 *
-	 * 只在訂單詳情頁渲染，購買歷史列表頁不渲染（避免 Vue 干擾）
+	 * 只要用戶已登入就渲染容器，內容由 JavaScript 動態載入
+	 * 不再依賴 URL 中的 order_id（解決 SPA 路由抓不到 ID 的問題）
 	 */
 	public static function render_child_orders_section(): void {
 		if ( ! \is_user_logged_in() ) {
 			return;
 		}
 
-		// 從 URL 解析訂單 ID（用於訂單詳情頁）
-		$order_id = self::get_order_id_from_url();
-
-		// 只在訂單詳情頁顯示（有 order_id 的頁面）
-		if ( ! $order_id ) {
-			return;
-		}
-
 		?>
-		<div id="buygo-child-orders-widget" class="buygo-child-orders-widget">
+		<div id="buygo-allocation-summary" class="buygo-child-orders-widget">
 			<div class="buygo-widget-header">
-				<h3 class="buygo-widget-title">子訂單資訊</h3>
+				<h3 class="buygo-widget-title">訂單分配狀態</h3>
 			</div>
-			<button id="buygo-view-child-orders-btn" class="buygo-btn buygo-btn-primary" data-expanded="false" data-order-id="<?php echo \esc_attr( $order_id ); ?>">
-				<span class="buygo-btn-icon">
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-					</svg>
-				</span>
-				<span class="buygo-btn-text">查看子訂單</span>
-			</button>
-			<div id="buygo-child-orders-container" class="buygo-child-orders-container" style="display: none;">
-				<!-- 內容由 JavaScript 動態載入 -->
+			<div id="buygo-allocation-content">
+				<!-- JS 動態載入 -->
 			</div>
 		</div>
 		<?php
-	}
-
-	/**
-	 * 從 URL 解析訂單 ID
-	 *
-	 * FluentCart 訂單詳情頁面 URL 格式：
-	 * - /my-account/order/{order_hash}
-	 * - /my-account/purchase-history/order/{order_id}
-	 * - /customer-profile/orders/{order_id}
-	 *
-	 * @return string|null 訂單 ID（數字或 hash），或 null 如果無法解析
-	 */
-	private static function get_order_id_from_url(): ?string {
-		$current_url = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL ) ?? '';
-
-		// 嘗試匹配多種 URL 格式（支援數字和 hash 格式）
-		$patterns = [
-			'/\/order\/([a-f0-9]{32})/',     // /order/{32字元hash}（FluentCart hash 格式）
-			'/\/order\/(\d+)/',              // /order/123（數字格式）
-			'/\/orders\/([a-f0-9]{32})/',    // /orders/{32字元hash}
-			'/\/orders\/(\d+)/',             // /orders/123
-			'/[?&]order_id=([a-f0-9]{32})/', // ?order_id={hash}
-			'/[?&]order_id=(\d+)/',          // ?order_id=123
-		];
-
-		foreach ( $patterns as $pattern ) {
-			if ( preg_match( $pattern, $current_url, $matches ) ) {
-				return $matches[1];
-			}
-		}
-
-		return null;
 	}
 
 	/**
@@ -125,7 +79,7 @@ class FluentCartChildOrdersIntegration {
 			true
 		);
 
-		// 傳遞配置到 JavaScript（為 Phase 36 API 整合做準備）
+		// 傳遞配置到 JavaScript
 		\wp_localize_script(
 			'buygo-child-orders',
 			'buygoChildOrders',
@@ -135,10 +89,10 @@ class FluentCartChildOrdersIntegration {
 			]
 		);
 
-		// 載入樣式（使用 wp_enqueue_style + wp_add_inline_style）
+		// 載入樣式（inline CSS，不需要外部 CSS 檔案）
 		\wp_register_style(
 			'buygo-child-orders-widget',
-			false // 不需要外部 CSS 檔案
+			false
 		);
 		\wp_enqueue_style( 'buygo-child-orders-widget' );
 		\wp_add_inline_style(
@@ -153,9 +107,6 @@ class FluentCartChildOrdersIntegration {
 	 * @return bool
 	 */
 	private static function is_customer_profile_page(): bool {
-		// 檢查是否為 FluentCart 客戶檔案頁面
-		// 僅檢查 URL，不檢查登入狀態（登入檢查由 render 方法處理）
-		// 這樣可以避免 wp_enqueue_scripts 執行時登入狀態尚未初始化的問題
 		$current_url = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL ) ?? '';
 
 		return (
@@ -167,11 +118,13 @@ class FluentCartChildOrdersIntegration {
 	/**
 	 * 取得內聯 CSS
 	 *
+	 * 保留基礎 widget 樣式與狀態樣式，移除不再使用的子訂單卡片樣式
+	 *
 	 * @return string
 	 */
 	private static function get_inline_css(): string {
 		return '
-		/* BuyGo 子訂單區塊樣式 */
+		/* BuyGo 訂單分配摘要區塊基礎樣式 */
 		.buygo-child-orders-widget {
 			margin: 24px 0;
 			padding: 20px;
@@ -193,103 +146,100 @@ class FluentCartChildOrdersIntegration {
 			color: #111827;
 		}
 
-		/* 按鈕樣式 */
-		.buygo-btn {
-			padding: 10px 20px;
-			border: none;
-			border-radius: 8px;
-			cursor: pointer;
-			font-size: 14px;
-			font-weight: 500;
-			transition: all 0.2s ease;
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
+		/* 分配摘要列表 */
+		.buygo-allocation-list {
+			display: flex;
+			flex-direction: column;
 			gap: 8px;
-			text-decoration: none;
-			min-height: 44px;
 		}
 
-		.buygo-btn-icon {
+		/* 分配摘要列 */
+		.buygo-allocation-row {
 			display: flex;
 			align-items: center;
-		}
-
-		.buygo-btn-icon svg {
-			width: 16px;
-			height: 16px;
-		}
-
-		.buygo-btn-primary {
-			background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-			color: white;
-			box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-		}
-
-		.buygo-btn-primary:hover {
-			background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-			box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
-			transform: translateY(-1px);
-		}
-
-		.buygo-btn-primary:active {
-			transform: translateY(0);
-		}
-
-		.buygo-btn-secondary {
-			background: #f3f4f6;
-			color: #374151;
+			justify-content: space-between;
+			padding: 12px 16px;
+			background: #f9fafb;
 			border: 1px solid #e5e7eb;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: background 0.15s ease;
+			gap: 12px;
 		}
 
-		.buygo-btn-secondary:hover {
-			background: #e5e7eb;
+		.buygo-allocation-row:hover {
+			background: #f3f4f6;
+			border-color: #d1d5db;
+		}
+
+		.buygo-allocation-row.buygo-row-expanded {
+			background: #eff6ff;
+			border-color: #bfdbfe;
+		}
+
+		/* 分配摘要文字 */
+		.buygo-allocation-label {
+			font-size: 14px;
+			color: #374151;
+			flex: 1;
+		}
+
+		.buygo-allocation-label strong {
 			color: #111827;
 		}
 
-		.buygo-btn:disabled {
-			opacity: 0.6;
-			cursor: not-allowed;
+		.buygo-allocation-meta {
+			font-size: 13px;
+			color: #6b7280;
+			white-space: nowrap;
 		}
 
-		/* 展開狀態的按鈕 */
-		.buygo-btn[data-expanded="true"] {
-			background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-			box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+		/* 展開圖示 */
+		.buygo-chevron {
+			width: 16px;
+			height: 16px;
+			color: #9ca3af;
+			transition: transform 0.2s ease;
+			flex-shrink: 0;
 		}
 
-		/* 子訂單容器 */
-		.buygo-child-orders-container {
-			margin-top: 16px;
-			padding: 16px;
+		.buygo-allocation-row.buygo-row-expanded .buygo-chevron {
+			transform: rotate(180deg);
+		}
+
+		/* 子訂單明細容器（展開時顯示） */
+		.buygo-detail-container {
+			margin-top: 4px;
+			padding: 12px 16px;
 			background: #f9fafb;
-			border-radius: 8px;
 			border: 1px solid #e5e7eb;
+			border-radius: 8px;
+			display: none;
 		}
 
-		/* 子訂單列表容器 - Mobile First */
-		.buygo-child-orders-list {
-			display: flex;
-			flex-direction: column;
-			gap: 16px;
+		.buygo-detail-container.buygo-detail-visible {
+			display: block;
 		}
 
 		/* 子訂單卡片 */
 		.buygo-child-order-card {
 			background: #fff;
 			border: 1px solid #e5e7eb;
-			border-radius: 12px;
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-			overflow: hidden;
+			border-radius: 8px;
+			padding: 12px 16px;
+			margin-bottom: 8px;
+		}
+
+		.buygo-child-order-card:last-child {
+			margin-bottom: 0;
 		}
 
 		.buygo-card-header {
 			display: flex;
-			flex-direction: column;
+			align-items: center;
+			justify-content: space-between;
 			gap: 8px;
-			padding: 16px;
-			background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-			border-bottom: 1px solid #e5e7eb;
+			margin-bottom: 8px;
 		}
 
 		.buygo-card-seller {
@@ -316,21 +266,22 @@ class FluentCartChildOrdersIntegration {
 		}
 
 		.buygo-card-body {
-			padding: 16px;
+			padding: 0;
 		}
 
 		.buygo-order-items {
 			display: flex;
 			flex-direction: column;
-			gap: 12px;
+			gap: 6px;
 		}
 
 		.buygo-order-item {
 			display: flex;
 			align-items: center;
 			gap: 12px;
-			padding: 8px 0;
+			padding: 6px 0;
 			border-bottom: 1px solid #f3f4f6;
+			font-size: 13px;
 		}
 
 		.buygo-order-item:last-child {
@@ -339,78 +290,44 @@ class FluentCartChildOrdersIntegration {
 
 		.buygo-item-title {
 			flex: 1;
-			font-size: 14px;
 			color: #374151;
 		}
 
 		.buygo-item-qty {
-			font-size: 13px;
 			color: #6b7280;
 			white-space: nowrap;
 		}
 
 		.buygo-item-price {
-			font-size: 14px;
 			font-weight: 500;
 			color: #111827;
 			white-space: nowrap;
 		}
 
-		.buygo-card-footer {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 16px;
-			background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-			border-top: 1px solid #e5e7eb;
-		}
-
-		.buygo-subtotal-label {
-			font-size: 14px;
-			color: #6b7280;
-		}
-
-		.buygo-subtotal-amount {
-			font-size: 18px;
-			font-weight: 700;
-			color: #3b82f6;
+		/* 提示文字 */
+		.buygo-hint {
+			margin-top: 12px;
+			font-size: 12px;
+			color: #9ca3af;
+			text-align: center;
 		}
 
 		/* 狀態標籤 */
 		.buygo-badge {
 			display: inline-flex;
 			align-items: center;
-			padding: 4px 10px;
-			font-size: 12px;
+			padding: 2px 8px;
+			font-size: 11px;
 			font-weight: 500;
 			border-radius: 9999px;
 			white-space: nowrap;
 		}
 
-		.buygo-badge-success {
-			background: #d1fae5;
-			color: #065f46;
-		}
-
-		.buygo-badge-warning {
-			background: #fef3c7;
-			color: #92400e;
-		}
-
-		.buygo-badge-danger {
-			background: #fee2e2;
-			color: #991b1b;
-		}
-
-		.buygo-badge-info {
-			background: #dbeafe;
-			color: #1e40af;
-		}
-
-		.buygo-badge-neutral {
-			background: #f3f4f6;
-			color: #374151;
-		}
+		.buygo-badge-success { background: #d1fae5; color: #065f46; }
+		.buygo-badge-warning { background: #fef3c7; color: #92400e; }
+		.buygo-badge-danger  { background: #fee2e2; color: #991b1b; }
+		.buygo-badge-info    { background: #dbeafe; color: #1e40af; }
+		.buygo-badge-neutral { background: #f3f4f6; color: #374151; }
 
 		/* Loading 狀態 */
 		.buygo-loading {
@@ -418,19 +335,19 @@ class FluentCartChildOrdersIntegration {
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			padding: 48px 16px;
+			padding: 32px 16px;
 			text-align: center;
 		}
 
 		.buygo-loading p {
-			margin: 16px 0 0;
+			margin: 12px 0 0;
 			color: #6b7280;
 			font-size: 14px;
 		}
 
 		.buygo-loading-spinner {
-			width: 32px;
-			height: 32px;
+			width: 28px;
+			height: 28px;
 			border: 3px solid #e5e7eb;
 			border-top-color: #3b82f6;
 			border-radius: 50%;
@@ -438,79 +355,30 @@ class FluentCartChildOrdersIntegration {
 		}
 
 		@keyframes buygo-spin {
-			to {
-				transform: rotate(360deg);
-			}
+			to { transform: rotate(360deg); }
 		}
 
-		/* 空狀態/錯誤狀態 */
+		/* 空狀態 / 錯誤狀態 */
 		.buygo-empty-state {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			padding: 48px 16px;
+			padding: 32px 16px;
 			text-align: center;
-		}
-
-		.buygo-empty-icon {
-			width: 48px;
-			height: 48px;
-			color: #9ca3af;
-			margin-bottom: 16px;
-		}
-
-		.buygo-empty-state p {
-			margin: 0 0 16px;
 			color: #6b7280;
 			font-size: 14px;
 		}
 
-		.buygo-error-state .buygo-empty-icon {
-			color: #ef4444;
-		}
-
-		/* 響應式設計 - 桌面版 */
-		@media (min-width: 768px) {
-			.buygo-child-orders-list {
-				display: grid;
-				grid-template-columns: repeat(2, 1fr);
-				gap: 20px;
-			}
-
-			.buygo-card-header {
-				flex-direction: row;
-				justify-content: space-between;
-				align-items: center;
-			}
-		}
-
-		/* 響應式設計 - 手機版 */
+		/* 手機版調整 */
 		@media (max-width: 767px) {
 			.buygo-child-orders-widget {
 				padding: 16px;
 				margin: 16px 0;
 			}
 
-			.buygo-btn {
-				width: 100%;
-			}
-
-			.buygo-child-orders-container {
-				padding: 12px;
-			}
-
-			.buygo-card-body {
-				padding: 12px;
-			}
-
-			.buygo-card-header,
-			.buygo-card-footer {
-				padding: 12px;
-			}
-
-			.buygo-subtotal-amount {
-				font-size: 16px;
+			.buygo-allocation-row {
+				flex-wrap: wrap;
 			}
 		}
 		';

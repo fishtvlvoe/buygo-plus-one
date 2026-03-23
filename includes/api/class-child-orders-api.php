@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
  * 權限驗證：is_user_logged_in() + Service 層 customer_id 驗證
  *
  * @package BuyGoPlus\Api
- * @version 1.0.0
+ * @version 1.1.0
  * @since Phase 36
  */
 class ChildOrders_API
@@ -40,12 +40,12 @@ class ChildOrders_API
         // GET /child-orders/{parent_order_id} - 取得子訂單列表
         // 支援數字 ID 或 hash 格式（FluentCart 使用 32 字元 hex hash）
         register_rest_route($this->namespace, '/child-orders/(?P<parent_order_id>[a-f0-9]+)', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_child_orders'],
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_child_orders'],
             'permission_callback' => [$this, 'check_customer_permission'],
-            'args' => [
+            'args'                => [
                 'parent_order_id' => [
-                    'required' => true,
+                    'required'          => true,
                     'validate_callback' => function ($param) {
                         // 支援數字 ID 或 32 字元 hex hash
                         return (is_numeric($param) && $param > 0) || preg_match('/^[a-f0-9]{32}$/', $param);
@@ -53,6 +53,13 @@ class ChildOrders_API
                     'sanitize_callback' => 'sanitize_text_field'
                 ]
             ]
+        ]);
+
+        // GET /allocation-summary - 取得當前客戶所有父訂單的分配摘要
+        register_rest_route($this->namespace, '/allocation-summary', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_allocation_summary'],
+            'permission_callback' => [$this, 'check_customer_permission'],
         ]);
     }
 
@@ -96,7 +103,7 @@ class ChildOrders_API
         if ($customer_id === null) {
             return new \WP_REST_Response([
                 'success' => false,
-                'code' => 'CUSTOMER_NOT_FOUND',
+                'code'    => 'CUSTOMER_NOT_FOUND',
                 'message' => '找不到顧客資料'
             ], 404);
         }
@@ -107,33 +114,81 @@ class ChildOrders_API
 
             return new \WP_REST_Response([
                 'success' => true,
-                'data' => $result
+                'data'    => $result
             ], 200);
 
         } catch (\Exception $e) {
-            $code = $e->getCode();
+            $code    = $e->getCode();
             $message = $e->getMessage();
 
             // 根據錯誤碼決定 HTTP 狀態碼
             if ($code === 403) {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'code' => 'FORBIDDEN',
+                    'code'    => 'FORBIDDEN',
                     'message' => $message
                 ], 403);
             } elseif ($code === 404) {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'code' => 'NOT_FOUND',
+                    'code'    => 'NOT_FOUND',
                     'message' => $message
                 ], 404);
             } else {
                 return new \WP_REST_Response([
                     'success' => false,
-                    'code' => 'SERVER_ERROR',
+                    'code'    => 'SERVER_ERROR',
                     'message' => $message
                 ], 500);
             }
+        }
+    }
+
+    /**
+     * 取得當前客戶所有父訂單的分配摘要
+     *
+     * 回傳格式：
+     * {
+     *   "success": true,
+     *   "data": {
+     *     "orders": [
+     *       { "order_id": 123, "total_quantity": 4, "allocated_quantity": 4, "child_order_count": 2 }
+     *     ]
+     *   }
+     * }
+     *
+     * @param \WP_REST_Request $request REST 請求
+     * @return \WP_REST_Response REST 回應
+     */
+    public function get_allocation_summary(\WP_REST_Request $request): \WP_REST_Response
+    {
+        // 取得當前用戶的 customer_id
+        $current_user_id = get_current_user_id();
+        $customer_id     = ChildOrderService::getCustomerIdFromUserId($current_user_id);
+
+        // 若 customer_id 為 null，回傳 404
+        if ($customer_id === null) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'code'    => 'CUSTOMER_NOT_FOUND',
+                'message' => '找不到顧客資料'
+            ], 404);
+        }
+
+        try {
+            $summary = $this->childOrderService->getAllocationSummary($customer_id);
+
+            return new \WP_REST_Response([
+                'success' => true,
+                'data'    => ['orders' => $summary]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'code'    => 'SERVER_ERROR',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }
