@@ -51,6 +51,8 @@ function useProducts() {
         const allocatingOrderItemId = ref(null);  // 改用 order_item_id
         const buyersSearch = ref('');  // 搜尋客戶名稱
         const buyersCurrentPage = ref(1);
+        const buyersVariants = ref([]);        // API 回傳的 variants 陣列（多樣式商品）
+        const buyersSelectedVariant = ref(''); // 選中的 variant object_id（'' = 全部）
         const buyersPerPage = ref(3);
         const buyersPerPageOptions = [
             { value: 3, label: '3 / 頁' },
@@ -59,13 +61,20 @@ function useProducts() {
             { value: 50, label: '50 / 頁' }
         ];
 
-        // 過濾後的下單名單（根據搜尋關鍵字）
+        // 依 variant 篩選後的下單名單（第一層篩選）
+        const filteredBuyersByVariant = computed(() => {
+            if (!buyersSelectedVariant.value) return buyers.value;
+            const varId = parseInt(buyersSelectedVariant.value);
+            return buyers.value.filter(order => order.object_id === varId);
+        });
+
+        // 過濾後的下單名單（根據搜尋關鍵字，在 variant 篩選之後）
         const filteredBuyers = computed(() => {
             if (!buyersSearch.value.trim()) {
-                return buyers.value;
+                return filteredBuyersByVariant.value;
             }
             const keyword = buyersSearch.value.toLowerCase().trim();
-            return buyers.value.filter(order => {
+            return filteredBuyersByVariant.value.filter(order => {
                 const customerName = String(order.customer_name || '').toLowerCase();
                 const invoiceNo = String(order.invoice_no || '').toLowerCase();
                 return customerName.includes(keyword) || invoiceNo.includes(keyword);
@@ -127,12 +136,17 @@ function useProducts() {
             buyersCurrentPage.value = 1;
         });
 
+        // 監聽 variant 篩選變化，重置分頁
+        watch(buyersSelectedVariant, () => {
+            buyersCurrentPage.value = 1;
+        });
+
         // 跳轉到訂單詳情頁
         const goToOrderDetail = (orderId) => {
             window.location.href = `/buygo-portal/orders/?view=detail&id=${orderId}`;
         };
 
-        // 統計摘要
+        // 統計摘要（依 variant 篩選後計算）
         const buyersSummary = computed(() => {
             const summary = {
                 totalQuantity: 0,
@@ -140,7 +154,7 @@ function useProducts() {
                 totalPending: 0,
                 totalShipped: 0
             };
-            buyers.value.forEach(order => {
+            filteredBuyersByVariant.value.forEach(order => {
                 summary.totalQuantity += order.quantity || 0;
                 summary.totalAllocated += order.allocated_quantity || 0;
                 summary.totalPending += order.pending_quantity || 0;
@@ -518,6 +532,18 @@ function useProducts() {
                     if (data.product) {
                         buyersProduct.value = data.product;
                     }
+                    // 儲存 variants 資料（多樣式商品）
+                    buyersVariants.value = Array.isArray(data.variants) ? data.variants : [];
+                    // 設定預設選中的 variant
+                    // 商品列表的 dropdown 用 selected_variation_id，edit 頁用 editing_variation_id
+                    const defaultVariantId = selectedProduct.value?.selected_variation_id
+                        || selectedProduct.value?.editing_variation_id || '';
+                    if (defaultVariantId && buyersVariants.value.some(v => String(v.id) === String(defaultVariantId))) {
+                        buyersSelectedVariant.value = String(defaultVariantId);
+                    } else {
+                        buyersSelectedVariant.value = '';
+                    }
+                    buyersCurrentPage.value = 1;
                 }
             } catch(e) { console.error(e); }
             finally { buyersLoading.value = false; }
@@ -1215,6 +1241,7 @@ function useProducts() {
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery, sellerLimit,
             editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
+            buyersVariants, buyersSelectedVariant, filteredBuyersByVariant,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
             showImageModal, currentImage, imageUploading, imageError, toastMessage,

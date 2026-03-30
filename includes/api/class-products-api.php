@@ -835,12 +835,17 @@ class Products_API {
                 ], 500);
             }
             
-            return new \WP_REST_Response([
+            $response = [
                 'success' => true,
                 'data' => $result['data'],
                 'product' => $result['product'] ?? null,
                 'total' => count($result['data'])
-            ], 200);
+            ];
+            // 多樣式商品：傳遞 variants 供前端篩選
+            if (!empty($result['variants'])) {
+                $response['variants'] = $result['variants'];
+            }
+            return new \WP_REST_Response($response, 200);
             
         } catch (\Exception $e) {
             error_log('get_buyers 錯誤: ' . $e->getMessage());

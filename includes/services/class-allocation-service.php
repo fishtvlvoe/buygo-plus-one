@@ -333,21 +333,16 @@ class AllocationService
         $orders = [];
         foreach ($items as $item) {
             $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-            $shipped = (int)($meta_data['_shipped_qty'] ?? 0);
+            $meta_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
             $shipped_to_shipment = (int)($item['shipped_to_shipment'] ?? 0);
             $allocated_to_child = (int)($item['allocated_to_child'] ?? 0);
 
-            // 計算剩餘待分配數量（訂單數量 - 已建立子訂單的數量）
-            $required = (int)$item['quantity'];
-            $pending = $required - $allocated_to_child;
+            // 【修復】已分配數量取三者最大值：子訂單數量、line_meta._allocated_qty、已出貨數量
+            // 因為有兩條分配路徑（子訂單 vs 一鍵分配），且已出貨一定已分配
+            $already_allocated = max($allocated_to_child, $meta_allocated, $shipped_to_shipment);
 
-            if ($pending <= 0) {
-                $this->debugService->log('AllocationService', '訂單已完全分配，但仍顯示以供核對', [
-                    'order_item_id' => $item['order_item_id'],
-                    'required' => $required,
-                    'allocated_to_child' => $allocated_to_child
-                ]);
-            }
+            $required = (int)$item['quantity'];
+            $pending = max(0, $required - $already_allocated);
 
             $first_name = $item['first_name'] ?? '';
             $last_name = $item['last_name'] ?? '';
@@ -367,11 +362,11 @@ class AllocationService
                 'email' => $item['email'] ?? '',
                 'variation_title' => $variation_title,
                 'required' => $required,
-                'already_allocated' => $allocated_to_child,
+                'already_allocated' => $already_allocated,
                 'allocated' => 0,
                 'pending' => $pending,
                 'shipped' => $shipped_to_shipment,
-                'status' => $allocated_to_child >= $required ? '已分配' : ($allocated_to_child > 0 ? '部分分配' : '未分配')
+                'status' => $already_allocated >= $required ? '已分配' : ($already_allocated > 0 ? '部分分配' : '未分配')
             ];
         }
 
@@ -417,17 +412,22 @@ class AllocationService
             $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
 
             // 2. 查詢所有相關的訂單項目
+            // 【修復】多樣式商品支援：用所有 variation IDs 查詢，不只用單一 product_id
             $order_ids = array_keys($allocations);
             if (empty($order_ids)) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('NO_ORDER_IDS', '沒有提供訂單 ID');
             }
 
-            $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            $varInfo = $this->getAllVariationIds($product_id);
+            $variation_ids = $varInfo['variation_ids'];
+
+            $order_placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            $var_placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}fct_order_items
-                 WHERE object_id = %d AND order_id IN ($placeholders)",
-                array_merge([$product_id], $order_ids)
+                 WHERE object_id IN ($var_placeholders) AND order_id IN ($order_placeholders)",
+                array_merge($variation_ids, $order_ids)
             ), ARRAY_A);
 
             if (empty($items)) {
@@ -607,10 +607,14 @@ class AllocationService
             }
 
             // 2. 獲取父訂單中的商品項目
+            // 【修復】多樣式商品支援：用所有 variation IDs 查詢，避免 product_id ≠ 父項目 object_id
+            $varInfo = $this->getAllVariationIds($product_id);
+            $var_ids = $varInfo['variation_ids'];
+            $var_ph = implode(',', array_fill(0, count($var_ids), '%d'));
             $parent_item = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$wpdb->prefix}fct_order_items
-                 WHERE order_id = %d AND object_id = %d",
-                $parent_order_id, $product_id
+                 WHERE order_id = %d AND object_id IN ($var_ph)",
+                array_merge([$parent_order_id], $var_ids)
             ));
 
             if (!$parent_item) {
@@ -700,12 +704,13 @@ class AllocationService
                 $product_title = get_the_title($parent_item->post_id) ?: '';
             }
 
+            // 【修復】子訂單 object_id 使用父訂單項目的原始值，確保與父訂單一致
             $wpdb->insert(
                 $wpdb->prefix . 'fct_order_items',
                 [
                     'order_id' => $child_order_id,
                     'post_id' => $parent_item->post_id,
-                    'object_id' => $product_id,
+                    'object_id' => (int)$parent_item->object_id,
                     'quantity' => $quantity,
                     'unit_price' => $unit_price,
                     'subtotal' => $item_subtotal,

@@ -199,7 +199,20 @@ if (!function_exists('get_post')) {
 }
 
 if (!function_exists('get_post_meta')) {
+    /**
+     * get_post_meta mock
+     *
+     * 支援透過 $GLOBALS['mock_get_post_meta_map'] 覆寫特定 post_id + key 的回傳值
+     * 格式：[ "{$post_id}_{$key}" => $value, ... ]
+     *
+     * 例：$GLOBALS['mock_get_post_meta_map']['2529__buygo_purchased'] = 10;
+     */
     function get_post_meta($post_id, $key = '', $single = false) {
+        $map_key = $post_id . '_' . $key;
+        if (isset($GLOBALS['mock_get_post_meta_map'][$map_key])) {
+            $value = $GLOBALS['mock_get_post_meta_map'][$map_key];
+            return $single ? $value : [$value];
+        }
         return $single ? '' : [];
     }
 }
@@ -482,3 +495,21 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-batch-create-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-product-creator.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-notification-handler.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+
+// Mock get_the_title（AllocationService 在 create_child_order 中使用）
+if (!function_exists('get_the_title')) {
+    function get_the_title($post = 0) {
+        return '測試商品標題';
+    }
+}
+
+// 初始化 mock_get_post_meta_map（AllocationService 測試覆寫用）
+if (!isset($GLOBALS['mock_get_post_meta_map'])) {
+    $GLOBALS['mock_get_post_meta_map'] = [];
+}
+
+// 初始化 mock_product_variation_map（AllocationService 測試用）
+if (!isset($GLOBALS['mock_product_variation_map'])) {
+    $GLOBALS['mock_product_variation_map'] = [];
+}
