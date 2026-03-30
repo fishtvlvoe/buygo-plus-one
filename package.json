@@ -1,0 +1,34 @@
+{
+  "name": "buygo-plus-one",
+  "version": "1.0.0",
+  "description": "A complete WordPress product and order management system integrated with LINE.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i src/style.css -o dist/app.css --minify",
+    "dev:css": "tailwindcss -i src/style.css -o dist/app.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishtvlvoe/buygo-plus-one.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/fishtvlvoe/buygo-plus-one/issues"
+  },
+  "homepage": "https://github.com/fishtvlvoe/buygo-plus-one#readme"
+}
