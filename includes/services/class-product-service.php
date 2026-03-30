@@ -137,12 +137,18 @@ class ProductService
             // 格式化資料
             $formattedProducts = [];
             foreach ($products as $product) {
-                // 取得商品圖片
+                // 取得商品圖片（優先 FluentCart gallery，fallback WordPress thumbnail）
                 $imageUrl = null;
                 if ($product->product) {
-                    $thumbnailId = get_post_thumbnail_id($product->post_id);
-                    if ($thumbnailId) {
-                        $imageUrl = wp_get_attachment_image_url($thumbnailId, 'medium');
+                    $gallery = get_post_meta($product->post_id, 'fluent-products-gallery-image', true);
+                    if (is_array($gallery) && !empty($gallery[0]['url'])) {
+                        $imageUrl = $gallery[0]['url'];
+                    }
+                    if (empty($imageUrl)) {
+                        $thumbnailId = get_post_thumbnail_id($product->post_id);
+                        if ($thumbnailId) {
+                            $imageUrl = wp_get_attachment_image_url($thumbnailId, 'medium');
+                        }
                     }
                 }
 
@@ -358,11 +364,17 @@ class ProductService
                     $productName = $productVariation->variation_title;
                 }
 
-                // 取得商品圖片
+                // 取得商品圖片（優先 FluentCart gallery，fallback WordPress thumbnail）
                 if ($productVariation->post_id) {
-                    $thumbnailId = get_post_thumbnail_id($productVariation->post_id);
-                    if ($thumbnailId) {
-                        $productImage = wp_get_attachment_image_url($thumbnailId, 'medium') ?: '';
+                    $gallery = get_post_meta($productVariation->post_id, 'fluent-products-gallery-image', true);
+                    if (is_array($gallery) && !empty($gallery[0]['url'])) {
+                        $productImage = $gallery[0]['url'];
+                    }
+                    if (empty($productImage)) {
+                        $thumbnailId = get_post_thumbnail_id($productVariation->post_id);
+                        if ($thumbnailId) {
+                            $productImage = wp_get_attachment_image_url($thumbnailId, 'medium') ?: '';
+                        }
                     }
                 }
             }
@@ -643,12 +655,18 @@ class ProductService
                 return null;
             }
 
-            // 取得商品圖片
+            // 取得商品圖片（優先 WordPress thumbnail，fallback FluentCart gallery）
             $imageUrl = null;
             if ($product->product) {
                 $thumbnailId = get_post_thumbnail_id($product->post_id);
                 if ($thumbnailId) {
                     $imageUrl = wp_get_attachment_image_url($thumbnailId, 'medium');
+                }
+                if (empty($imageUrl)) {
+                    $gallery = get_post_meta($product->post_id, 'fluent-products-gallery-image', true);
+                    if (is_array($gallery) && !empty($gallery[0]['url'])) {
+                        $imageUrl = $gallery[0]['url'];
+                    }
                 }
             }
 

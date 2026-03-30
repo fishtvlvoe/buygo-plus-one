@@ -508,19 +508,19 @@ $products_component_template .= <<<'HTML'
             <!-- 結束：列表檢視 -->
 
             <!-- 子頁面（編輯、分配、下單名單等） -->
-            <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
-                    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+            <div v-show="currentView !== 'list'" class="fixed inset-0 bg-slate-50 z-30 overflow-y-auto w-full">
+                    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-4 md:py-4 flex items-center justify-center md:justify-between shadow-sm relative min-h-[56px]">
                         <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
-                            <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
+                            <button @click="navigateTo('list')" class="hidden md:flex p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors items-center gap-1 group shrink-0">
                                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                                 <span class="text-sm font-medium">返回</span>
                             </button>
                             <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
                             <div class="truncate"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
                         </div>
-                        <div class="flex gap-2 shrink-0">
-                            <button @click="navigateTo('list')" class="btn btn-secondary">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
-                            <button v-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary">{{ currentView === 'allocation' ? '確認' : '儲存' }}</button>
+                        <div class="flex gap-2 shrink-0 md:relative absolute right-4">
+                            <button @click="navigateTo('list')" class="btn btn-secondary text-sm px-4 py-2">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
+                            <button v-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">{{ currentView === 'allocation' ? '確認' : '儲存' }}</button>
                         </div>
                     </div>
 
@@ -536,41 +536,15 @@ $products_component_template .= <<<'HTML'
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <h4 class="font-bold text-slate-900 truncate">{{ buyersProduct.name }}</h4>
-                                        <div class="text-xs text-slate-500 mt-1">商品 ID: {{ buyersProduct.id }}</div>
+                                        <div class="text-xs text-slate-500 mt-1">{{ buyersVariants.length > 0 ? '樣式' : '商品' }} ID: {{ buyersProduct.id }}</div>
                                     </div>
-                                    <!-- 電腦版：下拉選單 + 筆數 -->
-                                    <div v-if="buyersVariants.length > 0" class="hidden md:flex items-center gap-3 shrink-0">
-                                        <select v-model="buyersSelectedVariant"
-                                                class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-[220px]">
-                                            <option value="">全部（{{ buyers.length }} 筆）</option>
-                                            <option v-for="v in buyersVariants" :key="v.id" :value="String(v.id)">
-                                                {{ v.title }}（{{ v.order_count }} 筆）
-                                            </option>
-                                        </select>
-                                        <div class="text-right">
-                                            <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
-                                            <div class="text-xs text-slate-500">筆訂單</div>
-                                        </div>
-                                    </div>
-                                    <!-- 無 variant：只顯示筆數 -->
-                                    <div v-if="buyersVariants.length === 0" class="text-right shrink-0">
-                                        <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
-                                        <div class="text-xs text-slate-500">筆訂單</div>
-                                    </div>
-                                    <!-- 有 variant 手機版：只顯示筆數（下拉在下面） -->
-                                    <div v-if="buyersVariants.length > 0" class="md:hidden text-right shrink-0">
-                                        <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
+                                    <!-- 總筆數（固定不變，所有 variant 合計） -->
+                                    <div class="text-right shrink-0">
+                                        <div class="text-xl font-bold text-primary">{{ buyers.length }}</div>
                                         <div class="text-xs text-slate-500">筆訂單</div>
                                     </div>
                                 </div>
-                                <!-- 手機版：下拉放標題下方 -->
-                                <select v-if="buyersVariants.length > 0" v-model="buyersSelectedVariant"
-                                        class="md:hidden w-full mt-3 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">全部（{{ buyers.length }} 筆）</option>
-                                    <option v-for="v in buyersVariants" :key="v.id" :value="String(v.id)">
-                                        {{ v.title }}（{{ v.order_count }} 筆）
-                                    </option>
-                                </select>
+                                <!-- 手機版筆數下拉已移至訂單明細區域 -->
                             </div>
 
                             <!-- 統計摘要區塊 -->
@@ -598,7 +572,14 @@ $products_component_template .= <<<'HTML'
                                 <div class="p-3 border-b border-slate-200 bg-slate-50">
                                     <div class="flex items-center justify-between mb-2">
                                         <h3 class="font-bold text-slate-800">訂單明細</h3>
-                                        <span class="text-xs text-slate-500">共 {{ filteredBuyers.length }} 筆訂單</span>
+                                        <select v-if="buyersVariants.length > 0" v-model="buyersSelectedVariant"
+                                                class="px-2 py-1 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">全部（{{ buyers.length }} 筆）</option>
+                                            <option v-for="v in buyersVariants" :key="v.id" :value="String(v.id)">
+                                                {{ v.title }}（{{ v.order_count }} 筆）
+                                            </option>
+                                        </select>
+                                        <span v-else class="text-xs text-slate-500">共 {{ filteredBuyers.length }} 筆訂單</span>
                                     </div>
                                     <!-- 搜尋框 -->
                                     <div class="relative">
@@ -722,31 +703,31 @@ $products_component_template .= <<<'HTML'
                                     </div>
                                 </div>
                                 <!-- 分頁控制 -->
-                                <div v-if="filteredBuyers.length > 0" class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div class="text-sm text-slate-700 text-center sm:text-left">
-                                        顯示 <span class="font-medium">{{ buyersStartIndex }}</span> 到 <span class="font-medium">{{ buyersEndIndex }}</span> 筆，共 <span class="font-medium">{{ filteredBuyers.length }}</span> 筆
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <!-- 每頁筆數選擇 -->
-                                        <select v-model.number="buyersPerPage" @change="buyersHandlePerPageChange" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                <div v-if="filteredBuyers.length > 0" class="px-4 py-3 border-t border-slate-200 bg-slate-50">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-xs text-slate-500">
+                                            顯示 {{ buyersStartIndex }}–{{ buyersEndIndex }}，共 <span class="font-medium text-slate-700">{{ filteredBuyers.length }}</span> 筆
+                                        </div>
+                                        <select v-model.number="buyersPerPage" @change="buyersHandlePerPageChange" class="px-2 py-1 border border-slate-300 rounded text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                                             <option v-for="option in buyersPerPageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                                         </select>
-                                        <!-- 頁碼導航 -->
-                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    </div>
+                                    <nav v-if="buyersTotalPages > 1" class="flex justify-center">
+                                        <div class="inline-flex rounded-md shadow-sm -space-x-px">
                                             <button @click="buyersGoToPage(buyersCurrentPage - 1)" :disabled="buyersCurrentPage === 1"
-                                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                                class="relative inline-flex items-center px-2 py-1.5 rounded-l-md border border-slate-300 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                                             </button>
                                             <button v-for="p in buyersVisiblePages" :key="p" @click="buyersGoToPage(p)"
-                                                :class="[p === buyersCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                                                :class="[p === buyersCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-3 py-1.5 border text-sm font-medium']">
                                                 {{ p }}
                                             </button>
                                             <button @click="buyersGoToPage(buyersCurrentPage + 1)" :disabled="buyersCurrentPage >= buyersTotalPages"
-                                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                                class="relative inline-flex items-center px-2 py-1.5 rounded-r-md border border-slate-300 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                                             </button>
-                                        </nav>
-                                    </div>
+                                        </div>
+                                    </nav>
                                 </div>
                             </div>
                         </div>
