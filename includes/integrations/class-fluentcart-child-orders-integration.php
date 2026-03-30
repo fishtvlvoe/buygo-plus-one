@@ -30,12 +30,8 @@ class FluentCartChildOrdersIntegration {
 	 * 註冊 hooks
 	 */
 	public static function register_hooks(): void {
-		// 在 FluentCart 會員中心 Vue app 之後注入分配摘要區塊
-		// priority 100 確保在 Vue App 之後載入
-		\add_action( 'fluent_cart/customer_app', [ __CLASS__, 'render_child_orders_section' ], 100 );
-
-		// 載入 JavaScript 和 CSS
-		\add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
+		// 已搬移到 FluentCartCustomerPortal 的「訂單進度」獨立頁面
+		// 不再注入到 FluentCart 儀表板
 	}
 
 	/**
