@@ -244,10 +244,46 @@ class FluentCartCustomerPortal {
             echo '</div>';
         }
 
-        // 底部：分頁 + 合計
+        // 底部：分頁控制 + 合計
+        $base_url = strtok($_SERVER['REQUEST_URI'], '?');
         echo '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;flex-wrap:wrap;gap:8px;">';
-        echo "<span style='font-size:13px;color:#6b7280;'>第 {$current_page} 頁，共 {$total_pages} 頁　總計 {$total_items}</span>";
+
+        // 左：頁碼資訊 + 每頁筆數下拉
+        echo '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6b7280;">';
+        echo "第 {$current_page} 頁，共 {$total_pages} 頁";
+        echo '<select onchange="window.location.href=\'' . esc_url($base_url) . '?per_page=\'+this.value" style="padding:2px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;background:#fff;">';
+        foreach ([10, 20, 50, 100] as $opt) {
+            $sel = ($opt === $per_page) ? ' selected' : '';
+            echo "<option value='{$opt}'{$sel}>{$opt} / 頁</option>";
+        }
+        echo '</select>';
+        echo "總計 {$total_items}";
+        echo '</div>';
+
+        // 右：頁碼按鈕 + 合計
+        echo '<div style="display:flex;align-items:center;gap:12px;">';
+        if ($total_pages > 1) {
+            echo '<div style="display:flex;align-items:center;gap:2px;">';
+            // 上一頁
+            if ($current_page > 1) {
+                $prev = $current_page - 1;
+                echo "<a href='" . esc_url($base_url . "?pg={$prev}&per_page={$per_page}") . "' style='padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;color:#374151;text-decoration:none;'>&lt;</a>";
+            }
+            // 頁碼
+            for ($p = 1; $p <= $total_pages; $p++) {
+                $active = ($p === $current_page) ? 'background:#2563EB;color:#fff;border-color:#2563EB;' : 'color:#374151;';
+                echo "<a href='" . esc_url($base_url . "?pg={$p}&per_page={$per_page}") . "' style='padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;text-decoration:none;{$active}'>{$p}</a>";
+            }
+            // 下一頁
+            if ($current_page < $total_pages) {
+                $next = $current_page + 1;
+                echo "<a href='" . esc_url($base_url . "?pg={$next}&per_page={$per_page}") . "' style='padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;color:#374151;text-decoration:none;'>&gt;</a>";
+            }
+            echo '</div>';
+        }
         echo "<span style='font-size:14px;font-weight:600;color:#1f2937;'>合計：{$symbol}" . number_format($total_amount, 2) . "</span>";
+        echo '</div>';
+
         echo '</div>';
 
         echo '</div>';
