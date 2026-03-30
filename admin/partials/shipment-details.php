@@ -837,8 +837,8 @@ HTML;
 // Vue Component
 ?>
 
-<!-- Flatpickr CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!-- Flatpickr CSS 本地載入 -->
+<link rel="stylesheet" href="<?php echo plugins_url('assets/css/flatpickr.min.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
 <!-- Shipment Details Page Template -->
 <script type="text/x-template" id="shipment-details-page-template">
@@ -849,9 +849,9 @@ HTML;
 <script>
 window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 </script>
-<!-- Flatpickr JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+<!-- Flatpickr JS 本地載入 -->
+<script src="<?php echo plugins_url('assets/js/flatpickr.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
+<script src="<?php echo plugins_url('assets/js/flatpickr-zh-tw.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
 <script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ShipmentDetailsPage.js'; ?></script>
 

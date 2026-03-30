@@ -3,8 +3,8 @@
 ?>
 <!-- Dashboard Page Styles (Redesigned) - inline 繞過 InstaWP WAF -->
 <style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/dashboard-redesign.css'; ?></style>
-<!-- Chart.js CDN (4.x) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<!-- Chart.js 本地載入 -->
+<script src="<?php echo plugins_url('assets/js/chart.umd.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 
 <?php
 $dashboard_component_template = <<<'HTML'
