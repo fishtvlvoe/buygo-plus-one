@@ -173,6 +173,9 @@ class Plugin {
             \BuygoPlus\Integrations\FluentCartOfflinePaymentUser::register_hooks();
             \BuygoPlus\Integrations\FluentCartSellerGrantIntegration::register_hooks();
             \BuygoPlus\Integrations\FluentCartHideChildOrders::register_hooks();
+
+            // 會員中心自訂分頁（訂單進度、LINE 綁定）
+            \BuyGoPlus\Integrations\FluentCartCustomerPortal::init();
         }
 
         // 初始化結帳頁面自訂服務（身分證字號等）
