@@ -42,3 +42,4 @@ one-ssh.md
 # 設計圖與工具
 設計圖/
 .superset/
+node_modules/

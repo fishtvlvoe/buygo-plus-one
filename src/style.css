@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+/* 自訂顏色（對應所有 tailwind.config 的 colors） */
+@theme {
+  --color-primary: #2563EB;
+  --color-secondary: #3B82F6;
+  --color-accent: #F97316;
+  --color-cta: #F97316;
+  --color-bgMain: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-background: #F8FAFC;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --breakpoint-xs: 375px;
+}
+
+/* Design System（btn、status-tag 等自訂元件） */
+@import "../design-system/index.css";
+
+@source "../admin/partials/**/*.php";
+@source "../includes/views/**/*.php";
+@source "../includes/views/**/*.js";
+@source "../components/**/*.php";
+@source "../templates/**/*.php";
+@source "../liff/**/*.html";
+@source "../assets/js/**/*.js";
