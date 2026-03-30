@@ -38,21 +38,8 @@ function buygo_get_initial_data($page) {
                 break;
 
             case 'settings':
-                // settings 較複雜，暫時保留 REST dispatch
-                if (!did_action('rest_api_init')) {
-                    do_action('rest_api_init');
-                }
-                $endpoints = [
-                    'templates' => '/buygo-plus-one/v1/settings/templates',
-                    'helpers' => '/buygo-plus-one/v1/settings/helpers',
-                ];
-                foreach ($endpoints as $key => $route) {
-                    $request = new \WP_REST_Request('GET', $route);
-                    $response = rest_do_request($request);
-                    if (!is_wp_error($response) && $response->get_status() === 200) {
-                        $data[$key] = $response->get_data();
-                    }
-                }
+                $data['templates'] = ['success' => true, 'data' => \BuyGoPlus\Services\SettingsService::get_templates()];
+                $data['helpers'] = ['success' => true, 'data' => \BuyGoPlus\Services\SettingsService::get_helpers_with_line_status()];
                 break;
         }
     } catch (\Exception $e) {
