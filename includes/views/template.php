@@ -257,11 +257,10 @@ foreach ($permission_keys as $perm) {
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/header-component.js'; ?></script>
 
-    <!-- Vue 3 本地載入 -->
+    <!-- Vue 3 + SortableJS + VueDraggable（全部本地，無 CDN） -->
     <script src="<?php echo plugins_url('assets/js/vue.global.prod.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
-    <!-- SortableJS + VueDraggable -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
+    <script src="<?php echo plugins_url('assets/js/sortable.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
+    <script src="<?php echo plugins_url('assets/js/vuedraggable.umd.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 
     <!-- 全站 Composables -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useCurrency.js'; ?></script>
