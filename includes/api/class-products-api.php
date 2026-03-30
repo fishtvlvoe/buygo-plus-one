@@ -438,35 +438,27 @@ class Products_API {
      * 更新商品
      */
     public function update_product($request) {
-        error_log('===== API update_product =====');
-        error_log('ID: ' . $request->get_param('id'));
-        
         try {
             $id = $request->get_param('id');
             $params = $request->get_json_params();
-            
-            error_log('參數: ' . print_r($params, true));
-            
+
             $productService = new ProductService();
-            
+
             $updateData = [];
-            
+
             // 商品名稱
             if (isset($params['name'])) {
                 $updateData['name'] = sanitize_text_field($params['name']);
-                error_log('準備更新名稱: ' . $updateData['name']);
             }
-            
+
             // 商品價格
             if (isset($params['price'])) {
                 $updateData['price'] = (float) $params['price'];
-                error_log('準備更新價格: ' . $updateData['price']);
             }
-            
+
             // 已採購數量
             if (isset($params['purchased'])) {
                 $updateData['purchased'] = (int) $params['purchased'];
-                error_log('準備更新已採購: ' . $updateData['purchased']);
             }
 
             // 庫存數量（同步到 FluentCart）
@@ -477,15 +469,10 @@ class Products_API {
             // 商品狀態
             if (isset($params['status'])) {
                 $updateData['status'] = $params['status'] === 'published' ? 'publish' : 'private';
-                error_log('準備更新狀態: ' . $params['status'] . ' -> ' . $updateData['status']);
             }
-            
-            error_log('更新資料: ' . print_r($updateData, true));
-            
+
             $result = $productService->updateProduct($id, $updateData);
-            
-            error_log('updateProduct 返回: ' . ($result ? 'true' : 'false'));
-            
+
             if ($result) {
                 return new \WP_REST_Response([
                     'success' => true,
@@ -499,17 +486,16 @@ class Products_API {
                     ]
                 ], 200);
             } else {
-                error_log('商品更新失敗：updateProduct 返回 false');
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '商品更新失敗'
                 ], 400);
             }
-            
+
         } catch (\Exception $e) {
-            error_log('API update_product 錯誤: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
+            $debugService = \BuyGoPlus\Services\DebugService::get_instance();
+            $debugService->log('Products_API', 'update_product 錯誤', ['error' => $e->getMessage()], 'error');
+
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -804,37 +790,30 @@ class Products_API {
      * 取得商品的下單客戶列表
      */
     public function get_buyers($request) {
-        error_log('===== get_buyers API =====');
-        
         try {
             $product_id = $request->get_param('id');
-            error_log('Product ID: ' . $product_id);
-            
+
             // 檢查商品是否存在
-            error_log('檢查商品是否存在...');
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
-            
+
             if (!$product) {
-                error_log('錯誤：商品不存在');
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => '商品不存在'
                 ], 404);
             }
-            
-            error_log('找到商品: ' . $product->variation_title);
-            
+
             // 建立 ProductService 實例
             $productService = new ProductService();
             $result = $productService->getProductBuyers($product_id);
-            
+
             if (!$result['success']) {
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => $result['message']
                 ], 500);
             }
-            
+
             $response = [
                 'success' => true,
                 'data' => $result['data'],
@@ -846,11 +825,11 @@ class Products_API {
                 $response['variants'] = $result['variants'];
             }
             return new \WP_REST_Response($response, 200);
-            
+
         } catch (\Exception $e) {
-            error_log('get_buyers 錯誤: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
+            $debugService = \BuyGoPlus\Services\DebugService::get_instance();
+            $debugService->log('Products_API', 'get_buyers 錯誤', ['error' => $e->getMessage()], 'error');
+
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -903,10 +882,6 @@ class Products_API {
         try {
             $params = $request->get_json_params();
 
-            // Debug: 記錄收到的參數
-            error_log('=== 商品分配 API 開始（使用 AllocationService）===');
-            error_log('收到的參數: ' . json_encode($params, JSON_UNESCAPED_UNICODE));
-
             // 1. 取得參數
             $product_id = (int)($params['product_id'] ?? 0);
             $raw_allocations = $params['allocations'] ?? [];
@@ -951,15 +926,12 @@ class Products_API {
                 ], 400);
             }
 
-            error_log('轉換後的分配資料: ' . json_encode($allocations, JSON_UNESCAPED_UNICODE));
-
             // 3. 調用 AllocationService 進行分配（會自動建立子訂單）
             $allocationService = new \BuyGoPlus\Services\AllocationService();
             $result = $allocationService->updateOrderAllocations($product_id, $allocations);
 
             // 4. 處理結果
             if (is_wp_error($result)) {
-                error_log('AllocationService 錯誤: ' . $result->get_error_message());
                 return new \WP_REST_Response([
                     'success' => false,
                     'message' => $result->get_error_message()
@@ -969,10 +941,6 @@ class Products_API {
             // 5. 成功返回
             $total_allocated = array_sum($allocations);
             $child_orders = $result['child_orders'] ?? [];
-
-            error_log("=== 商品分配 API 完成 ===");
-            error_log("總共分配: {$total_allocated} 個配額");
-            error_log("建立的子訂單數: " . count($child_orders));
 
             $message = "成功分配 {$total_allocated} 個配額";
             if (!empty($child_orders)) {
@@ -991,8 +959,8 @@ class Products_API {
             ], 200);
 
         } catch (\Exception $e) {
-            error_log('商品分配錯誤: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
+            $debugService = \BuyGoPlus\Services\DebugService::get_instance();
+            $debugService->log('Products_API', 'allocate_stock 錯誤', ['error' => $e->getMessage()], 'error');
 
             return new \WP_REST_Response([
                 'success' => false,
@@ -1146,65 +1114,14 @@ class Products_API {
             ], 200);
 
         } catch (\Exception $e) {
-            error_log('一鍵分配錯誤: ' . $e->getMessage());
+            $debugService = \BuyGoPlus\Services\DebugService::get_instance();
+            $debugService->log('Products_API', 'allocate_all_for_customer 錯誤', ['error' => $e->getMessage()], 'error');
 
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => '分配時發生錯誤：' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * 更新商品的已分配總數（從 line_meta 讀取 _allocated_qty）
-     */
-    private function updateProductAllocatedCount($product_id) {
-        global $wpdb;
-
-        $table_items = $wpdb->prefix . 'fct_order_items';
-        $table_orders = $wpdb->prefix . 'fct_orders';
-        $table_vars = $wpdb->prefix . 'fct_product_variations';
-
-        // 【修復】多樣式商品支援：取得所有 variation IDs
-        $product = \FluentCart\App\Models\ProductVariation::find($product_id);
-        if (!$product || !$product->post_id) {
-            return;
-        }
-
-        $allVarIds = $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM {$table_vars} WHERE post_id = %d AND item_status = 'active'",
-            $product->post_id
-        ));
-
-        if (empty($allVarIds)) {
-            $allVarIds = [$product_id];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($allVarIds), '%d'));
-
-        // 取得所有 variant 的訂單項目的 line_meta
-        $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT oi.line_meta
-             FROM {$table_items} oi
-             INNER JOIN {$table_orders} o ON oi.order_id = o.id
-             WHERE oi.object_id IN ($placeholders)
-               AND o.status NOT IN ('cancelled', 'refunded')
-               AND o.parent_id IS NULL",
-            ...array_map('intval', $allVarIds)
-        ));
-
-        // 計算總已分配數量
-        $total = 0;
-        foreach ($items as $item) {
-            $meta_data = [];
-            if (!empty($item->line_meta)) {
-                $meta_data = json_decode($item->line_meta, true) ?: [];
-            }
-            $total += (int)($meta_data['_allocated_qty'] ?? 0);
-        }
-
-        // 更新商品的 post meta
-        update_post_meta($product->post_id, '_buygo_allocated', (int)$total);
     }
 
     /**
