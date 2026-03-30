@@ -213,9 +213,17 @@ class FluentCartCustomerPortal {
 
         echo '<div class="fct_order_list" style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">';
 
-        // 表頭
-        echo '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #e5e7eb;">';
+        // 標題
+        echo '<div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">';
         echo '<h3 style="font-size:16px;font-weight:600;color:#1f2937;margin:0;">訂單進度</h3>';
+        echo '</div>';
+
+        // 欄位標頭
+        echo '<div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #e5e7eb;background:#f9fafb;gap:16px;">';
+        echo '<div style="min-width:120px;font-size:13px;font-weight:600;color:#374151;">#</div>';
+        echo '<div style="flex:1;font-size:13px;font-weight:600;color:#374151;">產品</div>';
+        echo '<div style="min-width:80px;text-align:center;font-size:13px;font-weight:600;color:#374151;">進度</div>';
+        echo '<div style="min-width:100px;text-align:right;font-size:13px;font-weight:600;color:#374151;">價格</div>';
         echo '</div>';
 
         // 表格列表
