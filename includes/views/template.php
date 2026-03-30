@@ -71,16 +71,13 @@ $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_admin')
     || current_user_can('buygo_helper');
 
-if (!$has_portal_access) {
-    // 買家（無後台權限）→ 導向 FluentCart 會員中心
-    $fc_profile_page_id = get_option('fluent_cart_customer_profile_page');
-    if ($fc_profile_page_id) {
-        wp_redirect(get_permalink($fc_profile_page_id));
-    } else {
-        // Fallback：嘗試常見的 my-account 頁面
-        wp_redirect(home_url('/my-account/'));
-    }
-    exit;
+// 買家標記（前端用來決定顯示哪套介面）
+$is_buyer = !$has_portal_access;
+
+// 買家：預先渲染 FluentCart 會員中心的 shortcode 內容
+$buyer_profile_html = '';
+if ($is_buyer && function_exists('do_shortcode')) {
+    $buyer_profile_html = do_shortcode('[fluent_cart_customer_profile]');
 }
 
 // SPA：從 URL 取得初始頁面（用於預注入資料）
@@ -226,6 +223,7 @@ foreach ($permission_keys as $perm) {
     <script>
         window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
         window.buygoUserPermissions = <?php echo wp_json_encode($user_permissions); ?>;
+        window.buygoIsBuyer = <?php echo $is_buyer ? 'true' : 'false'; ?>;
     </script>
 
     <?php
@@ -329,7 +327,9 @@ foreach ($permission_keys as $perm) {
                 self.onPageChange(page);
             });
         },
-        template: `
+        template: window.buygoIsBuyer ? `
+            <div id="buygo-buyer-portal"></div>
+        ` : `
             <div>
                 <NewSidebar
                     :currentPage="currentPage"
@@ -362,8 +362,26 @@ foreach ($permission_keys as $perm) {
 
     app.mount('#buygo-app');
 
-    // 預載其他頁面資料
-    if (window.BuyGoCache && window.BuyGoCache.preload) {
+    // 買家：把 FluentCart 會員中心內容注入
+    if (window.buygoIsBuyer) {
+        var buyerPortal = document.getElementById('buygo-buyer-portal');
+        if (buyerPortal) {
+            buyerPortal.innerHTML = <?php echo wp_json_encode($buyer_profile_html); ?>;
+            // 執行 FluentCart 注入的 script 標籤
+            buyerPortal.querySelectorAll('script').forEach(function(oldScript) {
+                var newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+    }
+
+    // 賣家：預載其他頁面資料
+    if (!window.buygoIsBuyer && window.BuyGoCache && window.BuyGoCache.preload) {
         window.BuyGoCache.preload(window.buygoWpNonce);
     }
     </script>
