@@ -190,49 +190,63 @@ class FluentCartCustomerPortal {
             $order_groups[$order_id]['subtotal'] += $line_total;
         }
 
-        // 輸出 HTML（模仿 FluentCart 購買歷史的表格列表風格）
-        $total_items = array_sum(array_map(fn($g) => count($g['items']), $order_groups));
-        $symbol = !empty($order_groups) ? reset($order_groups)['symbol'] : '¥';
+        // 把所有項目攤平成一維陣列（方便分頁）
+        $all_rows = [];
+        foreach ($order_groups as $oid => $group) {
+            foreach ($group['items'] as $itm) {
+                $all_rows[] = array_merge($itm, [
+                    'invoice_no' => $group['invoice_no'],
+                    'symbol' => $group['symbol'],
+                    'line_total' => $itm['price'] * $itm['qty'],
+                ]);
+            }
+        }
+
+        $total_items = count($all_rows);
+        $per_page = (int)($_GET['per_page'] ?? 10);
+        $current_page = max(1, (int)($_GET['pg'] ?? 1));
+        $total_pages = max(1, ceil($total_items / $per_page));
+        $current_page = min($current_page, $total_pages);
+        $offset = ($current_page - 1) * $per_page;
+        $page_rows = array_slice($all_rows, $offset, $per_page);
+        $symbol = !empty($all_rows) ? $all_rows[0]['symbol'] : '¥';
 
         echo '<div class="fct_order_list" style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">';
 
         // 表頭
         echo '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #e5e7eb;">';
         echo '<h3 style="font-size:16px;font-weight:600;color:#1f2937;margin:0;">訂單進度</h3>';
-        echo "<span style='font-size:13px;color:#6b7280;'>共 {$total_items} 筆</span>";
         echo '</div>';
 
         // 表格列表
-        foreach ($order_groups as $oid => $group) {
-            foreach ($group['items'] as $itm) {
-                $line_total = $itm['price'] * $itm['qty'];
-                echo '<div style="display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid #f3f4f6;gap:16px;">';
+        foreach ($page_rows as $itm) {
+            echo '<div style="display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid #f3f4f6;gap:16px;">';
 
-                // 左：訂單編號 + 日期
-                echo '<div style="min-width:120px;">';
-                echo "<div style='font-size:14px;font-weight:500;color:#1f2937;'>" . esc_html($group['invoice_no']) . "</div>";
-                echo '</div>';
+            // 左：訂單編號
+            echo '<div style="min-width:120px;">';
+            echo "<div style='font-size:14px;font-weight:500;color:#1f2937;'>" . esc_html($itm['invoice_no']) . "</div>";
+            echo '</div>';
 
-                // 中：商品名稱
-                echo '<div style="flex:1;min-width:0;">';
-                echo "<div style='font-size:14px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" . esc_html($itm['name']) . "</div>";
-                echo '</div>';
+            // 中：商品名稱
+            echo '<div style="flex:1;min-width:0;">';
+            echo "<div style='font-size:14px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" . esc_html($itm['name']) . "</div>";
+            echo '</div>';
 
-                // 狀態標籤
-                echo "<span style='display:inline-block;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;white-space:nowrap;"
-                    . "background:{$itm['status_bg']};color:{$itm['status_color']};'>"
-                    . esc_html($itm['status']) . "</span>";
+            // 狀態標籤
+            echo "<span style='display:inline-block;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;white-space:nowrap;"
+                . "background:{$itm['status_bg']};color:{$itm['status_color']};'>"
+                . esc_html($itm['status']) . "</span>";
 
-                // 右：金額
-                echo "<div style='min-width:100px;text-align:right;font-size:14px;color:#1f2937;white-space:nowrap;'>"
-                    . "{$group['symbol']}" . number_format($line_total, 2) . "</div>";
+            // 右：金額
+            echo "<div style='min-width:100px;text-align:right;font-size:14px;color:#1f2937;white-space:nowrap;'>"
+                . "{$itm['symbol']}" . number_format($itm['line_total'], 2) . "</div>";
 
-                echo '</div>';
-            }
+            echo '</div>';
         }
 
-        // 底部合計
-        echo '<div style="display:flex;justify-content:flex-end;padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;">';
+        // 底部：分頁 + 合計
+        echo '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;flex-wrap:wrap;gap:8px;">';
+        echo "<span style='font-size:13px;color:#6b7280;'>第 {$current_page} 頁，共 {$total_pages} 頁　總計 {$total_items}</span>";
         echo "<span style='font-size:14px;font-weight:600;color:#1f2937;'>合計：{$symbol}" . number_format($total_amount, 2) . "</span>";
         echo '</div>';
 
