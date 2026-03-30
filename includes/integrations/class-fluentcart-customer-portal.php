@@ -251,7 +251,7 @@ class FluentCartCustomerPortal {
         // 上排：分頁控制（一行排開）
         echo '<div style="display:flex;align-items:center;gap:12px;white-space:nowrap;">';
         echo "<span style='font-size:13px;color:#6b7280;'>第 {$current_page} 頁，共 {$total_pages} 頁</span>";
-        echo '<select onchange="window.location.href=\'' . esc_url($base_url) . '?per_page=\'+this.value" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;background:#fff;cursor:pointer;">';
+        echo '<select onchange="window.location.href=\'' . esc_url($base_url) . '?per_page=\'+this.value" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;background:#fff;cursor:pointer;width:auto;max-width:90px;-webkit-appearance:menulist;">';
         foreach ([10, 20, 50, 100] as $opt) {
             $sel = ($opt === $per_page) ? ' selected' : '';
             echo "<option value='{$opt}'{$sel}>{$opt} / 頁</option>";
