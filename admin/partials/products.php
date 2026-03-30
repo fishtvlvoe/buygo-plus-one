@@ -528,19 +528,49 @@ $products_component_template .= <<<'HTML'
                         <!-- Buyers List -->
                         <div v-if="currentView === 'buyers'">
                             <!-- 商品資訊卡片 -->
-                            <div v-if="buyersProduct" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center gap-4">
-                                <img v-if="buyersProduct.image" :src="buyersProduct.image" class="w-16 h-16 rounded-lg object-cover border border-slate-200" />
-                                <div v-else class="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
-                                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <div v-if="buyersProduct" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4">
+                                <div class="flex items-center gap-4">
+                                    <img v-if="buyersProduct.image" :src="buyersProduct.image" class="w-16 h-16 rounded-lg object-cover border border-slate-200 shrink-0" />
+                                    <div v-else class="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
+                                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-bold text-slate-900 truncate">{{ buyersProduct.name }}</h4>
+                                        <div class="text-xs text-slate-500 mt-1">商品 ID: {{ buyersProduct.id }}</div>
+                                    </div>
+                                    <!-- 電腦版：下拉選單 + 筆數 -->
+                                    <div v-if="buyersVariants.length > 0" class="hidden md:flex items-center gap-3 shrink-0">
+                                        <select v-model="buyersSelectedVariant"
+                                                class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-[220px]">
+                                            <option value="">全部（{{ buyers.length }} 筆）</option>
+                                            <option v-for="v in buyersVariants" :key="v.id" :value="String(v.id)">
+                                                {{ v.title }}（{{ v.order_count }} 筆）
+                                            </option>
+                                        </select>
+                                        <div class="text-right">
+                                            <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
+                                            <div class="text-xs text-slate-500">筆訂單</div>
+                                        </div>
+                                    </div>
+                                    <!-- 無 variant：只顯示筆數 -->
+                                    <div v-if="buyersVariants.length === 0" class="text-right shrink-0">
+                                        <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
+                                        <div class="text-xs text-slate-500">筆訂單</div>
+                                    </div>
+                                    <!-- 有 variant 手機版：只顯示筆數（下拉在下面） -->
+                                    <div v-if="buyersVariants.length > 0" class="md:hidden text-right shrink-0">
+                                        <div class="text-2xl font-bold text-primary">{{ filteredBuyersByVariant.length }}</div>
+                                        <div class="text-xs text-slate-500">筆訂單</div>
+                                    </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-bold text-slate-900 truncate">{{ buyersProduct.name }}</h4>
-                                    <div class="text-xs text-slate-500 mt-1">商品 ID: {{ buyersProduct.id }}</div>
-                                </div>
-                                <div class="text-right shrink-0">
-                                    <div class="text-2xl font-bold text-primary">{{ buyers.length }}</div>
-                                    <div class="text-xs text-slate-500">筆訂單</div>
-                                </div>
+                                <!-- 手機版：下拉放標題下方 -->
+                                <select v-if="buyersVariants.length > 0" v-model="buyersSelectedVariant"
+                                        class="md:hidden w-full mt-3 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">全部（{{ buyers.length }} 筆）</option>
+                                    <option v-for="v in buyersVariants" :key="v.id" :value="String(v.id)">
+                                        {{ v.title }}（{{ v.order_count }} 筆）
+                                    </option>
+                                </select>
                             </div>
 
                             <!-- 統計摘要區塊 -->

@@ -351,9 +351,11 @@ class ProductService
             $productImage = '';
 
             if ($productVariation) {
-                $productName = $productVariation->variation_title ?? '';
-                if (empty($productName) && $productVariation->product) {
-                    $productName = $productVariation->product->post_title ?? '未知商品';
+                // product.name 使用 WordPress post title（商品主名稱），不用 variation_title
+                if ($productVariation->post_id) {
+                    $productName = html_entity_decode(get_the_title($productVariation->post_id) ?: ($productVariation->variation_title ?? '未知商品'));
+                } elseif (!empty($productVariation->variation_title)) {
+                    $productName = $productVariation->variation_title;
                 }
 
                 // 取得商品圖片
@@ -424,6 +426,23 @@ class ProductService
             // 每筆訂單獨立顯示（不再整合）
             $orders = [];
 
+            // 【修復】批次查詢實際出貨數量（從 buygo_shipment_items），不只依賴 line_meta._shipped_qty
+            $itemIds = $orderItems->pluck('id')->toArray();
+            $actualShippedMap = [];
+            if (!empty($itemIds)) {
+                $itemIdPlaceholders = implode(',', array_fill(0, count($itemIds), '%d'));
+                $shippedRows = $wpdb->get_results($wpdb->prepare(
+                    "SELECT order_item_id, SUM(quantity) as shipped_qty
+                     FROM {$wpdb->prefix}buygo_shipment_items
+                     WHERE order_item_id IN ($itemIdPlaceholders)
+                     GROUP BY order_item_id",
+                    ...$itemIds
+                ));
+                foreach ($shippedRows as $row) {
+                    $actualShippedMap[(int)$row->order_item_id] = (int)$row->shipped_qty;
+                }
+            }
+
             foreach ($orderItems as $item) {
                 if (!$item->order || !$item->order->customer) {
                     continue;
@@ -443,18 +462,24 @@ class ProductService
                 }
 
                 $quantity = (int)$item->quantity;
-                $allocatedQty = (int)($metaData['_allocated_qty'] ?? 0);
-                $shippedQty = (int)($metaData['_shipped_qty'] ?? 0);
+                $metaAllocated = (int)($metaData['_allocated_qty'] ?? 0);
+                $metaShipped = (int)($metaData['_shipped_qty'] ?? 0);
+                $actualShipped = $actualShippedMap[(int)$item->id] ?? 0;
+
+                // 【修復】已出貨取 max(line_meta._shipped_qty, 實際出貨記錄)
+                $shippedQty = max($metaShipped, $actualShipped);
+                // 【修復】已分配取 max(line_meta._allocated_qty, 已出貨數量)，因為已出貨一定已分配
+                $allocatedQty = max($metaAllocated, $shippedQty);
 
                 // 計算待處理數量
-                $pendingQty = max(0, $quantity - $allocatedQty - $shippedQty);
+                $pendingQty = max(0, $quantity - $allocatedQty);
 
                 // 判斷狀態
-                // - 已全部出貨：shipped_qty >= quantity
-                // - 已全部分配：allocated_qty + shipped_qty >= quantity
+                // - 已全部出貨：shipped >= quantity
+                // - 已全部分配：allocated >= quantity（allocated 已包含 shipped）
                 // - 待分配：有待處理數量
                 $isFullyShipped = $shippedQty >= $quantity;
-                $isFullyAllocated = ($allocatedQty + $shippedQty) >= $quantity;
+                $isFullyAllocated = $allocatedQty >= $quantity;
 
                 // 決定顯示狀態
                 $status = 'pending';  // 待分配
@@ -486,6 +511,7 @@ class ProductService
                     'customer_id' => $customer->id,
                     'customer_name' => $customer->full_name ?? $customer->email,
                     'customer_email' => $customer->email,
+                    'object_id' => (int)$item->object_id,  // 前端篩選用的 variation ID
                     'variation_title' => $varTitle,
                     'quantity' => $quantity,
                     'purchased' => $purchasedMap[(int)$item->object_id] ?? 0,
@@ -511,7 +537,8 @@ class ProductService
                 return $b['pending_quantity'] - $a['pending_quantity'];
             });
 
-            return [
+            // 建立回傳結構
+            $response = [
                 'success' => true,
                 'data' => $orders,
                 'product' => [
@@ -520,6 +547,32 @@ class ProductService
                     'image' => $productImage
                 ]
             ];
+
+            // 多樣式商品才回傳 variants 陣列（供前端建立下拉選單）
+            if ($isMultiVariant && !empty($variationTitles)) {
+                // 從 $orders 統計每個 variation 的訂單數（group by object_id）
+                $varOrderCount = [];
+                foreach ($orders as $ord) {
+                    $vid = $ord['object_id'];
+                    $varOrderCount[$vid] = ($varOrderCount[$vid] ?? 0) + 1;
+                }
+
+                $variants = [];
+                foreach ($variationTitles as $vid => $title) {
+                    $variants[] = [
+                        'id' => $vid,
+                        'title' => $title,
+                        'order_count' => $varOrderCount[$vid] ?? 0,
+                    ];
+                }
+
+                // 依 variation ID 升序排列，讓前端選單順序穩定
+                usort($variants, fn($a, $b) => $a['id'] - $b['id']);
+
+                $response['variants'] = $variants;
+            }
+
+            return $response;
 
         } catch (\Exception $e) {
             $this->debugService->log('ProductService', '取得下單客戶列表失敗', [
