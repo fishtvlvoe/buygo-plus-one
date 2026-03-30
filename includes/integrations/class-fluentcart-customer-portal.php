@@ -51,12 +51,7 @@ class FluentCartCustomerPortal {
             'render_callback' => [self::class, 'renderOrderTracking'],
         ]);
 
-        // 2. LINE 綁定頁（跟 FluentCart 同風格：20x20 filled icon）
-        fluent_cart_api()->addCustomerDashboardEndpoint('line-binding', [
-            'title'           => 'LINE 綁定',
-            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M15.625 2.5H4.375C3.685 2.5 3.125 3.06 3.125 3.75V16.25C3.125 16.94 3.685 17.5 4.375 17.5H8.125L10 19.375L11.875 17.5H15.625C16.315 17.5 16.875 16.94 16.875 16.25V3.75C16.875 3.06 16.315 2.5 15.625 2.5ZM15.625 16.25H11.36L10 17.61L8.64 16.25H4.375V3.75H15.625V16.25ZM7.5 9.375H8.75V10.625H7.5V9.375ZM10 9.375V10.625H8.75V9.375H10ZM11.25 9.375H12.5V10.625H11.25V9.375Z" fill="currentColor"/></svg>',
-            'render_callback' => [self::class, 'renderLineBinding'],
-        ]);
+        // LINE 綁定頁已移除（每個頁面都有 LINE 登入，不需要獨立頁面）
     }
 
     /**
