@@ -44,17 +44,17 @@ class FluentCartCustomerPortal {
             return;
         }
 
-        // 1. 訂單進度頁
+        // 1. 訂單進度頁（跟 FluentCart 同風格：20x20 filled icon）
         fluent_cart_api()->addCustomerDashboardEndpoint('order-tracking', [
             'title'           => '訂單進度',
-            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>',
+            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16 17.5H4C3.80109 17.5 3.61032 17.421 3.46967 17.2803C3.32902 17.1397 3.25 16.9489 3.25 16.75V3.25C3.25 3.05109 3.32902 2.86032 3.46967 2.71967C3.61032 2.57902 3.80109 2.5 4 2.5H16C16.1989 2.5 16.3897 2.57902 16.5303 2.71967C16.671 2.86032 16.75 3.05109 16.75 3.25V16.75C16.75 16.9489 16.671 17.1397 16.5303 17.2803C16.3897 17.421 16.1989 17.5 16 17.5ZM15.25 16V4H4.75V16H15.25ZM6.25 6.25H10V7.75H6.25V6.25ZM6.25 9.25H13.75V10.75H6.25V9.25ZM6.25 12.25H13.75V13.75H6.25V12.25ZM12.25 6.25L13.75 7.75L12.25 6.25Z" fill="currentColor"/><path d="M7.5 6.625L8.75 7.875L11.25 5.375" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             'render_callback' => [self::class, 'renderOrderTracking'],
         ]);
 
-        // 2. LINE 綁定頁
+        // 2. LINE 綁定頁（跟 FluentCart 同風格：20x20 filled icon）
         fluent_cart_api()->addCustomerDashboardEndpoint('line-binding', [
             'title'           => 'LINE 綁定',
-            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M15.625 2.5H4.375C3.685 2.5 3.125 3.06 3.125 3.75V16.25C3.125 16.94 3.685 17.5 4.375 17.5H8.125L10 19.375L11.875 17.5H15.625C16.315 17.5 16.875 16.94 16.875 16.25V3.75C16.875 3.06 16.315 2.5 15.625 2.5ZM15.625 16.25H11.36L10 17.61L8.64 16.25H4.375V3.75H15.625V16.25ZM7.5 9.375H8.75V10.625H7.5V9.375ZM10 9.375V10.625H8.75V9.375H10ZM11.25 9.375H12.5V10.625H11.25V9.375Z" fill="currentColor"/></svg>',
             'render_callback' => [self::class, 'renderLineBinding'],
         ]);
     }
