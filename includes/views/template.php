@@ -72,7 +72,14 @@ $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_helper');
 
 if (!$has_portal_access) {
-    require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/no-access.php';
+    // 買家（無後台權限）→ 導向 FluentCart 會員中心
+    $fc_profile_page_id = get_option('fluent_cart_customer_profile_page');
+    if ($fc_profile_page_id) {
+        wp_redirect(get_permalink($fc_profile_page_id));
+    } else {
+        // Fallback：嘗試常見的 my-account 頁面
+        wp_redirect(home_url('/my-account/'));
+    }
     exit;
 }
 
