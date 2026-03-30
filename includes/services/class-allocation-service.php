@@ -34,7 +34,7 @@ class AllocationService
      * @param int $variation_id 任一 ProductVariation ID
      * @return array ['post_id' => int, 'variation_ids' => int[]]
      */
-    private function getAllVariationIds($variation_id)
+    public function getAllVariationIds($variation_id)
     {
         global $wpdb;
         $table = $wpdb->prefix . 'fct_product_variations';
@@ -92,11 +92,7 @@ class AllocationService
     }
 
     /**
-     * 分配庫存給訂單
-     * 
-     * @param int $product_id 商品 ID
-     * @param array $order_ids 要分配的訂單 ID 陣列
-     * @return bool|WP_Error 成功或錯誤
+     * @deprecated 請改用 updateOrderAllocations()，此方法只更新 meta 不建立子訂單
      */
     public function allocateStock($product_id, $order_ids)
     {
@@ -467,14 +463,14 @@ class AllocationService
                 }
             }
 
-            // 4. 查詢當前已分配的總數量（從子訂單計算）
+            // 4. 查詢當前已分配的總數量（從子訂單計算，所有 variant 合計）
             $current_child_allocated = (int)$wpdb->get_var($wpdb->prepare(
                 "SELECT COALESCE(SUM(child_oi.quantity), 0)
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.type = 'split'
-                 AND child_oi.object_id = %d",
-                $product_id
+                 AND child_oi.object_id IN ($var_placeholders)",
+                ...$variation_ids
             ));
 
             $new_allocation_total = \array_sum($allocations);
@@ -537,14 +533,14 @@ class AllocationService
                 );
             }
 
-            // 8. 從子訂單重新計算商品的「已分配」總數
+            // 8. 從子訂單重新計算商品的「已分配」總數（所有 variant 合計）
             $recalc_allocated = (int)$wpdb->get_var($wpdb->prepare(
                 "SELECT COALESCE(SUM(child_oi.quantity), 0)
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.type = 'split'
-                 AND child_oi.object_id = %d",
-                $product_id
+                 AND child_oi.object_id IN ($var_placeholders)",
+                ...$variation_ids
             ));
 
             update_post_meta($post_id, '_buygo_allocated', $recalc_allocated);

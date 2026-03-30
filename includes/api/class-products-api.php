@@ -1002,7 +1002,8 @@ class Products_API {
     }
     
     /**
-     * 一鍵分配：將某客戶購買某商品的所有訂單全部分配
+     * 一鍵分配：將某客戶購買某商品的訂單全部分配
+     * 統一走 AllocationService::updateOrderAllocations（建立子訂單）
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response
@@ -1023,12 +1024,18 @@ class Products_API {
                 ], 400);
             }
 
+            if ($order_item_id <= 0 && $customer_id <= 0) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '需要提供 order_item_id 或 customer_id'
+                ], 400);
+            }
+
             $table_items = $wpdb->prefix . 'fct_order_items';
             $table_orders = $wpdb->prefix . 'fct_orders';
 
-            // 【修復】多樣式商品支援：取得同一商品所有 variation IDs
+            // 取得同一商品所有 variation IDs
             $allocationService = new \BuyGoPlus\Services\AllocationService();
-            // 透過反射或直接查表取得所有 variation IDs
             $varTable = $wpdb->prefix . 'fct_product_variations';
             $post_id_for_alloc = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT post_id FROM {$varTable} WHERE id = %d LIMIT 1", $product_id
@@ -1044,11 +1051,10 @@ class Products_API {
             }
             $varPlaceholders = implode(',', array_fill(0, count($allVarIds), '%d'));
 
-            // 如果有 order_item_id，只分配該單筆訂單項目
-            // 【修復】不再用 object_id = product_id 過濾，改用 IN 條件支援所有 variant
+            // 查詢需要分配的訂單項目
             if ($order_item_id > 0) {
                 $order_items = $wpdb->get_results($wpdb->prepare(
-                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, o.invoice_no
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, oi.line_meta
                      FROM {$table_items} oi
                      INNER JOIN {$table_orders} o ON oi.order_id = o.id
                      WHERE oi.id = %d
@@ -1058,10 +1064,9 @@ class Products_API {
                     $order_item_id,
                     ...$allVarIds
                 ));
-            } elseif ($customer_id > 0) {
-                // 分配該客戶的所有訂單（支援多樣式商品所有 variant）
+            } else {
                 $order_items = $wpdb->get_results($wpdb->prepare(
-                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, o.invoice_no
+                    "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, oi.line_meta
                      FROM {$table_items} oi
                      INNER JOIN {$table_orders} o ON oi.order_id = o.id
                      WHERE oi.object_id IN ($varPlaceholders)
@@ -1070,11 +1075,6 @@ class Products_API {
                        AND o.status NOT IN ('cancelled', 'refunded')",
                     ...array_merge($allVarIds, [$customer_id])
                 ));
-            } else {
-                return new \WP_REST_Response([
-                    'success' => false,
-                    'message' => '需要提供 order_item_id 或 customer_id'
-                ], 400);
             }
 
             if (empty($order_items)) {
@@ -1084,84 +1084,65 @@ class Products_API {
                 ], 404);
             }
 
-            // 更新每個訂單項目的 line_meta 中的 _allocated_qty
-            $total_allocated = 0;
-            $updated_orders = [];
+            // 計算每筆訂單的待分配數量，組成 allocations 陣列
+            $allocations = [];
             $skipped_orders = [];
-
             foreach ($order_items as $item) {
-                // 讀取現有的 line_meta
-                $existing_meta = $wpdb->get_var($wpdb->prepare(
-                    "SELECT line_meta FROM {$table_items} WHERE id = %d",
-                    $item->order_item_id
-                ));
-
-                $meta_data = [];
-                if (!empty($existing_meta)) {
-                    $meta_data = json_decode($existing_meta, true) ?: [];
-                }
-
-                // 取得已出貨數量
-                $shipped_qty = (int)($meta_data['_shipped_qty'] ?? 0);
-                $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+                $meta_data = json_decode($item->line_meta ?? '{}', true) ?: [];
                 $quantity = (int)$item->quantity;
 
-                // 計算可分配數量 = 總數量 - 已出貨數量
-                $max_allocatable = $quantity - $shipped_qty;
+                // 查詢實際已出貨和已分配（子訂單）數量
+                $actual_shipped = (int)$wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(quantity), 0) FROM {$wpdb->prefix}buygo_shipment_items WHERE order_item_id = %d",
+                    $item->order_item_id
+                ));
+                $child_allocated = (int)$wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_orders child_o
+                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                     WHERE child_o.parent_id = %d AND child_o.type = 'split' AND child_oi.object_id = %d",
+                    $item->order_id, (int)$item->object_id
+                ));
 
-                // 如果已經全部出貨，跳過
-                if ($max_allocatable <= 0) {
-                    $skipped_orders[] = [
-                        'order_id' => $item->order_id,
-                        'invoice_no' => $item->invoice_no,
-                        'reason' => '已全部出貨'
-                    ];
+                $already = max($child_allocated, (int)($meta_data['_allocated_qty'] ?? 0), $actual_shipped);
+                $needed = $quantity - $already;
+
+                if ($needed <= 0) {
+                    $skipped_orders[] = ['order_id' => $item->order_id, 'reason' => '已全部分配'];
                     continue;
                 }
 
-                // 如果已經分配到最大值，跳過
-                if ($current_allocated >= $max_allocatable) {
-                    $skipped_orders[] = [
-                        'order_id' => $item->order_id,
-                        'invoice_no' => $item->invoice_no,
-                        'reason' => '已全部分配'
-                    ];
-                    continue;
-                }
-
-                // 設定 _allocated_qty 為可分配最大值（總數量 - 已出貨數量）
-                $meta_data['_allocated_qty'] = $max_allocatable;
-
-                // 更新 line_meta
-                $result = $wpdb->update(
-                    $table_items,
-                    ['line_meta' => json_encode($meta_data)],
-                    ['id' => $item->order_item_id],
-                    ['%s'],
-                    ['%d']
-                );
-
-                if ($result !== false) {
-                    // 計算實際新增分配的數量
-                    $newly_allocated = $max_allocatable - $current_allocated;
-                    $total_allocated += $newly_allocated;
-                    $updated_orders[] = [
-                        'order_id' => $item->order_id,
-                        'invoice_no' => $item->invoice_no,
-                        'quantity' => $newly_allocated,
-                        'total_allocated' => $max_allocatable
-                    ];
-                }
+                // 用訂單的實際 object_id 呼叫（確保多樣式商品正確）
+                $allocations[(int)$item->order_id] = $needed;
             }
 
-            // 更新商品的已分配總數
-            $this->updateProductAllocatedCount($product_id);
+            if (empty($allocations)) {
+                return new \WP_REST_Response([
+                    'success' => true,
+                    'message' => '所有訂單已全部分配',
+                    'total_allocated' => 0,
+                    'updated_orders' => []
+                ], 200);
+            }
+
+            // 統一走 updateOrderAllocations（建立子訂單 + 同步 meta）
+            $result = $allocationService->updateOrderAllocations($product_id, $allocations);
+
+            if (is_wp_error($result)) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => $result->get_error_message()
+                ], 400);
+            }
+
+            $total_allocated = array_sum($allocations);
+            $child_orders = $result['child_orders'] ?? [];
 
             return new \WP_REST_Response([
                 'success' => true,
-                'message' => "已分配 {$total_allocated} 個商品給此客戶",
+                'message' => "已分配 {$total_allocated} 個商品",
                 'total_allocated' => $total_allocated,
-                'updated_orders' => $updated_orders
+                'updated_orders' => $child_orders
             ], 200);
 
         } catch (\Exception $e) {

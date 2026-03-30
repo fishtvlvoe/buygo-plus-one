@@ -94,8 +94,12 @@ class AllocationServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        // 還原全域 wpdb（測試後清除自訂 mock 以免汙染其他測試）
-        // 注意：只有此測試類別自己設定的 mock，才在 tearDown 清除
+        // 還原全域 mock，避免跨 test class 汙染
+        unset($GLOBALS['mock_product_variation_map']);
+        unset($GLOBALS['mock_get_post_meta_map']);
+        unset($GLOBALS['mock_wpdb_insert_id_sequence']);
+        unset($GLOBALS['mock_wpdb_query_log']);
+        unset($GLOBALS['mock_wpdb_insert_log']);
         parent::tearDown();
     }
 
@@ -768,5 +772,59 @@ class AllocationServiceTest extends TestCase
             '修復後：子訂單項目的 object_id 應為 ' . self::ORDER_ITEM_OBJECT_ID .
             '（父訂單項目的 object_id），不是 ' . self::PRODUCT_ID
         );
+    }
+
+    // ─────────────────────────────────────────
+    // 單一商品向後相容測試
+    // ─────────────────────────────────────────
+
+    /**
+     * @test
+     * 單一商品（product_id == order item object_id）應該正常分配
+     */
+    public function test_單一商品_product_id等於object_id_正常分配(): void
+    {
+        $singleProductId = 500;
+        $singleOrderId = 2000;
+
+        $GLOBALS['mock_product_variation_map'][$singleProductId] = ['post_id' => 3000];
+        $GLOBALS['mock_get_post_meta_map']['3000__buygo_purchased'] = 10;
+        $GLOBALS['mock_wpdb_insert_id_sequence'] = [8001, 8001];
+
+        $parentOrder = (object)[
+            'id' => $singleOrderId, 'parent_id' => null, 'type' => 'normal',
+            'customer_id' => 1, 'status' => 'processing', 'payment_status' => 'paid',
+            'shipping_status' => 'unshipped', 'invoice_no' => 'INV-2000',
+            'currency' => 'TWD', 'payment_method' => 'cash', 'payment_method_title' => '現金',
+        ];
+
+        $parentItem = (object)[
+            'id' => 99001, 'order_id' => $singleOrderId, 'post_id' => 3000,
+            'object_id' => $singleProductId, 'quantity' => 2, 'unit_price' => 10000.0,
+            'subtotal' => 20000.0, 'title' => '單一商品', 'post_title' => '單一商品', 'line_meta' => '{}',
+        ];
+
+        $rules = [
+            // getAllVariationIds：單一商品只回傳自己
+            ['method' => 'get_var', 'contains' => 'fct_product_variations WHERE id', 'return' => '3000'],
+            ['method' => 'get_col', 'contains' => 'fct_product_variations WHERE post_id', 'return' => [(string)$singleProductId]],
+            // 查詢訂單項目
+            ['method' => 'get_results', 'contains' => 'fct_order_items', 'return' => [(array)$parentItem]],
+            // 子訂單相關查詢
+            ['method' => 'get_var', 'contains' => 'COALESCE(SUM', 'return' => '0'],
+            ['method' => 'get_var', 'contains' => 'COUNT(*)', 'return' => '0'],
+            // create_child_order
+            ['method' => 'get_row', 'contains' => 'fct_orders WHERE id', 'return' => $parentOrder],
+            ['method' => 'get_row', 'contains' => 'fct_order_items', 'return' => $parentItem],
+        ];
+
+        $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
+
+        $service = new AllocationService();
+        $result = $service->updateOrderAllocations($singleProductId, [$singleOrderId => 1]);
+
+        $this->assertNotInstanceOf(\WP_Error::class, $result, '單一商品應正常分配');
+        $this->assertIsArray($result);
+        $this->assertTrue($result['success'] ?? false);
     }
 }
