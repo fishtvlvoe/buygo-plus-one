@@ -1,29 +1,7 @@
 <?php
 // 商品管理頁面元件
 ?>
-<!-- Tailwind Config -->
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
-                    mono: ['Fira Code', 'monospace'],
-                },
-                colors: {
-                    primary: '#2563EB', // Blue-600
-                    secondary: '#3B82F6', // Blue-500
-                    cta: '#F97316', // Orange-500
-                    surface: '#FFFFFF',
-                    background: '#F8FAFC', // Slate-50
-                },
-                screens: {
-                    'xs': '375px', // Mobile Small
-                }
-            }
-        }
-    }
-</script>
+<!-- Tailwind 顏色和 screens 已在 dist/app.css 預編譯 -->
 <!-- Products Page Styles - inline 繞過 InstaWP WAF -->
 <style><?php include plugin_dir_path(dirname(__FILE__)) . 'css/products.css'; ?></style>
 

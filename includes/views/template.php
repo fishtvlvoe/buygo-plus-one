@@ -8,102 +8,42 @@
  */
 
 /**
- * 預注入初始資料（消除 Loading 畫面）
+ * 預注入初始資料（直接呼叫 Service，繞過 REST dispatch）
  */
 function buygo_get_initial_data($page) {
-    if (!did_action('rest_api_init')) {
-        do_action('rest_api_init');
-    }
-
     $data = [];
 
     try {
         switch ($page) {
-            case 'orders':
-                $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/orders');
-                $request->set_param('page', 1);
-                $request->set_param('per_page', 30);
-                $response = rest_do_request($request);
-                if (!is_wp_error($response) && $response->get_status() === 200) {
-                    $data['orders'] = $response->get_data();
-                }
-                break;
-
             case 'products':
-                $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/products');
-                $response = rest_do_request($request);
-                if (!is_wp_error($response) && $response->get_status() === 200) {
-                    $data['products'] = $response->get_data();
+                $service = new \BuyGoPlus\Services\ProductService();
+                $result = $service->getProductsWithOrderCount();
+                if (!empty($result['success'])) {
+                    $data['products'] = $result;
                 }
                 break;
 
-            case 'shipment-products':
-                $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/shipments');
-                $request->set_param('per_page', -1);
-                $response = rest_do_request($request);
-                if (!is_wp_error($response) && $response->get_status() === 200) {
-                    $data['shipments'] = $response->get_data();
-                }
-                break;
-
-            case 'shipment-details':
-                $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/shipments');
-                $request->set_param('per_page', -1);
-                $response = rest_do_request($request);
-                if (!is_wp_error($response) && $response->get_status() === 200) {
-                    $data['shipments'] = $response->get_data();
-                }
-                break;
-
-            case 'customers':
-                $request = new \WP_REST_Request('GET', '/buygo-plus-one/v1/customers');
-                $request->set_param('page', 1);
-                $request->set_param('per_page', 5);
-                $response = rest_do_request($request);
-                if (!is_wp_error($response) && $response->get_status() === 200) {
-                    $data['customers'] = $response->get_data();
-                }
+            case 'orders':
+                $service = new \BuyGoPlus\Services\OrderService();
+                $data['orders'] = $service->getOrders(['page' => 1, 'per_page' => 30]);
                 break;
 
             case 'dashboard':
-                $endpoints = [
-                    'stats' => '/buygo-plus-one/v1/dashboard/stats',
-                    'revenue' => '/buygo-plus-one/v1/dashboard/revenue',
-                    'products' => '/buygo-plus-one/v1/dashboard/products',
-                    'activities' => '/buygo-plus-one/v1/dashboard/activities',
-                    'profit' => '/buygo-plus-one/v1/dashboard/profit',
-                ];
-                foreach ($endpoints as $key => $route) {
-                    $request = new \WP_REST_Request('GET', $route);
-                    if ($key === 'revenue') {
-                        $request->set_param('period', 30);
-                    }
-                    if ($key === 'activities') {
-                        $request->set_param('limit', 10);
-                    }
-                    $response = rest_do_request($request);
-                    if (!is_wp_error($response) && $response->get_status() === 200) {
-                        $data[$key] = $response->get_data();
-                    }
-                }
+                $service = new \BuyGoPlus\Services\DashboardService();
+                $data['stats'] = $service->calculateStats();
+                $data['revenue'] = $service->getRevenueTrend(30);
+                $data['products'] = $service->getProductOverview();
+                $data['activities'] = $service->getRecentActivities(10);
+                $data['profit'] = $service->calculateProfitStats();
                 break;
 
             case 'settings':
-                $endpoints = [
-                    'templates' => '/buygo-plus-one/v1/settings/templates',
-                    'helpers' => '/buygo-plus-one/v1/settings/helpers',
-                ];
-                foreach ($endpoints as $key => $route) {
-                    $request = new \WP_REST_Request('GET', $route);
-                    $response = rest_do_request($request);
-                    if (!is_wp_error($response) && $response->get_status() === 200) {
-                        $data[$key] = $response->get_data();
-                    }
-                }
+                $data['templates'] = ['success' => true, 'data' => \BuyGoPlus\Services\SettingsService::get_templates()];
+                $data['helpers'] = ['success' => true, 'data' => \BuyGoPlus\Services\SettingsService::get_helpers_with_line_status()];
                 break;
         }
     } catch (\Exception $e) {
-        error_log('BuyGo initial data injection failed: ' . $e->getMessage());
+        // 直出失敗不影響頁面，前端會自動 fallback 到 API 載入
     }
 
     return $data;
@@ -153,26 +93,12 @@ foreach ($permission_keys as $perm) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BuyGo+1 賣場後台</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tailwind 自訂配置 -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#2563EB',
-                        accent: '#F97316',
-                        bgMain: '#F8FAFC',
-                        success: '#10B981',
-                        warning: '#F59E0B',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS 本地打包（取代 CDN） -->
+    <link rel="stylesheet" href="<?php echo plugins_url('dist/app.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts（加 preconnect + swap） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
     <!-- Design System CSS (inline 繞過 InstaWP WAF) -->
@@ -271,11 +197,10 @@ foreach ($permission_keys as $perm) {
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/header-component.js'; ?></script>
 
-    <!-- Vue 3 本地載入 -->
+    <!-- Vue 3 + SortableJS + VueDraggable（全部本地，無 CDN） -->
     <script src="<?php echo plugins_url('assets/js/vue.global.prod.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
-    <!-- SortableJS + VueDraggable -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
+    <script src="<?php echo plugins_url('assets/js/sortable.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
+    <script src="<?php echo plugins_url('assets/js/vuedraggable.umd.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 
     <!-- 全站 Composables -->
     <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useCurrency.js'; ?></script>
