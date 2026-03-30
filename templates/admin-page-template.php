@@ -20,31 +20,7 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<!-- ============================================ -->
-<!-- Tailwind 配置 -->
-<!-- ============================================ -->
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
-                    mono: ['Fira Code', 'monospace'],
-                },
-                colors: {
-                    primary: '#2563EB',
-                    secondary: '#3B82F6',
-                    cta: '#F97316',
-                    surface: '#FFFFFF',
-                    background: '#F8FAFC',
-                },
-                screens: {
-                    'xs': '375px',
-                }
-            }
-        }
-    }
-</script>
+<!-- Tailwind 顏色和 screens 已在 dist/app.css 預編譯 -->
 
 <!-- ============================================ -->
 <!-- 頁面專屬 CSS（使用 {page-name}- 前綴） -->

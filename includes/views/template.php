@@ -153,26 +153,12 @@ foreach ($permission_keys as $perm) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BuyGo+1 賣場後台</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tailwind 自訂配置 -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#2563EB',
-                        accent: '#F97316',
-                        bgMain: '#F8FAFC',
-                        success: '#10B981',
-                        warning: '#F59E0B',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS 本地打包（取代 CDN） -->
+    <link rel="stylesheet" href="<?php echo plugins_url('dist/app.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts（加 preconnect + swap） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
     <!-- Design System CSS (inline 繞過 InstaWP WAF) -->
