@@ -44,17 +44,17 @@ class FluentCartCustomerPortal {
             return;
         }
 
-        // 1. 訂單進度頁（clipboard checklist icon）
+        // 1. 訂單進度頁
         fluent_cart_api()->addCustomerDashboardEndpoint('order-tracking', [
             'title'           => '訂單進度',
-            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path><line x1="9" y1="10" x2="15" y2="10"></line><line x1="9" y1="18" x2="13" y2="18"></line></svg>',
+            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>',
             'render_callback' => [self::class, 'renderOrderTracking'],
         ]);
 
-        // 2. LINE 綁定頁（LINE 對話氣泡 icon）
+        // 2. LINE 綁定頁
         fluent_cart_api()->addCustomerDashboardEndpoint('line-binding', [
             'title'           => 'LINE 綁定',
-            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.271.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M12 1c-6.627 0-12 4.208-12 9.399 0 4.662 4.139 8.564 9.72 9.301.378.082.89.258 1.02.592.12.301.079.766.038 1.079l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 13.771 24 11.676 24 9.399 24 5.208 18.627 1 12 1"></path></svg>',
+            'icon_svg'        => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
             'render_callback' => [self::class, 'renderLineBinding'],
         ]);
     }
@@ -195,34 +195,52 @@ class FluentCartCustomerPortal {
             $order_groups[$order_id]['subtotal'] += $line_total;
         }
 
-        // 輸出 HTML
-        $order_count = count($order_groups);
-        $symbol      = !empty($order_groups) ? reset($order_groups)['symbol'] : '¥';
+        // 輸出 HTML（模仿 FluentCart 購買歷史的表格列表風格）
+        $total_items = array_sum(array_map(fn($g) => count($g['items']), $order_groups));
+        $symbol = !empty($order_groups) ? reset($order_groups)['symbol'] : '¥';
 
-        echo '<div style="max-width:600px;">';
-        echo "<h3 style='font-size:18px;font-weight:600;color:#1E293B;margin-bottom:16px;'>📦 您有 {$order_count} 筆進行中訂單</h3>";
+        echo '<div class="fct_order_list" style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">';
 
+        // 表頭
+        echo '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #e5e7eb;">';
+        echo '<h3 style="font-size:16px;font-weight:600;color:#1f2937;margin:0;">訂單進度</h3>';
+        echo "<span style='font-size:13px;color:#6b7280;'>共 {$total_items} 筆</span>";
+        echo '</div>';
+
+        // 表格列表
         foreach ($order_groups as $oid => $group) {
-            echo '<div style="background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:12px;">';
-            echo "<div style='font-size:13px;color:#64748B;margin-bottom:12px;font-weight:600;'>" . esc_html($group['invoice_no']) . "</div>";
-
             foreach ($group['items'] as $itm) {
-                echo '<div style="background:#FFFFFF;border-radius:8px;padding:12px 16px;margin-bottom:8px;">';
-                echo "<div style='font-size:14px;font-weight:500;color:#1E293B;'>" . esc_html($itm['name']) . "</div>";
-                echo "<div style='font-size:13px;color:#64748B;margin-top:4px;'>{$itm['qty']} &times; {$group['symbol']}" . number_format($itm['price']) . "</div>";
-                echo "<span style='display:inline-block;margin-top:6px;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;"
+                $line_total = $itm['price'] * $itm['qty'];
+                echo '<div style="display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid #f3f4f6;gap:16px;">';
+
+                // 左：訂單編號 + 日期
+                echo '<div style="min-width:120px;">';
+                echo "<div style='font-size:14px;font-weight:500;color:#1f2937;'>" . esc_html($group['invoice_no']) . "</div>";
+                echo '</div>';
+
+                // 中：商品名稱
+                echo '<div style="flex:1;min-width:0;">';
+                echo "<div style='font-size:14px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" . esc_html($itm['name']) . "</div>";
+                echo '</div>';
+
+                // 狀態標籤
+                echo "<span style='display:inline-block;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;white-space:nowrap;"
                     . "background:{$itm['status_bg']};color:{$itm['status_color']};'>"
-                    . "{$itm['status_icon']} " . esc_html($itm['status']) . "</span>";
+                    . esc_html($itm['status']) . "</span>";
+
+                // 右：金額
+                echo "<div style='min-width:100px;text-align:right;font-size:14px;color:#1f2937;white-space:nowrap;'>"
+                    . "{$group['symbol']}" . number_format($line_total, 2) . "</div>";
+
                 echo '</div>';
             }
-
-            if (count($group['items']) > 1) {
-                echo "<div style='text-align:right;font-size:13px;color:#64748B;margin-top:4px;'>小計：{$group['symbol']}" . number_format($group['subtotal']) . "</div>";
-            }
-            echo '</div>';
         }
 
-        echo "<div style='text-align:right;font-size:16px;font-weight:600;color:#1E293B;margin-top:8px;'>合計：{$symbol}" . number_format($total_amount) . "</div>";
+        // 底部合計
+        echo '<div style="display:flex;justify-content:flex-end;padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;">';
+        echo "<span style='font-size:14px;font-weight:600;color:#1f2937;'>合計：{$symbol}" . number_format($total_amount, 2) . "</span>";
+        echo '</div>';
+
         echo '</div>';
     }
 
