@@ -71,17 +71,9 @@ $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_admin')
     || current_user_can('buygo_helper');
 
-if (!$has_portal_access) {
-    // 買家 → 導向 FluentCart 會員中心（訂單進度和 LINE 綁定已用 fluent_cart_api 注入）
-    $fc_profile_page_id = get_option('fluent_cart_customer_profile_page');
-    if ($fc_profile_page_id) {
-        wp_redirect(get_permalink($fc_profile_page_id));
-    } else {
-        wp_redirect(home_url('/my-account/'));
-    }
-    exit;
-}
-$is_buyer = false;
+// 買家標記
+$is_buyer = !$has_portal_access;
+$buyer_account_url = home_url('/my-account/');
 
 // SPA：從 URL 取得初始頁面（用於預注入資料）
 $current_page = get_query_var('buygo_page', 'dashboard');
@@ -226,7 +218,8 @@ foreach ($permission_keys as $perm) {
     <script>
         window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
         window.buygoUserPermissions = <?php echo wp_json_encode($user_permissions); ?>;
-        window.buygoIsBuyer = false;
+        window.buygoIsBuyer = <?php echo $is_buyer ? 'true' : 'false'; ?>;
+        window.buygoAccountUrl = '<?php echo esc_js($buyer_account_url); ?>';
     </script>
 
     <?php
@@ -283,7 +276,8 @@ foreach ($permission_keys as $perm) {
         data() {
             return {
                 currentPage: BuyGoRouter.parsePath(),
-                isSidebarCollapsed: false
+                isSidebarCollapsed: false,
+                accountUrl: window.buygoAccountUrl || ''
             }
         },
         computed: {
@@ -330,7 +324,11 @@ foreach ($permission_keys as $perm) {
                 self.onPageChange(page);
             });
         },
-        template: `
+        template: window.buygoIsBuyer ? `
+            <div style="min-height:100vh;">
+                <iframe :src="accountUrl" style="width:100%;height:100vh;border:none;" allowfullscreen></iframe>
+            </div>
+        ` : `
             <div>
                 <NewSidebar
                     :currentPage="currentPage"
