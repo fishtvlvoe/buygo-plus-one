@@ -123,18 +123,63 @@ class LineOrderQueryService {
 
 		$order_count     = count( $order_groups );
 		$currency_symbol = $this->get_currency_symbol( $currency );
-		$order_bubbles   = [];
 
-		foreach ( $order_groups as $oid => $group ) {
-			$order_bubbles[] = $this->build_order_box(
-				$group['invoice_no'],
-				$group['items'],
-				$group['subtotal'],
-				$currency_symbol
-			);
+		// 組裝純文字訂單明細（供模板 {order_details} 變數使用）
+		$order_details = $this->build_order_details_text( $order_groups, $currency_symbol );
+
+		// 走模板系統：後台可編輯的文字模板
+		$result = NotificationTemplates::get( 'order_query', [
+			'order_count'     => $order_count,
+			'order_details'   => $order_details,
+			'currency_symbol' => $currency_symbol,
+			'total'           => number_format( $grand_total ),
+		] );
+
+		if ( $result && ! empty( $result['line']['text'] ) ) {
+			return [
+				'type' => 'text',
+				'text' => $result['line']['text'],
+			];
 		}
 
-		return $this->build_flex_message( $order_count, $order_bubbles, $grand_total, $currency_symbol );
+		// Fallback：模板為空時直接組文字
+		return [
+			'type' => 'text',
+			'text' => "📦 您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：{$currency_symbol}" . number_format( $grand_total ) . "\n如有問題請聯絡客服 🙏",
+		];
+	}
+
+	/**
+	 * 組裝純文字訂單明細
+	 *
+	 * @param array  $order_groups   依訂單分組的資料
+	 * @param string $currency_symbol 幣別符號
+	 * @return string 純文字格式的訂單明細
+	 */
+	private function build_order_details_text( array $order_groups, string $currency_symbol ): string {
+		$lines = [];
+
+		foreach ( $order_groups as $group ) {
+			$lines[] = $group['invoice_no'];
+
+			foreach ( $group['items'] as $item ) {
+				$status = $this->getItemStatus( $item );
+				$title  = $item['title'] ?? '商品';
+				$qty    = (int) ( $item['quantity'] ?? 1 );
+				$price  = (float) ( $item['unit_price'] ?? 0 );
+
+				$lines[] = "・{$title}";
+				$lines[] = "  {$qty} × {$currency_symbol}" . number_format( $price ) . " → {$status['label']} {$status['icon']}";
+			}
+
+			if ( count( $group['items'] ) > 1 ) {
+				$lines[] = "  小計：{$currency_symbol}" . number_format( $group['subtotal'] );
+			}
+
+			$lines[] = '';
+		}
+
+		return trim( implode( "\n", $lines ) );
 	}
 
 	/**
