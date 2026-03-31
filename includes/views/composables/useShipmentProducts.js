@@ -537,20 +537,8 @@ function useShipmentProducts() {
     // ========================================
     onMounted(() => {
         if (!initFromPreloadedData()) {
-            // 快取 fallback：使用 sessionStorage 快取加速重複訪問
-            const cached = window.BuyGoCache && window.BuyGoCache.get('shipment-products');
-            if (cached && cached.success && cached.data) {
-                const pendingShipments = cached.data.filter(s => s.status === 'pending');
-                shipments.value = pendingShipments;
-                totalShipments.value = pendingShipments.length;
-                loading.value = false;
-                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
-                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-products')) {
-                    loadShipments({ silent: true });
-                }
-            } else {
-                loadShipments();
-            }
+            // 備貨頁快取是狀態相依的，無法直接重用，一律打 API
+            loadShipments();
         }
 
         // 監聽頁面顯示事件（處理 bfcache 和頁面切換）

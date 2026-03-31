@@ -860,28 +860,10 @@ function useShipmentDetails() {
 
     onMounted(() => {
         if (!initFromPreloadedData()) {
-            // 快取 fallback：使用 sessionStorage 快取加速重複訪問
-            const cached = window.BuyGoCache && window.BuyGoCache.get('shipment-details');
-            if (cached && cached.success && cached.data) {
-                const filtered = cached.data.filter(s => s.status === activeTab.value);
-                shipments.value = filtered;
-                totalShipments.value = filtered.length;
-                const allData = cached.data;
-                stats.value = {
-                    ready_to_ship: allData.filter(s => s.status === 'ready_to_ship').length,
-                    shipped: allData.filter(s => s.status === 'shipped').length,
-                    archived: allData.filter(s => s.status === 'archived').length
-                };
-                loading.value = false;
-                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
-                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-details')) {
-                    loadShipments({ silent: true });
-                }
-                loadStats();
-            } else {
-                loadShipments();
-                loadStats();
-            }
+            // 出貨頁快取是 tab 相依的（待出貨/已出貨/存檔），無法直接重用
+            // 一律打 API 載入正確 tab 的資料
+            loadShipments();
+            loadStats();
         }
 
         // 檢查 URL 參數（支援直接訪問詳情頁）
