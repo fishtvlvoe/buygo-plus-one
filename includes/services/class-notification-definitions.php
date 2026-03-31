@@ -162,7 +162,7 @@ class NotificationDefinitions {
             // 訂單查詢回覆（/訂單 指令；後台可編輯）
             'order_query' => [
                 'line' => [
-                    'message' => "📦 您目前有 {order_count} 筆進行中訂單\n\n{order_details}\n\n合計：{currency_symbol} {total}\n如有問題請聯絡客服 🙏"
+                    'message' => "您目前有 {order_count} 筆進行中訂單\n\n{order_details}\n\n合計：{currency_symbol}{total}\n如有問題請聯絡客服"
                 ]
             ],
 

@@ -48,7 +48,7 @@ class LineOrderQueryService {
 		if ( ! $customer_id ) {
 			return [
 				'type' => 'text',
-				'text' => '目前沒有進行中的訂單 📭',
+				'text' => '目前沒有進行中的訂單',
 			];
 		}
 
@@ -74,7 +74,7 @@ class LineOrderQueryService {
 		if ( empty( $items ) ) {
 			return [
 				'type' => 'text',
-				'text' => '目前沒有進行中的訂單 📭',
+				'text' => '目前沒有進行中的訂單',
 			];
 		}
 
@@ -145,7 +145,7 @@ class LineOrderQueryService {
 		// Fallback：模板為空時直接組文字
 		return [
 			'type' => 'text',
-			'text' => "📦 您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：{$currency_symbol}" . number_format( $grand_total ) . "\n如有問題請聯絡客服 🙏",
+			'text' => "您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：{$currency_symbol}" . number_format( $grand_total ) . "\n如有問題請聯絡客服",
 		];
 	}
 
@@ -158,25 +158,25 @@ class LineOrderQueryService {
 	 */
 	private function build_order_details_text( array $order_groups, string $currency_symbol ): string {
 		$lines = [];
+		$seq   = 1;
 
 		foreach ( $order_groups as $group ) {
-			$lines[] = $group['invoice_no'];
-
 			foreach ( $group['items'] as $item ) {
-				$status = $this->getItemStatus( $item );
-				$title  = $item['title'] ?? '商品';
-				$qty    = (int) ( $item['quantity'] ?? 1 );
-				$price  = (float) ( $item['unit_price'] ?? 0 );
+				$status   = $this->getItemStatus( $item );
+				$title    = $item['title'] ?? '商品';
+				$qty      = (int) ( $item['quantity'] ?? 1 );
+				$price    = (float) ( $item['unit_price'] ?? 0 );
+				$subtotal = number_format( $price * $qty );
+				$price_f  = number_format( $price );
 
-				$lines[] = "・{$title}";
-				$lines[] = "  {$qty} × {$currency_symbol}" . number_format( $price ) . " → {$status['label']} {$status['icon']}";
+				$lines[] = "編號：[{$seq}] {$group['invoice_no']}";
+				$lines[] = "產品：{$title}";
+				$lines[] = "下單：{$currency_symbol}{$price_f}x{$qty}={$currency_symbol}{$subtotal}";
+				$lines[] = "狀態：{$status['label']}";
+				$lines[] = '';
+
+				$seq++;
 			}
-
-			if ( count( $group['items'] ) > 1 ) {
-				$lines[] = "  小計：{$currency_symbol}" . number_format( $group['subtotal'] );
-			}
-
-			$lines[] = '';
 		}
 
 		return trim( implode( "\n", $lines ) );
