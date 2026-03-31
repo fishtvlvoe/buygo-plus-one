@@ -54,17 +54,9 @@ class FluentCartCustomerPortal {
             return;
         }
 
-        // 確認是 FluentCart 會員中心頁面（透過 page ID 判斷）
-        if (function_exists('fluent_cart_api')) {
-            $profile_page_id = fluent_cart_api()->getCustomerProfilePageId();
-            if ($profile_page_id && !is_page($profile_page_id)) {
-                return;
-            }
-        } else {
-            // FluentCart 未啟用時，用路徑 fallback
-            if (strpos($_SERVER['REQUEST_URI'], '/my-account/') === false) {
-                return;
-            }
+        // 確認是 FluentCart 會員中心頁面（用 WordPress is_page 判斷 slug）
+        if (!is_page('my-account')) {
+            return;
         }
 
         // 確認用戶已登入
