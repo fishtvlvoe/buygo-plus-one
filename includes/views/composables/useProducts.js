@@ -49,6 +49,8 @@ function useProducts() {
         const buyersLoading = ref(false);
         const buyersProduct = ref(null);  // 商品資訊（名稱、圖片）
         const allocatingOrderItemId = ref(null);  // 改用 order_item_id
+        const adjustingOrder = ref(null);         // 正在調整分配的訂單物件
+        const adjustQty = ref(0);                 // 調整分配的輸入數量
         const buyersSearch = ref('');  // 搜尋客戶名稱
         const buyersCurrentPage = ref(1);
         const buyersVariants = ref([]);        // API 回傳的 variants 陣列（多樣式商品）
@@ -617,6 +619,67 @@ function useProducts() {
                 showToast('分配時發生錯誤', 'error');
             } finally {
                 allocatingOrderItemId.value = null;
+            }
+        };
+
+        // 開啟調整分配面板
+        const openAdjustPanel = (order) => {
+            adjustingOrder.value = order;
+            // 預填目前已分配數量
+            adjustQty.value = order.allocated_quantity || order.already_allocated || 0;
+        };
+
+        // 關閉調整分配面板
+        const closeAdjustPanel = () => {
+            adjustingOrder.value = null;
+            adjustQty.value = 0;
+        };
+
+        // 確認調整分配：呼叫 POST /products/adjust-allocation API
+        const confirmAdjustAllocation = async () => {
+            const order = adjustingOrder.value;
+            if (!order) return;
+
+            const newQty = parseInt(adjustQty.value, 10);
+            if (isNaN(newQty) || newQty < 0) {
+                showToast('請輸入有效數量', 'error');
+                return;
+            }
+
+            // 輸入 0 時顯示二次確認
+            if (newQty === 0) {
+                if (!confirm('確定要撤銷全部分配嗎？')) return;
+            }
+
+            try {
+                const res = await fetch('/wp-json/buygo-plus-one/v1/products/adjust-allocation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        product_id: currentId.value,
+                        order_id: order.order_id,
+                        new_quantity: newQty
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('分配已調整', 'success');
+                    closeAdjustPanel();
+                    // 重新載入下單名單與商品列表以同步狀態
+                    await loadBuyers(currentId.value);
+                    await loadProducts();
+                } else {
+                    showToast(data.message || '調整失敗', 'error');
+                }
+            } catch (e) {
+                console.error('調整分配錯誤:', e);
+                showToast('調整時發生錯誤', 'error');
             }
         };
 
