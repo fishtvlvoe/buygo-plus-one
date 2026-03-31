@@ -55,23 +55,20 @@ class FluentCartCustomerPortal {
         // 隱藏 WordPress 外框，只顯示 FluentCart 內容區
         ?>
         <style id="buygo-embed-styles">
-            /* 隱藏 WordPress header/footer/sidebar/admin bar */
+            /* Blocksy 主題：隱藏 header、footer、頁面標題 */
             #wpadminbar,
-            header, .site-header, #masthead,
-            footer, .site-footer, #colophon,
-            nav.main-navigation, .site-navigation,
-            aside, .widget-area, .sidebar,
-            .page-title, .entry-title,
-            .breadcrumbs, .breadcrumb { display: none !important; }
+            header.ct-header, .ct-header,
+            footer.ct-footer,
+            .hero-section,
+            .ct-breadcrumbs { display: none !important; }
 
             /* 移除 admin bar 留白 */
             html.admin-bar { margin-top: 0 !important; }
 
-            /* 內容區全寬 */
+            /* 內容區全寬、移除主題邊距 */
             body { margin: 0; padding: 0; background: #f9fafb; }
-            .site-content, .entry-content, main,
-            .fc-customer-portal,
-            .fluent-cart-customer-app { max-width: 100% !important; width: 100% !important; padding: 16px !important; margin: 0 !important; }
+            .ct-container { max-width: 100% !important; padding: 0 !important; }
+            .site-main { padding: 0 !important; }
         </style>
         <?php
     }
