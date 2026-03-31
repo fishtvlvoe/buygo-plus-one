@@ -277,6 +277,11 @@ const DashboardPageComponent = {
                 this.renderRevenueChart();
             }
         });
+
+        // 輪詢：每 30 秒背景刷新，儀表板數據自動更新
+        this._pollingInterval = setInterval(() => {
+            this.loadAllData({ silent: true });
+        }, 30000);
     },
 
     // 清理 Chart.js 實例（SPA 頁面切換時避免記憶體洩漏）
@@ -285,6 +290,8 @@ const DashboardPageComponent = {
             this.revenueChart.destroy();
             this.revenueChart = null;
         }
+        // 清除輪詢，避免記憶體洩漏
+        clearInterval(this._pollingInterval);
     },
 
     methods: {

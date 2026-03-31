@@ -4191,6 +4191,7 @@ function useOrders() {
             }
         };
         let removePopstateListenerOrders = null;
+        let pollingInterval = null;
 
         // 初始化
         onMounted(() => {
@@ -4242,6 +4243,11 @@ function useOrders() {
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
             // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
             document.addEventListener('visibilitychange', handleVisibilityChangeOrders);
+
+            // 輪詢：每 30 秒背景刷新，新訂單自動出現
+            pollingInterval = setInterval(() => {
+                loadOrders({ silent: true });
+            }, 30000);
         });
 
         // SPA 清理：移除所有 event listener，防止記憶體洩漏
@@ -4251,6 +4257,8 @@ function useOrders() {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('pageshow', handlePageshowOrders);
             document.removeEventListener('visibilitychange', handleVisibilityChangeOrders);
+            // 清除輪詢，避免記憶體洩漏
+            clearInterval(pollingInterval);
         });
 
         // Smart Search Box 事件處理器
@@ -5631,6 +5639,7 @@ function useProducts() {
             }
         };
         let removePopstateListenerProducts = null;
+        let pollingInterval = null;
 
         onMounted(async () => {
             if (!initFromPreloadedData()) {
@@ -5685,6 +5694,11 @@ function useProducts() {
 
             // 監聽視窗尺寸變化
             window.addEventListener('resize', handleViewModeByWidth);
+
+            // 輪詢：每 30 秒背景刷新，商品狀態自動更新
+            pollingInterval = setInterval(() => {
+                loadProducts({ silent: true });
+            }, 30000);
         });
 
         // SPA 清理：移除所有 event listener，防止記憶體洩漏
@@ -5693,6 +5707,8 @@ function useProducts() {
             window.removeEventListener('pageshow', handlePageshowProducts);
             document.removeEventListener('visibilitychange', handleVisibilityChangeProducts);
             window.removeEventListener('resize', handleViewModeByWidth);
+            // 清除輪詢，避免記憶體洩漏
+            clearInterval(pollingInterval);
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）
@@ -6282,6 +6298,8 @@ function useShipmentProducts() {
     // ========================================
     // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
     // ========================================
+    let pollingInterval = null;
+
     const handlePageshowShipProducts = (e) => {
         if (e.persisted) {
             loadShipments();
@@ -6311,12 +6329,19 @@ function useShipmentProducts() {
         // 監聽頁面可見性變化
         // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
         document.addEventListener('visibilitychange', handleVisibilityChangeShipProducts);
+
+        // 輪詢：每 30 秒背景刷新，備貨狀態自動更新
+        pollingInterval = setInterval(() => {
+            loadShipments({ silent: true });
+        }, 30000);
     });
 
     // SPA 清理：移除所有 event listener，防止記憶體洩漏
     onUnmounted(() => {
         window.removeEventListener('pageshow', handlePageshowShipProducts);
         document.removeEventListener('visibilitychange', handleVisibilityChangeShipProducts);
+        // 清除輪詢，避免記憶體洩漏
+        clearInterval(pollingInterval);
     });
 
     // 幣別切換處理（Header 元件會呼叫此方法）
@@ -7226,6 +7251,7 @@ function useShipmentDetails() {
     // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
     // ========================================
     let removePopstateListenerShipDetails = null;
+    let pollingInterval = null;
 
     const handlePageshowShipDetails = (e) => {
         if (e.persisted) {
@@ -7271,6 +7297,12 @@ function useShipmentDetails() {
 
         // 點擊外部關閉物流下拉選單
         document.addEventListener('click', handleDocClickShipDetails);
+
+        // 輪詢：每 30 秒背景刷新，出貨狀態自動更新
+        pollingInterval = setInterval(() => {
+            loadShipments({ silent: true });
+            loadStats();
+        }, 30000);
     });
 
     // SPA 清理：移除所有 event listener + flatpickr，防止記憶體洩漏
@@ -7284,6 +7316,8 @@ function useShipmentDetails() {
             flatpickrInstance.destroy();
             flatpickrInstance = null;
         }
+        // 清除輪詢，避免記憶體洩漏
+        clearInterval(pollingInterval);
     });
 
     return {
