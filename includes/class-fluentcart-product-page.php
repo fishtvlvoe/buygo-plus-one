@@ -88,7 +88,7 @@ class FluentCartProductPage {
      */
     public function add_login_prompt() {
         $redirect_to = get_permalink();
-        $login_url = home_url('/nextend_social_login/?loginSocial=line&redirect=' . urlencode($redirect_to));
+        $login_url = home_url('/line-hub/auth/?redirect=' . urlencode($redirect_to));
         $wp_login_url = wp_login_url($redirect_to);
         ?>
         <div id="buygo-login-prompt" style="

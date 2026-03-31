@@ -56,7 +56,7 @@ if (!is_user_logged_in()) {
 
     // LINE 瀏覽器：直接跳轉 LINE 登入
     if (stripos($user_agent, 'Line/') !== false) {
-        $line_login_url = home_url('/nextend_social_login/?loginSocial=line&redirect=' . urlencode($redirect_to));
+        $line_login_url = home_url('/line-hub/auth/?redirect=' . urlencode($redirect_to));
         wp_safe_redirect($line_login_url);
         exit;
     }
