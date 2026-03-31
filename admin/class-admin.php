@@ -83,7 +83,7 @@ class Admin {
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/DesignSystem.js',
             array('jquery'),
             $this->version,
-            false
+            true
         );
 
         // 載入 RouterMixin.js（路由混入）
@@ -92,7 +92,7 @@ class Admin {
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/RouterMixin.js',
             array('jquery', $this->plugin_name . '-design-system'),
             $this->version,
-            false
+            true
         );
 
         // 載入 admin-settings.js（後台設定主腳本）
@@ -101,7 +101,7 @@ class Admin {
             BUYGO_PLUS_ONE_PLUGIN_URL . 'admin/js/admin-settings.js',
             array('jquery', $this->plugin_name . '-design-system', $this->plugin_name . '-router-mixin'),
             $this->version,
-            false
+            true
         );
     }
 
