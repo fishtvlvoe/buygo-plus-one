@@ -65,6 +65,14 @@ class DashboardIndexes
             '訂單-客戶關聯索引'
         );
 
+        // 5. Orders 表：狀態篩選索引（status + mode）— 下單名單頁依狀態/模式過濾時使用
+        $results['orders_status_mode_idx'] = $this->create_index_if_not_exists(
+            $this->table_orders,
+            'idx_orders_status_mode',
+            ['status', 'mode'],
+            '狀態與模式複合索引'
+        );
+
         return $results;
     }
 
@@ -158,7 +166,8 @@ class DashboardIndexes
             'idx_orders_stats',
             'idx_orders_revenue',
             'idx_orders_activities',
-            'idx_orders_customer'
+            'idx_orders_customer',
+            'idx_orders_status_mode', // 狀態+模式複合索引
         ];
 
         foreach ($indexes as $index_name) {

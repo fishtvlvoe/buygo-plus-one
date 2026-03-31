@@ -98,10 +98,8 @@ foreach ($permission_keys as $perm) {
     <!-- Tailwind CSS 本地打包（取代 CDN） -->
     <link rel="stylesheet" href="<?php echo plugins_url('dist/app.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
-    <!-- Google Fonts（加 preconnect + swap） -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <!-- 字型（本地，避免 Google Fonts CDN 延遲） -->
+    <link rel="stylesheet" href="<?php echo plugins_url('assets/fonts/fonts.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
     <!-- Design System CSS（合併外部檔，瀏覽器可快取；用 filemtime 當版本號避免舊快取） -->
     <link rel="stylesheet" href="<?php echo plugins_url('dist/design-system.css', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . filemtime(BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/design-system.css'); ?>">

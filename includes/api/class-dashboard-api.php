@@ -116,8 +116,8 @@ class Dashboard_API {
      */
     public function get_stats($request) {
         try {
-            // 定義快取鍵（全幣別統計，不含幣別參數）
-            $cache_key = "buygo_dashboard_stats_all";
+            // 定義快取鍵（與 DashboardCacheManager 保持一致）
+            $cache_key = "buygo_dashboard_stats";
 
             // 嘗試從 transient 讀取快取
             $cached = get_transient($cache_key);
