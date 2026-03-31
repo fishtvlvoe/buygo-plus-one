@@ -88,8 +88,8 @@ function useShipmentDetails() {
         // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
         if (!options.silent) loading.value = true;
         try {
-            // 加入時間戳記強制繞過所有快取
-            let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+            let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}`;
 
             // 加入搜尋參數
             if (searchQuery.value) {
@@ -98,10 +98,7 @@ function useShipmentDetails() {
 
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });
@@ -153,12 +150,10 @@ function useShipmentDetails() {
         markShippedData.value.loading = true;
         try {
             const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });
@@ -563,12 +558,10 @@ function useShipmentDetails() {
     const loadShipmentDetail = async (shipmentId) => {
         try {
             const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });

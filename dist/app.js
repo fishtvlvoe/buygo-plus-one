@@ -3555,8 +3555,8 @@ function useOrders() {
                 const requestPerPage = 100;
                 const requestPage = 1;
 
-                // 加入時間戳記強制繞過所有快取
-                let url = `/wp-json/buygo-plus-one/v1/orders?page=${requestPage}&per_page=${requestPerPage}&_t=${Date.now()}`;
+                // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+                let url = `/wp-json/buygo-plus-one/v1/orders?page=${requestPage}&per_page=${requestPerPage}`;
 
                 if (searchFilter.value) {
                     url += `&id=${searchFilter.value}`;
@@ -3567,10 +3567,7 @@ function useOrders() {
 
                 const response = await fetch(url, {
                     credentials: 'include',
-                    cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
                     headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache',
                         'X-WP-Nonce': wpNonce
                     }
                 });
@@ -4877,17 +4874,14 @@ function useProducts() {
             // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
             if (!options.silent) loading.value = true;
             try {
-                // 加入時間戳記強制繞過所有快取
-                let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+                // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+                let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}`;
                 if (globalSearchQuery.value) {
                     url += `&search=${encodeURIComponent(globalSearchQuery.value)}`;
                 }
                 const res = await fetch(url, {
-                    cache: 'no-store',
                     credentials: 'include',
                     headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache',
                         'X-WP-Nonce': wpNonce
                     }
                 });
@@ -4930,10 +4924,10 @@ function useProducts() {
             buyersLoading.value = true;
             buyersProduct.value = null;
             try {
-                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers?_t=${Date.now()}`, {
-                    cache: 'no-store',
+                // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/buyers`, {
                     credentials: 'include',
-                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'X-WP-Nonce': wpNonce }
+                    headers: { 'X-WP-Nonce': wpNonce }
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -5150,10 +5144,10 @@ function useProducts() {
         const loadProductOrders = async (id) => {
             allocationLoading.value = true;
              try {
+                // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
                 const res = await fetch(`/wp-json/buygo-plus-one/v1/products/${id}/orders`, {
-                    cache: 'no-store',
                     credentials: 'include',
-                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'X-WP-Nonce': wpNonce }
+                    headers: { 'X-WP-Nonce': wpNonce }
                 });
                 const data = await res.json();
                 // Adapter for old API response structure if needed
@@ -5880,8 +5874,8 @@ function useShipmentProducts() {
         error.value = null;
 
         try {
-            // 加入時間戳記強制繞過所有快取
-            let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending&_t=${Date.now()}`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+            let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
 
             // 加入搜尋參數
             if (searchQuery.value) {
@@ -5890,10 +5884,7 @@ function useShipmentProducts() {
 
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });
@@ -6499,8 +6490,8 @@ function useShipmentDetails() {
         // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
         if (!options.silent) loading.value = true;
         try {
-            // 加入時間戳記強制繞過所有快取
-            let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+            let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}`;
 
             // 加入搜尋參數
             if (searchQuery.value) {
@@ -6509,10 +6500,7 @@ function useShipmentDetails() {
 
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });
@@ -6564,12 +6552,10 @@ function useShipmentDetails() {
         markShippedData.value.loading = true;
         try {
             const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });
@@ -6974,12 +6960,10 @@ function useShipmentDetails() {
     const loadShipmentDetail = async (shipmentId) => {
         try {
             const url = `/wp-json/buygo-plus-one/v1/shipments/${shipmentId}/detail`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });

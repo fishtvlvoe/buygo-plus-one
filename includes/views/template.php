@@ -158,8 +158,12 @@ foreach ($permission_keys as $perm) {
     </script>
 
     <?php
-    // 預注入已停用 — 改由 BuyGoCache API 預載，減少 PHP 端 DB 查詢加速首次載入
-    // 前端 BuyGoCache.preload() 會在頁面載入後自動打 API 取資料
+    // 預注入首頁資料：PHP 直接查詢 DB 並注入 window.buygoInitialData
+    // 前端讀取此資料可免去一次 API round-trip，大幅加速首次載入
+    $initial_data = buygo_get_initial_data($current_page);
+    if (!empty($initial_data)) {
+        echo '<script>window.buygoInitialData = ' . wp_json_encode($initial_data) . ';</script>';
+    }
     ?>
 
     <!-- SPA：載入所有頁面元件 -->
