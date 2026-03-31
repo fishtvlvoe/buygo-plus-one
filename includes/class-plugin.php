@@ -216,8 +216,7 @@ class Plugin {
         // 初始化 Admin Pages
         if (is_admin()) {
             new \BuyGoPlus\Admin\SettingsPage();
-            // 2026-02-04: 賣家管理頁面已移除，功能統一到「角色權限設定」頁面
-            // new \BuyGoPlus\Admin\SellerManagementPage();
+
         }
 
         // 初始化自動更新檢測（僅在後台啟用）

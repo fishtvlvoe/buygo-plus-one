@@ -102,7 +102,7 @@ foreach ($permission_keys as $perm) {
     <link rel="stylesheet" href="<?php echo plugins_url('assets/fonts/fonts.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
     <!-- Design System CSS（合併外部檔，瀏覽器可快取；用 filemtime 當版本號避免舊快取） -->
-    <link rel="stylesheet" href="<?php echo plugins_url('dist/design-system.css', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . filemtime(BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/design-system.css'); ?>">
+    <link rel="stylesheet" href="<?php $css_path = BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/design-system.css'; echo plugins_url('dist/design-system.css', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . (file_exists($css_path) ? filemtime($css_path) : '1'); ?>">
 
     <!-- 字體 -->
     <style>
@@ -150,7 +150,7 @@ foreach ($permission_keys as $perm) {
     <script src="<?php echo plugins_url('assets/js/vuedraggable.umd.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 
     <!-- BuyGo App JS（14 個模組合併外部檔，瀏覽器可快取；Vue 之後載入） -->
-    <script src="<?php echo plugins_url('dist/app.js', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . filemtime(BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/app.js'); ?>"></script>
+    <script src="<?php $js_path = BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/app.js'; echo plugins_url('dist/app.js', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . (file_exists($js_path) ? filemtime($js_path) : '1'); ?>"></script>
 
     <!-- 全域變數 -->
     <script>
