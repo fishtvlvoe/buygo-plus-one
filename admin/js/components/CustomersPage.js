@@ -171,8 +171,9 @@ const CustomersPageComponent = {
         };
         
         // 載入客戶列表
-        const loadCustomers = async () => {
-            loading.value = true;
+        const loadCustomers = async (options = {}) => {
+            // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            if (!options.silent) loading.value = true;
             error.value = null;
             
             try {
@@ -594,8 +595,10 @@ const CustomersPageComponent = {
                     customers.value = cached.data;
                     totalCustomers.value = cached.total || cached.data.length;
                     loading.value = false;
-                    // 背景靜默刷新
-                    loadCustomers();
+                    // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                    if (!window.BuyGoCache || !window.BuyGoCache.isFresh('customers')) {
+                        loadCustomers({ silent: true });
+                    }
                 } else {
                     loadCustomers();
                 }

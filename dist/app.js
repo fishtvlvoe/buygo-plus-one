@@ -1159,7 +1159,7 @@ window.BuyGoCache = {
             }
         }
 
-        // 延遲 2 秒後開始，不搶當前頁面的載入資源
+        // 延遲 500ms 後開始（優化：縮短等待時間，讓快取更快就緒）
         setTimeout(function() {
             endpoints.forEach(function(ep) {
                 // 如果記憶體已有新鮮資料，跳過
@@ -1180,7 +1180,7 @@ window.BuyGoCache = {
                 })
                 .catch(function() { /* 預載失敗靜默忽略 */ });
             });
-        }, 2000);
+        }, 500);
     },
 
     /**
@@ -3544,8 +3544,9 @@ function useOrders() {
             return counts;
         });
 
-        const loadOrders = async () => {
-            loading.value = true;
+        const loadOrders = async (options = {}) => {
+            // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            if (!options.silent) loading.value = true;
             error.value = null;
 
             try {
@@ -4219,8 +4220,10 @@ function useOrders() {
                         }
                     });
                     loading.value = false;
-                    // 背景靜默刷新
-                    loadOrders();
+                    // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                    if (!window.BuyGoCache.isFresh('orders')) {
+                        loadOrders({ silent: true });
+                    }
                 } else {
                     loadOrders();
                 }
@@ -4870,8 +4873,9 @@ function useProducts() {
         };
 
         // --- API Methods ---
-        const loadProducts = async () => {
-            loading.value = true;
+        const loadProducts = async (options = {}) => {
+            // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            if (!options.silent) loading.value = true;
             try {
                 // 加入時間戳記強制繞過所有快取
                 let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
@@ -5650,8 +5654,10 @@ function useProducts() {
                         });
                     totalProducts.value = cached.total || products.value.length;
                     loading.value = false;
-                    // 背景靜默刷新
-                    await loadProducts();
+                    // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                    if (!window.BuyGoCache.isFresh('products')) {
+                        await loadProducts({ silent: true });
+                    }
                 } else {
                     await loadProducts();
                 }
@@ -5868,8 +5874,9 @@ function useShipmentProducts() {
     // ========================================
     // API 呼叫：載入出貨單列表
     // ========================================
-    const loadShipments = async () => {
-        loading.value = true;
+    const loadShipments = async (options = {}) => {
+        // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+        if (!options.silent) loading.value = true;
         error.value = null;
 
         try {
@@ -6310,8 +6317,10 @@ function useShipmentProducts() {
                 shipments.value = pendingShipments;
                 totalShipments.value = pendingShipments.length;
                 loading.value = false;
-                // 背景靜默刷新
-                loadShipments();
+                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-products')) {
+                    loadShipments({ silent: true });
+                }
             } else {
                 loadShipments();
             }
@@ -6486,8 +6495,9 @@ function useShipmentDetails() {
     let flatpickrInstance = null;
 
     // 載入出貨單列表
-    const loadShipments = async () => {
-        loading.value = true;
+    const loadShipments = async (options = {}) => {
+        // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+        if (!options.silent) loading.value = true;
         try {
             // 加入時間戳記強制繞過所有快取
             let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
@@ -7281,8 +7291,10 @@ function useShipmentDetails() {
                     archived: allData.filter(s => s.status === 'archived').length
                 };
                 loading.value = false;
-                // 背景靜默刷新
-                loadShipments();
+                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-details')) {
+                    loadShipments({ silent: true });
+                }
                 loadStats();
             } else {
                 loadShipments();
