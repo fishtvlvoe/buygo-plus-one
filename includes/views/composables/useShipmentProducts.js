@@ -104,8 +104,9 @@ function useShipmentProducts() {
     // ========================================
     // API 呼叫：載入出貨單列表
     // ========================================
-    const loadShipments = async () => {
-        loading.value = true;
+    const loadShipments = async (options = {}) => {
+        // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+        if (!options.silent) loading.value = true;
         error.value = null;
 
         try {
@@ -546,8 +547,10 @@ function useShipmentProducts() {
                 shipments.value = pendingShipments;
                 totalShipments.value = pendingShipments.length;
                 loading.value = false;
-                // 背景靜默刷新
-                loadShipments();
+                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-products')) {
+                    loadShipments({ silent: true });
+                }
             } else {
                 loadShipments();
             }

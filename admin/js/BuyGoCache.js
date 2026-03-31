@@ -153,7 +153,7 @@ window.BuyGoCache = {
             }
         }
 
-        // 延遲 2 秒後開始，不搶當前頁面的載入資源
+        // 延遲 500ms 後開始（優化：縮短等待時間，讓快取更快就緒）
         setTimeout(function() {
             endpoints.forEach(function(ep) {
                 // 如果記憶體已有新鮮資料，跳過
@@ -174,7 +174,7 @@ window.BuyGoCache = {
                 })
                 .catch(function() { /* 預載失敗靜默忽略 */ });
             });
-        }, 2000);
+        }, 500);
     },
 
     /**

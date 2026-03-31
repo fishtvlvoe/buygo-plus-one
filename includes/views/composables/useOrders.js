@@ -582,8 +582,9 @@ function useOrders() {
             return counts;
         });
 
-        const loadOrders = async () => {
-            loading.value = true;
+        const loadOrders = async (options = {}) => {
+            // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            if (!options.silent) loading.value = true;
             error.value = null;
 
             try {
@@ -1257,8 +1258,10 @@ function useOrders() {
                         }
                     });
                     loading.value = false;
-                    // 背景靜默刷新
-                    loadOrders();
+                    // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                    if (!window.BuyGoCache.isFresh('orders')) {
+                        loadOrders({ silent: true });
+                    }
                 } else {
                     loadOrders();
                 }

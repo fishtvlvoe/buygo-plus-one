@@ -84,8 +84,9 @@ function useShipmentDetails() {
     let flatpickrInstance = null;
 
     // 載入出貨單列表
-    const loadShipments = async () => {
-        loading.value = true;
+    const loadShipments = async (options = {}) => {
+        // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+        if (!options.silent) loading.value = true;
         try {
             // 加入時間戳記強制繞過所有快取
             let url = `/wp-json/buygo-plus-one/v1/shipments?status=${activeTab.value}&page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
@@ -879,8 +880,10 @@ function useShipmentDetails() {
                     archived: allData.filter(s => s.status === 'archived').length
                 };
                 loading.value = false;
-                // 背景靜默刷新
-                loadShipments();
+                // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                if (!window.BuyGoCache || !window.BuyGoCache.isFresh('shipment-details')) {
+                    loadShipments({ silent: true });
+                }
                 loadStats();
             } else {
                 loadShipments();

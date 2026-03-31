@@ -490,8 +490,9 @@ function useProducts() {
         };
 
         // --- API Methods ---
-        const loadProducts = async () => {
-            loading.value = true;
+        const loadProducts = async (options = {}) => {
+            // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            if (!options.silent) loading.value = true;
             try {
                 // 加入時間戳記強制繞過所有快取
                 let url = `/wp-json/buygo-plus-one/v1/products?page=${currentPage.value}&per_page=${perPage.value}&_t=${Date.now()}`;
@@ -1270,8 +1271,10 @@ function useProducts() {
                         });
                     totalProducts.value = cached.total || products.value.length;
                     loading.value = false;
-                    // 背景靜默刷新
-                    await loadProducts();
+                    // 背景靜默刷新（silent 模式：不顯示 loading skeleton）
+                    if (!window.BuyGoCache.isFresh('products')) {
+                        await loadProducts({ silent: true });
+                    }
                 } else {
                     await loadProducts();
                 }
