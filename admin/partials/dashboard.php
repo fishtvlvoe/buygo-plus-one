@@ -265,8 +265,8 @@ const DashboardPageComponent = {
         if (this.initFromPreloadedData()) {
             // 首次載入用 preload 資料，不需重新 fetch
         } else if (this.initFromCache()) {
-            // 有快取先顯示，背景永遠刷新（SPA 頁面切換回來時確保資料最新）
-            this.loadAllData();
+            // 有快取先顯示，背景靜默刷新（不顯示 loading）
+            this.loadAllData({ silent: true });
         } else {
             await this.loadAllData();
         }
@@ -383,8 +383,8 @@ const DashboardPageComponent = {
             return hasData;
         },
 
-        async loadAllData() {
-            this.loading = true;
+        async loadAllData(options = {}) {
+            if (!options.silent) this.loading = true;
             this.error = null;
 
             try {
