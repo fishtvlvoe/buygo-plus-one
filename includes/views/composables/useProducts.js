@@ -1251,6 +1251,7 @@ function useProducts() {
             }
         };
         let removePopstateListenerProducts = null;
+        let pollingInterval = null;
 
         onMounted(async () => {
             if (!initFromPreloadedData()) {
@@ -1305,6 +1306,11 @@ function useProducts() {
 
             // 監聽視窗尺寸變化
             window.addEventListener('resize', handleViewModeByWidth);
+
+            // 輪詢：每 30 秒背景刷新，商品狀態自動更新
+            pollingInterval = setInterval(() => {
+                loadProducts({ silent: true });
+            }, 30000);
         });
 
         // SPA 清理：移除所有 event listener，防止記憶體洩漏
@@ -1313,6 +1319,8 @@ function useProducts() {
             window.removeEventListener('pageshow', handlePageshowProducts);
             document.removeEventListener('visibilitychange', handleVisibilityChangeProducts);
             window.removeEventListener('resize', handleViewModeByWidth);
+            // 清除輪詢，避免記憶體洩漏
+            clearInterval(pollingInterval);
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）

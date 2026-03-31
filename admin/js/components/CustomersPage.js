@@ -585,6 +585,7 @@ const CustomersPageComponent = {
 
         // popstate listener 清理用
         let removePopstateListener = null;
+        let pollingInterval = null;
 
         // 初始化
         onMounted(() => {
@@ -613,11 +614,18 @@ const CustomersPageComponent = {
             if (savedCurrency) {
                 displayCurrency.value = savedCurrency;
             }
+
+            // 輪詢：每 30 秒背景刷新，客戶資料自動更新
+            pollingInterval = setInterval(() => {
+                loadCustomers({ silent: true });
+            }, 30000);
         });
 
         // 清理 event listeners（SPA 頁面切換時避免記憶體洩漏）
         onUnmounted(() => {
             if (removePopstateListener) removePopstateListener();
+            // 清除輪詢，避免記憶體洩漏
+            clearInterval(pollingInterval);
         });
 
         return {

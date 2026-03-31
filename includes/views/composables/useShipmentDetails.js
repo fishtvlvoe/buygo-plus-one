@@ -836,6 +836,7 @@ function useShipmentDetails() {
     // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
     // ========================================
     let removePopstateListenerShipDetails = null;
+    let pollingInterval = null;
 
     const handlePageshowShipDetails = (e) => {
         if (e.persisted) {
@@ -881,6 +882,12 @@ function useShipmentDetails() {
 
         // 點擊外部關閉物流下拉選單
         document.addEventListener('click', handleDocClickShipDetails);
+
+        // 輪詢：每 30 秒背景刷新，出貨狀態自動更新
+        pollingInterval = setInterval(() => {
+            loadShipments({ silent: true });
+            loadStats();
+        }, 30000);
     });
 
     // SPA 清理：移除所有 event listener + flatpickr，防止記憶體洩漏
@@ -894,6 +901,8 @@ function useShipmentDetails() {
             flatpickrInstance.destroy();
             flatpickrInstance = null;
         }
+        // 清除輪詢，避免記憶體洩漏
+        clearInterval(pollingInterval);
     });
 
     return {

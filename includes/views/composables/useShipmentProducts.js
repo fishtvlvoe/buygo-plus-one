@@ -518,6 +518,8 @@ function useShipmentProducts() {
     // ========================================
     // 具名 Event Handler（供 onMounted/onUnmounted 配對使用）
     // ========================================
+    let pollingInterval = null;
+
     const handlePageshowShipProducts = (e) => {
         if (e.persisted) {
             loadShipments();
@@ -547,12 +549,19 @@ function useShipmentProducts() {
         // 監聽頁面可見性變化
         // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
         document.addEventListener('visibilitychange', handleVisibilityChangeShipProducts);
+
+        // 輪詢：每 30 秒背景刷新，備貨狀態自動更新
+        pollingInterval = setInterval(() => {
+            loadShipments({ silent: true });
+        }, 30000);
     });
 
     // SPA 清理：移除所有 event listener，防止記憶體洩漏
     onUnmounted(() => {
         window.removeEventListener('pageshow', handlePageshowShipProducts);
         document.removeEventListener('visibilitychange', handleVisibilityChangeShipProducts);
+        // 清除輪詢，避免記憶體洩漏
+        clearInterval(pollingInterval);
     });
 
     // 幣別切換處理（Header 元件會呼叫此方法）

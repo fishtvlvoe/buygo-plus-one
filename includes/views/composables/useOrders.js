@@ -1229,6 +1229,7 @@ function useOrders() {
             }
         };
         let removePopstateListenerOrders = null;
+        let pollingInterval = null;
 
         // 初始化
         onMounted(() => {
@@ -1280,6 +1281,11 @@ function useOrders() {
             // 監聽頁面可見性變化（從其他標籤頁切換回來）
             // SWR 策略：快取新鮮時不重新載入，避免切分頁回來時 Loading 閃爍
             document.addEventListener('visibilitychange', handleVisibilityChangeOrders);
+
+            // 輪詢：每 30 秒背景刷新，新訂單自動出現
+            pollingInterval = setInterval(() => {
+                loadOrders({ silent: true });
+            }, 30000);
         });
 
         // SPA 清理：移除所有 event listener，防止記憶體洩漏
@@ -1289,6 +1295,8 @@ function useOrders() {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('pageshow', handlePageshowOrders);
             document.removeEventListener('visibilitychange', handleVisibilityChangeOrders);
+            // 清除輪詢，避免記憶體洩漏
+            clearInterval(pollingInterval);
         });
 
         // Smart Search Box 事件處理器
