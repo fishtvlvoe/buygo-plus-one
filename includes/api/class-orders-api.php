@@ -150,11 +150,6 @@ class Orders_API {
      * 取得訂單列表
      */
     public function get_orders($request) {
-        // 設置 no-cache 標頭，確保瀏覽器不會快取 API 回應
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
         try {
             $params = $request->get_params();
 
