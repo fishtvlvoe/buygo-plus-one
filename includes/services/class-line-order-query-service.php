@@ -81,8 +81,11 @@ class LineOrderQueryService {
 		foreach ( $items as $item ) {
 			$meta      = json_decode( $item['line_meta'] ?? '{}', true ) ?: [];
 			$allocated = (int) ( $meta['_allocated_qty'] ?? 0 );
-			$shipped   = max( (int) $item['shipped_qty'], (int) ( $meta['_shipped_qty'] ?? 0 ) );
 			$qty       = (int) $item['quantity'];
+			$shipped   = max( (int) $item['shipped_qty'], (int) ( $meta['_shipped_qty'] ?? 0 ) );
+
+			// 已出貨的不計入（客戶已收到出貨通知）
+			if ( $shipped >= $qty ) continue;
 
 			// 商品名稱與規格分開
 			$product_name    = $item['product_name'] ?: '商品';
@@ -143,7 +146,7 @@ class LineOrderQueryService {
 		// Fallback：模板為空時直接組文字
 		return [
 			'type' => 'text',
-			'text' => "您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：" . number_format( $grand_total ) . "\n\n查看完整訂單明細：\n{$account_url}\n\n如需客服協助，請直接在此回覆訊息",
+			'text' => "您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n查看完整訂單明細：\n{$account_url}\n\n如需客服協助，請直接在此回覆訊息",
 		];
 	}
 
@@ -161,6 +164,7 @@ class LineOrderQueryService {
 		foreach ( $order_groups as $group ) {
 			foreach ( $group['items'] as $item ) {
 				$status    = $this->getItemStatus( $item );
+				if ( $status === null ) continue; // 已出貨不顯示
 				$title     = $item['title'] ?? '商品';
 				$variation = $item['variation_title'] ?? '';
 				$qty       = (int) ( $item['quantity'] ?? 1 );
@@ -189,22 +193,22 @@ class LineOrderQueryService {
 	 * 判斷單一訂單項目的顯示狀態
 	 *
 	 * 邏輯（依優先序）：
-	 * 1. shipped_qty >= quantity → 已出貨 🚚
+	 * 1. shipped_qty >= quantity → 不顯示（已收到出貨通知）
 	 * 2. shipping_status = 'preparing' → 備貨中 📦
-	 * 3. allocated_qty > 0 || shipped_qty > 0 → 已分配 ✅
-	 * 4. else → 待分配 ⏳
+	 * 3. allocated_qty > 0 || shipped_qty > 0 → 已配貨 ✅
+	 * 4. else → 未進貨 ⏳
 	 *
 	 * @param array $item 訂單項目資料（含 quantity, shipped_qty, shipping_status, allocated_qty）
 	 * @return array ['label' => string, 'icon' => string]
 	 */
-	public function getItemStatus( array $item ): array {
+	public function getItemStatus( array $item ): ?array {
 		$quantity        = (int) ( $item['quantity'] ?? 1 );
 		$shipped_qty     = (int) ( $item['shipped_qty'] ?? 0 );
 		$shipping_status = $item['shipping_status'] ?? '';
 		$allocated_qty   = (int) ( $item['allocated_qty'] ?? 0 );
 
 		if ( $shipped_qty >= $quantity ) {
-			return [ 'label' => '已出貨', 'icon' => '🚚' ];
+			return null; // 已出貨不顯示，客戶已收到出貨通知
 		}
 
 		if ( $shipping_status === 'preparing' ) {
@@ -212,10 +216,10 @@ class LineOrderQueryService {
 		}
 
 		if ( $allocated_qty > 0 || $shipped_qty > 0 ) {
-			return [ 'label' => '已分配', 'icon' => '✅' ];
+			return [ 'label' => '已配貨', 'icon' => '✅' ];
 		}
 
-		return [ 'label' => '待分配', 'icon' => '⏳' ];
+		return [ 'label' => '未進貨', 'icon' => '⏳' ];
 	}
 
 	/**
@@ -243,6 +247,7 @@ class LineOrderQueryService {
 		// 逐項商品
 		foreach ( $items as $item ) {
 			$status = $this->getItemStatus( $item );
+			if ( $status === null ) continue; // 已出貨不顯示
 			$title  = $item['title'] ?? '商品';
 			$qty    = (int) ( $item['quantity'] ?? 1 );
 			$price  = (float) ( $item['unit_price'] ?? 0 );

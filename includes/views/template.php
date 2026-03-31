@@ -355,6 +355,14 @@ foreach ($permission_keys as $perm) {
     // 全域註冊 Header 元件
     app.component('page-header-component', PageHeaderComponent);
 
+    // 自訂指令：v-focus — 元素掛載後自動 focus 並選取全部文字
+    app.directive('focus', {
+        mounted(el) {
+            el.focus();
+            el.select();
+        }
+    });
+
     app.mount('#buygo-app');
 
     // 預載其他頁面資料

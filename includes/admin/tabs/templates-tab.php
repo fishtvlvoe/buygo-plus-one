@@ -40,6 +40,9 @@ $variable_descriptions = [
     'purchase_url'              => '購買連結',
     'product_limit'             => '商品配額數量',
     'dashboard_url'             => '後台管理連結',
+    'order_count'               => '進行中訂單筆數',
+    'order_details'             => '訂單明細',
+    'account_url'               => '會員中心連結',
 ];
 
 // 定義可編輯的模板
@@ -59,6 +62,11 @@ $editable_templates = [
             'name'        => '訂單確認',
             'description' => '訂單確認（留言回覆）發送給買家',
             'variables'   => ['product_name', 'quantity', 'total'],
+        ],
+        'order_query' => [
+            'name'        => '訂單查詢',
+            'description' => '/訂單 指令的回覆模板',
+            'variables'   => ['order_count', 'order_details', 'total', 'account_url'],
         ],
     ],
     'seller' => [

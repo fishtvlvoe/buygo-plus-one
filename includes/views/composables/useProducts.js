@@ -49,8 +49,8 @@ function useProducts() {
         const buyersLoading = ref(false);
         const buyersProduct = ref(null);  // 商品資訊（名稱、圖片）
         const allocatingOrderItemId = ref(null);  // 改用 order_item_id
-        const adjustingOrder = ref(null);         // 正在調整分配的訂單物件
-        const adjustQty = ref(0);                 // 調整分配的輸入數量
+        const editingAllocationKey = ref(null);    // 正在 inline 編輯的唯一鍵（order_item_id）
+        const editingAllocationQty = ref(0);       // inline 編輯中的輸入數量
         const buyersSearch = ref('');  // 搜尋客戶名稱
         const buyersCurrentPage = ref(1);
         const buyersVariants = ref([]);        // API 回傳的 variants 陣列（多樣式商品）
@@ -615,33 +615,38 @@ function useProducts() {
             }
         };
 
-        // 開啟調整分配面板
-        const openAdjustPanel = (order) => {
-            adjustingOrder.value = order;
-            // 預填目前已分配數量
-            adjustQty.value = order.allocated_quantity || order.already_allocated || 0;
+        // 開啟 inline 分配編輯（點擊已分配數字時觸發）
+        const startEditAllocation = (order) => {
+            editingAllocationKey.value = order.order_item_id;
+            editingAllocationQty.value = order.allocated_quantity || order.already_allocated || 0;
         };
 
-        // 關閉調整分配面板
-        const closeAdjustPanel = () => {
-            adjustingOrder.value = null;
-            adjustQty.value = 0;
+        // 取消 inline 分配編輯
+        const cancelEditAllocation = () => {
+            editingAllocationKey.value = null;
+            editingAllocationQty.value = 0;
         };
 
         // 確認調整分配：呼叫 POST /products/adjust-allocation API
-        const confirmAdjustAllocation = async () => {
-            const order = adjustingOrder.value;
+        const confirmAdjustAllocation = async (order) => {
             if (!order) return;
 
-            const newQty = parseInt(adjustQty.value, 10);
+            const newQty = parseInt(editingAllocationQty.value, 10);
             if (isNaN(newQty) || newQty < 0) {
                 showToast('請輸入有效數量', 'error');
                 return;
             }
 
+            // 沒有變動則直接關閉
+            const original = order.allocated_quantity || order.already_allocated || 0;
+            if (newQty === original) {
+                cancelEditAllocation();
+                return;
+            }
+
             // 輸入 0 時顯示二次確認
             if (newQty === 0) {
-                if (!confirm('確定要撤銷全部分配嗎？')) return;
+                if (!confirm('確定要撤銷此分配？')) return;
             }
 
             try {
@@ -663,7 +668,7 @@ function useProducts() {
 
                 if (data.success) {
                     showToast('分配已調整', 'success');
-                    closeAdjustPanel();
+                    cancelEditAllocation();
                     // 重新載入下單名單與商品列表以同步狀態
                     await loadBuyers(currentId.value);
                     await loadProducts();
@@ -1344,7 +1349,7 @@ function useProducts() {
             handleProductSearchClear,
             getProductLink, copyProductLink,
             // 調整分配方法
-            adjustingOrder, adjustQty, openAdjustPanel, closeAdjustPanel, confirmAdjustAllocation,
+            editingAllocationKey, editingAllocationQty, startEditAllocation, cancelEditAllocation, confirmAdjustAllocation,
             // 自訂欄位方法（Phase 49）
             loadCustomFields, saveCustomFields,
             // Variation 方法

@@ -1231,6 +1231,14 @@ const SettingsPageComponent = {
                     category: '客戶',
                     type: 'text',
                     variables: ['product_list', 'shipping_method', 'estimated_delivery']
+                },
+                {
+                    key: 'order_query',
+                    name: '訂單查詢',
+                    description: '/訂單 指令的回覆模板',
+                    category: '客戶',
+                    type: 'text',
+                    variables: ['order_count', 'order_details', 'total', 'account_url']
                 }
             ],
             seller: [
