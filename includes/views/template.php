@@ -51,7 +51,8 @@ function buygo_get_initial_data($page) {
 
 // 檢查權限
 if (!is_user_logged_in()) {
-    $redirect_to = home_url($_SERVER['REQUEST_URI']);
+    // 用相對路徑，避免 Cloudflare WAF 把 https:// 的冒號斜線吃掉
+    $redirect_to = $_SERVER['REQUEST_URI'];
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
     // LINE 瀏覽器：直接跳轉 LINE 登入
@@ -61,7 +62,7 @@ if (!is_user_logged_in()) {
         exit;
     }
 
-    // 其他瀏覽器：跳轉 WordPress 登入頁面
+    // 其他瀏覽器：跳轉 WordPress 登入頁面（相對路徑不會被 Cloudflare 過濾）
     wp_safe_redirect(wp_login_url($redirect_to));
     exit;
 }
