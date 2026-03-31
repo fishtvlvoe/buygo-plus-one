@@ -144,7 +144,7 @@ class DashboardIndexes
     private function index_exists(string $table, string $index_name): bool
     {
         $query = $this->wpdb->prepare(
-            "SHOW INDEX FROM `{$table}` WHERE Key_name = %s",
+            "SHOW INDEX FROM `" . esc_sql( $table ) . "` WHERE Key_name = %s",
             $index_name
         );
 
