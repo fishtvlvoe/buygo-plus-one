@@ -611,7 +611,31 @@ $products_component_template .= <<<'HTML'
                                                 <div class="text-xl font-bold text-amber-600">{{ order.pending_quantity }}</div>
                                             </td>
                                             <td class="px-4 py-4 text-center bg-green-50/30">
-                                                <div class="text-xl font-bold text-green-600">{{ order.allocated_quantity }}</div>
+                                                <!-- inline 編輯輸入框（已分配，可編輯狀態） -->
+                                                <template v-if="editingAllocationKey === order.order_item_id">
+                                                    <input
+                                                        type="number"
+                                                        v-model="editingAllocationQty"
+                                                        :min="0"
+                                                        :max="order.quantity"
+                                                        @keydown.enter="confirmAdjustAllocation(order)"
+                                                        @keydown.esc="cancelEditAllocation()"
+                                                        @blur="confirmAdjustAllocation(order)"
+                                                        class="w-16 text-center text-sm font-bold text-green-700 border border-green-400 rounded-md px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-green-400"
+                                                        ref="allocationInput"
+                                                        v-focus />
+                                                </template>
+                                                <!-- 可點擊的數字（未出貨可編輯） -->
+                                                <template v-else-if="!['shipped', 'completed'].includes(order.shipping_status)">
+                                                    <div
+                                                        class="text-xl font-bold text-green-600 cursor-pointer hover:text-green-800 hover:underline decoration-dotted"
+                                                        title="點擊調整分配數量"
+                                                        @click="startEditAllocation(order)">{{ order.allocated_quantity }}</div>
+                                                </template>
+                                                <!-- 已出貨：純文字，不可編輯 -->
+                                                <template v-else>
+                                                    <div class="text-xl font-bold text-green-600">{{ order.allocated_quantity }}</div>
+                                                </template>
                                                 <div v-if="order.shipped_quantity > 0" class="text-xs text-blue-500 mt-0.5">(已出貨 {{ order.shipped_quantity }})</div>
                                             </td>
                                             <td class="px-4 py-4 text-center">
@@ -638,35 +662,7 @@ $products_component_template .= <<<'HTML'
                                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                             完成
                                                         </span>
-                                                        <!-- 調整按鈕：已有分配量才顯示 -->
-                                                        <button
-                                                            v-if="(order.allocated_quantity > 0 || order.already_allocated > 0) && !['shipped', 'completed'].includes(order.shipping_status)"
-                                                            @click="openAdjustPanel(order)"
-                                                            class="px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 text-sm font-medium rounded-lg transition shadow-sm">
-                                                            調整
-                                                        </button>
-                                                    </div>
-                                                    <!-- inline 調整面板 -->
-                                                    <div
-                                                        v-if="adjustingOrder && adjustingOrder.order_id === order.order_id"
-                                                        class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 mt-0.5">
-                                                        <input
-                                                            type="number"
-                                                            v-model="adjustQty"
-                                                            :min="0"
-                                                            :max="order.quantity"
-                                                            class="w-16 text-center text-sm border border-slate-300 rounded-md px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                                                        <button
-                                                            @click="confirmAdjustAllocation()"
-                                                            class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-md transition">
-                                                            確認
-                                                        </button>
-                                                        <button
-                                                            @click="closeAdjustPanel()"
-                                                            class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded-md transition">
-                                                            取消
-                                                        </button>
-                                                    </div>
+                                                        </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -686,7 +682,29 @@ $products_component_template .= <<<'HTML'
                                                 <div class="flex items-center gap-3 text-xs">
                                                     <span><span class="text-slate-400">下單</span> <span class="font-bold text-slate-700">{{ order.quantity }}</span></span>
                                                     <span><span class="text-slate-400">已採購</span> <span class="font-bold text-slate-600">{{ order.purchased || 0 }}</span></span>
-                                                    <span><span class="text-slate-400">已配</span> <span class="font-bold text-green-600">{{ order.allocated_quantity }}</span></span>
+                                                    <span><span class="text-slate-400">已配</span>
+                                                        <template v-if="editingAllocationKey === order.order_item_id">
+                                                            <input
+                                                                type="number"
+                                                                v-model="editingAllocationQty"
+                                                                :min="0"
+                                                                :max="order.quantity"
+                                                                @keydown.enter="confirmAdjustAllocation(order)"
+                                                                @keydown.esc="cancelEditAllocation()"
+                                                                @blur="confirmAdjustAllocation(order)"
+                                                                class="w-12 text-center text-xs font-bold text-green-700 border border-green-400 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-green-400"
+                                                                v-focus />
+                                                        </template>
+                                                        <template v-else-if="!['shipped', 'completed'].includes(order.shipping_status)">
+                                                            <span
+                                                                class="font-bold text-green-600 cursor-pointer hover:text-green-800 hover:underline decoration-dotted"
+                                                                title="點擊調整分配數量"
+                                                                @click.stop="startEditAllocation(order)">{{ order.allocated_quantity }}</span>
+                                                        </template>
+                                                        <template v-else>
+                                                            <span class="font-bold text-green-600">{{ order.allocated_quantity }}</span>
+                                                        </template>
+                                                    </span>
                                                     <span><span class="text-slate-400">待配</span> <span class="font-bold text-amber-600">{{ order.pending_quantity }}</span></span>
                                                 </div>
                                             </div>
@@ -710,34 +728,6 @@ $products_component_template .= <<<'HTML'
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                     完成
                                                 </span>
-                                                <!-- 調整按鈕：已有分配量才顯示 -->
-                                                <button
-                                                    v-if="(order.allocated_quantity > 0 || order.already_allocated > 0) && !['shipped', 'completed'].includes(order.shipping_status)"
-                                                    @click.stop="openAdjustPanel(order)"
-                                                    class="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-medium rounded-lg transition shadow-sm">
-                                                    調整
-                                                </button>
-                                            </div>
-                                            <!-- inline 調整面板（手機版） -->
-                                            <div
-                                                v-if="adjustingOrder && adjustingOrder.order_id === order.order_id"
-                                                class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 mt-1.5">
-                                                <input
-                                                    type="number"
-                                                    v-model="adjustQty"
-                                                    :min="0"
-                                                    :max="order.quantity"
-                                                    class="w-14 text-center text-xs border border-slate-300 rounded-md px-1 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                                                <button
-                                                    @click.stop="confirmAdjustAllocation()"
-                                                    class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-md transition">
-                                                    確認
-                                                </button>
-                                                <button
-                                                    @click.stop="closeAdjustPanel()"
-                                                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded-md transition">
-                                                    取消
-                                                </button>
                                             </div>
                                         </div>
                                     </div>

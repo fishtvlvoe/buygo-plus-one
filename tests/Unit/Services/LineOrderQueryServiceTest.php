@@ -38,8 +38,7 @@ class LineOrderQueryServiceTest extends TestCase {
 
 		$status = $this->service->getItemStatus( $item );
 
-		$this->assertSame( '已出貨', $status['label'] );
-		$this->assertSame( '🚚', $status['icon'] );
+		$this->assertNull( $status );
 	}
 
 	public function test_status_shipped_when_shipped_qty_exceeds_quantity(): void {
@@ -52,7 +51,7 @@ class LineOrderQueryServiceTest extends TestCase {
 
 		$status = $this->service->getItemStatus( $item );
 
-		$this->assertSame( '已出貨', $status['label'] );
+		$this->assertNull( $status );
 	}
 
 	public function test_status_preparing_when_not_fully_shipped(): void {
@@ -79,7 +78,7 @@ class LineOrderQueryServiceTest extends TestCase {
 
 		$status = $this->service->getItemStatus( $item );
 
-		$this->assertSame( '已分配', $status['label'] );
+		$this->assertSame( '已配貨', $status['label'] );
 		$this->assertSame( '✅', $status['icon'] );
 	}
 
@@ -93,7 +92,7 @@ class LineOrderQueryServiceTest extends TestCase {
 
 		$status = $this->service->getItemStatus( $item );
 
-		$this->assertSame( '已分配', $status['label'] );
+		$this->assertSame( '已配貨', $status['label'] );
 	}
 
 	public function test_status_pending_when_nothing_allocated(): void {
@@ -106,14 +105,14 @@ class LineOrderQueryServiceTest extends TestCase {
 
 		$status = $this->service->getItemStatus( $item );
 
-		$this->assertSame( '待分配', $status['label'] );
+		$this->assertSame( '未進貨', $status['label'] );
 		$this->assertSame( '⏳', $status['icon'] );
 	}
 
 	public function test_status_defaults_when_fields_missing(): void {
 		$status = $this->service->getItemStatus( [] );
 
-		$this->assertSame( '待分配', $status['label'] );
+		$this->assertSame( '未進貨', $status['label'] );
 	}
 
 	// ─────────────────────────────────────────

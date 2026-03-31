@@ -46,6 +46,18 @@ class AllocationService
         ));
 
         if (!$post_id) {
+            // 傳入值可能已經是 post_id（WordPress post ID），再試一次用 post_id 查
+            $ids_by_post = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE post_id = %d AND item_status = 'active' ORDER BY id ASC",
+                $variation_id
+            ));
+
+            if (!empty($ids_by_post)) {
+                // 傳入的確實是 post_id，用查到的 variation_ids 回傳
+                return ['post_id' => $variation_id, 'variation_ids' => array_map('intval', $ids_by_post)];
+            }
+
+            // 兩種方式都找不到，才走原本 fallback
             return ['post_id' => 0, 'variation_ids' => [$variation_id]];
         }
 
