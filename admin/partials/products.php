@@ -494,11 +494,12 @@ $products_component_template .= <<<'HTML'
                                 <span class="text-sm font-medium">返回</span>
                             </button>
                             <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
-                            <div class="truncate"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
+                            <div class="truncate pr-24 md:pr-0"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
                         </div>
                         <div class="flex gap-2 shrink-0 md:relative absolute right-4">
                             <button @click="navigateTo('list')" class="btn btn-secondary text-sm px-4 py-2">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
-                            <button v-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">{{ currentView === 'allocation' ? '確認' : '儲存' }}</button>
+                            <button v-if="currentView === 'allocation'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">分配 {{ totalAllocation }} 件</button>
+                            <button v-else-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">儲存</button>
                         </div>
                     </div>
 
@@ -938,16 +939,15 @@ $products_component_template .= <<<'HTML'
                                 <!-- 標題列與上方確認分配按鈕 -->
                                 <div class="p-3 border-b border-slate-200 bg-slate-50">
                                     <div class="flex items-center justify-between mb-2">
-                                        <h3 class="font-bold text-slate-800">待分配訂單 <span class="text-sm font-normal text-slate-500">({{ filteredProductOrders.length }}/{{ productOrders.length }} 筆)</span></h3>
-                                        <!-- 上方分配按鈕（精簡版） -->
-                                        <button v-if="totalAllocation > 0" @click="handleSubPageSave" class="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 transition flex items-center gap-1.5">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                            分配 ({{ totalAllocation }})
-                                        </button>
-                                        <span v-else class="px-3 py-1.5 bg-slate-200 text-slate-500 text-sm font-medium rounded-lg flex items-center gap-1.5">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                            分配 (0)
-                                        </span>
+                                        <h3 class="font-bold text-slate-800">待分配訂單</h3>
+                                        <select v-if="allocationVariants.length > 0" v-model="allocationSelectedVariant"
+                                                class="px-2 py-1 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">全部（{{ productOrders.length }} 筆）</option>
+                                            <option v-for="v in allocationVariants" :key="v.id" :value="String(v.id)">
+                                                {{ v.title }}（{{ v.order_count }} 筆）
+                                            </option>
+                                        </select>
+                                        <span v-else class="text-xs text-slate-500">共 {{ productOrders.length }} 筆</span>
                                     </div>
                                     <!-- 搜尋框 -->
                                     <div class="relative">
@@ -1008,7 +1008,7 @@ $products_component_template .= <<<'HTML'
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                                             </button>
                                             <button v-for="p in allocationVisiblePages" :key="p" @click="allocationGoToPage(p)"
-                                                :class="[p === allocationCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
+                                                :class="[p === allocationCurrentPage ? 'z-10 bg-blue-50 border-primary text-primary' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50', 'relative inline-flex items-center px-3 py-1.5 border text-sm font-medium']">
                                                 {{ p }}
                                             </button>
                                             <button @click="allocationGoToPage(allocationCurrentPage + 1)" :disabled="allocationCurrentPage >= allocationTotalPages"
@@ -1018,12 +1018,8 @@ $products_component_template .= <<<'HTML'
                                         </nav>
                                     </div>
                                 </div>
-                                <!-- 總計與下方確認分配按鈕 -->
+                                <!-- 下方確認分配按鈕 -->
                                 <div v-if="productOrders.length > 0" class="px-3 py-3 bg-white border-t border-slate-200">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <span class="text-slate-600">總計分配：</span>
-                                        <span class="text-lg font-bold text-primary">{{ totalAllocation }}</span>
-                                    </div>
                                     <button @click="handleSubPageSave" :disabled="totalAllocation === 0" class="w-full py-3 bg-primary text-white text-base font-bold rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         確認分配 {{ totalAllocation }} 件

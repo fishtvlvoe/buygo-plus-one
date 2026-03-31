@@ -167,14 +167,38 @@ function useProducts() {
         const productOrders = ref([]);
         const allocationLoading = ref(false);
         const allocationSearch = ref('');
+        const allocationSelectedVariant = ref(''); // 選中的 variant object_id（'' = 全部）
 
-        // 過濾後的訂單列表（根據搜尋關鍵字）
+        // 從訂單列表提取 variant 選項（多樣式商品）
+        const allocationVariants = computed(() => {
+            const variantMap = {};
+            productOrders.value.forEach(order => {
+                const objId = String(order.object_id || '');
+                const title = order.variation_title || '';
+                if (objId && title) {
+                    if (!variantMap[objId]) {
+                        variantMap[objId] = { id: objId, title: title, order_count: 0 };
+                    }
+                    variantMap[objId].order_count++;
+                }
+            });
+            const variants = Object.values(variantMap);
+            return variants.length > 1 ? variants : [];
+        });
+
+        // 先按 variant 過濾，再按搜尋關鍵字過濾
+        const filteredProductOrdersByVariant = computed(() => {
+            if (!allocationSelectedVariant.value) return productOrders.value;
+            const varId = parseInt(allocationSelectedVariant.value);
+            return productOrders.value.filter(order => parseInt(order.object_id) === varId);
+        });
+
         const filteredProductOrders = computed(() => {
             if (!allocationSearch.value.trim()) {
-                return productOrders.value;
+                return filteredProductOrdersByVariant.value;
             }
             const keyword = allocationSearch.value.toLowerCase().trim();
-            return productOrders.value.filter(order => {
+            return filteredProductOrdersByVariant.value.filter(order => {
                 const orderId = String(order.order_id || '').toLowerCase();
                 const customer = String(order.customer || '').toLowerCase();
                 return orderId.includes(keyword) || customer.includes(keyword);
@@ -246,8 +270,8 @@ function useProducts() {
             allocationCurrentPage.value = 1;
         };
 
-        // 監聽分配搜尋變化，重置分頁
-        watch(allocationSearch, () => {
+        // 監聽分配搜尋或 variant 切換，重置分頁
+        watch([allocationSearch, allocationSelectedVariant], () => {
             allocationCurrentPage.value = 1;
         });
 
@@ -1240,7 +1264,7 @@ function useProducts() {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery, sellerLimit,
-            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, filteredProductOrders, totalAllocation,
+            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, allocationSelectedVariant, allocationVariants, filteredProductOrders, totalAllocation,
             buyersVariants, buyersSelectedVariant, filteredBuyersByVariant,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
