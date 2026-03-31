@@ -73,9 +73,9 @@ $has_portal_access = current_user_can('manage_options')
 
 // 買家標記
 $is_buyer = !$has_portal_access;
-// ?embed=1 讓 FluentCartCustomerPortal::maybeRenderEmbedPage() 攔截，
+// ?buygo_embed=1 注入 CSS 隱藏 WordPress 外框（不能用 ?embed=1，WordPress 會當成 oEmbed 預覽）
 // 輸出不含 WordPress header/footer 的精簡頁面，避免 iframe 載入整個 WordPress 頁面
-$buyer_account_url = home_url('/my-account/?embed=1');
+$buyer_account_url = home_url('/my-account/?buygo_embed=1');
 
 // SPA：從 URL 取得初始頁面（用於預注入資料）
 $current_page = get_query_var('buygo_page', 'dashboard');
