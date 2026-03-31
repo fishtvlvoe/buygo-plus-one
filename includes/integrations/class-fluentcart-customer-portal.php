@@ -37,12 +37,20 @@ class FluentCartCustomerPortal {
     /**
      * 向 FluentCart 會員中心註冊自訂頁面
      *
+     * 同時移除 line-hub 外掛在 fluent_cart/customer_app 注入的 LINE 綁定區塊：
+     * 買家入口（/buygo-portal/）已有獨立的 LINE 綁定頁面，
+     * 在 FluentCart 儀表板重複顯示會造成版面混亂。
+     *
      * @return void
      */
     public static function registerEndpoints() {
         if (!function_exists('fluent_cart_api')) {
             return;
         }
+
+        // 移除 line-hub 外掛在 FluentCart 客戶儀表板注入的 LINE 綁定區塊
+        // 注入點：LineHub\Integration\FluentCartConnector::renderBindingSection（優先級 90）
+        remove_action('fluent_cart/customer_app', ['LineHub\Integration\FluentCartConnector', 'renderBindingSection'], 90);
 
         // 1. 訂單進度頁（跟 FluentCart 同風格：20x20 filled icon）
         fluent_cart_api()->addCustomerDashboardEndpoint('order-tracking', [
