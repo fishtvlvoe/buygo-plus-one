@@ -1350,6 +1350,8 @@ function useProducts() {
             handleProductSearch,
             handleProductSearchClear,
             getProductLink, copyProductLink,
+            // 調整分配方法
+            adjustingOrder, adjustQty, openAdjustPanel, closeAdjustPanel, confirmAdjustAllocation,
             // 自訂欄位方法（Phase 49）
             loadCustomFields, saveCustomFields,
             // Variation 方法
