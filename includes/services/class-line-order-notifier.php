@@ -349,10 +349,20 @@ class LineOrderNotifier {
 
 		// 取得買家用的模板
 		$templateKey = $event === 'order_shipped' ? 'order_shipped' : 'order_created';
+
+		// 取得買家顯示名稱
+		$wp_user = get_user_by( 'ID', $userId );
+		$display_name = $wp_user ? $wp_user->display_name : '';
+
+		// 取得訂單備註（賣家備註欄位）
+		$note = $order->seller_note ?? $order->note ?? '';
+
 		$args = [
 			'order_id' => (string) $order->id,
 			'total' => $this->formatOrderTotal( $order ),
 			'currency_symbol' => $this->getCurrencySymbol(),
+			'display_name' => $display_name,
+			'note' => $note,
 		];
 
 		// 發送通知
