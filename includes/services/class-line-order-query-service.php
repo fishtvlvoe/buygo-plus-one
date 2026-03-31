@@ -30,86 +30,109 @@ class LineOrderQueryService {
 	public function getOrderSummary( int $user_id ): array {
 		global $wpdb;
 
-		// 查詢進行中的父訂單（parent_id IS NULL，且狀態不在排除清單）
-		// 狀態值為系統常數，直接組 IN 子句（無 SQL injection 風險）
-		$excluded_list = "'" . implode( "','", self::EXCLUDED_STATUSES ) . "'";
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-				"SELECT o.id, o.status, o.total, o.currency
-				 FROM {$wpdb->prefix}fct_orders o
-				 WHERE o.customer_id = (
-				     SELECT id FROM {$wpdb->prefix}fct_customers WHERE user_id = %d LIMIT 1
-				 )
-				 AND (o.parent_id IS NULL OR o.parent_id = 0)
-				 AND o.status NOT IN ({$excluded_list})
-				 ORDER BY o.id DESC
-				 LIMIT 20",
-				$user_id
-			),
-			ARRAY_A
-		);
+		$table_orders         = $wpdb->prefix . 'fct_orders';
+		$table_items          = $wpdb->prefix . 'fct_order_items';
+		$table_customers      = $wpdb->prefix . 'fct_customers';
+		$table_variations     = $wpdb->prefix . 'fct_product_variations';
+		$table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
 
-		// 沒有進行中訂單 → 回覆純文字
-		if ( empty( $rows ) ) {
+		// 用 email 對應 FluentCart customer_id（跟 FluentCartCustomerPortal 一致）
+		$user           = get_userdata( $user_id );
+		$customer_email = $user ? $user->user_email : '';
+
+		$customer_id = $wpdb->get_var( $wpdb->prepare(
+			"SELECT id FROM {$table_customers} WHERE email = %s LIMIT 1",
+			$customer_email
+		) );
+
+		if ( ! $customer_id ) {
 			return [
 				'type' => 'text',
 				'text' => '目前沒有進行中的訂單 📭',
 			];
 		}
 
-		$order_count   = count( $rows );
+		// 查詢進行中訂單的所有項目（跟 FluentCartCustomerPortal 同一套 SQL）
+		$items = $wpdb->get_results( $wpdb->prepare(
+			"SELECT o.id as order_id, o.invoice_no, o.shipping_status, o.currency,
+			        oi.quantity, oi.unit_price, oi.object_id, oi.id as order_item_id,
+			        oi.line_meta, oi.title,
+			        pv.variation_title,
+			        COALESCE(p.post_title, oi.title, '') as product_name,
+			        COALESCE((SELECT SUM(si.quantity) FROM {$table_shipment_items} si WHERE si.order_item_id = oi.id), 0) as shipped_qty
+			 FROM {$table_orders} o
+			 INNER JOIN {$table_items} oi ON oi.order_id = o.id
+			 LEFT JOIN {$table_variations} pv ON pv.id = oi.object_id
+			 LEFT JOIN {$wpdb->posts} p ON p.ID = pv.post_id
+			 WHERE o.customer_id = %d
+			   AND o.parent_id IS NULL
+			   AND o.status NOT IN ('cancelled', 'refunded', 'completed')
+			 ORDER BY o.id DESC",
+			$customer_id
+		), ARRAY_A );
+
+		if ( empty( $items ) ) {
+			return [
+				'type' => 'text',
+				'text' => '目前沒有進行中的訂單 📭',
+			];
+		}
+
+		// 依訂單分組
 		$grand_total   = 0.0;
 		$currency      = '';
-		$order_bubbles = [];
+		$order_groups  = [];
 
-		foreach ( $rows as $order ) {
-			$order_id       = (int) $order['id'];
-			$order_total    = (float) $order['total'];
-			$grand_total   += $order_total;
-			$currency       = $order['currency'] ?? $currency;
+		foreach ( $items as $item ) {
+			$meta      = json_decode( $item['line_meta'] ?? '{}', true ) ?: [];
+			$allocated = (int) ( $meta['_allocated_qty'] ?? 0 );
+			$shipped   = max( (int) $item['shipped_qty'], (int) ( $meta['_shipped_qty'] ?? 0 ) );
+			$qty       = (int) $item['quantity'];
 
-			// 查詢該訂單的商品項目
-			$items = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT oi.id, oi.title, oi.quantity,
-					        oi.unit_price, oi.shipping_status,
-					        COALESCE( (
-					            SELECT SUM(oi2.quantity)
-					            FROM {$wpdb->prefix}fct_order_items oi2
-					            INNER JOIN {$wpdb->prefix}fct_orders o2 ON oi2.order_id = o2.id
-					            WHERE o2.parent_id = %d
-					            AND oi2.object_id = oi.object_id
-					        ), 0 ) AS shipped_qty,
-					        COALESCE(
-					            (SELECT meta_value FROM {$wpdb->prefix}fct_order_item_meta
-					             WHERE order_item_id = oi.id AND meta_key = '_allocated_qty' LIMIT 1),
-					        0) AS allocated_qty
-					 FROM {$wpdb->prefix}fct_order_items oi
-					 WHERE oi.order_id = %d",
-					$order_id,
-					$order_id
-				),
-				ARRAY_A
-			);
-
-			if ( empty( $items ) ) {
-				continue;
+			// 商品名稱（含規格）
+			$name = $item['product_name'];
+			if ( ! empty( $item['variation_title'] ) ) {
+				$name .= ' ' . $item['variation_title'];
 			}
 
-			// 組裝每筆訂單的 Flex box
-			$order_bubbles[] = $this->build_order_box( $order_id, $items, $order_total, $currency );
-		}
+			// FluentCart 金額以分為單位
+			$unit_price = (float) $item['unit_price'] / 100;
+			$line_total = $unit_price * $qty;
+			$grand_total += $line_total;
+			$currency    = $item['currency'] ?: $currency;
 
-		// 若所有訂單都沒有項目（理論上不應發生）
-		if ( empty( $order_bubbles ) ) {
-			return [
-				'type' => 'text',
-				'text' => '目前沒有進行中的訂單 📭',
+			$order_id = $item['order_id'];
+			if ( ! isset( $order_groups[ $order_id ] ) ) {
+				$order_groups[ $order_id ] = [
+					'invoice_no' => $item['invoice_no'] ?: "#{$order_id}",
+					'items'      => [],
+					'subtotal'   => 0,
+				];
+			}
+
+			$order_groups[ $order_id ]['items'][] = [
+				'title'          => $name,
+				'quantity'       => $qty,
+				'unit_price'     => $unit_price,
+				'shipped_qty'    => $shipped,
+				'allocated_qty'  => $allocated,
+				'shipping_status' => $item['shipping_status'] ?? '',
 			];
+			$order_groups[ $order_id ]['subtotal'] += $line_total;
 		}
 
+		$order_count     = count( $order_groups );
 		$currency_symbol = $this->get_currency_symbol( $currency );
+		$order_bubbles   = [];
+
+		foreach ( $order_groups as $oid => $group ) {
+			$order_bubbles[] = $this->build_order_box(
+				$group['invoice_no'],
+				$group['items'],
+				$group['subtotal'],
+				$currency_symbol
+			);
+		}
 
 		return $this->build_flex_message( $order_count, $order_bubbles, $grand_total, $currency_symbol );
 	}
@@ -156,14 +179,13 @@ class LineOrderQueryService {
 	 * @param string $currency   幣別代碼
 	 * @return array Flex box 元件
 	 */
-	private function build_order_box( int $order_id, array $items, float $order_total, string $currency ): array {
-		$currency_symbol = $this->get_currency_symbol( $currency );
-		$contents        = [];
+	private function build_order_box( string $invoice_no, array $items, float $order_total, string $currency_symbol ): array {
+		$contents = [];
 
 		// 訂單標題列
 		$contents[] = [
 			'type'   => 'text',
-			'text'   => "#{$order_id}",
+			'text'   => $invoice_no,
 			'weight' => 'bold',
 			'size'   => 'sm',
 			'color'  => '#1E40AF',
@@ -172,11 +194,10 @@ class LineOrderQueryService {
 
 		// 逐項商品
 		foreach ( $items as $item ) {
-			$status    = $this->getItemStatus( $item );
-			$title     = $item['title'] ?? '商品';
-			$qty       = (int) ( $item['quantity'] ?? 1 );
-			$price     = (float) ( $item['unit_price'] ?? 0 );
-			$subtotal  = $qty * $price;
+			$status = $this->getItemStatus( $item );
+			$title  = $item['title'] ?? '商品';
+			$qty    = (int) ( $item['quantity'] ?? 1 );
+			$price  = (float) ( $item['unit_price'] ?? 0 );
 
 			$contents[] = [
 				'type'   => 'box',
