@@ -126,12 +126,16 @@ class LineOrderQueryService {
 		// 組裝純文字訂單明細（供模板 {order_details} 變數使用）
 		$order_details = $this->build_order_details_text( $order_groups, $currency_symbol );
 
+		// 會員中心 URL（動態產生，對應賣家部署的網域）
+		$account_url = function_exists( 'home_url' ) ? home_url( '/my-account/' ) : '/my-account/';
+
 		// 走模板系統：後台可編輯的文字模板
 		$result = NotificationTemplates::get( 'order_query', [
 			'order_count'     => $order_count,
 			'order_details'   => $order_details,
 			'currency_symbol' => $currency_symbol,
 			'total'           => number_format( $grand_total ),
+			'account_url'     => $account_url,
 		] );
 
 		if ( $result && ! empty( $result['line']['text'] ) ) {
@@ -144,7 +148,7 @@ class LineOrderQueryService {
 		// Fallback：模板為空時直接組文字
 		return [
 			'type' => 'text',
-			'text' => "您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：{$currency_symbol}" . number_format( $grand_total ) . "\n如有問題請聯絡客服",
+			'text' => "您目前有 {$order_count} 筆進行中訂單\n\n{$order_details}\n\n合計：" . number_format( $grand_total ) . "\n\n查看完整訂單明細：\n{$account_url}\n\n如需客服協助，請直接在此回覆訊息",
 		];
 	}
 
@@ -183,7 +187,7 @@ class LineOrderQueryService {
 			}
 		}
 
-		return implode( "\n---\n", $blocks );
+		return implode( "\n──────────────\n", $blocks );
 	}
 
 	/**
