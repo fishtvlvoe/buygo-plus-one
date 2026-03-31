@@ -188,16 +188,11 @@ class Plugin {
 
         // 登入後依角色分流：買家 → /my-account/，賣家/管理員 → /buygo-portal/
         add_filter('login_redirect', function ( $redirect_to, $requested_redirect_to, $user ) {
-            if ( is_wp_error( $user ) ) {
-                return $redirect_to;
-            }
+            if ( is_wp_error( $user ) ) return $redirect_to;
             $is_seller = user_can( $user, 'manage_options' )
                       || user_can( $user, 'buygo_admin' )
                       || user_can( $user, 'buygo_helper' );
-            if ( ! $is_seller ) {
-                return home_url( '/my-account/' );
-            }
-            return home_url( '/buygo-portal/' );
+            return $is_seller ? home_url( '/buygo-portal/' ) : home_url( '/my-account/' );
         }, 10, 3 );
 
         // 登出後回到原頁面（不跳到 wp-login.php）
