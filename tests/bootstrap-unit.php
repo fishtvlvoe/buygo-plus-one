@@ -496,6 +496,7 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-batch-create-s
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-product-creator.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-notification-handler.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-query-service.php';
 
 // Mock get_the_title（AllocationService 在 create_child_order 中使用）
 if (!function_exists('get_the_title')) {
