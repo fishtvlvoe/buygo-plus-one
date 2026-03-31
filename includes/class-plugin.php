@@ -235,12 +235,12 @@ class Plugin {
 
         // API 類別會自動載入並註冊所有 REST API 端點
         // (Products, Orders, Shipments, Customers, GlobalSearch, Dashboard)
-        if (defined('REST_REQUEST') && REST_REQUEST) {
-            new \BuyGoPlus\Api\API();
-            new \BuyGoPlus\Api\Debug_API();
-            new \BuyGoPlus\Api\Settings_API();
-            new \BuyGoPlus\Api\Keywords_API();
-        }
+        // 注意：REST_REQUEST 在 plugins_loaded 時尚未定義，不能用來條件判斷
+        // API 類別只是 add_action('rest_api_init', ...)，本身很輕，永遠載入
+        new \BuyGoPlus\Api\API();
+        new \BuyGoPlus\Api\Debug_API();
+        new \BuyGoPlus\Api\Settings_API();
+        new \BuyGoPlus\Api\Keywords_API();
 
         // =====================================================================
         // LINE 相關：延遲到 rest_api_init 才起（LINE webhook 走 REST 端點進來）
