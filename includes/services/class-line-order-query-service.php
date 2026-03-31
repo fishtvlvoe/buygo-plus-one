@@ -89,11 +89,9 @@ class LineOrderQueryService {
 			$shipped   = max( (int) $item['shipped_qty'], (int) ( $meta['_shipped_qty'] ?? 0 ) );
 			$qty       = (int) $item['quantity'];
 
-			// 商品名稱（含規格）
-			$name = $item['product_name'];
-			if ( ! empty( $item['variation_title'] ) ) {
-				$name .= ' ' . $item['variation_title'];
-			}
+			// 商品名稱與規格分開
+			$product_name    = $item['product_name'] ?: '商品';
+			$variation_title = $item['variation_title'] ?? '';
 
 			// FluentCart 金額以分為單位
 			$unit_price = (float) $item['unit_price'] / 100;
@@ -111,7 +109,8 @@ class LineOrderQueryService {
 			}
 
 			$order_groups[ $order_id ]['items'][] = [
-				'title'          => $name,
+				'title'           => $product_name,
+				'variation_title' => $variation_title,
 				'quantity'       => $qty,
 				'unit_price'     => $unit_price,
 				'shipped_qty'    => $shipped,
@@ -157,29 +156,34 @@ class LineOrderQueryService {
 	 * @return string 純文字格式的訂單明細
 	 */
 	private function build_order_details_text( array $order_groups, string $currency_symbol ): string {
-		$lines = [];
-		$seq   = 1;
+		$blocks = [];
+		$seq    = 1;
 
 		foreach ( $order_groups as $group ) {
 			foreach ( $group['items'] as $item ) {
-				$status   = $this->getItemStatus( $item );
-				$title    = $item['title'] ?? '商品';
-				$qty      = (int) ( $item['quantity'] ?? 1 );
-				$price    = (float) ( $item['unit_price'] ?? 0 );
-				$subtotal = number_format( $price * $qty );
-				$price_f  = number_format( $price );
+				$status    = $this->getItemStatus( $item );
+				$title     = $item['title'] ?? '商品';
+				$variation = $item['variation_title'] ?? '';
+				$qty       = (int) ( $item['quantity'] ?? 1 );
+				$price     = (float) ( $item['unit_price'] ?? 0 );
+				$subtotal  = number_format( $price * $qty );
+				$price_f   = number_format( $price );
 
-				$lines[] = "編號：[{$seq}] {$group['invoice_no']}";
-				$lines[] = "產品：{$title}";
-				$lines[] = "下單：{$currency_symbol}{$price_f}x{$qty}={$currency_symbol}{$subtotal}";
-				$lines[] = "狀態：{$status['label']}";
-				$lines[] = '';
+				$block   = [];
+				$block[] = "編號：[{$seq}] {$group['invoice_no']}";
+				$block[] = "產品：{$title}";
+				if ( ! empty( $variation ) ) {
+					$block[] = "規格：{$variation}";
+				}
+				$block[] = "下單：{$price_f} x {$qty} = {$subtotal}";
+				$block[] = "狀態：{$status['label']}";
 
+				$blocks[] = implode( "\n", $block );
 				$seq++;
 			}
 		}
 
-		return trim( implode( "\n", $lines ) );
+		return implode( "\n---\n", $blocks );
 	}
 
 	/**
