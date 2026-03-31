@@ -61,6 +61,19 @@ class LineKeywordResponder {
 				$response = $this->get_binding_status_message( $line_uid, $user_id );
 				break;
 
+			case '/訂單':
+			case '/order':
+			case '/orders':
+				// 訂單查詢：所有人可用（跟 /id 一樣，不需要權限檢查）
+				if ( $user_id && $user_id > 0 ) {
+					$query_service = new LineOrderQueryService();
+					$response      = $query_service->getOrderSummary( $user_id );
+				} else {
+					// 未綁定帳號，提示先綁定
+					$response = $this->get_binding_required_message();
+				}
+				break;
+
 			case '/help':
 			case '/說明':
 			case '/指令':
@@ -114,6 +127,16 @@ class LineKeywordResponder {
 			case '/綁定':
 			case '/狀態':
 				return $this->get_binding_status_message( $line_uid, $user_id );
+
+			case '/訂單':
+			case '/order':
+			case '/orders':
+				// 訂單查詢：所有人可用
+				if ( $user_id && $user_id > 0 ) {
+					$query_service = new LineOrderQueryService();
+					return $query_service->getOrderSummary( $user_id );
+				}
+				return $this->get_binding_required_message();
 
 			case '/help':
 			case '/說明':
@@ -363,6 +386,70 @@ class LineKeywordResponder {
 				],
 			];
 		}
+	}
+
+	/**
+	 * 取得「尚未綁定帳號」提示訊息（用於需要帳號才能查詢的指令）
+	 *
+	 * @return array LINE Flex Message
+	 */
+	private function get_binding_required_message(): array {
+		$login_url = home_url( '/buygo/line-binduser/' );
+		return [
+			'type'     => 'flex',
+			'altText'  => '❌ 請先綁定帳號才能查詢訂單',
+			'contents' => [
+				'type' => 'bubble',
+				'size' => 'kilo',
+				'header' => [
+					'type'    => 'box',
+					'layout'  => 'vertical',
+					'contents' => [
+						[
+							'type'   => 'text',
+							'text'   => '❌ 尚未綁定帳號',
+							'weight' => 'bold',
+							'size'   => 'lg',
+							'color'  => '#DC2626',
+						],
+					],
+					'backgroundColor' => '#FEF2F2',
+					'paddingAll'      => 'lg',
+				],
+				'body'   => [
+					'type'     => 'box',
+					'layout'   => 'vertical',
+					'contents' => [
+						[
+							'type'  => 'text',
+							'text'  => '請先綁定帳號才能查詢訂單。',
+							'wrap'  => true,
+							'color' => '#333333',
+							'size'  => 'sm',
+						],
+					],
+					'paddingAll' => 'lg',
+				],
+				'footer' => [
+					'type'     => 'box',
+					'layout'   => 'vertical',
+					'contents' => [
+						[
+							'type'   => 'button',
+							'style'  => 'primary',
+							'height' => 'sm',
+							'action' => [
+								'type'  => 'uri',
+								'label' => '立即綁定帳號',
+								'uri'   => $login_url,
+							],
+							'color'  => '#06C755',
+						],
+					],
+					'paddingAll' => 'md',
+				],
+			],
+		];
 	}
 
 	/**
