@@ -250,7 +250,11 @@ class FluentCartCustomerPortal {
         }
 
         $total_items = count($all_rows);
-        $per_page = (int)($_GET['per_page'] ?? 10);
+        // 白名單驗證，防止 per_page=0 造成除以零
+        $valid_per_page = [10, 20, 50, 100];
+        $per_page = in_array((int)($_GET['per_page'] ?? 10), $valid_per_page, true)
+            ? (int)$_GET['per_page']
+            : 10;
         $current_page = max(1, (int)($_GET['pg'] ?? 1));
         $total_pages = max(1, ceil($total_items / $per_page));
         $current_page = min($current_page, $total_pages);
@@ -338,76 +342,4 @@ class FluentCartCustomerPortal {
         echo '</div>';
     }
 
-    /**
-     * 渲染「LINE 綁定」頁面
-     *
-     * 顯示目前用戶的 LINE 綁定狀態：
-     * - 已綁定：顯示綁定資訊
-     * - 待綁定（有效綁定碼未過期）：顯示綁定碼
-     * - 未綁定：顯示提示訊息
-     *
-     * @return void
-     */
-    public static function renderLineBinding() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            echo '<p>請先登入</p>';
-            return;
-        }
-
-        global $wpdb;
-        $table = $wpdb->prefix . 'buygo_line_bindings';
-
-        // 查詢已完成的綁定記錄
-        $binding = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE user_id = %d AND status = 'completed' LIMIT 1",
-            $user_id
-        ));
-
-        echo '<div style="max-width:500px;">';
-
-        if ($binding) {
-            // 已綁定：顯示綁定資訊
-            $user         = get_userdata($user_id);
-            $display_name = $user ? $user->display_name : '未知';
-            $line_uid     = $binding->line_uid;
-            $bound_date   = date('Y-m-d', strtotime($binding->completed_at ?: $binding->created_at));
-
-            echo '<div style="background:#F0FDF4;border-radius:12px;padding:24px;text-align:center;">';
-            echo '<div style="font-size:48px;margin-bottom:12px;">🟢</div>';
-            echo '<h3 style="font-size:18px;font-weight:600;color:#166534;margin-bottom:16px;">LINE 帳號已綁定</h3>';
-            echo '<div style="background:#FFFFFF;border-radius:8px;padding:16px;text-align:left;">';
-            echo "<div style='font-size:15px;font-weight:500;color:#1E293B;'>" . esc_html($display_name) . "</div>";
-            echo "<div style='font-size:12px;color:#64748B;margin-top:4px;'>LINE UID: " . esc_html(substr($line_uid, 0, 12)) . "...</div>";
-            echo "<div style='font-size:12px;color:#64748B;margin-top:2px;'>綁定日期：" . esc_html($bound_date) . "</div>";
-            echo '</div>';
-            echo '</div>';
-        } else {
-            // 未完成綁定：查看是否有尚未過期的 pending 綁定碼
-            $pending = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE user_id = %d AND status = 'pending' AND binding_code_expires_at > NOW() LIMIT 1",
-                $user_id
-            ));
-
-            echo '<div style="background:#FEF3C7;border-radius:12px;padding:24px;text-align:center;">';
-            echo '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>';
-            echo '<h3 style="font-size:18px;font-weight:600;color:#92400E;margin-bottom:8px;">尚未綁定 LINE</h3>';
-            echo '<p style="font-size:14px;color:#92400E;margin-bottom:16px;">綁定後可接收訂單通知和查詢訂單狀態</p>';
-
-            if ($pending) {
-                // 有有效的綁定碼，提示用戶前往 LINE 輸入
-                echo '<div style="background:#FFFFFF;border-radius:8px;padding:16px;">';
-                echo '<p style="font-size:13px;color:#64748B;margin-bottom:8px;">請在 LINE 官方帳號輸入以下綁定碼：</p>';
-                echo "<div style='font-size:24px;font-weight:700;color:#2563EB;letter-spacing:4px;'>" . esc_html($pending->binding_code) . "</div>";
-                echo '</div>';
-            } else {
-                // 無有效綁定碼，引導聯繫客服
-                echo '<p style="font-size:13px;color:#92400E;">請聯繫客服取得綁定方式</p>';
-            }
-
-            echo '</div>';
-        }
-
-        echo '</div>';
-    }
 }

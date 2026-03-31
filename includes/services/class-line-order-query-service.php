@@ -17,11 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class LineOrderQueryService {
 
 	/**
-	 * 進行中訂單的排除狀態（這些狀態不顯示）
-	 */
-	const EXCLUDED_STATUSES = [ 'cancelled', 'refunded', 'completed' ];
-
-	/**
 	 * 取得用戶的進行中訂單摘要，並組裝 Flex Message
 	 *
 	 * @param int $user_id WordPress User ID
