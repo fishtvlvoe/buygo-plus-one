@@ -123,6 +123,7 @@ class LineOrderQueryServiceTest extends TestCase {
 	public function test_get_order_summary_returns_text_when_no_orders(): void {
 		$GLOBALS['wpdb'] = new class {
 			public $prefix = 'wp_';
+			public $posts = 'wp_posts';
 
 			public function prepare( $query, ...$args ) {
 				return $query;

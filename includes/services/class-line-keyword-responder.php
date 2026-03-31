@@ -97,59 +97,6 @@ class LineKeywordResponder {
 	}
 
 	/**
-	 * 處理關鍵字指令
-	 *
-	 * @param mixed       $response    現有的回覆內容（null 表示尚無回覆）
-	 * @param string      $action_type 事件類型
-	 * @param array       $event       LINE Webhook 事件
-	 * @param string      $line_uid    LINE User ID
-	 * @param int|null    $user_id     WordPress User ID
-	 * @return mixed 回覆內容或 null
-	 */
-	public function handle_keyword( $response, string $action_type, array $event, string $line_uid, ?int $user_id ) {
-		// 只處理文字訊息
-		if ( $action_type !== 'message_text' ) {
-			return $response;
-		}
-
-		// 如果已經有回覆內容，不覆蓋
-		if ( $response !== null ) {
-			return $response;
-		}
-
-		// 取得用戶發送的文字
-		$text = trim( $event['message']['text'] ?? '' );
-		$text_lower = strtolower( $text );
-
-		// 關鍵字對照表
-		switch ( $text_lower ) {
-			case '/id':
-			case '/綁定':
-			case '/狀態':
-				return $this->get_binding_status_message( $line_uid, $user_id );
-
-			case '/訂單':
-			case '/order':
-			case '/orders':
-				// 訂單查詢：所有人可用
-				if ( $user_id && $user_id > 0 ) {
-					$query_service = new LineOrderQueryService();
-					return $query_service->getOrderSummary( $user_id );
-				}
-				return $this->get_binding_required_message();
-
-			case '/help':
-			case '/說明':
-			case '/指令':
-				return $this->get_help_message();
-
-			default:
-				// 不是關鍵字，不回覆
-				return $response;
-		}
-	}
-
-	/**
 	 * 取得綁定狀態訊息
 	 *
 	 * @param string   $line_uid LINE User ID

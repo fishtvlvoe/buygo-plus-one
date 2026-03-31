@@ -57,12 +57,12 @@ if (!is_user_logged_in()) {
     // LINE 瀏覽器：直接跳轉 LINE 登入
     if (stripos($user_agent, 'Line/') !== false) {
         $line_login_url = home_url('/nextend_social_login/?loginSocial=line&redirect=' . urlencode($redirect_to));
-        wp_redirect($line_login_url);
+        wp_safe_redirect($line_login_url);
         exit;
     }
 
     // 其他瀏覽器：跳轉 WordPress 登入頁面
-    wp_redirect(wp_login_url($redirect_to));
+    wp_safe_redirect(wp_login_url($redirect_to));
     exit;
 }
 
@@ -74,7 +74,7 @@ $has_portal_access = current_user_can('manage_options')
 // 買家：redirect 到 FluentCart 會員中心（含 buygo_embed CSS 注入隱藏 WordPress 外框）
 if (!$has_portal_access) {
     $buyer_url = home_url('/my-account/?buygo_embed=1');
-    wp_redirect($buyer_url);
+    wp_safe_redirect($buyer_url);
     exit;
 }
 
