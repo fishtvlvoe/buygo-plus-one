@@ -179,6 +179,36 @@ class Products_API {
             ]
         ]);
 
+        // POST /products/adjust-allocation - 調整/撤銷已分配數量
+        register_rest_route($this->namespace, '/products/adjust-allocation', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'adjust_allocation'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args'                => [
+                'product_id' => [
+                    'required'          => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function ($param) {
+                        return is_numeric($param) && (int) $param > 0;
+                    },
+                ],
+                'order_id' => [
+                    'required'          => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function ($param) {
+                        return is_numeric($param) && (int) $param > 0;
+                    },
+                ],
+                'new_quantity' => [
+                    'required'          => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function ($param) {
+                        return is_numeric($param) && (int) $param >= 0;
+                    },
+                ],
+            ],
+        ]);
+
         // GET /products/{id}/variations - 取得商品的 Variation 列表
         register_rest_route($this->namespace, '/products/(?P<id>\\d+)/variations', [
             'methods' => 'GET',
@@ -1281,6 +1311,93 @@ class Products_API {
             return new \WP_REST_Response([
                 'success' => false,
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 調整/撤銷已分配數量
+     *
+     * 賣家分配後發現分錯，可呼叫此端點調整：
+     * - 減少分配數量（例如 2→1）
+     * - 全撤（new_quantity=0），會刪除子訂單
+     * - 不能低於已出貨數量
+     *
+     * Request Body: { product_id, order_id, new_quantity }
+     *
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response
+     */
+    public function adjust_allocation($request) {
+        try {
+            $params = $request->get_json_params();
+
+            // 1. 取得並驗證參數
+            $product_id   = (int) ($params['product_id']   ?? 0);
+            $order_id     = (int) ($params['order_id']     ?? 0);
+            $new_quantity = isset($params['new_quantity']) ? (int) $params['new_quantity'] : -1;
+
+            if ($product_id <= 0) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的商品 ID',
+                ], 400);
+            }
+
+            if ($order_id <= 0) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => '無效的訂單 ID',
+                ], 400);
+            }
+
+            if ($new_quantity < 0) {
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'message' => 'new_quantity 不能為負數',
+                ], 400);
+            }
+
+            // 2. 呼叫 AllocationService 執行調整
+            $allocationService = new \BuyGoPlus\Services\AllocationService();
+            $result = $allocationService->adjustAllocation($product_id, $order_id, $new_quantity);
+
+            // 3. 處理錯誤
+            if (is_wp_error($result)) {
+                $error_code = $result->get_error_code();
+
+                // 判斷適合的 HTTP 狀態碼
+                $status = 400;
+                if ($error_code === 'CHILD_ORDER_NOT_FOUND') {
+                    $status = 404;
+                }
+
+                return new \WP_REST_Response([
+                    'success' => false,
+                    'code'    => $error_code,
+                    'message' => $result->get_error_message(),
+                ], $status);
+            }
+
+            // 4. 成功回應
+            $action  = $new_quantity === 0 ? '已全撤分配' : "已調整分配數量為 {$new_quantity}";
+            $message = "{$action}（訂單 #{$order_id}）";
+
+            return new \WP_REST_Response([
+                'success'         => true,
+                'message'         => $message,
+                'child_order_id'  => $result['child_order_id'] ?? null,
+                'new_quantity'    => $result['new_quantity']    ?? $new_quantity,
+                'total_allocated' => $result['total_allocated'] ?? 0,
+            ], 200);
+
+        } catch (\Exception $e) {
+            $debugService = \BuyGoPlus\Services\DebugService::get_instance();
+            $debugService->log('Products_API', 'adjust_allocation 錯誤', ['error' => $e->getMessage()], 'error');
+
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => '調整分配時發生錯誤：' . $e->getMessage(),
             ], 500);
         }
     }
