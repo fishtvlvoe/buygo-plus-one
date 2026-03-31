@@ -560,15 +560,8 @@ function useProducts() {
                     }
                     // 儲存 variants 資料（多樣式商品）
                     buyersVariants.value = Array.isArray(data.variants) ? data.variants : [];
-                    // 設定預設選中的 variant
-                    // 商品列表的 dropdown 用 selected_variation_id，edit 頁用 editing_variation_id
-                    const defaultVariantId = selectedProduct.value?.selected_variation_id
-                        || selectedProduct.value?.editing_variation_id || '';
-                    if (defaultVariantId && buyersVariants.value.some(v => String(v.id) === String(defaultVariantId))) {
-                        buyersSelectedVariant.value = String(defaultVariantId);
-                    } else {
-                        buyersSelectedVariant.value = '';
-                    }
+                    // buyers 頁預設顯示全部 variant，不自動篩選
+                    buyersSelectedVariant.value = '';
                     buyersCurrentPage.value = 1;
                 }
             } catch(e) { console.error(e); }

@@ -305,7 +305,11 @@ class NotificationHandler
                     si.order_item_id,
                     si.product_id,
                     si.quantity,
-                    COALESCE(oi.title, '未知商品') as product_name
+                    CASE
+                        WHEN oi.title IS NULL OR oi.title IN ('預設', '预设', 'Default')
+                        THEN COALESCE(NULLIF(oi.post_title, ''), oi.title, '未知商品')
+                        ELSE oi.title
+                    END as product_name
                 FROM {$wpdb->prefix}buygo_shipment_items si
                 LEFT JOIN {$wpdb->prefix}fct_order_items oi ON si.order_item_id = oi.id
                 WHERE si.shipment_id = %d",
