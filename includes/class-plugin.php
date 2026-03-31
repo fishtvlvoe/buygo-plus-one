@@ -186,14 +186,30 @@ class Plugin {
             return $show;
         });
 
-        // 登入後依角色分流：買家 → /my-account/，賣家/管理員 → /buygo-portal/
-        add_filter('login_redirect', function ( $redirect_to, $requested_redirect_to, $user ) {
-            if ( is_wp_error( $user ) ) return $redirect_to;
+        // 登入後依角色分流（涵蓋所有登入方式：表單、LINE OAuth、session transfer）
+        // 用 wp_login action 而非 login_redirect filter，因為某些外掛會在 wp_login 裡 redirect+exit，
+        // 導致 WordPress 的 login_redirect filter 永遠跑不到
+        // priority 1 確保在其他外掛的 wp_login hook 之前執行
+        add_action('wp_login', function ( $user_login, $user ) {
             $is_seller = user_can( $user, 'manage_options' )
                       || user_can( $user, 'buygo_admin' )
                       || user_can( $user, 'buygo_helper' );
-            return $is_seller ? home_url( '/buygo-portal/' ) : home_url( '/my-account/' );
-        }, 10, 3 );
+            $target = $is_seller ? home_url( '/buygo-portal/' ) : home_url( '/my-account/' );
+            error_log( sprintf( '[BuyGo] wp_login redirect: user=%s (#%d) seller=%s → %s',
+                $user_login, $user->ID, $is_seller ? 'Y' : 'N', $target ) );
+            wp_safe_redirect( $target );
+            exit;
+        }, 1, 2);
+
+        // LINE session transfer 完成後也依角色分流（走 createSession 路徑時觸發）
+        add_action('line_hub/session_transfer/completed', function ( $user_id, $redirect_url ) {
+            $is_seller = user_can( $user_id, 'manage_options' )
+                      || user_can( $user_id, 'buygo_admin' )
+                      || user_can( $user_id, 'buygo_helper' );
+            $target = $is_seller ? home_url( '/buygo-portal/' ) : home_url( '/my-account/' );
+            wp_safe_redirect( $target );
+            exit;
+        }, 1, 2);
 
         // 登出後回到原頁面（不跳到 wp-login.php）
         add_action('wp_logout', function () {

@@ -51,19 +51,17 @@ function buygo_get_initial_data($page) {
 
 // 檢查權限
 if (!is_user_logged_in()) {
-    // 用相對路徑，避免 Cloudflare WAF 把 https:// 的冒號斜線吃掉
-    $redirect_to = $_SERVER['REQUEST_URI'];
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-    // LINE 瀏覽器：直接跳轉 LINE 登入
+    // LINE 瀏覽器：直接跳轉 LINE 登入（不帶 redirect，登入後由角色分流決定去向）
+    // 注意：不再傳 redirect 參數，避免 Cloudflare WAF 把斜線吃掉導致壞掉的跳轉 URL
     if (stripos($user_agent, 'Line/') !== false) {
-        $line_login_url = home_url('/line-hub/auth/?redirect=' . urlencode($redirect_to));
-        wp_safe_redirect($line_login_url);
+        wp_safe_redirect(home_url('/line-hub/auth/'));
         exit;
     }
 
-    // 其他瀏覽器：跳轉 WordPress 登入頁面（相對路徑不會被 Cloudflare 過濾）
-    wp_safe_redirect(wp_login_url($redirect_to));
+    // 其他瀏覽器：跳轉 WordPress 登入（不帶 redirect_to，由 login_redirect filter 處理角色分流）
+    wp_safe_redirect(wp_login_url());
     exit;
 }
 
