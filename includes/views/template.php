@@ -71,11 +71,12 @@ $has_portal_access = current_user_can('manage_options')
     || current_user_can('buygo_admin')
     || current_user_can('buygo_helper');
 
-// 買家標記
-$is_buyer = !$has_portal_access;
-// ?buygo_embed=1 注入 CSS 隱藏 WordPress 外框（不能用 ?embed=1，WordPress 會當成 oEmbed 預覽）
-// 輸出不含 WordPress header/footer 的精簡頁面，避免 iframe 載入整個 WordPress 頁面
-$buyer_account_url = home_url('/my-account/?buygo_embed=1');
+// 買家：redirect 到 FluentCart 會員中心（含 buygo_embed CSS 注入隱藏 WordPress 外框）
+if (!$has_portal_access) {
+    $buyer_url = home_url('/my-account/?buygo_embed=1');
+    wp_redirect($buyer_url);
+    exit;
+}
 
 // SPA：從 URL 取得初始頁面（用於預注入資料）
 $current_page = get_query_var('buygo_page', 'dashboard');
@@ -220,8 +221,6 @@ foreach ($permission_keys as $perm) {
     <script>
         window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
         window.buygoUserPermissions = <?php echo wp_json_encode($user_permissions); ?>;
-        window.buygoIsBuyer = <?php echo $is_buyer ? 'true' : 'false'; ?>;
-        window.buygoAccountUrl = '<?php echo esc_js($buyer_account_url); ?>';
     </script>
 
     <?php
@@ -276,35 +275,9 @@ foreach ($permission_keys as $perm) {
             SmartSearchBox: BuyGoSmartSearchBox
         },
         data() {
-            // 買家側邊欄選單項目（儀表板、訂單進度、會員中心）
-            var buyerMenuItems = [
-                {
-                    id: 'my-account',
-                    label: '儀表板',
-                    url: (window.buygoAccountUrl || '') + '#/',
-                    icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>'
-                },
-                {
-                    id: 'order-tracking',
-                    label: '訂單進度',
-                    url: (window.buygoAccountUrl || '') + '#/order-tracking',
-                    icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>'
-                },
-                {
-                    id: 'purchase-history',
-                    label: '購買記錄',
-                    url: (window.buygoAccountUrl || '') + '#/purchase-history',
-                    icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>'
-                }
-            ];
             return {
                 currentPage: BuyGoRouter.parsePath(),
-                isSidebarCollapsed: false,
-                accountUrl: window.buygoAccountUrl || '',
-                // 買家側邊欄狀態
-                buyerMenuItems: buyerMenuItems,
-                buyerActivePage: 'my-account',
-                iframeUrl: window.buygoAccountUrl || ''
+                isSidebarCollapsed: false
             }
         },
         computed: {
@@ -326,11 +299,6 @@ foreach ($permission_keys as $perm) {
             },
             toggleSidebar() {
                 this.isSidebarCollapsed = !this.isSidebarCollapsed;
-            },
-            // 買家側邊欄點擊：更新 active 狀態並切換 iframe URL
-            onBuyerNavClick(item) {
-                this.buyerActivePage = item.id;
-                this.iframeUrl = item.url;
             },
             onPageChange(page) {
                 this.currentPage = page;
@@ -356,45 +324,7 @@ foreach ($permission_keys as $perm) {
                 self.onPageChange(page);
             });
         },
-        template: window.buygoIsBuyer ? `
-            <div style="display:flex;min-height:100vh;">
-                <!-- 買家精簡側邊欄 -->
-                <aside style="width:200px;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20;">
-                    <!-- Logo -->
-                    <div style="height:64px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #f1f5f9;">
-                        <svg style="width:32px;height:32px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                        </svg>
-                        <span style="margin-left:8px;font-weight:700;font-size:18px;color:#3b82f6;">BuyGo+1</span>
-                    </div>
-                    <!-- 買家選單項目 -->
-                    <nav style="flex:1;padding:16px 0;">
-                        <a v-for="item in buyerMenuItems" :key="item.id"
-                           :href="item.url"
-                           :style="{
-                               display: 'flex',
-                               alignItems: 'center',
-                               padding: '12px 24px',
-                               textDecoration: 'none',
-                               color: buyerActivePage === item.id ? '#3b82f6' : '#475569',
-                               background: buyerActivePage === item.id ? '#eff6ff' : 'transparent',
-                               borderRight: buyerActivePage === item.id ? '2px solid #3b82f6' : '2px solid transparent',
-                               fontWeight: buyerActivePage === item.id ? '500' : '400',
-                               fontSize: '14px',
-                               transition: 'all 0.15s'
-                           }"
-                           @click="onBuyerNavClick(item)">
-                            <span v-html="item.icon" style="width:20px;height:20px;flex-shrink:0;"></span>
-                            <span style="margin-left:12px;white-space:nowrap;">{{ item.label }}</span>
-                        </a>
-                    </nav>
-                </aside>
-                <!-- 買家主內容區：iframe 嵌入 FluentCart 精簡頁面 -->
-                <div style="margin-left:200px;flex:1;display:flex;flex-direction:column;">
-                    <iframe :src="iframeUrl" style="flex:1;width:100%;height:100vh;border:none;" allowfullscreen></iframe>
-                </div>
-            </div>
-        ` : `
+        template: `
             <div>
                 <NewSidebar
                     :currentPage="currentPage"
