@@ -33,89 +33,47 @@ class FluentCartCustomerPortal {
         // 在 init hook 裡註冊 endpoint（優先級 20，確保 FluentCart 已初始化）
         add_action('init', [self::class, 'registerEndpoints'], 20);
 
-        // 偵測 ?embed=1 參數：輸出精簡頁面（不含 WordPress header/footer）
-        // 供 BuyGo 買家入口的 iframe 使用，避免載入整個 WordPress 頁面
-        add_action('template_redirect', [self::class, 'maybeRenderEmbedPage']);
+        // 偵測 ?embed=1 參數：注入 CSS 隱藏 WordPress header/footer/sidebar
+        // 讓 iframe 只顯示 FluentCart 會員中心內容區
+        add_action('wp_head', [self::class, 'maybeInjectEmbedStyles']);
     }
 
     /**
-     * 偵測 ?embed=1 並輸出精簡 HTML 頁面
+     * 偵測 ?embed=1 並注入 CSS 隱藏 WordPress 外框
      *
-     * 當 URL 帶有 ?embed=1 且為 /my-account/ 路徑時，
-     * 跳過 WordPress 的完整模板（header/footer/導覽列），
-     * 只輸出 FluentCart 會員中心的 shortcode 內容。
-     * 此精簡頁面專供 BuyGo 買家入口的 iframe 嵌入使用。
+     * 讓 WordPress 正常載入頁面（shortcode 正常渲染），
+     * 但用 CSS 隱藏 header、footer、sidebar、admin bar 等外框元素，
+     * 只留下 FluentCart 會員中心的內容區。
      *
      * @return void
      */
-    public static function maybeRenderEmbedPage(): void {
-        // 只處理帶有 embed=1 參數的請求
+    public static function maybeInjectEmbedStyles(): void {
         if (empty($_GET['embed'])) {
             return;
         }
 
-        // 確認是 FluentCart 會員中心頁面（用 WordPress is_page 判斷 slug）
-        if (!is_page('my-account')) {
-            return;
-        }
-
-        // 確認用戶已登入
-        if (!is_user_logged_in()) {
-            wp_redirect(wp_login_url(home_url('/my-account/?embed=1')));
-            exit;
-        }
-
-        // 輸出精簡 HTML：只含 FluentCart CSS 和內容區
-        self::renderEmbedPage();
-        exit;
-    }
-
-    /**
-     * 輸出精簡嵌入頁面（供 iframe 使用）
-     *
-     * 只包含基本 HTML 結構、FluentCart 所需的 CSS 和 JS，
-     * 以及 [fluent_cart_customer] shortcode 的渲染結果。
-     * 不含 WordPress header、footer、導覽列。
-     *
-     * @return void
-     */
-    private static function renderEmbedPage(): void {
-        // 讓 WordPress 載入必要的 script/style（wp_head/wp_footer 仍會執行）
-        ob_start();
+        // 隱藏 WordPress 外框，只顯示 FluentCart 內容區
         ?>
-        <!DOCTYPE html>
-        <html <?php language_attributes(); ?>>
-        <head>
-            <meta charset="<?php bloginfo('charset'); ?>">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title><?php echo esc_html(get_bloginfo('name')); ?> - 會員中心</title>
-            <style>
-                /* 精簡嵌入頁樣式：移除頁面邊距，讓 FluentCart 內容填滿 iframe */
-                html, body {
-                    margin: 0;
-                    padding: 0;
-                    background: #f9fafb;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    overflow-x: hidden;
-                }
-                /* 隱藏 WordPress 後台列（如果存在） */
-                #wpadminbar { display: none !important; }
-                html.admin-bar { margin-top: 0 !important; }
-                /* FluentCart 容器全寬顯示 */
-                .fc-customer-portal,
-                .fluent-cart-customer-app { max-width: 100% !important; }
-            </style>
-            <?php wp_head(); ?>
-        </head>
-        <body class="buygo-embed-frame">
-            <div style="padding: 16px;">
-                <?php echo do_shortcode('[fluent_cart_customer]'); ?>
-            </div>
-            <?php wp_footer(); ?>
-        </body>
-        </html>
+        <style id="buygo-embed-styles">
+            /* 隱藏 WordPress header/footer/sidebar/admin bar */
+            #wpadminbar,
+            header, .site-header, #masthead,
+            footer, .site-footer, #colophon,
+            nav.main-navigation, .site-navigation,
+            aside, .widget-area, .sidebar,
+            .page-title, .entry-title,
+            .breadcrumbs, .breadcrumb { display: none !important; }
+
+            /* 移除 admin bar 留白 */
+            html.admin-bar { margin-top: 0 !important; }
+
+            /* 內容區全寬 */
+            body { margin: 0; padding: 0; background: #f9fafb; }
+            .site-content, .entry-content, main,
+            .fc-customer-portal,
+            .fluent-cart-customer-app { max-width: 100% !important; width: 100% !important; padding: 16px !important; margin: 0 !important; }
+        </style>
         <?php
-        echo ob_get_clean();
     }
 
     /**
