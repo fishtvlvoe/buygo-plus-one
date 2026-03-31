@@ -175,7 +175,7 @@ class LineTextRouter {
 
 		// 系統指令由 LineKeywordResponder 通過 line_hub/webhook/message/text action 處理（優先級 5）
 		// 此處 return 避免 LineTextRouter（優先級 10）重複處理
-		$system_commands = array( '/id', '/綁定', '/狀態', '/help', '/說明', '/指令' );
+		$system_commands = array( '/id', '/綁定', '/狀態', '/help', '/說明', '/指令', '/訂單', '/order', '/orders' );
 		if ( in_array( strtolower( trim( $text ) ), $system_commands, true ) ) {
 			$this->logger->log( 'system_command_detected', array(
 				'command'  => $text,
