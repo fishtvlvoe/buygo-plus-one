@@ -257,9 +257,9 @@ class LineOrderNotifier {
 				// ignore
 			}
 
-			// 如果有商品 ID，連結到商品編輯頁；否則連結到訂單詳情頁
+			// 如果有商品 ID，連結到下單名單頁（buyers）；否則連結到訂單詳情頁
 			if ( $productVariationId ) {
-				$orderUrl = home_url( '/buygo-portal/products/?view=edit&id=' . $productVariationId );
+				$orderUrl = home_url( '/buygo-portal/products/?view=buyers&id=' . $productVariationId );
 			} else {
 				$orderUrl = home_url( '/buygo-portal/orders/?view=detail&id=' . $order->id );
 			}

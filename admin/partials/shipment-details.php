@@ -524,7 +524,7 @@ $shipment_details_template .= <<<'HTML'
             </div>
 
             <!-- 出貨資訊（只在已出貨/存檔狀態顯示） -->
-            <div v-if="activeTab === 'shipped' || activeTab === 'archived'" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
+            <div v-if="detailModal.shipment && (activeTab === 'shipped' || activeTab === 'archived')" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6">
                 <h4 class="text-sm font-bold text-slate-900 mb-4 border-l-4 border-green-500 pl-3">出貨資訊</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="flex">
