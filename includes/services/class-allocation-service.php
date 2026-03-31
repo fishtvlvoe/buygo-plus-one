@@ -246,19 +246,20 @@ class AllocationService
             }
             $post_id = $product->post_id;
 
-            // 1. 取得商品的「已採購」數量
-            $purchased = (int)get_post_meta($post_id, '_buygo_purchased', true);
+            // 1. 取得所有 variation IDs（多樣式商品支援）
+            $varInfo = $this->getAllVariationIds($product_id);
+            $variation_ids = $varInfo['variation_ids'];
 
-            // 2. 查詢所有相關的訂單項目
+            // 2. 取得商品的「已採購」數量（多樣式走 fct_meta，單一商品走 post_meta）
+            $purchased = $this->getTotalPurchased($post_id, $variation_ids);
+
+            // 3. 查詢所有相關的訂單項目
             // 【修復】多樣式商品支援：用所有 variation IDs 查詢，不只用單一 product_id
             $order_ids = array_keys($allocations);
             if (empty($order_ids)) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('NO_ORDER_IDS', '沒有提供訂單 ID');
             }
-
-            $varInfo = $this->getAllVariationIds($product_id);
-            $variation_ids = $varInfo['variation_ids'];
 
             $order_placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
             $var_placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
