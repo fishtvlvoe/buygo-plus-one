@@ -317,7 +317,7 @@ const DashboardPageComponent = {
 
             // activities
             if (initial.activities?.data) {
-                this.rawActivities = initial.activities.data || [];
+                this.rawActivities = Array.isArray(initial.activities.data) ? initial.activities.data : [];
                 this.calculateConvertedActivities();
                 hasData = true;
             }
@@ -367,7 +367,7 @@ const DashboardPageComponent = {
 
             const activitiesCache = window.BuyGoCache.get('dashboard-activities');
             if (activitiesCache?.data) {
-                this.rawActivities = activitiesCache.data || [];
+                this.rawActivities = Array.isArray(activitiesCache.data) ? activitiesCache.data : [];
                 this.calculateConvertedActivities();
                 hasData = true;
             }
