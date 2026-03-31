@@ -110,8 +110,8 @@ function useShipmentProducts() {
         error.value = null;
 
         try {
-            // 加入時間戳記強制繞過所有快取
-            let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending&_t=${Date.now()}`;
+            // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
+            let url = `/wp-json/buygo-plus-one/v1/shipments?page=${currentPage.value}&per_page=${perPage.value}&status=pending`;
 
             // 加入搜尋參數
             if (searchQuery.value) {
@@ -120,10 +120,7 @@ function useShipmentProducts() {
 
             const response = await fetch(url, {
                 credentials: 'include',
-                cache: 'no-store',  // 防止瀏覽器快取，確保每次都取得最新資料
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
                     'X-WP-Nonce': wpNonce
                 }
             });

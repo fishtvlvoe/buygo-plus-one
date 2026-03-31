@@ -40,6 +40,7 @@ $new_sidebar_template = <<<HTML
             <a v-for="item in menuItems" :key="item.id"
                :href="item.url"
                @click="handleNavClick(\$event, item)"
+               @mouseenter="preloadPage(item.id)"
                :class="[
                    'w-full flex items-center px-4 md:px-6 py-3 transition-colors duration-200 group relative',
                    (navigatingTo === item.id || currentPage === item.id) ? 'bg-blue-50 text-primary border-r-2 border-primary' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
@@ -230,6 +231,14 @@ const NewSidebarComponent = {
             navigatingTo.value = item.id;
         };
 
+        // Hover 預載：滑鼠移入時預先抓取該頁面資料，減少切頁延遲
+        const preloadPage = (pageId) => {
+            if (window.BuyGoCache && window.BuyGoCache.preloadPage) {
+                var nonce = window.buygoWpNonce || '';
+                window.BuyGoCache.preloadPage(pageId, nonce);
+            }
+        };
+
         // 切換側邊欄狀態（向父元件發送事件）
         const toggleSidebar = () => {
             emit('toggle');
@@ -264,7 +273,8 @@ const NewSidebarComponent = {
             navigatingTo,
             menuItems,
             toggleSidebar,
-            handleNavClick
+            handleNavClick,
+            preloadPage
         };
     }
 };
