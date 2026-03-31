@@ -1945,8 +1945,8 @@ const SettingsPageComponent = {
         };
 
         // 載入小幫手列表
-        const loadHelpers = async (preloadedResult = null) => {
-            loadingHelpers.value = true;
+        const loadHelpers = async (preloadedResult = null, options = {}) => {
+            if (!options.silent) loadingHelpers.value = true;
 
             try {
                 let result;
@@ -2282,8 +2282,8 @@ const SettingsPageComponent = {
         };
         
         // 載入關鍵字列表
-        const loadKeywords = async () => {
-            loadingKeywords.value = true;
+        const loadKeywords = async (options = {}) => {
+            if (!options.silent) loadingKeywords.value = true;
             
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/line-keywords', {
@@ -2540,11 +2540,24 @@ const SettingsPageComponent = {
         onMounted(async () => {
             const initial = window.buygoInitialData;
             await checkAdmin();
-            await loadTemplates(initial?.templates || null);
-            await loadHelpers(initial?.helpers || null);
-            await loadKeywords();
-            await initSortedTemplates();
-            if (initial) delete window.buygoInitialData;
+
+            // 有預注入資料：先用預注入資料渲染，不等 API
+            if (initial?.templates || initial?.helpers) {
+                await loadTemplates(initial.templates || null);
+                await loadHelpers(initial.helpers || null);
+                await initSortedTemplates();
+                // 關鍵字不在預注入裡，背景載入（silent）
+                loadKeywords({ silent: true });
+                delete window.buygoInitialData;
+            } else {
+                // 無預注入：三個 API 並行載入
+                await Promise.all([
+                    loadTemplates(),
+                    loadHelpers(),
+                    loadKeywords()
+                ]);
+                await initSortedTemplates();
+            }
         });
 
         // 幣別切換處理（Header 元件會呼叫此方法）
