@@ -103,62 +103,10 @@ foreach ($permission_keys as $perm) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
-    <!-- Design System CSS (inline 繞過 InstaWP WAF) -->
-    <style>
-    <?php
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/colors.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/spacing.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/typography.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/tokens/effects.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/header.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/smart-search-box.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/table.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/card.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/button.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/form.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/status-tag.css';
-    include BUYGO_PLUS_ONE_PLUGIN_DIR . 'design-system/components/pagination.css';
-    ?>
-    * { box-sizing: border-box; }
-    a { text-decoration: none; }
-    button { font-family: inherit; }
-    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-    .hidden-mobile { display: none; }
-    @media (min-width: 768px) { .hidden-mobile { display: block; } }
-    .hidden-desktop { display: block; }
-    @media (min-width: 768px) { .hidden-desktop { display: none; } }
-    /* Skeleton Loading */
-    .buygo-skeleton { display: flex; min-height: 100vh; background: #f8fafc; }
-    .buygo-skeleton-sidebar { width: 12rem; background: #fff; border-right: 1px solid #e2e8f0; padding: 1.5rem 1rem; }
-    .buygo-skeleton-logo { height: 2rem; width: 6rem; background: #e2e8f0; border-radius: 0.5rem; margin-bottom: 2rem; }
-    .buygo-skeleton-menu-item { height: 2.5rem; background: #f1f5f9; border-radius: 0.5rem; margin-bottom: 0.5rem; }
-    .buygo-skeleton-menu-item.active { background: #dbeafe; }
-    .buygo-skeleton-content { flex: 1; padding: 1.5rem; }
-    .buygo-skeleton-header { height: 2rem; width: 12rem; background: #e2e8f0; border-radius: 0.5rem; margin-bottom: 1.5rem; }
-    .buygo-skeleton-table { background: #fff; border-radius: 0.75rem; padding: 1.5rem; }
-    .buygo-skeleton-row { height: 3rem; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; border-radius: 0.5rem; margin-bottom: 0.75rem; animation: buygo-shimmer 1.5s infinite; }
-    @keyframes buygo-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    @media (max-width: 768px) { .buygo-skeleton-sidebar { display: none; } .buygo-skeleton-content { padding: 1rem; } }
-    /* SPA Page Transition */
-    .buygo-page-enter { opacity: 0; }
-    .buygo-page-loaded { opacity: 1; transition: opacity 0.15s ease-in; }
-    /* Page Content Skeleton（SPA 切換時各頁面的 loading 狀態） */
-    .buygo-content-skeleton {
-        animation: buygo-shimmer 1.5s infinite;
-        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-        background-size: 200% 100%;
-        border-radius: 0.5rem;
-    }
-    </style>
+    <!-- Design System CSS（合併外部檔，瀏覽器可快取；用 filemtime 當版本號避免舊快取） -->
+    <link rel="stylesheet" href="<?php echo plugins_url('dist/design-system.css', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . filemtime(BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/design-system.css'); ?>">
 
-    <!-- BuyGo Core JS Modules -->
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/RouterMixin.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/DesignSystem.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'admin/js/BuyGoCache.js'; ?></script>
-    <!-- SPA Router -->
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useRouter.js'; ?></script>
-
+    <!-- 字體 -->
     <style>
         body { font-family: 'Open Sans', sans-serif; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
@@ -197,25 +145,14 @@ foreach ($permission_keys as $perm) {
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/smart-search-box.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/page-header.php'; ?>
     <?php require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/pagination.php'; ?>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'components/shared/header-component.js'; ?></script>
 
     <!-- Vue 3 + SortableJS + VueDraggable（全部本地，無 CDN） -->
     <script src="<?php echo plugins_url('assets/js/vue.global.prod.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
     <script src="<?php echo plugins_url('assets/js/sortable.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
     <script src="<?php echo plugins_url('assets/js/vuedraggable.umd.min.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 
-    <!-- 全站 Composables -->
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useCurrency.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useApi.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/usePermissions.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useDataLoader.js'; ?></script>
-
-    <!-- 頁面 Composables（SPA：全部載入） -->
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useOrders.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useProducts.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentProducts.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
-    <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useBatchCreate.js'; ?></script>
+    <!-- BuyGo App JS（14 個模組合併外部檔，瀏覽器可快取；Vue 之後載入） -->
+    <script src="<?php echo plugins_url('dist/app.js', BUYGO_PLUS_ONE_PLUGIN_FILE) . '?v=' . filemtime(BUYGO_PLUS_ONE_PLUGIN_DIR . 'dist/app.js'); ?>"></script>
 
     <!-- 全域變數 -->
     <script>
