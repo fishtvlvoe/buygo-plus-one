@@ -33,13 +33,13 @@ class FluentCartCustomerPortal {
         // 在 init hook 裡註冊 endpoint（優先級 20，確保 FluentCart 已初始化）
         add_action('init', [self::class, 'registerEndpoints'], 20);
 
-        // 偵測 ?embed=1 參數：注入 CSS 隱藏 WordPress header/footer/sidebar
+        // 偵測 ?buygo_embed=1 參數：注入 CSS 隱藏 WordPress header/footer/sidebar
         // 讓 iframe 只顯示 FluentCart 會員中心內容區
         add_action('wp_head', [self::class, 'maybeInjectEmbedStyles']);
     }
 
     /**
-     * 偵測 ?embed=1 並注入 CSS 隱藏 WordPress 外框
+     * 偵測 ?buygo_embed=1 並注入 CSS 隱藏 WordPress 外框
      *
      * 讓 WordPress 正常載入頁面（shortcode 正常渲染），
      * 但用 CSS 隱藏 header、footer、sidebar、admin bar 等外框元素，
@@ -48,7 +48,7 @@ class FluentCartCustomerPortal {
      * @return void
      */
     public static function maybeInjectEmbedStyles(): void {
-        if (empty($_GET['embed'])) {
+        if (empty($_GET['buygo_embed'])) {
             return;
         }
 
