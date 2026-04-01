@@ -127,23 +127,3 @@ jobs:
               "requires": "5.8",
               "requires_php": "7.4"
             }' || echo "⚠️ Cloudflare Workers webhook 失敗（不影響發布）"
-
-      - name: Send LINE Notification
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" == "success" ]; then
-            EMOJI="🎉"
-            MESSAGE="BuyGo Plus One v${{ steps.get_version.outputs.VERSION }} 發布成功！"
-          else
-            EMOJI="❌"
-            MESSAGE="BuyGo Plus One v${{ steps.get_version.outputs.VERSION }} 發布失敗"
-          fi
-
-          curl -X POST https://notify-api.line.me/api/notify \
-            -H "Authorization: Bearer ${{ secrets.LINE_NOTIFY_TOKEN }}" \
-            -F "message=${EMOJI} ${MESSAGE}
-          📦 大小: ${{ env.FILE_SIZE }}
-          🔐 SHA256: ${{ env.FILE_SHA256 }}
-          🔗 ${{ steps.create_release.outputs.html_url }}" \
-            || echo "⚠️ LINE 通知失敗（不影響發布）"
