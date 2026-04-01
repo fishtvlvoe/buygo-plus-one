@@ -1,4 +1,4 @@
-name: Auto Version Bump & Release
+name: Auto Tag & Release
 
 on:
   push:
@@ -6,93 +6,63 @@ on:
       - main
 
 jobs:
-  bump-version:
+  auto-tag:
     runs-on: ubuntu-latest
-    # 跳過條件：commit message 含 [skip ci] 或 chore: bump version（避免無限迴圈）
+    # 跳過 auto-release 自己打的 tag push（避免重複觸發）
     if: |
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !startsWith(github.event.head_commit.message, 'chore: bump version')
+      !contains(github.event.head_commit.message, '[skip ci]')
     permissions:
-      contents: write  # 允許 commit、打 tag、建立 Release
+      contents: write
 
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 需要完整歷史以便產生 changelog
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: 讀取目前版本號
-        id: current_version
+      - name: 讀取版本號
+        id: version
         run: |
-          # 從外掛主檔讀取版本號（格式：" * Version:           0.5.0"）
           VERSION=$(grep -m1 '^\s*\*\s*Version:' buygo-plus-one.php | sed 's/.*Version:[[:space:]]*//')
-          echo "目前版本：$VERSION"
+          echo "版本號：$VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: 計算新版本（patch +1）
-        id: new_version
+      - name: 檢查 tag 是否已存在
+        id: check_tag
         run: |
-          CURRENT="${{ steps.current_version.outputs.version }}"
-          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
-          MINOR=$(echo "$CURRENT" | cut -d. -f2)
-          PATCH=$(echo "$CURRENT" | cut -d. -f3)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          echo "新版本：$NEW_VERSION"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          VERSION="${{ steps.version.outputs.version }}"
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} 已存在，跳過"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag v${VERSION} 不存在，準備建立"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: 把新版本號寫回 buygo-plus-one.php
-        run: |
-          CURRENT="${{ steps.current_version.outputs.version }}"
-          NEW="${{ steps.new_version.outputs.version }}"
-          # 替換外掛標頭的 Version 行
-          sed -i "s/\(\s*\*\s*Version:\s*\)${CURRENT}/\1${NEW}/" buygo-plus-one.php
-          # 替換 define('BUYGO_VERSION', ...) 常數（如果有）
-          sed -i "s/\(define\s*(\s*'BUYGO_VERSION'\s*,\s*'\)${CURRENT}'/\1${NEW}'/" buygo-plus-one.php
-          # 驗證替換結果
-          grep -E 'Version:|BUYGO_VERSION' buygo-plus-one.php | head -5
-
-      - name: 產生 Changelog（本次 push 的 commits）
+      - name: 產生 Changelog
+        if: steps.check_tag.outputs.exists == 'false'
         id: changelog
         run: |
-          # 取得上一個 tag 到 HEAD 之間的所有 commits
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
             COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
           else
             COMMITS=$(git log --pretty=format:"- %s" --no-merges | head -20)
           fi
-
-          # 如果沒有任何 commit（不太可能），給預設文字
           if [ -z "$COMMITS" ]; then
             COMMITS="- 版本更新"
           fi
-
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Git 設定（使用 GitHub Actions bot）
+      - name: 打 Tag 並 Push
+        if: steps.check_tag.outputs.exists == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
 
-      - name: Commit 版本號變更
-        run: |
-          NEW="${{ steps.new_version.outputs.version }}"
-          git add buygo-plus-one.php
-          git commit -m "chore: bump version to ${NEW} [skip ci]"
-
-      - name: 打 Tag
-        run: |
-          NEW="${{ steps.new_version.outputs.version }}"
-          git tag "v${NEW}" -m "Release v${NEW}"
-
-      - name: Push commit 與 tag
-        run: |
-          git push origin main
-          git push origin "v${{ steps.new_version.outputs.version }}"
-
-      # Release 由 release.yml 在收到 tag 後自動建立（含 ZIP 打包 + LINE 通知）
-      # 這裡不重複建 Release，避免衝突
+      # tag push 會觸發 release.yml，自動打包 ZIP + 建 Release
