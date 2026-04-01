@@ -487,19 +487,23 @@ $products_component_template .= <<<'HTML'
 
             <!-- 子頁面（編輯、分配、下單名單等） -->
             <div v-show="currentView !== 'list'" class="fixed inset-0 bg-slate-50 z-30 overflow-y-auto w-full">
-                    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-4 md:py-4 flex items-center justify-center md:justify-between shadow-sm relative min-h-[56px]">
-                        <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
+                    <!-- 子頁面 Header Bar：手機版 justify-between，標題 flex-1 自然縮排，按鈕不用 absolute -->
+                    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-4 flex items-center justify-between shadow-sm min-h-[56px]">
+                        <!-- 左側：桌面版顯示返回按鈕 + 分隔線，標題 flex-1 min-w-0 防止被擠壓 -->
+                        <div class="flex items-center gap-2 md:gap-4 flex-1 min-w-0 overflow-hidden pl-12 md:pl-0">
                             <button @click="navigateTo('list')" class="hidden md:flex p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors items-center gap-1 group shrink-0">
                                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                                 <span class="text-sm font-medium">返回</span>
                             </button>
-                            <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
-                            <div class="truncate pr-24 md:pr-0"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
+                            <div class="h-5 w-px bg-slate-200 hidden md:block shrink-0"></div>
+                            <!-- 標題：min-w-0 確保 truncate 生效，不使用固定 padding -->
+                            <div class="min-w-0 flex-1"><h2 class="text-base md:text-xl font-bold text-slate-900 truncate">{{ getSubPageTitle }}</h2></div>
                         </div>
-                        <div class="flex gap-2 shrink-0 md:relative absolute right-4">
-                            <button @click="navigateTo('list')" class="btn btn-secondary text-sm px-4 py-2">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
-                            <button v-if="currentView === 'allocation'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">分配 {{ totalAllocation }} 件</button>
-                            <button v-else-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary text-sm px-4 py-2">儲存</button>
+                        <!-- 右側：手機和桌面都用 flex，不再 absolute；手機版按鈕字體縮小 -->
+                        <div class="flex gap-1.5 shrink-0 ml-2">
+                            <button @click="navigateTo('list')" class="btn btn-secondary text-xs md:text-sm px-2 md:px-4 py-1.5 md:py-2">{{ currentView === 'buyers' ? '關閉' : '取消' }}</button>
+                            <button v-if="currentView === 'allocation'" @click="handleSubPageSave" class="btn btn-primary text-xs md:text-sm px-2 md:px-4 py-1.5 md:py-2">分配 {{ totalAllocation }} 件</button>
+                            <button v-else-if="currentView !== 'buyers'" @click="handleSubPageSave" class="btn btn-primary text-xs md:text-sm px-2 md:px-4 py-1.5 md:py-2">儲存</button>
                         </div>
                     </div>
 
