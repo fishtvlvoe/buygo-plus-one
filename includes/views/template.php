@@ -302,5 +302,18 @@ foreach ($permission_keys as $perm) {
         window.BuyGoCache.preload(window.buygoWpNonce);
     }
     </script>
+
+    <!-- Service Worker 註冊：快取靜態資源（JS/CSS/字型/圖片），加速二次造訪 -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('<?php echo esc_url(plugins_url('assets/sw.js', dirname(__FILE__, 2))); ?>').then(function(registration) {
+                // 註冊成功，Service Worker 範圍：外掛 assets/ 目錄
+            }).catch(function(err) {
+                // 註冊失敗不影響頁面功能
+            });
+        });
+    }
+    </script>
 </body>
 </html>

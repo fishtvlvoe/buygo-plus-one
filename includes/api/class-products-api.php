@@ -265,11 +265,18 @@ class Products_API {
     /**
      * 取得商品列表
      */
+    /**
+     * 取得商品列表
+     *
+     * 使用 per-user Transient 快取（TTL 30 秒），降低頻繁 SWR 輪詢對資料庫的壓力。
+     * 快取 key 包含 user_id 與查詢參數 hash，確保不同使用者、不同篩選條件各自獨立。
+     * 單一商品查詢（帶 id 參數）跳過快取，直接查詢以確保即時性。
+     */
     public function get_products($request) {
         try {
             $productService = new ProductService();
-            
-            // 如果有 ID 參數，只取得單一商品
+
+            // 如果有 ID 參數，只取得單一商品（不走快取，確保即時）
             $productId = $request->get_param('id');
             if (!empty($productId)) {
                 $product = $productService->getProductById((int) $productId);
@@ -345,13 +352,23 @@ class Products_API {
                 ], 200);
             }
             
+            // 建立 per-user 快取 key（包含查詢參數 hash，不同分頁/篩選各自快取）
+            $user_id   = get_current_user_id();
+            $cache_key = 'buygo_products_' . $user_id . '_' . md5(serialize($request->get_params()));
+
+            // 嘗試從 transient 讀取快取
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
+                return new \WP_REST_Response($cached, 200);
+            }
+
             $filters = [
                 'status' => $request->get_param('status') ?? 'all',
                 'search' => $request->get_param('search') ?? ''
             ];
-            
+
             $viewMode = 'frontend'; // BuyGo+1 固定使用 frontend 模式
-            
+
             $products = $productService->getProductsWithOrderCount($filters, $viewMode);
 
             // 去重：同一個商品（post_id）只保留一個，避免多樣式商品重複顯示
@@ -447,15 +464,20 @@ class Products_API {
                 $paged_products = array_slice($formattedProducts, $offset, $per_page);
             }
             
-            return new \WP_REST_Response([
-                'success' => true,
-                'data' => $paged_products,
-                'total' => $total,
-                'page' => $page,
+            $response_data = [
+                'success'  => true,
+                'data'     => $paged_products,
+                'total'    => $total,
+                'page'     => $page,
                 'per_page' => $per_page,
-                'pages' => $total_pages
-            ], 200);
-            
+                'pages'    => $total_pages
+            ];
+
+            // 快取 30 秒（與前端 BuyGoCache.TTL 一致）
+            set_transient($cache_key, $response_data, 30);
+
+            return new \WP_REST_Response($response_data, 200);
+
         } catch (\Exception $e) {
             return new \WP_REST_Response([
                 'success' => false,
@@ -463,7 +485,7 @@ class Products_API {
             ], 500);
         }
     }
-    
+
     /**
      * 更新商品
      */

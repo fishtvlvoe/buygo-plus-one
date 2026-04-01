@@ -351,7 +351,7 @@ class DebugService
                 'created_at' => $logEntry['timestamp']
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DebugService::logToDatabase 失敗: ' . $e->getMessage());
         }
     }

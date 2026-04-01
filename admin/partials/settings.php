@@ -1741,6 +1741,8 @@ const SettingsPageComponent = {
                         credentials: 'include'
                     });
                     result = await response.json();
+                    // 寫入快取供 SPA 切頁時使用
+                    if (window.BuyGoCache) BuyGoCache.set('settings-templates', result);
                 }
 
                 if (result.success && result.data) {
@@ -1958,6 +1960,8 @@ const SettingsPageComponent = {
                         credentials: 'include'
                     });
                     result = await response.json();
+                    // 寫入快取供 SPA 切頁時使用
+                    if (window.BuyGoCache) BuyGoCache.set('settings-helpers', result);
                 }
 
                 if (result.success && result.data) {
@@ -2262,6 +2266,16 @@ const SettingsPageComponent = {
         // 只有賣家（is_seller）可以看到小幫手管理區塊
         // 小幫手（is_helper 但不是 is_seller）看不到此區塊
         const checkAdmin = async () => {
+            // 先查 sessionStorage 快取（權限幾乎不變，避免每次切頁都等 API）
+            try {
+                var cached = sessionStorage.getItem('buygo_permissions');
+                if (cached) {
+                    var parsed = JSON.parse(cached);
+                    isAdmin.value = parsed.can_manage_helpers || parsed.is_wp_admin || false;
+                }
+            } catch (e) { /* ignore */ }
+
+            // 背景更新權限（不阻塞渲染）
             try {
                 const response = await fetch('/wp-json/buygo-plus-one/v1/settings/user/permissions', {
                     headers: { 'X-WP-Nonce': wpNonce },
@@ -2271,13 +2285,16 @@ const SettingsPageComponent = {
                 const result = await response.json();
 
                 if (result.success && result.data) {
-                    // 使用 can_manage_helpers 來決定是否顯示小幫手管理區塊
-                    // can_manage_helpers 在 API 中會檢查 is_seller
                     isAdmin.value = result.data.can_manage_helpers || result.data.is_wp_admin || false;
+                    // 寫入快取供下次 SPA 切頁使用
+                    try { sessionStorage.setItem('buygo_permissions', JSON.stringify(result.data)); } catch (e) { /* ignore */ }
                 }
             } catch (err) {
                 console.error('檢查權限錯誤:', err);
-                isAdmin.value = false;
+                // 無快取才設 false，有快取保留之前的值
+                if (!sessionStorage.getItem('buygo_permissions')) {
+                    isAdmin.value = false;
+                }
             }
         };
         
@@ -2539,7 +2556,8 @@ const SettingsPageComponent = {
         // 初始化
         onMounted(async () => {
             const initial = window.buygoInitialData;
-            await checkAdmin();
+            // checkAdmin 不 await — 先用快取權限渲染，API 回來再更新
+            checkAdmin();
 
             // 有預注入資料：先用預注入資料渲染，不等 API
             if (initial?.templates || initial?.helpers) {
@@ -2550,13 +2568,51 @@ const SettingsPageComponent = {
                 loadKeywords({ silent: true });
                 delete window.buygoInitialData;
             } else {
-                // 無預注入：三個 API 並行載入
-                await Promise.all([
-                    loadTemplates(),
-                    loadHelpers(),
-                    loadKeywords()
-                ]);
-                await initSortedTemplates();
+                // SPA 切頁：先查 BuyGoCache，有快取先渲染
+                var cachedTemplates = window.BuyGoCache ? BuyGoCache.get('settings-templates') : null;
+                var cachedHelpers = window.BuyGoCache ? BuyGoCache.get('settings-helpers') : null;
+
+                if (cachedTemplates || cachedHelpers) {
+                    // 快取命中：先用快取資料渲染（瞬間顯示）
+                    await loadTemplates(cachedTemplates);
+                    await loadHelpers(cachedHelpers);
+                    await initSortedTemplates();
+                    // 關鍵字沒有快取，背景載入
+                    loadKeywords({ silent: true });
+
+                    // 背景靜默更新（SWR 策略）
+                    if (!window.BuyGoCache || !BuyGoCache.isFresh('settings-templates')) {
+                        fetch('/wp-json/buygo-plus-one/v1/settings/templates', {
+                            headers: { 'X-WP-Nonce': wpNonce },
+                            credentials: 'include'
+                        }).then(function(r) { return r.json(); }).then(function(result) {
+                            if (result.success) {
+                                BuyGoCache.set('settings-templates', result);
+                                loadTemplates(result);
+                                initSortedTemplates();
+                            }
+                        });
+                    }
+                    if (!window.BuyGoCache || !BuyGoCache.isFresh('settings-helpers')) {
+                        fetch('/wp-json/buygo-plus-one/v1/settings/helpers', {
+                            headers: { 'X-WP-Nonce': wpNonce },
+                            credentials: 'include'
+                        }).then(function(r) { return r.json(); }).then(function(result) {
+                            if (result.success) {
+                                BuyGoCache.set('settings-helpers', result);
+                                loadHelpers(result);
+                            }
+                        });
+                    }
+                } else {
+                    // 完全沒快取：三個 API 並行載入（原邏輯）
+                    await Promise.all([
+                        loadTemplates(),
+                        loadHelpers(),
+                        loadKeywords()
+                    ]);
+                    await initSortedTemplates();
+                }
             }
         });
 

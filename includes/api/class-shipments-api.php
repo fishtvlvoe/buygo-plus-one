@@ -297,6 +297,14 @@ class Shipments_API
      * @param WP_REST_Request $request
      * @return WP_REST_Response|WP_Error
      */
+    /**
+     * 取得出貨單列表
+     *
+     * 注意：此端點不使用 Transient 快取。
+     * 原因：出貨單狀態（pending → shipped）有即時性需求，操作後必須立即反映。
+     * 此外，回應已主動設定 Cache-Control: no-cache，代表原設計意圖為不允許任何快取。
+     * 若未來確認延遲可接受，可在此處加入 TTL=30 的 per-user Transient 快取。
+     */
     public function get_shipments(WP_REST_Request $request)
     {
         global $wpdb;

@@ -94,17 +94,31 @@ class Customers_API {
     
     /**
      * 取得客戶列表
-     * 
+     *
      * FluentCart 資料表結構：
      * - fct_customers: id, user_id, email, first_name, last_name, status, ltv, purchase_count 等
      * - fct_customer_addresses: 客戶地址和電話資訊
      * - fct_orders: 訂單資料
+     *
+     * 使用 per-user Transient 快取（TTL 30 秒），降低頻繁 SWR 輪詢對資料庫的壓力。
+     * 快取 key 包含 user_id 與查詢參數 hash，確保不同使用者、不同篩選條件各自獨立。
      */
     public function get_customers($request) {
         global $wpdb;
-        
+
         try {
             $params = $request->get_params();
+
+            // 建立 per-user 快取 key（包含查詢參數 hash，不同分頁/搜尋各自快取）
+            $user_id   = get_current_user_id();
+            $cache_key = 'buygo_customers_' . $user_id . '_' . md5(serialize($params));
+
+            // 嘗試從 transient 讀取快取
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
+                return new \WP_REST_Response($cached, 200);
+            }
+
             $page = $params['page'] ?? 1;
             $per_page = $params['per_page'] ?? 20;
             $search = $params['search'] ?? '';
@@ -249,15 +263,20 @@ class Customers_API {
                 unset($customer); // 解除參考
             }
 
-            return new \WP_REST_Response([
-                'success' => true,
-                'data' => $customers,
-                'total' => (int)$total,
-                'page' => (int)$page,
-                'per_page' => (int)$per_page,
+            $response_data = [
+                'success'     => true,
+                'data'        => $customers,
+                'total'       => (int) $total,
+                'page'        => (int) $page,
+                'per_page'    => (int) $per_page,
                 'total_pages' => $per_page > 0 ? ceil($total / $per_page) : 1
-            ], 200);
-            
+            ];
+
+            // 快取 30 秒（與前端 BuyGoCache.TTL 一致）
+            set_transient($cache_key, $response_data, 30);
+
+            return new \WP_REST_Response($response_data, 200);
+
         } catch (\Exception $e) {
             error_log('BuyGo Customers API Exception: ' . $e->getMessage());
             return new \WP_REST_Response([
@@ -266,7 +285,7 @@ class Customers_API {
             ], 500);
         }
     }
-    
+
     /**
      * 取得單一客戶詳情（包含所有訂單）
      */

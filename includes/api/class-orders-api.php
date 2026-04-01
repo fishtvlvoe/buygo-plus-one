@@ -148,22 +148,26 @@ class Orders_API {
 
     /**
      * 取得訂單列表
+     *
+     * 使用 per-user Transient 快取（TTL 30 秒），降低頻繁 SWR 輪詢對資料庫的壓力。
+     * 快取 key 包含 user_id 與查詢參數 hash，確保不同使用者、不同篩選條件各自獨立。
+     * 單一訂單查詢（帶 id 參數）跳過快取，直接查詢以確保即時性。
      */
     public function get_orders($request) {
         try {
             $params = $request->get_params();
 
-            // 如果有 ID 參數，只取得單一訂單
+            // 如果有 ID 參數，只取得單一訂單（不走快取，確保即時）
             if (!empty($params['id'])) {
                 $order = $this->orderService->getOrderById($params['id']);
-                
+
                 if (!$order) {
                     return new \WP_REST_Response([
                         'success' => false,
                         'message' => '訂單不存在'
                     ], 404);
                 }
-                
+
                 return new \WP_REST_Response([
                     'success' => true,
                     'data' => [$order],
@@ -173,23 +177,38 @@ class Orders_API {
                     'pages' => 1
                 ], 200);
             }
-            
-            // 取得訂單列表
+
+            // 建立 per-user 快取 key（包含查詢參數 hash，不同分頁/篩選各自快取）
+            $user_id   = get_current_user_id();
+            $cache_key = 'buygo_orders_' . $user_id . '_' . md5(serialize($params));
+
+            // 嘗試從 transient 讀取快取
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
+                return new \WP_REST_Response($cached, 200);
+            }
+
+            // 快取未命中，查詢資料庫
             $result = $this->orderService->getOrders($params);
 
             // 取得全域統計（不受分頁影響）
             $stats = $this->orderService->getOrderStats();
 
-            return new \WP_REST_Response([
-                'success' => true,
-                'data' => $result['orders'],
-                'total' => $result['total'],
-                'page' => $result['page'],
+            $response_data = [
+                'success'  => true,
+                'data'     => $result['orders'],
+                'total'    => $result['total'],
+                'page'     => $result['page'],
                 'per_page' => $result['per_page'],
-                'pages' => $result['pages'],
-                'stats' => $stats
-            ], 200);
-            
+                'pages'    => $result['pages'],
+                'stats'    => $stats
+            ];
+
+            // 快取 30 秒（與前端 BuyGoCache.TTL 一致）
+            set_transient($cache_key, $response_data, 30);
+
+            return new \WP_REST_Response($response_data, 200);
+
         } catch (\Exception $e) {
             return new \WP_REST_Response([
                 'success' => false,

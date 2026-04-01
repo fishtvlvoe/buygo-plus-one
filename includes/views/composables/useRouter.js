@@ -45,6 +45,9 @@
         // 頁面切換回調（可被 initSPA 更新）
         _onPageChange: null,
 
+        // hover 預取：記錄每個頁面最後一次預取的時間戳（ms）
+        _prefetchedPages: {},
+
         /**
          * 從 URL 解析當前頁面名稱
          * /buygo-portal/orders/ → 'orders'
@@ -110,6 +113,35 @@
             window.addEventListener('buygo-navigate', function(e) {
                 if (self._onPageChange) {
                     self._onPageChange(e.detail.page);
+                }
+            });
+
+            // Hover 預取：滑鼠移到導航連結時提前載入目標頁面資料
+            document.addEventListener('mouseover', function(e) {
+                var link = e.target.closest('a[href*="/buygo-portal/"]');
+                if (!link) return;
+
+                var href = link.getAttribute('href');
+                if (!href) return;
+
+                // 解析目標頁面名稱
+                var match = href.match(/\/buygo-portal\/([a-z-]+)/);
+                if (!match || !self.routes[match[1]]) return;
+
+                var targetPage = match[1];
+
+                // 不預取當前頁面
+                if (targetPage === self.parsePath()) return;
+
+                // 防重複：同一頁面 3 秒內只預取一次
+                var now = Date.now();
+                var lastPrefetch = self._prefetchedPages[targetPage] || 0;
+                if (now - lastPrefetch < 3000) return;
+
+                // 記錄時間戳並執行預取
+                self._prefetchedPages[targetPage] = now;
+                if (window.BuyGoCache && window.BuyGoCache.preloadPage) {
+                    window.BuyGoCache.preloadPage(targetPage, window.buygoWpNonce);
                 }
             });
 
