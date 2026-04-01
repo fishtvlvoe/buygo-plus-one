@@ -141,6 +141,18 @@ const CustomersPageComponent = {
                     ].filter(Boolean);
                     selectedCustomer.value.address = parts.join(', ');
                     isEditing.value = false;
+
+                    // 同步更新列表中對應的客戶資料（讓返回列表時立即可見最新 custom_id）
+                    const idx = customers.value.findIndex(c => c.id === selectedCustomer.value.id);
+                    if (idx !== -1) {
+                        Object.assign(customers.value[idx], editForm.value);
+                        customers.value[idx].full_name = selectedCustomer.value.full_name;
+                        customers.value[idx].custom_id = editForm.value.custom_id;
+                    }
+
+                    // 背景刷新列表，確保資料與伺服器同步
+                    loadCustomers({ silent: true });
+
                     showToast('客戶資料已更新', 'success');
                 } else {
                     showToast(result.message || '儲存失敗', 'error');
@@ -474,7 +486,14 @@ const CustomersPageComponent = {
         };
         
         const handleSearchInput = (query) => {
-            // 搜尋輸入處理（目前無額外邏輯）
+            // 防抖處理：輸入停止 300ms 後才觸發搜尋，避免每次按鍵都發請求
+            if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                searchFilter.value = query || null;
+                searchFilterName.value = query || '';
+                currentPage.value = 1;
+                loadCustomers();
+            }, 300);
         };
         
         const handleSearchClear = () => {
@@ -582,6 +601,9 @@ const CustomersPageComponent = {
             delete window.buygoInitialData?.customers;
             return true;
         };
+
+        // 搜尋防抖計時器
+        let searchDebounceTimer = null;
 
         // popstate listener 清理用
         let removePopstateListener = null;

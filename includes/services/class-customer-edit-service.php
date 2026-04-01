@@ -99,7 +99,34 @@ class CustomerEditService
 
         // 4. 更新 wp_usermeta（自訂欄位）
         if ($customer->user_id) {
+            // 特別處理 buygo_custom_id：儲存前檢查同賣家下唯一性
+            $new_custom_id = $data['custom_id'] ?? $data['buygo_custom_id'] ?? null;
+            if ($new_custom_id !== null) {
+                $new_custom_id = sanitize_text_field($new_custom_id);
+
+                // 空字串允許清除，不做唯一性檢查
+                if ($new_custom_id !== '') {
+                    // 取得當前賣家可存取的所有客戶的 user_id，排除當前客戶
+                    $duplicate_exists = self::check_custom_id_duplicate(
+                        $new_custom_id,
+                        $customer->user_id,
+                        $customer_id
+                    );
+
+                    if ($duplicate_exists) {
+                        return ['success' => false, 'message' => '此編號已被使用'];
+                    }
+                }
+
+                update_user_meta($customer->user_id, 'buygo_custom_id', $new_custom_id);
+                $updated['custom_id'] = $new_custom_id;
+            }
+
             foreach (self::$editable_fields['usermeta'] as $meta_key) {
+                // buygo_custom_id 已在上方單獨處理，跳過
+                if ($meta_key === 'buygo_custom_id') {
+                    continue;
+                }
                 // 前端傳來的 key 不帶 buygo_ 前綴
                 $frontend_key = str_replace('buygo_', '', $meta_key);
                 if (isset($data[$frontend_key]) || isset($data[$meta_key])) {
@@ -115,6 +142,64 @@ class CustomerEditService
             'message' => '客戶資料已更新',
             'data'    => $updated,
         ];
+    }
+
+    /**
+     * 檢查自訂編號在同賣家下是否已被其他客戶使用
+     *
+     * 判斷「同賣家」的方式：查詢當前登入賣家底下所有客戶的 buygo_custom_id，
+     * 排除正在編輯的客戶本身（user_id）。
+     *
+     * @param string $custom_id     要檢查的自訂編號
+     * @param int    $current_user_id 正在編輯的客戶 WordPress user_id（排除自身）
+     * @param int    $customer_id   正在編輯的客戶 FluentCart customer ID（用於取得可存取客戶範圍）
+     * @return bool 若已重複回傳 true
+     */
+    private static function check_custom_id_duplicate(string $custom_id, int $current_user_id, int $customer_id): bool
+    {
+        global $wpdb;
+
+        // 取得當前賣家可存取的賣家 ID 清單
+        $seller_ids = SettingsService::get_accessible_seller_ids();
+
+        // 管理員：搜尋全站所有客戶（排除自身 user_id）
+        if (current_user_can('manage_options') || current_user_can('buygo_admin') || empty($seller_ids)) {
+            $count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->usermeta}
+                 WHERE meta_key = 'buygo_custom_id'
+                 AND meta_value = %s
+                 AND user_id != %d",
+                $custom_id,
+                $current_user_id
+            ));
+            return $count > 0;
+        }
+
+        // 一般賣家：只在其可存取的客戶範圍內查重
+        $seller_ids_str = implode(',', array_map('intval', $seller_ids));
+        $orders_table   = $wpdb->prefix . 'fct_orders';
+        $items_table    = $wpdb->prefix . 'fct_order_items';
+        $customers_table = $wpdb->prefix . 'fct_customers';
+
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*)
+             FROM {$wpdb->usermeta} um
+             INNER JOIN {$customers_table} c ON um.user_id = c.user_id
+             WHERE um.meta_key = 'buygo_custom_id'
+             AND um.meta_value = %s
+             AND um.user_id != %d
+             AND c.id IN (
+                 SELECT DISTINCT o.customer_id
+                 FROM {$orders_table} o
+                 INNER JOIN {$items_table} oi ON o.id = oi.order_id
+                 INNER JOIN {$wpdb->posts} p ON oi.post_id = p.ID OR oi.post_id = p.post_parent
+                 WHERE p.post_author IN ({$seller_ids_str})
+             )",
+            $custom_id,
+            $current_user_id
+        ));
+
+        return $count > 0;
     }
 
     /**

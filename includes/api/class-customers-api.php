@@ -149,15 +149,21 @@ class Customers_API {
             $total = $wpdb->get_var("SELECT COUNT(DISTINCT c.id) FROM {$table_customers} c WHERE {$base_where}");
 
             if (!empty($search)) {
-                $where_conditions[] = "(CONCAT(c.first_name, ' ', c.last_name) LIKE %s 
-                                     OR c.email LIKE %s)";
+                // 搜尋條件：姓名、Email、電話、自訂編號（buygo_custom_id）
                 $search_term = '%' . $wpdb->esc_like($search) . '%';
+                $where_conditions[] = "(CONCAT(c.first_name, ' ', c.last_name) LIKE %s
+                                     OR c.email LIKE %s
+                                     OR um_custom_id.meta_value LIKE %s)";
                 $query_params[] = $search_term;
                 $query_params[] = $search_term;
-                
-                // 重新計算搜尋後的總數
+                $query_params[] = $search_term;
+
+                // 重新計算搜尋後的總數（含 JOIN usermeta）
                 $count_query = "SELECT COUNT(DISTINCT c.id)
                                FROM {$table_customers} c
+                               LEFT JOIN {$wpdb->usermeta} um_custom_id
+                                   ON c.user_id = um_custom_id.user_id
+                                   AND um_custom_id.meta_key = 'buygo_custom_id'
                                WHERE " . implode(' AND ', $where_conditions);
                 $total = $wpdb->get_var($wpdb->prepare($count_query, ...$query_params));
             }
@@ -167,6 +173,7 @@ class Customers_API {
             // 取得客戶資料（直接從 fct_orders 聚合計算，不使用 FluentCart 的統計欄位）
             // 注意：phone 和 address 從 fct_customer_addresses 表取得
             // 名稱優先使用 fct_customer_addresses.name（收件地址中的正式名稱）
+            // custom_id 從 wp_usermeta（buygo_custom_id）JOIN 取得
             $query = "SELECT
                         c.id,
                         c.first_name,
@@ -184,9 +191,13 @@ class Customers_API {
                         MAX(o.created_at) as last_order_date,
                         (SELECT a.phone FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as phone,
                         (SELECT CONCAT(COALESCE(a.city, ''), ', ', COALESCE(a.state, ''), ', ', COALESCE(a.country, ''))
-                         FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address
+                         FROM {$table_addresses} a WHERE a.customer_id = c.id AND a.is_primary = 1 LIMIT 1) as address,
+                        um_custom_id.meta_value as custom_id
                       FROM {$table_customers} c
                       LEFT JOIN {$table_orders} o ON c.id = o.customer_id
+                      LEFT JOIN {$wpdb->usermeta} um_custom_id
+                          ON c.user_id = um_custom_id.user_id
+                          AND um_custom_id.meta_key = 'buygo_custom_id'
                       WHERE {$where_clause}
                       GROUP BY c.id
                       ORDER BY last_order_date DESC, c.id DESC
