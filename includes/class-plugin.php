@@ -267,6 +267,20 @@ class Plugin {
         new \BuyGoPlus\Api\Keywords_API();
 
         // =====================================================================
+        // 訂單與出貨通知：需要在所有請求中註冊（前台結帳也會觸發）
+        // =====================================================================
+
+        // 初始化訂單通知（Phase 31）
+        // 新訂單：通知賣家 + 小幫手 + 買家
+        // 訂單狀態變更：僅通知買家
+        new \BuyGoPlus\Services\LineOrderNotifier();
+
+        // 初始化出貨通知處理器（Phase 33）
+        // 監聽 ShipmentService 出貨事件，觸發出貨通知
+        $notification_handler = \BuyGoPlus\Services\NotificationHandler::get_instance();
+        $notification_handler->register_hooks();
+
+        // =====================================================================
         // LINE 相關：延遲到 rest_api_init 才起（LINE webhook 走 REST 端點進來）
         // =====================================================================
 
@@ -284,16 +298,6 @@ class Plugin {
             // 初始化商品上架通知（Phase 30）
             // 當賣家透過 LINE 上架商品時，通知賣家和小幫手
             new \BuyGoPlus\Services\ProductNotificationHandler();
-
-            // 初始化訂單通知（Phase 31）
-            // 新訂單：通知賣家 + 小幫手 + 買家
-            // 訂單狀態變更：僅通知買家
-            new \BuyGoPlus\Services\LineOrderNotifier();
-
-            // 初始化出貨通知處理器（Phase 33）
-            // 監聽 ShipmentService 出貨事件，觸發出貨通知
-            $notification_handler = \BuyGoPlus\Services\NotificationHandler::get_instance();
-            $notification_handler->register_hooks();
 
             // 初始化 LINE 關鍵字回覆功能
             // 用戶可在 LINE 中輸入 /ID、/綁定、/help 等指令查詢狀態
