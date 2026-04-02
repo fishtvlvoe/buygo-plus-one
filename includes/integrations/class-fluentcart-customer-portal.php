@@ -252,9 +252,8 @@ class FluentCartCustomerPortal {
         $total_items = count($all_rows);
         // 白名單驗證，防止 per_page=0 造成除以零
         $valid_per_page = [10, 20, 50, 100];
-        $per_page = in_array((int)($_GET['per_page'] ?? 10), $valid_per_page, true)
-            ? (int)$_GET['per_page']
-            : 10;
+        $raw_per_page = (int)($_GET['per_page'] ?? 10);
+        $per_page = in_array($raw_per_page, $valid_per_page, true) ? $raw_per_page : 10;
         $current_page = max(1, (int)($_GET['pg'] ?? 1));
         $total_pages = max(1, ceil($total_items / $per_page));
         $current_page = min($current_page, $total_pages);
@@ -293,12 +292,12 @@ class FluentCartCustomerPortal {
 
             // 狀態標籤
             echo "<span style='display:inline-block;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;white-space:nowrap;"
-                . "background:{$itm['status_bg']};color:{$itm['status_color']};'>"
+                . "background:" . esc_attr($itm['status_bg']) . ";color:" . esc_attr($itm['status_color']) . ";'>"
                 . esc_html($itm['status']) . "</span>";
 
             // 右：金額
             echo "<div style='min-width:100px;text-align:right;font-size:14px;color:#1f2937;white-space:nowrap;'>"
-                . "{$itm['symbol']}" . number_format($itm['line_total'], 2) . "</div>";
+                . esc_html($itm['symbol']) . number_format($itm['line_total'], 2) . "</div>";
 
             echo '</div>';
         }
@@ -309,14 +308,14 @@ class FluentCartCustomerPortal {
 
         // 上排：分頁控制（一行排開）
         echo '<div style="display:flex;align-items:center;gap:12px;white-space:nowrap;">';
-        echo "<span style='font-size:13px;color:#6b7280;'>第 {$current_page} 頁，共 {$total_pages} 頁</span>";
+        echo "<span style='font-size:13px;color:#6b7280;'>第 " . (int)$current_page . " 頁，共 " . (int)$total_pages . " 頁</span>";
         echo '<select onchange="window.location.href=\'' . esc_url($base_url) . '?per_page=\'+this.value" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;background:#fff;cursor:pointer;width:auto;max-width:90px;-webkit-appearance:menulist;">';
         foreach ([10, 20, 50, 100] as $opt) {
             $sel = ($opt === $per_page) ? ' selected' : '';
-            echo "<option value='{$opt}'{$sel}>{$opt} / 頁</option>";
+            echo "<option value='" . (int)$opt . "'{$sel}>" . (int)$opt . " / 頁</option>";
         }
         echo '</select>';
-        echo "<span style='font-size:13px;color:#6b7280;'>總計{$total_items}</span>";
+        echo "<span style='font-size:13px;color:#6b7280;'>總計" . (int)$total_items . "</span>";
 
         // 頁碼按鈕
         if ($total_pages > 1) {
@@ -336,7 +335,7 @@ class FluentCartCustomerPortal {
         echo '</div>';
 
         // 下排：合計
-        echo "<div style='text-align:right;margin-top:8px;font-size:14px;font-weight:600;color:#1f2937;'>合計：{$symbol}" . number_format($total_amount, 2) . "</div>";
+        echo "<div style='text-align:right;margin-top:8px;font-size:14px;font-weight:600;color:#1f2937;'>合計：" . esc_html($symbol) . number_format($total_amount, 2) . "</div>";
 
         echo '</div>';
         echo '</div>';
