@@ -86,15 +86,25 @@ if (!function_exists('add_filter')) {
     }
 }
 
+// 支援透過 $GLOBALS['mock_current_user_can'] 控制 current_user_can 回傳值
+// 格式：[ 'capability_name' => true/false, ... ]
+$GLOBALS['mock_current_user_can'] = [];
+
 if (!function_exists('current_user_can')) {
     function current_user_can($capability, ...$args) {
+        if (isset($GLOBALS['mock_current_user_can'][$capability])) {
+            return (bool) $GLOBALS['mock_current_user_can'][$capability];
+        }
         return false;
     }
 }
 
+// 支援透過 $GLOBALS['mock_current_user_id'] 控制 get_current_user_id 回傳值
+$GLOBALS['mock_current_user_id'] = 0;
+
 if (!function_exists('get_current_user_id')) {
     function get_current_user_id() {
-        return 0;
+        return $GLOBALS['mock_current_user_id'] ?? 0;
     }
 }
 
@@ -346,6 +356,16 @@ if (!isset($GLOBALS['wpdb'])) {
             return [];
         }
 
+        public function get_col($query, $column_offset = 0) {
+            // get_accessible_seller_ids 查詢：SELECT seller_id FROM wp_buygo_helpers WHERE helper_id = X
+            if (strpos($query, 'buygo_helpers') !== false && preg_match("/helper_id\s*=\s*'?(\d+)'?/", $query, $m)) {
+                $helper_id = (int) $m[1];
+                $row = $GLOBALS['mock_helper_rows'][$helper_id] ?? null;
+                return $row ? [(int) $row['seller_id']] : [];
+            }
+            return [];
+        }
+
         public function insert($table, $data, $format = null) {
             $this->insert_id = 1;
             return 1;
@@ -497,6 +517,8 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-product-c
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-notification-handler.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-line-order-query-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-customer-edit-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-api.php';
 
 // Mock get_the_title（AllocationService 在 create_child_order 中使用）
 if (!function_exists('get_the_title')) {
