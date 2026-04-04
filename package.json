@@ -30,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/fishtvlvoe/buygo-plus-one/issues"
   },
-  "homepage": "https://github.com/fishtvlvoe/buygo-plus-one#readme"
+  "homepage": "https://github.com/fishtvlvoe/buygo-plus-one#readme",
+  "dependencies": {
+    "@openharness/core": "^0.5.2"
+  }
 }
