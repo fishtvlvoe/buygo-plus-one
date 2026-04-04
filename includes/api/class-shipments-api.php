@@ -326,7 +326,7 @@ class Shipments_API
 
         // 多賣家權限過濾：非管理員只能看到自己的出貨單
         $current_user = wp_get_current_user();
-        $is_admin = in_array('administrator', (array) $current_user->roles, true);
+        $is_admin = API::is_platform_admin();
 
         if (!$is_admin && $current_user->ID > 0) {
             $accessible_seller_ids = SettingsService::get_accessible_seller_ids($current_user->ID);

@@ -116,6 +116,16 @@ class API {
     }
 
     /**
+     * 判斷當前用戶是否為平台管理員（統一判斷，避免各處不一致）
+     * 認定條件：WordPress 管理員（manage_options）或 BuyGo 主帳號（buygo_admin）
+     */
+    public static function is_platform_admin(): bool
+    {
+        return current_user_can('manage_options')
+            || current_user_can('buygo_admin');
+    }
+
+    /**
      * 帶細粒度權限的檢查（小幫手 scope 檢查）
      *
      * 先通過基礎權限檢查，再檢查小幫手是否有特定 scope 權限。
