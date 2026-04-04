@@ -68,9 +68,15 @@ if (!function_exists('apply_filters')) {
     }
 }
 
+// 支援透過 $GLOBALS['mock_action_calls'] 追蹤 do_action 呼叫
+// 格式：[ ['tag' => 'hook_name', 'args' => [...]], ... ]
+// 用法：$GLOBALS['mock_action_calls'] = []; 在測試 setUp 中重置
 if (!function_exists('do_action')) {
     function do_action($tag, ...$args) {
-        // No-op in tests
+        if (!isset($GLOBALS['mock_action_calls'])) {
+            $GLOBALS['mock_action_calls'] = [];
+        }
+        $GLOBALS['mock_action_calls'][] = ['tag' => $tag, 'args' => $args];
     }
 }
 
@@ -307,6 +313,13 @@ $GLOBALS['mock_helper_rows'] = [];
 // 格式：[ seller_id => [ ['id' => X], ['id' => Y], ... ], ... ]
 $GLOBALS['mock_helpers_by_seller'] = [];
 
+// 支援透過 $GLOBALS['mock_shipment_rows'] 控制出貨單查詢結果
+// 格式：[ shipment_id => ['id' => X, 'status' => 'pending', ...], ... ]
+$GLOBALS['mock_shipment_rows'] = [];
+
+// 初始化 do_action 呼叫記錄
+$GLOBALS['mock_action_calls'] = [];
+
 if (!isset($GLOBALS['wpdb'])) {
     $GLOBALS['wpdb'] = new class {
         public $prefix = 'wp_';
@@ -341,6 +354,14 @@ if (!isset($GLOBALS['wpdb'])) {
                         return $row;
                     }
                     return (object) $row;
+                }
+            }
+            // ShipmentService::get_shipment 查詢：SELECT * FROM wp_buygo_shipments WHERE id = X
+            if (strpos($query, 'buygo_shipments') !== false && preg_match('/WHERE id = \'?(\d+)\'?/i', $query, $m)) {
+                $shipment_id = (int) $m[1];
+                $row = $GLOBALS['mock_shipment_rows'][$shipment_id] ?? null;
+                if ($row !== null) {
+                    return $output === ARRAY_A ? $row : (object) $row;
                 }
             }
             return null;
