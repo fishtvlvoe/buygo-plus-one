@@ -223,6 +223,13 @@ class Orders_API {
     public function get_order($request) {
         try {
             $order_id = $request['id'];
+
+            // 驗證訂單所有權
+            $check = API::verify_order_ownership((int) $order_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $order = $this->orderService->getOrderById($order_id);
             
             if (!$order) {
@@ -251,6 +258,13 @@ class Orders_API {
     public function update_order_status($request) {
         try {
             $order_id = $request['id'];
+
+            // 驗證訂單所有權
+            $check = API::verify_order_ownership((int) $order_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $body = json_decode($request->get_body(), true);
             $status = $body['status'] ?? '';
             
@@ -289,6 +303,13 @@ class Orders_API {
     public function update_shipping_status($request) {
         try {
             $order_id = (string)$request['id'];
+
+            // 驗證訂單所有權
+            $check = API::verify_order_ownership((int) $order_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $body = json_decode($request->get_body(), true);
             $status = $body['status'] ?? '';
             $reason = $body['reason'] ?? '';
@@ -328,6 +349,13 @@ class Orders_API {
     public function ship_order($request) {
         try {
             $order_id = (int)$request->get_param('id');
+
+            // 驗證訂單所有權
+            $check = API::verify_order_ownership($order_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $params = $request->get_json_params();
             
             if (empty($params['items']) || !is_array($params['items'])) {
@@ -383,6 +411,13 @@ class Orders_API {
      */
     public function split_order($request) {
         $order_id = (int)$request->get_param('id');
+
+        // 驗證訂單所有權
+        $check = API::verify_order_ownership($order_id);
+        if (is_wp_error($check)) {
+            return $check;
+        }
+
         $params = $request->get_json_params();
         
         $debugService = new \BuyGoPlus\Services\DebugService();
@@ -720,6 +755,12 @@ class Orders_API {
 
         try {
             $order_id = (string)$request['id'];
+
+            // 驗證訂單所有權
+            $check = API::verify_order_ownership((int) $order_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             // 取得訂單資訊
             $order = \FluentCart\App\Models\Order::with(['customer', 'order_items'])->find($order_id);

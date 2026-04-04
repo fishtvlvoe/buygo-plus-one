@@ -291,10 +291,16 @@ class Customers_API {
      */
     public function get_customer($request) {
         global $wpdb;
-        
+
         try {
             $customer_id = (int)$request->get_param('id');
-            
+
+            // 驗證客戶所有權
+            $check = API::verify_customer_ownership($customer_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $table_customers = $wpdb->prefix . 'fct_customers';
             $table_orders = $wpdb->prefix . 'fct_orders';
             $table_addresses = $wpdb->prefix . 'fct_customer_addresses';
@@ -464,9 +470,16 @@ class Customers_API {
      */
     public function update_note($request) {
         global $wpdb;
-        
+
         try {
             $customer_id = (int)$request->get_param('id');
+
+            // 驗證客戶所有權
+            $check = API::verify_customer_ownership($customer_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $body = json_decode($request->get_body(), true);
             $note = $body['note'] ?? '';
             

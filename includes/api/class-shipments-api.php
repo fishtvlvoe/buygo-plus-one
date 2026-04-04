@@ -539,6 +539,13 @@ class Shipments_API
     public function get_shipment(WP_REST_Request $request)
     {
         $shipment_id = $request->get_param('id');
+
+        // 驗證出貨單所有權
+        $check = API::verify_shipment_ownership((int) $shipment_id);
+        if (is_wp_error($check)) {
+            return $check;
+        }
+
         $shipment = $this->shipmentService->get_shipment($shipment_id);
 
         if (!$shipment) {
@@ -603,6 +610,12 @@ class Shipments_API
     {
         $shipment_id = $request->get_param('id');
         $params = $request->get_json_params();
+
+        // 驗證出貨單所有權
+        $check = API::verify_shipment_ownership((int) $shipment_id);
+        if (is_wp_error($check)) {
+            return $check;
+        }
 
         $shipment = $this->shipmentService->get_shipment($shipment_id);
 
@@ -676,6 +689,14 @@ class Shipments_API
             return new WP_Error('missing_shipment_ids', '請選擇要標記的出貨單', ['status' => 400]);
         }
 
+        // 驗證所有出貨單所有權（批次操作前先全部驗證）
+        foreach ($shipment_ids as $sid) {
+            $check = API::verify_shipment_ownership((int) $sid);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+        }
+
         // 驗證日期格式（如果有值）
         if ($estimated_delivery_at && !strtotime($estimated_delivery_at)) {
             return new WP_REST_Response([
@@ -706,11 +727,17 @@ class Shipments_API
     public function archive_shipment(WP_REST_Request $request)
     {
         global $wpdb;
-        
+
         try {
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $shipment_id = (int)$request->get_param('id');
-            
+
+            // 驗證出貨單所有權
+            $check = API::verify_shipment_ownership($shipment_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             // 檢查出貨單是否存在
             $shipment = $wpdb->get_row($wpdb->prepare(
                 "SELECT id, status FROM {$table_shipments} WHERE id = %d",
@@ -756,19 +783,27 @@ class Shipments_API
     public function merge_shipments(WP_REST_Request $request)
     {
         global $wpdb;
-        
+
         try {
             $shipment_ids = $request->get_param('shipment_ids');
-            
+
             // 驗證輸入
             if (empty($shipment_ids) || !is_array($shipment_ids)) {
                 return new WP_Error('invalid_input', '請提供有效的出貨單 ID 陣列', ['status' => 400]);
             }
-            
+
             if (count($shipment_ids) < 2) {
                 return new WP_Error('invalid_input', '至少需要選擇 2 個出貨單才能合併', ['status' => 400]);
             }
-            
+
+            // 驗證所有出貨單所有權
+            foreach ($shipment_ids as $sid) {
+                $check = API::verify_shipment_ownership((int) $sid);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
+            }
+
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             
@@ -857,20 +892,28 @@ class Shipments_API
     public function batch_archive_shipments(WP_REST_Request $request)
     {
         global $wpdb;
-        
+
         try {
             $shipment_ids = $request->get_param('shipment_ids');
-            
+
             if (empty($shipment_ids) || !is_array($shipment_ids)) {
                 return new WP_Error('invalid_input', '請提供有效的出貨單 ID 陣列', ['status' => 400]);
             }
-            
+
             // 確保所有 ID 都是整數
             $shipment_ids = array_map('intval', $shipment_ids);
             $shipment_ids = array_filter($shipment_ids, function($id) { return $id > 0; });
-            
+
             if (empty($shipment_ids)) {
                 return new WP_Error('invalid_input', '請提供有效的出貨單 ID', ['status' => 400]);
+            }
+
+            // 驗證所有出貨單所有權
+            foreach ($shipment_ids as $sid) {
+                $check = API::verify_shipment_ownership((int) $sid);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
             }
             
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
@@ -913,6 +956,12 @@ class Shipments_API
 
         try {
             $shipment_id = (int)$request->get_param('id');
+
+            // 驗證出貨單所有權
+            $check = API::verify_shipment_ownership($shipment_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
@@ -1296,6 +1345,13 @@ class Shipments_API
 
         try {
             $shipment_id = (int)$request->get_param('id');
+
+            // 驗證出貨單所有權
+            $check = API::verify_shipment_ownership($shipment_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
             $table_shipment_items = $wpdb->prefix . 'buygo_shipment_items';
             $table_orders = $wpdb->prefix . 'fct_orders';
@@ -1382,6 +1438,15 @@ class Shipments_API
 
             if (empty($shipment_ids)) {
                 return new WP_Error('invalid_input', '請提供有效的出貨單 ID', ['status' => 400]);
+            }
+
+            // 驗證所有出貨單所有權
+            foreach ($shipment_ids as $sid) {
+                $check = API::verify_shipment_ownership((int) $sid);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
+            }
             }
 
             $table_shipments = $wpdb->prefix . 'buygo_shipments';

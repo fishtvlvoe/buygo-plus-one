@@ -492,6 +492,13 @@ class Products_API {
     public function update_product($request) {
         try {
             $id = $request->get_param('id');
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership((int) $id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             $params = $request->get_json_params();
 
             $productService = new ProductService();
@@ -583,6 +590,14 @@ class Products_API {
                 ], 400);
             }
             
+            // 驗證所有商品所有權（批次操作前先全部驗證）
+            foreach ($ids as $product_id) {
+                $check = API::verify_product_ownership((int) $product_id);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
+            }
+
             // 使用 FluentCart ProductVariation Model 刪除商品
             $deleted_count = 0;
             $failed_ids = [];
@@ -704,7 +719,13 @@ class Products_API {
     public function upload_image($request) {
         try {
             $id = $request->get_param('id');
-            
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership((int) $id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             // 檢查是否有上傳檔案
             if (empty($_FILES['image'])) {
                 return new \WP_REST_Response([
@@ -799,7 +820,13 @@ class Products_API {
     public function delete_image($request) {
         try {
             $id = $request->get_param('id');
-            
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership((int) $id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             // 取得商品
             $product = \FluentCart\App\Models\ProductVariation::find($id);
             if (!$product) {
@@ -844,6 +871,12 @@ class Products_API {
     public function get_buyers($request) {
         try {
             $product_id = $request->get_param('id');
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership((int) $product_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             // 檢查商品是否存在
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
@@ -895,7 +928,13 @@ class Products_API {
     public function get_product_orders($request) {
         try {
             $product_id = (int)$request->get_param('id');
-            
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership($product_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             // 檢查商品是否存在
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
             if (!$product) {
@@ -937,6 +976,14 @@ class Products_API {
             // 1. 取得參數
             $product_id = (int)($params['product_id'] ?? 0);
             $raw_allocations = $params['allocations'] ?? [];
+
+            // 驗證商品所有權
+            if ($product_id > 0) {
+                $check = API::verify_product_ownership($product_id);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
+            }
 
             if (empty($raw_allocations) || !is_array($raw_allocations)) {
                 return new \WP_REST_Response([
@@ -1036,6 +1083,12 @@ class Products_API {
             $params = $request->get_json_params();
             $order_item_id = (int)($params['order_item_id'] ?? 0);
             $customer_id = (int)($params['customer_id'] ?? 0);
+
+            // 驗證商品所有權
+            $check = API::verify_product_ownership($product_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             if ($product_id <= 0) {
                 return new \WP_REST_Response([
@@ -1183,6 +1236,12 @@ class Products_API {
         try {
             $product_id = (int)$request->get_param('id');
 
+            // 驗證商品所有權
+            $check = API::verify_product_ownership($product_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
+
             // 檢查商品是否存在
             $product = \FluentCart\App\Models\Product::find($product_id);
             if (!$product) {
@@ -1214,6 +1273,12 @@ class Products_API {
     public function get_variation_stats($request) {
         try {
             $variation_id = (int)$request->get_param('id');
+
+            // 驗證 variation 所有權
+            $check = API::verify_variation_ownership($variation_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             // 檢查 variation 是否存在
             $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
@@ -1249,6 +1314,12 @@ class Products_API {
         try {
             $variation_id = (int)$request->get_param('id');
             $data = $request->get_json_params();
+
+            // 驗證 variation 所有權
+            $check = API::verify_variation_ownership($variation_id);
+            if (is_wp_error($check)) {
+                return $check;
+            }
 
             // 檢查 variation 是否存在
             $variation = \FluentCart\App\Models\ProductVariation::find($variation_id);
@@ -1358,6 +1429,14 @@ class Products_API {
             $product_id   = (int) ($params['product_id']   ?? 0);
             $order_id     = (int) ($params['order_id']     ?? 0);
             $new_quantity = isset($params['new_quantity']) ? (int) $params['new_quantity'] : -1;
+
+            // 驗證商品所有權
+            if ($product_id > 0) {
+                $check = API::verify_product_ownership($product_id);
+                if (is_wp_error($check)) {
+                    return $check;
+                }
+            }
 
             if ($product_id <= 0) {
                 return new \WP_REST_Response([

@@ -131,4 +131,187 @@ class API {
         }
         return \BuyGoPlus\Services\SettingsService::helper_can($scope);
     }
+
+    // =========================================================
+    // 多租戶所有權驗證 — Ownership Guard Methods
+    // =========================================================
+
+    /**
+     * 驗證商品所有權
+     *
+     * 管理員（manage_options 或 buygo_admin）直接放行。
+     * 其他使用者檢查商品的 post_author 是否在可存取的 seller_ids 中。
+     *
+     * @param int $product_id WP post ID（商品）
+     * @return true|\WP_Error 有權限回傳 true，否則回傳 WP_Error
+     */
+    public static function verify_product_ownership(int $product_id)
+    {
+        // 管理員始終放行
+        if (current_user_can('manage_options') || current_user_can('buygo_admin')) {
+            return true;
+        }
+
+        global $wpdb;
+
+        // 取得商品的 post_author
+        $author_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT post_author FROM {$wpdb->posts} WHERE ID = %d",
+            $product_id
+        ));
+
+        if (!$author_id) {
+            return new \WP_Error('product_not_found', '商品不存在', ['status' => 404]);
+        }
+
+        $seller_ids = \BuyGoPlus\Services\SettingsService::get_accessible_seller_ids();
+
+        if (in_array($author_id, $seller_ids, true)) {
+            return true;
+        }
+
+        return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+    }
+
+    /**
+     * 驗證 Variation 所有權
+     *
+     * 透過 wp_fct_product_variations → parent post 的 post_author 確認歸屬。
+     *
+     * @param int $variation_id Variation ID（wp_fct_product_variations.id）
+     * @return true|\WP_Error
+     */
+    public static function verify_variation_ownership(int $variation_id)
+    {
+        // 管理員始終放行
+        if (current_user_can('manage_options') || current_user_can('buygo_admin')) {
+            return true;
+        }
+
+        global $wpdb;
+
+        // 取得 variation 所屬 parent product 的 post_author
+        $author_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT p.post_author
+             FROM {$wpdb->posts} p
+             JOIN {$wpdb->prefix}fct_product_variations v ON p.ID = v.post_id
+             WHERE v.id = %d",
+            $variation_id
+        ));
+
+        if (!$author_id) {
+            return new \WP_Error('product_not_found', '商品不存在', ['status' => 404]);
+        }
+
+        $seller_ids = \BuyGoPlus\Services\SettingsService::get_accessible_seller_ids();
+
+        if (in_array($author_id, $seller_ids, true)) {
+            return true;
+        }
+
+        return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+    }
+
+    /**
+     * 驗證訂單所有權
+     *
+     * 管理員直接放行。其他使用者檢查訂單中是否有商品屬於可存取的 sellers。
+     *
+     * @param int $order_id FluentCart order ID
+     * @return true|\WP_Error
+     */
+    public static function verify_order_ownership(int $order_id)
+    {
+        // 管理員始終放行
+        if (current_user_can('manage_options') || current_user_can('buygo_admin')) {
+            return true;
+        }
+
+        $seller_ids = \BuyGoPlus\Services\SettingsService::get_accessible_seller_ids();
+        if (empty($seller_ids)) {
+            return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+        }
+
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'fct_orders';
+        $items_table  = $wpdb->prefix . 'fct_order_items';
+        $posts_table  = $wpdb->posts;
+
+        $seller_ids_str = implode(',', array_map('intval', $seller_ids));
+
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT o.id)
+             FROM {$orders_table} o
+             INNER JOIN {$items_table} oi ON o.id = oi.order_id
+             INNER JOIN {$posts_table} p ON oi.post_id = p.ID OR oi.post_id = p.post_parent
+             WHERE o.id = %d AND p.post_author IN ({$seller_ids_str})",
+            $order_id
+        ));
+
+        if ($count > 0) {
+            return true;
+        }
+
+        return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+    }
+
+    /**
+     * 驗證客戶所有權
+     *
+     * 委派給 CustomerEditService::check_ownership()（已有完整實作）。
+     *
+     * @param int $customer_id FluentCart customer ID
+     * @return true|\WP_Error
+     */
+    public static function verify_customer_ownership(int $customer_id)
+    {
+        // 管理員始終放行
+        if (current_user_can('manage_options') || current_user_can('buygo_admin')) {
+            return true;
+        }
+
+        if (\BuyGoPlus\Services\CustomerEditService::check_ownership($customer_id)) {
+            return true;
+        }
+
+        return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+    }
+
+    /**
+     * 驗證出貨單所有權
+     *
+     * 管理員直接放行。其他使用者比對出貨單的 seller_id 是否在可存取的 sellers 中。
+     *
+     * @param int $shipment_id wp_buygo_shipments.id
+     * @return true|\WP_Error
+     */
+    public static function verify_shipment_ownership(int $shipment_id)
+    {
+        // 管理員始終放行
+        if (current_user_can('manage_options') || current_user_can('buygo_admin')) {
+            return true;
+        }
+
+        global $wpdb;
+
+        $table_shipments = $wpdb->prefix . 'buygo_shipments';
+
+        $seller_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT seller_id FROM {$table_shipments} WHERE id = %d",
+            $shipment_id
+        ));
+
+        if ($seller_id === null) {
+            return new \WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
+        }
+
+        $seller_ids = \BuyGoPlus\Services\SettingsService::get_accessible_seller_ids();
+
+        if (in_array((int) $seller_id, $seller_ids, true)) {
+            return true;
+        }
+
+        return new \WP_Error('access_denied', '無存取權限', ['status' => 403]);
+    }
 }
