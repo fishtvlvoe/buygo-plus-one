@@ -254,6 +254,8 @@ class FluentCartCustomerPortal {
         $valid_per_page = [10, 20, 50, 100];
         $raw_per_page = (int)($_GET['per_page'] ?? 10);
         $per_page = in_array($raw_per_page, $valid_per_page, true) ? $raw_per_page : 10;
+        // 額外保護：確保 per_page 至少為 1
+        $per_page = max(1, $per_page);
         $current_page = max(1, (int)($_GET['pg'] ?? 1));
         $total_pages = max(1, ceil($total_items / $per_page));
         $current_page = min($current_page, $total_pages);

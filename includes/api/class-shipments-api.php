@@ -309,8 +309,8 @@ class Shipments_API
     {
         global $wpdb;
 
-        $page = $request->get_param('page') ?: 1;
-        $per_page = $request->get_param('per_page') ?: 10;
+        $page = (int) ($request->get_param('page') ?: 1);
+        $per_page = (int) ($request->get_param('per_page') ?: 10);
         $status = $request->get_param('status'); // 'all', 'pending', 'shipped'
         $id = $request->get_param('id'); // 單一出貨單 ID
         $search = $request->get_param('search') ? sanitize_text_field($request->get_param('search')) : '';
@@ -1446,7 +1446,6 @@ class Shipments_API
                 if (is_wp_error($check)) {
                     return $check;
                 }
-            }
             }
 
             $table_shipments = $wpdb->prefix . 'buygo_shipments';
