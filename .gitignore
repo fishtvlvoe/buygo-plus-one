@@ -43,3 +43,5 @@ one-ssh.md
 設計圖/
 .superset/
 node_modules/
+.spectra/
+openspec/.vector-search.db*
