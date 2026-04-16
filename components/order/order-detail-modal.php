@@ -186,6 +186,11 @@ $order_detail_modal_template = <<<'HTML'
                                 <span v-if="(item.pending_quantity || 0) > 0" class="text-[10px] md:text-xs bg-yellow-100 text-yellow-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-medium">
                                     待出貨: {{ item.pending_quantity }}
                                 </span>
+                                <button
+                                    v-if="item.child_order_id && (!item.shipping_status || item.shipping_status === 'unshipped') && item.status !== 'cancelled'"
+                                    @click="cancelChildOrder({id: item.child_order_id, invoice_no: item.child_invoice_no})"
+                                    class="text-[10px] md:text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-medium transition"
+                                >取消</button>
                             </div>
                         </div>
                     </div>
@@ -523,6 +528,36 @@ const OrderDetailModal = {
                 loadOrderDetail();
             }
         }, { immediate: true });
+
+        const cancelChildOrder = async (childOrder) => {
+            const confirmed = await new Promise(resolve => {
+                if (!window.confirm(`確定要取消子訂單 #${childOrder.invoice_no || childOrder.id} 嗎？此操作無法復原。`)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/child-orders/${childOrder.id}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': props.wpNonce }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('子訂單已取消');
+                    await loadOrderDetail();
+                } else {
+                    alert('取消失敗：' + (data.message || '未知錯誤'));
+                }
+            } catch (e) {
+                alert('取消失敗，請稍後再試');
+            }
+        };
         
         return {
             orderData,
@@ -547,6 +582,7 @@ const OrderDetailModal = {
             selectShippingStatus,
             getShippingStatusColor,
             getShippingStatusText,
+            cancelChildOrder,
             isSubpage: computed(() => props.isSubpage)
         };
     }
