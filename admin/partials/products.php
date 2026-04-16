@@ -972,19 +972,19 @@ $products_component_template .= <<<'HTML'
                                     <div class="mt-3 grid grid-cols-4 gap-2 text-center">
                                         <div class="bg-green-50 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-green-600">已下單</div>
-                                            <div class="font-bold text-green-700">{{ selectedProduct?.ordered || 0 }}</div>
+                                            <div class="font-bold text-green-700">{{ allocationPageStats.ordered }}</div>
                                         </div>
                                         <div class="bg-slate-100 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-slate-600">已採購</div>
-                                            <div class="font-bold text-slate-700">{{ selectedProduct?.purchased || 0 }}</div>
+                                            <div class="font-bold text-slate-700">{{ allocationPageStats.purchased }}</div>
                                         </div>
                                         <div class="bg-primary/10 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-primary">可分配</div>
-                                            <div class="font-bold text-primary">{{ Math.max(0, (selectedProduct?.purchased || 0) - (selectedProduct?.allocated || 0)) }}</div>
+                                            <div class="font-bold text-primary">{{ Math.max(0, allocationPageStats.purchased - allocationPageStats.allocated) }}</div>
                                         </div>
                                         <div class="bg-blue-50 rounded-lg py-2 px-1">
                                             <div class="text-[10px] text-blue-600">已分配</div>
-                                            <div class="font-bold text-blue-700">{{ selectedProduct?.allocated || 0 }}</div>
+                                            <div class="font-bold text-blue-700">{{ allocationPageStats.allocated }}</div>
                                         </div>
                                     </div>
                                 </div>

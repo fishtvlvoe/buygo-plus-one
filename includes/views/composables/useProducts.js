@@ -32,6 +32,7 @@ function useProducts() {
         
         // --- Data Refs ---
         let loadProductsToken = 0; // Race condition guard for variation stats hydration
+        let allocationStatsToken = 0; // Race condition guard for allocation variation stats
         const products = ref([]);
         const selectedItems = ref([]);
         const loading = ref(true);
@@ -171,6 +172,7 @@ function useProducts() {
         const allocationLoading = ref(false);
         const allocationSearch = ref('');
         const allocationSelectedVariant = ref(''); // 選中的 variant object_id（'' = 全部）
+        const allocationVariationStats = ref({ ordered: 0, purchased: 0, allocated: 0 });
 
         // 從訂單列表提取 variant 選項（多樣式商品）
         const allocationVariants = computed(() => {
@@ -187,6 +189,18 @@ function useProducts() {
             });
             const variants = Object.values(variantMap);
             return variants.length > 1 ? variants : [];
+        });
+
+        // Computed stats for allocation page header — reflects selected variation filter
+        const allocationPageStats = computed(() => {
+            if (!allocationSelectedVariant.value) {
+                return {
+                    ordered:   selectedProduct.value?.ordered   || 0,
+                    purchased: selectedProduct.value?.purchased || 0,
+                    allocated: selectedProduct.value?.allocated || 0,
+                };
+            }
+            return allocationVariationStats.value;
         });
 
         // 先按 variant 過濾，再按搜尋關鍵字過濾
@@ -276,6 +290,33 @@ function useProducts() {
         // 監聽分配搜尋或 variant 切換，重置分頁
         watch([allocationSearch, allocationSelectedVariant], () => {
             allocationCurrentPage.value = 1;
+        });
+
+        // Watch allocationSelectedVariant to update stats panel
+        watch(allocationSelectedVariant, async (varId) => {
+            const token = ++allocationStatsToken;
+            allocationVariationStats.value = { ordered: 0, purchased: 0, allocated: 0 };
+            if (!varId) {
+                // Reset to aggregate (allocationPageStats computed will fall back to selectedProduct)
+                return;
+            }
+            try {
+                const res = await fetch(
+                    `/wp-json/buygo-plus-one/v1/variations/${varId}/stats?_t=${Date.now()}`,
+                    { cache: 'no-store', credentials: 'include', headers: { 'X-WP-Nonce': wpNonce } }
+                );
+                const data = await res.json();
+                if (token !== allocationStatsToken) return; // Abort if a newer selection was made
+                if (data.success) {
+                    allocationVariationStats.value = {
+                        ordered:   data.data.ordered   || 0,
+                        purchased: data.data.purchased || 0,
+                        allocated: data.data.allocated || 0,
+                    };
+                }
+            } catch (e) {
+                console.error('載入 variation 統計失敗:', e);
+            }
         });
 
         // Image Modal
@@ -1351,7 +1392,7 @@ function useProducts() {
             // State
             isSidebarCollapsed, showMobileMenu, showMobileSearch, currentTab, currentView, currentId, viewMode,
             products, selectedItems, loading, error, globalSearchQuery, sellerLimit,
-            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, allocationSelectedVariant, allocationVariants, filteredProductOrders, totalAllocation,
+            editingProduct, selectedProduct, buyers, buyersLoading, buyersProduct, buyersSummary, allocatingOrderItemId, productOrders, allocationLoading, allocationSearch, allocationSelectedVariant, allocationVariants, allocationPageStats, filteredProductOrders, totalAllocation,
             buyersVariants, buyersSelectedVariant, filteredBuyersByVariant,
             buyersSearch, buyersCurrentPage, buyersPerPage, buyersPerPageOptions, filteredBuyers, paginatedBuyers, buyersTotalPages, buyersStartIndex, buyersEndIndex, buyersVisiblePages, buyersGoToPage, buyersHandlePerPageChange, goToOrderDetail,
             allocationCurrentPage, allocationPerPage, allocationPerPageOptions, paginatedProductOrders, allocationTotalPages, allocationStartIndex, allocationEndIndex, allocationVisiblePages, allocationGoToPage, allocationHandlePerPageChange,
