@@ -31,6 +31,7 @@ function useProducts() {
         const viewMode = ref('table'); // 'table' or 'grid' - 商品列表顯示模式
         
         // --- Data Refs ---
+        let loadProductsToken = 0; // Race condition guard for variation stats hydration
         const products = ref([]);
         const selectedItems = ref([]);
         const loading = ref(true);
@@ -492,6 +493,7 @@ function useProducts() {
         // --- API Methods ---
         const loadProducts = async (options = {}) => {
             // silent 模式：背景刷新時不顯示 loading skeleton，避免切頁閃爍
+            const currentToken = ++loadProductsToken; // Capture token for this invocation
             if (!options.silent) loading.value = true;
             try {
                 // 使用 BuyGoCache 快取層，不再強制繞過瀏覽器快取
@@ -518,6 +520,22 @@ function useProducts() {
                             }
                             return product;
                         });
+                    // 【修復】靜默二次載入 variation 統計（fire-and-forget）：
+                    // 商品列表先渲染，variation stats 在背景分批補齊，避免 loading spinner 過長
+                    // 每批最多 3 個並行，避免 thundering-herd；token 機制防止快速翻頁的 race condition
+                    const productsWithVariations = products.value.filter(
+                        p => p.has_variations && p.selected_variation_id
+                    );
+                    if (productsWithVariations.length > 0) {
+                        const CONCURRENCY = 3;
+                        (async () => {
+                            for (let i = 0; i < productsWithVariations.length; i += CONCURRENCY) {
+                                if (loadProductsToken !== currentToken) break; // Abort if newer loadProducts called
+                                const batch = productsWithVariations.slice(i, i + CONCURRENCY);
+                                await Promise.all(batch.map(p => onVariationChange(p)));
+                            }
+                        })().catch(() => {}); // Prevent unhandled rejection if IIFE throws unexpectedly
+                    }
                     // 【修復】使用 API 回傳的總數，而非當前頁的商品數
                     totalProducts.value = data.total || products.value.length;
                     // 儲存到 BuyGoCache

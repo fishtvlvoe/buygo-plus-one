@@ -1,20 +1,65 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  ## 專案：BuyGo+1 WordPress 外掛
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ### 技術棧
+  - PHP 8.x + WordPress 6.x（無 WooCommerce）
+  - FluentCart 作為訂單/商品系統（資料表前綴 fct_）
+  - Vue 3（CDN，非 SPA build）作為後台前端
+  - REST API：/wp-json/buygo-plus-one/v1/
+  - PHPUnit 作為測試框架
+
+  ### 核心資料表
+  - fct_orders：訂單（type='split' 為子訂單，parent_id 指向父訂單）
+  - fct_order_items：訂單品項（object_id = variation ID，line_meta JSON 含 _allocated_qty、_shipped_qty）
+  - fct_products：商品
+  - fct_product_variations：商品樣式（多樣式商品）
+
+  ### 訂單結構
+  - 父訂單：客戶下訂的原始訂單，可含多個商品
+  - 子訂單（type='split'）：按商品+賣家拆分，每筆子訂單對應一個 variation
+  - 客戶先下訂不付款，無退款機制
+
+  ### 核心 Service 層（includes/services/）
+  - AllocationService：庫存分配邏輯，建立子訂單，管理 fct_order_items 的分配數量
+  - OrderService：訂單 CRUD，updateOrderStatus()
+  - ChildOrderService：子訂單查詢與格式化
+  - ShipmentService：出貨管理
+  - ProductService：商品與 variation 管理
+
+  ### 前端架構
+  - 後台頁面：admin/partials/*.php（Vue template 內嵌）
+  - Vue composables：includes/views/composables/useProducts.js 等
+  - Vue components：admin/js/components/*.js
+  - 商品統計 API：GET /variations/{id}/stats 回傳單一 variation 的 ordered/purchased/allocated/shipped
+
+  ### 架構規範
+  - 商業邏輯只放 includes/services/
+  - includes/api/ 只做輸入驗證和路由
+  - 禁止在 API 層寫商業邏輯
+  - 測試只測純 PHP 邏輯，不依賴 WordPress 運行環境
+
+  ### 多樣式商品（has_variations）
+  - 每個 variation 有獨立的 purchased/allocated/shipped 數量
+  - 商品列表頁預設顯示 default_variation 的統計
+  - 切換 variation 時透過 onVariationChange() 打 /variations/{id}/stats 取得個別數字
+  - 分配頁面支援按 variation 篩選訂單列表及對應的統計數字
+
+  ### Git 規範
+  - feature/* 分支開發，禁止直接 push main
+  - Conventional commits：feat/fix/refactor/test/chore
+
+rules:
+  proposal:
+    - 說明受影響的 Service class 和 API endpoint
+    - Non-Goals 必填（避免範圍蔓延）
+    - 無退款邏輯（客戶先下訂不付款）
+  design:
+    - 商業邏輯變更必須說明放在哪個 Service class
+    - 前端變更必須說明影響 products.php/orders.php 的哪個區塊和行號
+    - 多樣式商品邏輯必須同時考慮 has_variations=true 和 false 兩種情況
+  tasks:
+    - 每個 task 必須標註 [Tool: codex|copilot|cursor|kimi]
+    - 涉及前端的 task 必須標明影響的檔案路徑和大約行號
+    - 每個 group 最後一個 task 必須包含測試驗證步驟
