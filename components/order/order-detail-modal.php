@@ -568,22 +568,29 @@ const OrderDetailModal = {
             const confirmed = window.confirm(`確定要從訂單中移除「${item.title || item.name || item.post_title}」嗎？此操作無法復原。`);
             if (!confirmed) return;
 
+            let res;
             try {
-                const res = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderData.value.id}/items/${item.id}`, {
+                res = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderData.value.id}/items/${item.id}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                    headers: { 'X-WP-Nonce': props.wpNonce || window.buygoData?.nonce }
+                    headers: { 'X-WP-Nonce': props.wpNonce }
                 });
-                const data = await res.json();
-
-                if (data.success) {
-                    alert('商品已從訂單移除');
-                    await loadOrderDetail();
-                } else {
-                    alert(data.message || '移除失敗');
-                }
             } catch (e) {
                 alert('移除失敗，請稍後再試');
+                return;
+            }
+
+            if (res.ok) {
+                alert('商品已從訂單移除');
+                await loadOrderDetail();
+                return;
+            }
+
+            try {
+                const data = await res.json();
+                alert(data.message || '移除失敗');
+            } catch (e) {
+                alert('移除失敗（HTTP ' + res.status + '）');
             }
         };
         
