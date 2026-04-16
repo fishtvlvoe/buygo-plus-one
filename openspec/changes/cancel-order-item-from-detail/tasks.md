@@ -15,4 +15,4 @@
 ## 3. 驗收
 
 - [x] 3.1 [Tool: copilot] 執行 `composer test` 確認所有測試通過，無回歸
-- [ ] 3.2 [Tool: kimi] Code Review：讀取 `class-order-formatter.php`、`order-detail-modal.php`、`useOrders.js` 的 diff，確認 d1: 複用現有 `useorders.js::cancelchildorder()` 而非新增方法、d2: 取消按鈕放在商品行的分配狀態 badge 旁邊、d3: v-if 條件使用 `childorder.shipping_status === 'unshipped' && childorder.status !== 'cancelled'`、d4: 子訂單 id 從父訂單詳情的商品行資料取得 四個決策均正確實作
+- [x] 3.2 [Tool: kimi] Code Review：讀取 `class-order-formatter.php`、`order-detail-modal.php`、`useOrders.js` 的 diff，確認 d1: 複用現有 `useorders.js::cancelchildorder()` 而非新增方法、d2: 取消按鈕放在商品行的分配狀態 badge 旁邊、d3: v-if 條件使用 `childorder.shipping_status === 'unshipped' && childorder.status !== 'cancelled'`、d4: 子訂單 id 從父訂單詳情的商品行資料取得 四個決策均正確實作
