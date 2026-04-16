@@ -21,6 +21,7 @@ class ChildOrders_API
 {
     private $namespace = 'buygo-plus-one/v1';
     private $childOrderService;
+    private $allocationService;
 
     /**
      * 建構子
@@ -29,6 +30,8 @@ class ChildOrders_API
     {
         // 確保 Service 類別已載入
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-child-order-service.php';
+        require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-allocation-service.php';
+        $this->allocationService = new \BuyGoPlus\Services\AllocationService();
         $this->childOrderService = new ChildOrderService();
     }
 
@@ -60,6 +63,22 @@ class ChildOrders_API
             'methods'             => 'GET',
             'callback'            => [$this, 'get_allocation_summary'],
             'permission_callback' => [$this, 'check_customer_permission'],
+        ]);
+
+        // DELETE /child-orders/{child_order_id} - 管理員取消子訂單
+        register_rest_route($this->namespace, '/child-orders/(?P<child_order_id>\d+)', [
+            'methods'             => 'DELETE',
+            'callback'            => [$this, 'cancel_child_order'],
+            'permission_callback' => [API::class, 'check_permission'],
+            'args'                => [
+                'child_order_id' => [
+                    'required'          => true,
+                    'validate_callback' => function ($param) {
+                        return is_numeric($param) && $param > 0;
+                    },
+                    'sanitize_callback' => 'absint',
+                ],
+            ],
         ]);
     }
 
@@ -190,5 +209,36 @@ class ChildOrders_API
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * 取消子訂單
+     *
+     * @param \WP_REST_Request $request REST 請求
+     * @return \WP_REST_Response REST 回應
+     */
+    public function cancel_child_order(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $child_order_id = (int) $request->get_param('child_order_id');
+        $result = $this->allocationService->cancelChildOrder($child_order_id);
+
+        if (is_wp_error($result)) {
+            $code = $result->get_error_code();
+            $http_status = match ($code) {
+                'NOT_FOUND'            => 404,
+                'STATUS_CONFLICT'      => 409,
+                'CANNOT_CANCEL_SHIPPED',
+                'NOT_CHILD_ORDER',
+                'ALREADY_CANCELLED'    => 422,
+                default                => 500,
+            };
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => $result->get_error_message(),
+                'code'    => $code,
+            ], $http_status);
+        }
+
+        return new \WP_REST_Response(['success' => true], 200);
     }
 }

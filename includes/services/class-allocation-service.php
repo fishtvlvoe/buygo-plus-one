@@ -890,6 +890,80 @@ class AllocationService
     }
 
     /**
+     * 取消子訂單並釋放庫存分配
+     *
+     * @param int $child_order_id 子訂單 ID
+     * @return bool|WP_Error 成功回傳 true，失敗回傳 WP_Error
+     */
+    public function cancelChildOrder(int $child_order_id): bool|\WP_Error
+    {
+        global $wpdb;
+
+        // 1. 查詢子訂單
+        $order = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, type, status, shipping_status FROM {$wpdb->prefix}fct_orders WHERE id = %d",
+                $child_order_id
+            )
+        );
+
+        if ( ! $order ) {
+            return new WP_Error( 'NOT_FOUND', '找不到子訂單' );
+        }
+
+        // 2. 驗證是子訂單 (type = split)
+        if ( 'split' !== $order->type ) {
+            return new WP_Error( 'NOT_CHILD_ORDER', '此訂單不是子訂單' );
+        }
+
+        // 3. 已取消
+        if ( 'cancelled' === $order->status ) {
+            return new WP_Error( 'ALREADY_CANCELLED', '子訂單已取消' );
+        }
+
+        // 4. 只允許取消 unshipped
+        if ( 'unshipped' !== $order->shipping_status ) {
+            return new WP_Error( 'CANNOT_CANCEL_SHIPPED', '只有未出貨的子訂單可以取消' );
+        }
+
+        // 5. 並發守衛：compare-and-set 確保狀態未被其他請求搶先修改
+        $affected = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$wpdb->prefix}fct_orders SET status = 'cancelled' WHERE id = %d AND shipping_status = 'unshipped' AND status != 'cancelled'",
+                $child_order_id
+            )
+        );
+
+        if ( false === $affected ) {
+            return new WP_Error( 'DB_ERROR', '資料庫操作失敗' );
+        }
+
+        if ( 0 === $affected ) {
+            return new WP_Error( 'STATUS_CONFLICT', '子訂單狀態已變更，請重新整理後再試' );
+        }
+
+        // 6. 清除所有對應 order_items 的 _allocated_qty（顯式釋放庫存）
+        $items = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, line_meta FROM {$wpdb->prefix}fct_order_items WHERE order_id = %d",
+                $child_order_id
+            )
+        );
+
+        foreach ( $items as $item ) {
+            $meta = json_decode( $item->line_meta, true ) ?: [];
+            $meta['_allocated_qty'] = 0;
+            $wpdb->update(
+                $wpdb->prefix . 'fct_order_items',
+                [ 'line_meta' => wp_json_encode( $meta ) ],
+                [ 'id' => $item->id ]
+            );
+        }
+
+        return true;
+    }
+
+    /**
      * 複製父訂單地址到子訂單
      *
      * @param int $parent_order_id 父訂單 ID

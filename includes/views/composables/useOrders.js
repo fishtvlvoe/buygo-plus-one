@@ -1062,6 +1062,35 @@ function useOrders() {
             );
         };
 
+        // 取消子訂單並釋放庫存
+        const cancelChildOrder = async (childOrder) => {
+            showConfirm(
+                '確認取消子訂單',
+                `確定要取消子訂單 #${childOrder.invoice_no || childOrder.id} 嗎？取消後將自動釋放庫存分配。`,
+                async () => {
+                    try {
+                        const response = await fetch(`/wp-json/buygo-plus-one/v1/child-orders/${childOrder.id}`, {
+                            method: 'DELETE',
+                            headers: { 'X-WP-Nonce': wpNonce },
+                            credentials: 'include'
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('子訂單已取消，庫存已釋放', 'success');
+                            await loadOrders();
+                        } else {
+                            showToast('取消失敗：' + (result.message || '未知錯誤'), 'error');
+                        }
+                    } catch (err) {
+                        console.error('取消子訂單失敗:', err);
+                        showToast('取消子訂單失敗：' + err.message, 'error');
+                    }
+                }
+            );
+        };
+
         // 載入訂單詳情
         const loadOrderDetail = async (orderId) => {
             try {
@@ -1352,6 +1381,7 @@ function useOrders() {
             shipOrder,
             shipOrderItem,
             shipChildOrder,
+            cancelChildOrder,
             loadOrderDetail,
             shipping,
             handleSearchSelect,

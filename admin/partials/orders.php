@@ -383,6 +383,12 @@ $orders_component_template .= <<<'HTML'
                                         class="btn btn-primary btn-sm flex-shrink-0">
                                         轉備貨
                                     </button>
+                                    <button
+                                        v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
+                                        @click="cancelChildOrder(childOrder)"
+                                        class="btn btn-sm flex-shrink-0 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100">
+                                        取消子訂單
+                                    </button>
                                     <span
                                         v-else-if="childOrder.shipping_status === 'preparing'"
                                         class="status-tag status-tag-warning inline-flex items-center gap-1 flex-shrink-0">
@@ -653,6 +659,12 @@ $orders_component_template .= <<<'HTML'
                                 @click="shipChildOrder(childOrder, order)"
                                 class="btn btn-primary flex-1">
                                 轉備貨
+                            </button>
+                            <button
+                                v-if="!childOrder.shipping_status || childOrder.shipping_status === 'unshipped'"
+                                @click="cancelChildOrder(childOrder)"
+                                class="btn flex-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100">
+                                取消子訂單
                             </button>
                             <span
                                 v-else-if="childOrder.shipping_status === 'preparing'"
