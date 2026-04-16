@@ -191,6 +191,11 @@ $order_detail_modal_template = <<<'HTML'
                                     @click="cancelChildOrder({id: item.child_order_id, invoice_no: item.child_invoice_no})"
                                     class="text-[10px] md:text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-medium transition"
                                 >取消</button>
+                                <button
+                                    v-if="orderData.status !== 'completed' && orderData.status !== 'cancelled'"
+                                    @click="removeOrderItem(item)"
+                                    class="text-[10px] md:text-xs bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full font-medium transition"
+                                >移除</button>
                             </div>
                         </div>
                     </div>
@@ -558,6 +563,29 @@ const OrderDetailModal = {
                 alert('取消失敗，請稍後再試');
             }
         };
+
+        const removeOrderItem = async (item) => {
+            const confirmed = window.confirm(`確定要從訂單中移除「${item.title || item.name || item.post_title}」嗎？此操作無法復原。`);
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/wp-json/buygo-plus-one/v1/orders/${orderData.value.id}/items/${item.id}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'X-WP-Nonce': props.wpNonce || window.buygoData?.nonce }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('商品已從訂單移除');
+                    await loadOrderDetail();
+                } else {
+                    alert(data.message || '移除失敗');
+                }
+            } catch (e) {
+                alert('移除失敗，請稍後再試');
+            }
+        };
         
         return {
             orderData,
@@ -583,6 +611,7 @@ const OrderDetailModal = {
             getShippingStatusColor,
             getShippingStatusText,
             cancelChildOrder,
+            removeOrderItem,
             isSubpage: computed(() => props.isSubpage)
         };
     }

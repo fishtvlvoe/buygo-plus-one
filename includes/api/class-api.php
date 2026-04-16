@@ -67,6 +67,10 @@ class API {
         require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/api/class-reserved-api.php';
         $reserved_api = new Reserved_API();
         $reserved_api->register_routes();
+
+        // 註冊訂單商品 API（移除訂單商品）
+        $order_items_api = new OrderItems_API();
+        $order_items_api->register_routes();
     }
     
     /**
