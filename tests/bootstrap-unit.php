@@ -16,6 +16,9 @@ define('WP_CONTENT_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', dirname(__DIR__) . '/buygo-plus-one.php');
 
+// 載入外掛自動載入器（class-xxx.php 命名規則）
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/autoload.php';
+
 // Mock WordPress functions that are commonly used
 // 支援透過 $GLOBALS['mock_user_roles'] 控制 get_userdata 返回的角色
 // 格式：[ user_id => ['role1', 'role2', ...], ... ]

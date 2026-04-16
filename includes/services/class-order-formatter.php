@@ -75,8 +75,9 @@ class OrderFormatter
         $order_type = $order['type'] ?? 'one-time';
         $is_child_order = !empty($parent_id);
 
-        if (!$is_child_order) {
-            $children = $this->loadChildOrders($order);
+        $fluentcart_order_class = '\\FluentCart\\App\\Models\\Order';
+        if ( ! $is_child_order && class_exists( $fluentcart_order_class ) && method_exists( $fluentcart_order_class, 'with' ) ) {
+            $children = $this->loadChildOrders( $order );
         }
 
         return [
@@ -124,13 +125,27 @@ class OrderFormatter
         $product_name = $this->resolveProductName($item, $wpdb);
 
         // 讀取 line_meta：優先使用從 DB 直接讀取的資料（確保最新）
-        $item_id = (int)($item['id'] ?? 0);
+        $item_id   = (int)($item['id'] ?? 0);
+        $table_order_items = $wpdb->prefix . 'fct_order_items';
+
         $line_meta_value = $db_items[$item_id] ?? $item['line_meta'] ?? $item['meta_data'] ?? '{}';
 
-        if (is_array($line_meta_value)) {
+        // 若沒有 prefetch cache 且 item 本身也沒有帶 meta，則以 item_id 再查一次最新 line_meta
+        if ( ! isset( $db_items[$item_id] ) && $item_id > 0 && ! isset( $item['line_meta'] ) && ! isset( $item['meta_data'] ) ) {
+            $db_item = $wpdb->get_row( $wpdb->prepare(
+                "SELECT id, line_meta FROM {$table_order_items} WHERE id = %d LIMIT 1",
+                $item_id
+            ) );
+
+            if ( $db_item && isset( $db_item->line_meta ) ) {
+                $line_meta_value = $db_item->line_meta;
+            }
+        }
+
+        if ( is_array( $line_meta_value ) ) {
             $meta_data = $line_meta_value;
-        } elseif (is_string($line_meta_value)) {
-            $meta_data = json_decode($line_meta_value, true) ?: [];
+        } elseif ( is_string( $line_meta_value ) ) {
+            $meta_data = json_decode( $line_meta_value, true ) ?: [];
         } else {
             $meta_data = [];
         }
@@ -158,6 +173,32 @@ class OrderFormatter
             $line_total = $unit_price * $quantity;
         }
 
+        // 子訂單 id：從父訂單商品行推導（若有對應子訂單）
+        $child_order_id = null;
+        $order_id       = (int) ( $order['id'] ?? 0 );
+        $parent_id      = $order['parent_id'] ?? null;
+        $object_id      = (int) ( $item['object_id'] ?? 0 );
+
+        if ( empty( $parent_id ) && $order_id > 0 && $object_id > 0 ) {
+            $table_orders = $wpdb->prefix . 'fct_orders';
+
+            $child_order = $wpdb->get_row( $wpdb->prepare(
+                "SELECT o.id
+                 FROM {$table_orders} o
+                 INNER JOIN {$table_order_items} oi ON o.id = oi.order_id
+                 WHERE o.parent_id = %d
+                   AND o.type = 'split'
+                   AND oi.object_id = %d
+                 LIMIT 1",
+                $order_id,
+                $object_id
+            ) );
+
+            if ( $child_order && ! empty( $child_order->id ) ) {
+                $child_order_id = (int) $child_order->id;
+            }
+        }
+
         return [
             'id' => $item['id'] ?? 0,
             'order_id' => $order['id'] ?? 0,
@@ -167,6 +208,7 @@ class OrderFormatter
             'quantity' => $quantity,
             'price' => $unit_price,
             'total' => $line_total,
+            'child_order_id' => $child_order_id,
             'allocated_quantity' => $allocated_quantity,
             'shipped_quantity' => $shipped_quantity,
             'pending_quantity' => max(0, $quantity - $allocated_quantity - $shipped_quantity)
@@ -228,6 +270,35 @@ class OrderFormatter
         $customer_email = '';
         $customer_phone = '';
         $customer_address = '';
+
+        // 如果測試或呼叫端已提供客戶資料，就不再查詢地址表
+        if ( $order_id <= 0 || ! empty( $order['customer_name'] ) || ! empty( $order['customer_phone'] ) || ! empty( $order['customer_address'] ) ) {
+            $customer_name    = $order['customer_name'] ?? '';
+            $customer_phone   = $order['customer_phone'] ?? '';
+            $customer_address = $order['customer_address'] ?? '';
+
+            // 從 customer 關聯讀取 email（以及 name fallback）
+            if ( isset( $order['customer'] ) ) {
+                $customer = $order['customer'];
+                if ( is_object( $customer ) ) {
+                    $customer = $customer->toArray();
+                }
+                $customer_email = $customer['email'] ?? '';
+
+                if ( empty( $customer_name ) ) {
+                    $first_name    = $customer['first_name'] ?? '';
+                    $last_name     = $customer['last_name'] ?? '';
+                    $customer_name = trim( $first_name . ' ' . $last_name );
+                }
+            }
+
+            return [
+                'name'    => $customer_name,
+                'email'   => $customer_email,
+                'phone'   => $customer_phone,
+                'address' => $customer_address,
+            ];
+        }
 
         // 從訂單地址表讀取收件人資訊
         $table_order_addresses = $wpdb->prefix . 'fct_order_addresses';
