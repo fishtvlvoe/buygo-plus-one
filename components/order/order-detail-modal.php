@@ -581,8 +581,8 @@ const OrderDetailModal = {
             }
 
             if (res.ok) {
-                alert('商品已從訂單移除');
                 await loadOrderDetail();
+                alert('商品已從訂單移除');
                 return;
             }
 
