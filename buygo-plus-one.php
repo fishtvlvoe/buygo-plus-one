@@ -3,7 +3,7 @@
  * Plugin Name:       BuyGo Plus One
  * Plugin URI:        https://buygo.me
  * Description:       BuyGo 獨立賣場後台系統
- * Version:           0.5.5
+ * Version:           1.6.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            BuyGo Team
