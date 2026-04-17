@@ -192,15 +192,23 @@ function useProducts() {
         });
 
         // Computed stats for allocation page header — reflects selected variation filter
+        // ordered/allocated 從 productOrders 即時計算，確保與下方列表一致
+        // purchased 只有 stats API 有，故在 variant 模式沿用 allocationVariationStats.purchased
         const allocationPageStats = computed(() => {
             if (!allocationSelectedVariant.value) {
                 return {
-                    ordered:   selectedProduct.value?.ordered   || 0,
+                    ordered:   productOrders.value.reduce((sum, o) => sum + (o.required || o.quantity || 0), 0),
                     purchased: selectedProduct.value?.purchased || 0,
-                    allocated: selectedProduct.value?.allocated || 0,
+                    allocated: productOrders.value.reduce((sum, o) => sum + (o.already_allocated ?? 0), 0),
                 };
             }
-            return allocationVariationStats.value;
+            const varId = parseInt(allocationSelectedVariant.value);
+            const rows  = productOrders.value.filter(o => parseInt(o.object_id) === varId);
+            return {
+                ordered:   rows.reduce((sum, o) => sum + (o.required || o.quantity || 0), 0),
+                purchased: allocationVariationStats.value.purchased || 0,
+                allocated: rows.reduce((sum, o) => sum + (o.already_allocated ?? 0), 0),
+            };
         });
 
         // 先按 variant 過濾，再按搜尋關鍵字過濾

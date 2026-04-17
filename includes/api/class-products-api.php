@@ -609,6 +609,8 @@ class Products_API {
                         // 將商品狀態設為 inactive（軟刪除）
                         $variation->item_status = 'inactive';
                         $variation->save();
+                        $productService = new ProductService();
+                        $productService->deleteProductPost($id);
                         $deleted_count++;
                     } else {
                         $failed_ids[] = $id;

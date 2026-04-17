@@ -2,26 +2,26 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|Bash",
         "hooks": [
           {
-            "type": "command",
             "command": "code-review-graph update --skip-flows",
-            "timeout": 5000
+            "timeout": 5000,
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": "Edit|Write|Bash"
       }
     ],
     "SessionStart": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
             "command": "code-review-graph status",
-            "timeout": 3000
+            "timeout": 3000,
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ]
   },

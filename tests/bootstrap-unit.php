@@ -16,6 +16,9 @@ define('WP_CONTENT_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_DIR', dirname(__DIR__) . '/');
 define('BUYGO_PLUS_ONE_PLUGIN_FILE', dirname(__DIR__) . '/buygo-plus-one.php');
 
+// 載入外掛自動載入器（class-xxx.php 命名規則）
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/autoload.php';
+
 // Mock WordPress functions that are commonly used
 // 支援透過 $GLOBALS['mock_user_roles'] 控制 get_userdata 返回的角色
 // 格式：[ user_id => ['role1', 'role2', ...], ... ]
@@ -332,14 +335,26 @@ if (!isset($GLOBALS['wpdb'])) {
 
         public function get_var($query) {
             // SHOW TABLES LIKE 'wp_buygo_helpers' → 始終假設表存在
-            // 這讓 IdentityService::getHelperInfo 和 RolePermissionService::get_helpers
-            // 都走資料表查詢路徑，由 mock_helper_rows / mock_helpers_by_seller 控制結果
             if (strpos($query, 'SHOW TABLES') !== false && strpos($query, 'buygo_helpers') !== false) {
                 return $this->prefix . 'buygo_helpers';
             }
             // 其他 SHOW TABLES → 假設表不存在
             if (strpos($query, 'SHOW TABLES') !== false) {
                 return null;
+            }
+            // deleteProductPost: SELECT post_id FROM fct_product_variations WHERE id = X LIMIT 1
+            if (!empty($GLOBALS['_test_variation_post_id_map']) && strpos($query, 'fct_product_variations') !== false && strpos($query, 'SELECT post_id') !== false) {
+                if (preg_match("/WHERE id = '?(\d+)'?/i", $query, $m)) {
+                    $vid = (int) $m[1];
+                    return $GLOBALS['_test_variation_post_id_map'][$vid] ?? null;
+                }
+            }
+            // deleteProductPost: SELECT COUNT(*) FROM fct_product_variations WHERE post_id = X AND item_status = 'active' AND id != Y
+            if (!empty($GLOBALS['_test_variation_active_count_map']) && strpos($query, 'fct_product_variations') !== false && strpos($query, 'COUNT(*)') !== false && strpos($query, 'item_status') !== false) {
+                if (preg_match("/WHERE post_id = '?(\d+)'?/i", $query, $m)) {
+                    $post_id = (int) $m[1];
+                    return $GLOBALS['_test_variation_active_count_map'][$post_id] ?? 0;
+                }
             }
             return null;
         }
@@ -557,3 +572,23 @@ if (!isset($GLOBALS['mock_get_post_meta_map'])) {
 if (!isset($GLOBALS['mock_product_variation_map'])) {
     $GLOBALS['mock_product_variation_map'] = [];
 }
+
+// Mock wp_trash_post（ProductService::deleteProductPost 測試用）
+// 透過 $GLOBALS['_test_trash_result'] 控制回傳值
+// 透過 $GLOBALS['_test_trash_called'] 確認是否被呼叫
+if (!function_exists('wp_trash_post')) {
+    function wp_trash_post($post_id) {
+        $GLOBALS['_test_trash_called'] = true;
+        return $GLOBALS['_test_trash_result'] ?? true;
+    }
+}
+
+// 初始化 ProductService 測試用 globals
+$GLOBALS['_test_trash_called'] = false;
+$GLOBALS['_test_trash_result'] = true;
+$GLOBALS['_test_variation_post_id_map'] = [];  // variation_id => post_id
+$GLOBALS['_test_variation_active_count_map'] = []; // variation_id => active_count
+
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-stats-calculator.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-checker.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
