@@ -3,7 +3,7 @@ namespace BuyGoPlus\Api;
 
 use BuyGoPlus\Services\OrderItemService;
 
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
@@ -53,26 +53,45 @@ class OrderItems_API
      * @param \WP_REST_Request $request REST 請求
      * @return \WP_REST_Response REST 回應
      */
-    public function remove_item(\WP_REST_Request $request): \WP_REST_Response
+    public function remove_item( \WP_REST_Request $request ): \WP_REST_Response
     {
-        $order_id = (int) $request->get_param('order_id');
-        $item_id  = (int) $request->get_param('item_id');
+        $order_id = (int) $request->get_param( 'order_id' );
+        $item_id  = (int) $request->get_param( 'item_id' );
+
+        // 變更：DELETE 端點明確驗證 REST nonce（WPCS / CR）。
+        $nonce = $request->get_header( 'X-WP-Nonce' );
+        if ( empty( $nonce ) ) {
+            $nonce = $request->get_param( '_wpnonce' );
+        }
+
+        if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+            return new \WP_REST_Response(
+                [
+                    'success' => false,
+                    'message' => __( 'Invalid security token.', 'buygo-plus-one' ),
+                ],
+                403
+            );
+        }
 
         try {
-            ( new OrderItemService() )->removeItem($order_id, $item_id);
-            return new \WP_REST_Response(['success' => true], 200);
-        } catch (\Exception $e) {
+            ( new OrderItemService() )->removeItem( $order_id, $item_id );
+            return new \WP_REST_Response( [ 'success' => true ], 200 );
+        } catch ( \RuntimeException $e ) {
+            // 變更：改用穩定錯誤碼判斷 HTTP status，避免依賴訊息內容（WPCS）。
+            $code    = (int) $e->getCode();
             $message = $e->getMessage();
+            $status  = 500;
 
-            if (stripos($message, 'not found') !== false) {
-                return new \WP_REST_Response(['success' => false, 'message' => $message], 404);
+            if ( in_array( $code, [ 4041, 4042 ], true ) ) {
+                $status = 404;
+            } elseif ( 4221 === $code ) {
+                $status = 422;
             }
 
-            if (stripos($message, 'completed') !== false || stripos($message, 'cancelled') !== false) {
-                return new \WP_REST_Response(['success' => false, 'message' => $message], 422);
-            }
-
-            return new \WP_REST_Response(['success' => false, 'message' => $message], 500);
+            return new \WP_REST_Response( [ 'success' => false, 'message' => $message ], $status );
+        } catch ( \Exception $e ) {
+            return new \WP_REST_Response( [ 'success' => false, 'message' => $e->getMessage() ], 500 );
         }
     }
 }
