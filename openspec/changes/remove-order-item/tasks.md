@@ -16,4 +16,4 @@
 ## 3. 驗收
 
 - [x] 3.1 [Tool: copilot] 執行 `composer test` 確認所有測試通過，無回歸
-- [ ] 3.2 [Tool: kimi] Code Review：讀取 `class-order-item-service.php`、`class-order-items-api.php`、`order-detail-modal.php` 的 diff，確認 d1: 新增獨立 endpoint 而非複用 fluentcart api、d2: 商業邏輯放在新的 `orderitemservice::removeitem()`，不放在 api 層、d3: 移除按鈕條件使用 `orderdata.status !== 'completed' && orderdata.status !== 'cancelled'`、d4: 移除後呼叫現有 `loadorderdetail()` 重新載入，不手動更新 dom 四個決策均正確實作
+- [x] 3.2 [Tool: kimi] Code Review：讀取 `class-order-item-service.php`、`class-order-items-api.php`、`order-detail-modal.php` 的 diff，確認 d1: 新增獨立 endpoint 而非複用 fluentcart api、d2: 商業邏輯放在新的 `orderitemservice::removeitem()`，不放在 api 層、d3: 移除按鈕條件使用 `orderdata.status !== 'completed' && orderdata.status !== 'cancelled'`、d4: 移除後呼叫現有 `loadorderdetail()` 重新載入，不手動更新 dom 四個決策均正確實作
