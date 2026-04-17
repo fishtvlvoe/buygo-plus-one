@@ -33,18 +33,56 @@ The system SHALL use `Promise.all()` to fetch variation stats in parallel, not s
 - **AND** the failed product SHALL show the fallback aggregate stats (original behavior)
 - **AND** other products' stats SHALL load normally (one failure SHALL NOT block others)
 
+
 <!-- @trace
-source: fix-product-list-variation-init
+source: fix-order-quantity-and-fluentcart-delete
 updated: 2026-04-17
 code:
+  - tests/Unit/Services/ProductServiceDeletePostTest.php
+  - docs/bug/截圖 2026-04-17 中午12.47.23.png
+  - includes/api/class-products-api.php
+  - docs/bug/截圖 2026-04-17 中午12.47.36.png
+  - includes/services/class-product-service.php
+  - includes/views/composables/useProducts.js
   - tests/bootstrap-unit.php
-  - tests/bootstrap.php
-  - tests/Unit/Services/OrderItemServiceTest.php
-  - includes/api/class-order-items-api.php
-  - includes/api/class-api.php
-  - includes/services/class-order-item-service.php
-  - tests/Unit/Services/OrderFormatterChildOrderIdTest.php
-  - components/order/order-detail-modal.php
-  - buygo-plus-one.php
-  - includes/services/class-order-formatter.php
+-->
+
+---
+### Requirement: Allocation page ordered count matches buyers page ordered count
+
+The system SHALL display the same "ordered" quantity on both the allocation page and the buyers list page for the same product.
+When no variant filter is selected (showing all), the allocation page "ordered" stat SHALL be computed by summing the `quantity` field of all entries in `productOrders` (the live order list already loaded for the allocation page), NOT from the cached `selectedProduct.ordered` value.
+The allocation page "allocated" stat SHALL similarly be computed by summing `allocated_quantity` (or `allocated`) from `productOrders`.
+
+#### Scenario: Allocation page ordered count equals buyers page ordered count
+
+- **WHEN** a seller navigates from the product list to the allocation page for a product
+- **AND** no variant filter is selected
+- **THEN** the "ordered" number shown in the allocation page header SHALL equal the sum of all order quantities shown in the allocation order list
+- **AND** the "ordered" number SHALL equal what the buyers list page shows as total quantity for the same product
+
+#### Scenario: Allocation page ordered count reflects new orders without page reload
+
+- **WHEN** a new order is placed for a product
+- **AND** the seller opens the allocation page for that product
+- **THEN** the allocation page "ordered" count SHALL reflect the new order
+- **AND** the count SHALL NOT be stale from a previous product list load
+
+#### Scenario: Variant-filtered allocation stats remain unchanged
+
+- **WHEN** a seller selects a specific variant on the allocation page
+- **THEN** the stats SHALL be fetched from `/variations/{id}/stats` as before
+- **AND** the behavior for variant-specific stats SHALL be unchanged
+
+<!-- @trace
+source: fix-order-quantity-and-fluentcart-delete
+updated: 2026-04-17
+code:
+  - tests/Unit/Services/ProductServiceDeletePostTest.php
+  - docs/bug/截圖 2026-04-17 中午12.47.23.png
+  - includes/api/class-products-api.php
+  - docs/bug/截圖 2026-04-17 中午12.47.36.png
+  - includes/services/class-product-service.php
+  - includes/views/composables/useProducts.js
+  - tests/bootstrap-unit.php
 -->
