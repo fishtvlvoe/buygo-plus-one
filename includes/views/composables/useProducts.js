@@ -194,10 +194,12 @@ function useProducts() {
         // Computed stats for allocation page header — reflects selected variation filter
         const allocationPageStats = computed(() => {
             if (!allocationSelectedVariant.value) {
+                const ordered   = productOrders.value.reduce((sum, o) => sum + (o.quantity || 0), 0);
+                const allocated = productOrders.value.reduce((sum, o) => sum + (o.allocated_quantity ?? o.allocated ?? 0), 0);
                 return {
-                    ordered:   selectedProduct.value?.ordered   || 0,
+                    ordered,
                     purchased: selectedProduct.value?.purchased || 0,
-                    allocated: selectedProduct.value?.allocated || 0,
+                    allocated,
                 };
             }
             return allocationVariationStats.value;

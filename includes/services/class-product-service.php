@@ -788,6 +788,33 @@ class ProductService
         }
     }
 
+    public function deleteProductPost(int $variationId): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'fct_product_variations';
+        $post_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$table} WHERE id = %d LIMIT 1",
+            $variationId
+        ));
+        if (!$post_id) {
+            return false;
+        }
+        $active_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE post_id = %d AND item_status = 'active' AND id != %d",
+            $post_id,
+            $variationId
+        ));
+        if ($active_count > 0) {
+            return false;
+        }
+        try {
+            $result = wp_trash_post($post_id);
+            return (bool) $result;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     /**
      * 取得 Variation 的統計資料
      *
