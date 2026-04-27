@@ -362,33 +362,8 @@ class AllocationService
             }
 
             // 7. 子訂單全部建立成功後，從子訂單重新計算 _allocated_qty 並同步
-            foreach ($items as $item) {
-                $order_id = (int)$item['order_id'];
-
-                // 從子訂單查詢最新的已分配數量（包含剛剛建立的）
-                $actual_allocated = (int)$wpdb->get_var($wpdb->prepare(
-                    "SELECT COALESCE(SUM(child_oi.quantity), 0)
-                     FROM {$wpdb->prefix}fct_orders child_o
-                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
-                     WHERE child_o.parent_id = %d
-                     AND child_o.type = 'split'
-                     AND child_oi.object_id = %d",
-                    $order_id,
-                    (int)$item['object_id']
-                ));
-
-                // 同步 _allocated_qty meta（以子訂單為準）
-                $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
-                $meta_data['_allocated_qty'] = $actual_allocated;
-
-                $wpdb->update(
-                    $wpdb->prefix . 'fct_order_items',
-                    ['line_meta' => json_encode($meta_data)],
-                    ['id' => $item['id']],
-                    ['%s'],
-                    ['%d']
-                );
-            }
+            // 批次操作：1 次 SELECT + 僅對有變動的項目執行 UPDATE，取代 N+1 逐筆查詢
+            $this->syncAllocatedQtyBatch($items);
 
             // 8. 從子訂單重新計算商品的「已分配」總數（所有 variant 合計）
             $recalc_allocated = (int)$wpdb->get_var($wpdb->prepare(
@@ -972,6 +947,80 @@ class AllocationService
      * @param int $child_order_id 子訂單 ID
      * @return void
      */
+    /**
+     * 批次同步訂單項目的已分配數量（空殼 — TDD 紅燈佔位）
+     *
+     * 實作目標：
+     *   1. 對所有 items 做 1 次批次 SELECT，取得每個 (order_id, object_id) 的 SUM(quantity)
+     *   2. 對所有需要更新的 items 做 1 次批次 UPDATE（CASE WHEN 或個別 UPDATE 但在單一事務中）
+     *   總 DB 操作次數 ≤ 2，而非目前的 2N
+     *
+     * @param array $items 訂單項目陣列，每筆需含 id, order_id, object_id, line_meta
+     * @return void
+     */
+    public function syncAllocatedQtyBatch(array $items): void
+    {
+        if (empty($items)) {
+            return;
+        }
+
+        global $wpdb;
+
+        // Step 1：批次 SELECT — 一次查出所有 (order_id, object_id) 的已分配數量
+        $conditions = [];
+        $values     = [];
+        foreach ($items as $item) {
+            $conditions[] = '(child_o.parent_id = %d AND child_oi.object_id = %d)';
+            $values[]     = (int) $item['order_id'];
+            $values[]     = (int) $item['object_id'];
+        }
+
+        $where_clause = implode(' OR ', $conditions);
+        $sql          = $wpdb->prepare(
+            "SELECT child_o.parent_id AS order_id, child_oi.object_id,
+                    COALESCE(SUM(child_oi.quantity), 0) AS allocated_qty
+             FROM {$wpdb->prefix}fct_orders child_o
+             INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+             WHERE child_o.type = 'split'
+             AND ({$where_clause})
+             GROUP BY child_o.parent_id, child_oi.object_id",
+            ...$values
+        );
+
+        $results = $wpdb->get_results($sql, ARRAY_A);
+
+        // 建立 lookup map：key = "order_id:object_id" → value = allocated_qty
+        $alloc_map = [];
+        foreach ($results as $row) {
+            $key             = $row['order_id'] . ':' . $row['object_id'];
+            $alloc_map[$key] = (int) ($row['allocated_qty'] ?? 0);
+        }
+
+        // Step 2：逐筆更新 line_meta，只更新值有變動的項目
+        // 跳過未變動的項目，避免不必要的 DB 寫入
+        foreach ($items as $item) {
+            $key              = (int) $item['order_id'] . ':' . (int) $item['object_id'];
+            $actual_allocated = $alloc_map[$key] ?? 0;
+
+            $meta_data = json_decode($item['line_meta'] ?? '{}', true) ?: [];
+
+            // 值未改變時跳過，保持 DB 操作最小化
+            if (isset($meta_data['_allocated_qty']) && (int) $meta_data['_allocated_qty'] === $actual_allocated) {
+                continue;
+            }
+
+            $meta_data['_allocated_qty'] = $actual_allocated;
+
+            $wpdb->update(
+                $wpdb->prefix . 'fct_order_items',
+                ['line_meta' => json_encode($meta_data)],
+                ['id' => (int) $item['id']],
+                ['%s'],
+                ['%d']
+            );
+        }
+    }
+
     private function copy_parent_addresses_to_child($parent_order_id, $child_order_id)
     {
         global $wpdb;

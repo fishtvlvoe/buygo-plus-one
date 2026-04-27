@@ -6,6 +6,6 @@
 
 ## 2. AllocationService N+1 批次化
 
-- [ ] 2.1 [Tool: sonnet] 撰寫 TDD 紅燈測試 tests/Unit/Services/AllocationBatchPerformanceTest.php，覆蓋 spec「Allocation updates use batch database operations」：(1) 批次查詢取代逐筆查詢 (2) 5 筆 order items 只產生 2 次 DB 操作 (3) 批次結果與逐筆結果等價。執行 `composer test -- --filter AllocationBatchPerformance` 確認紅燈
-- [ ] 2.2 [Tool: sonnet] 依 design「將 N+1 查詢改為批次操作」，修改 includes/services/class-allocation-service.php 第 365-390 行：(1) 迴圈前新增一次 GROUP BY order_id 的批次 SELECT 查出所有子訂單 SUM (2) 迴圈內改從 map 讀取，不做 DB 操作 (3) 迴圈後批次 update line_meta。確保 2N 次 DB 降為 2 次
-- [ ] 2.3 [Tool: sonnet] 執行 `composer test -- --filter AllocationBatchPerformance` 確認綠燈，再跑 `composer test` 確認全套件無回歸
+- [x] 2.1 [Tool: sonnet] 撰寫 TDD 紅燈測試 tests/Unit/Services/AllocationBatchPerformanceTest.php，覆蓋 spec「Allocation updates use batch database operations」：(1) 批次查詢取代逐筆查詢 (2) 5 筆 order items 只產生 2 次 DB 操作 (3) 批次結果與逐筆結果等價。執行 `composer test -- --filter AllocationBatchPerformance` 確認紅燈
+- [x] 2.2 [Tool: sonnet] 依 design「將 N+1 查詢改為批次操作」，修改 includes/services/class-allocation-service.php 第 365-390 行：(1) 迴圈前新增一次 GROUP BY order_id 的批次 SELECT 查出所有子訂單 SUM (2) 迴圈內改從 map 讀取，不做 DB 操作 (3) 迴圈後批次 update line_meta。確保 2N 次 DB 降為 2 次
+- [x] 2.3 [Tool: sonnet] 執行 `composer test -- --filter AllocationBatchPerformance` 確認綠燈，再跑 `composer test` 確認全套件無回歸
