@@ -125,7 +125,7 @@ class CustomerQueryServiceTest extends TestCase
                 return $this->matchRule('get_var', $sql);
             }
 
-            public function get_row(string $sql, int $output = OBJECT): mixed
+            public function get_row(string $sql, $output = OBJECT): mixed
             {
                 $result = $this->matchRule('get_row', $sql);
                 if ($result === null) {
@@ -137,7 +137,7 @@ class CustomerQueryServiceTest extends TestCase
                 return is_object($result) ? $result : (object) $result;
             }
 
-            public function get_results(string $sql, int $output = OBJECT): array
+            public function get_results(string $sql, $output = OBJECT): array
             {
                 $result = $this->matchRule('get_results', $sql);
                 if (empty($result)) {
