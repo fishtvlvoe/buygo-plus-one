@@ -276,8 +276,10 @@ class AllocationService
             $order_placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
             $var_placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
             $items = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}fct_order_items
-                 WHERE object_id IN ($var_placeholders) AND order_id IN ($order_placeholders)",
+                "SELECT oi.* FROM {$wpdb->prefix}fct_order_items oi
+                 INNER JOIN {$wpdb->prefix}fct_orders o ON o.id = oi.order_id
+                 WHERE oi.object_id IN ($var_placeholders) AND oi.order_id IN ($order_placeholders)
+                 AND o.parent_id IS NULL",
                 array_merge($variation_ids, $order_ids)
             ), ARRAY_A);
 
