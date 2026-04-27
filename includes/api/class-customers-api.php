@@ -497,23 +497,7 @@ class Customers_API {
                     'message' => '客戶不存在'
                 ], 404);
             }
-            
-            // 檢查 note 欄位是否存在，如果不存在則先加入
-            $column_exists = $wpdb->get_results($wpdb->prepare(
-                "SELECT COLUMN_NAME 
-                 FROM INFORMATION_SCHEMA.COLUMNS 
-                 WHERE TABLE_SCHEMA = %s 
-                 AND TABLE_NAME = %s 
-                 AND COLUMN_NAME = 'note'",
-                DB_NAME,
-                $table_customers
-            ));
-            
-            if (empty($column_exists)) {
-                // 加入 note 欄位
-                $wpdb->query("ALTER TABLE {$table_customers} ADD COLUMN note TEXT NULL");
-            }
-            
+
             // 更新備註
             $result = $wpdb->update(
                 $table_customers,

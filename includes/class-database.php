@@ -81,6 +81,9 @@ class Database
 
         // 升級 buygo_helpers 表：新增 role 欄位（區分小幫手/上架幫手）
         self::upgrade_helpers_role_column($wpdb);
+
+        // 升級 fct_customers 資料表：新增 note 欄位
+        self::upgrade_customers_table($wpdb);
     }
 
     /**
@@ -635,6 +638,28 @@ class Database
                     ['%d']
                 );
             }
+        }
+    }
+
+    /**
+     * 升級 fct_customers 資料表
+     *
+     * 將原本散落在 API handler 的 DDL 集中管理。
+     * 目前新增 note 欄位，供賣家對顧客備注使用。
+     */
+    private static function upgrade_customers_table($wpdb): void
+    {
+        $table_name = $wpdb->prefix . 'fct_customers';
+
+        // 檢查表格是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            return;
+        }
+
+        // 檢查 note 欄位是否存在
+        $column = $wpdb->get_results("SHOW COLUMNS FROM {$table_name} LIKE 'note'");
+        if (empty($column)) {
+            $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN note TEXT NULL");
         }
     }
 
