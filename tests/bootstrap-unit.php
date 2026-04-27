@@ -592,3 +592,9 @@ $GLOBALS['_test_variation_active_count_map'] = []; // variation_id => active_cou
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-stats-calculator.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-limit-checker.php';
 require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-product-service.php';
+
+// OrderService 相關類別（splitOrder 測試使用）
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-shipping-status-service.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-formatter.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-shipping-manager.php';
+require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/services/class-order-service.php';

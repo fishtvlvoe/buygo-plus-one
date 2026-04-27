@@ -8,11 +8,11 @@
 ## Group 2: orders-api 遷移 [P]
 
 - [x] [P] 2.1 [Tool: sonnet] 依 design「D3: orders-api split_order 遷移目標 — OrderService」與「D1: 遷移策略 — Extract Method，保持行為不變」，先分析 split_order()（430-760 行）依賴，解耦後將邏輯剪切至 OrderService::splitOrder()。API handler 改為一行呼叫。確認 spec「API handlers delegate business logic to service layer」— orders-api 零個 $wpdb 查詢。
-- [ ] 2.2 [Tool: sonnet] 在 tests/Unit/Services/OrderServiceTest.php 補充 splitOrder() 的測試案例，確認主要拆單場景（正常拆、邊界條件）全綠。執行 `composer test` 確認無回歸。
+- [x] 2.2 [Tool: sonnet] 在 tests/Unit/Services/OrderServiceTest.php 補充 splitOrder() 的測試案例，確認主要拆單場景（正常拆、邊界條件）全綠。執行 `composer test` 確認無回歸。
 
 ## Group 3: products-api 遷移 [P]
 
-- [ ] [P] 3.1 [Tool: sonnet] 依 design「D4: products-api allocate_all 遷移目標 — AllocationService」與「D1: 遷移策略 — Extract Method，保持行為不變」，將 class-products-api.php 第 1081-1204 行 6 段 $wpdb query 剪切至 AllocationService::allocateAllForCustomer()。API handler 改為一行呼叫。確認 spec「API handlers delegate business logic to service layer」— products-api 分配相關方法零個 $wpdb 查詢。
+- [x] [P] 3.1 [Tool: sonnet] 依 design「D4: products-api allocate_all 遷移目標 — AllocationService」與「D1: 遷移策略 — Extract Method，保持行為不變」，將 class-products-api.php 第 1081-1204 行 6 段 $wpdb query 剪切至 AllocationService::allocateAllForCustomer()。API handler 改為一行呼叫。確認 spec「API handlers delegate business logic to service layer」— products-api 分配相關方法零個 $wpdb 查詢。
 - [ ] 3.2 [Tool: sonnet] 在 tests/Unit/Services/AllocationServiceTest.php 補充 allocateAllForCustomer() 的測試案例，確認分配邏輯全綠。執行 `composer test` 確認無回歸。
 
 ## Group 4: seller-grant 遷移 [P]

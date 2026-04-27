@@ -1072,4 +1072,127 @@ class AllocationService
             'total_addresses' => count($parent_addresses)
         ]);
     }
+
+    /**
+     * 為顧客的所有訂單一次性分配庫存
+     *
+     * 根據 order_item_id 或 customer_id 查詢相關訂單，
+     * 計算每筆訂單的待分配數量，並統一呼叫 updateOrderAllocations。
+     *
+     * @param int      $product_id    商品（variation）ID
+     * @param int      $order_item_id 指定訂單項目 ID（與 customer_id 二擇一）
+     * @param int      $customer_id   顧客 ID（與 order_item_id 二擇一）
+     * @return array|\WP_Error 成功回傳 ['total_allocated' => int, 'child_orders' => array, 'skipped_orders' => array]，
+     *                          已全部分配則 total_allocated = 0，失敗回傳 WP_Error
+     */
+    public function allocateAllForCustomer(int $product_id, int $order_item_id, int $customer_id)
+    {
+        global $wpdb;
+
+        $table_items  = $wpdb->prefix . 'fct_order_items';
+        $table_orders = $wpdb->prefix . 'fct_orders';
+
+        // 取得同一商品所有 variation IDs
+        $varTable          = $wpdb->prefix . 'fct_product_variations';
+        $post_id_for_alloc = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$varTable} WHERE id = %d LIMIT 1",
+            $product_id
+        ));
+        $allVarIds = [$product_id];
+        if ($post_id_for_alloc) {
+            $ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM {$varTable} WHERE post_id = %d AND item_status = 'active'",
+                $post_id_for_alloc
+            ));
+            if (!empty($ids)) {
+                $allVarIds = array_map('intval', $ids);
+            }
+        }
+        $varPlaceholders = implode(',', array_fill(0, count($allVarIds), '%d'));
+
+        // 查詢需要分配的訂單項目（依 order_item_id 或 customer_id）
+        if ($order_item_id > 0) {
+            $order_items = $wpdb->get_results($wpdb->prepare(
+                "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, oi.line_meta
+                 FROM {$table_items} oi
+                 INNER JOIN {$table_orders} o ON oi.order_id = o.id
+                 WHERE oi.id = %d
+                   AND oi.object_id IN ($varPlaceholders)
+                   AND o.parent_id IS NULL
+                   AND o.status NOT IN ('cancelled', 'refunded')",
+                $order_item_id,
+                ...$allVarIds
+            ));
+        } else {
+            $order_items = $wpdb->get_results($wpdb->prepare(
+                "SELECT oi.id as order_item_id, oi.order_id, oi.object_id, oi.quantity, oi.line_meta
+                 FROM {$table_items} oi
+                 INNER JOIN {$table_orders} o ON oi.order_id = o.id
+                 WHERE oi.object_id IN ($varPlaceholders)
+                   AND o.customer_id = %d
+                   AND o.parent_id IS NULL
+                   AND o.status NOT IN ('cancelled', 'refunded')",
+                ...array_merge($allVarIds, [$customer_id])
+            ));
+        }
+
+        if (empty($order_items)) {
+            return new \WP_Error('order_not_found', '找不到訂單');
+        }
+
+        // 計算每筆訂單的待分配數量
+        $allocations    = [];
+        $skipped_orders = [];
+        foreach ($order_items as $item) {
+            $meta_data = json_decode($item->line_meta ?? '{}', true) ?: [];
+            $quantity  = (int) $item->quantity;
+
+            // 查詢實際已出貨和已分配（子訂單）數量
+            $actual_shipped = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(quantity), 0) FROM {$wpdb->prefix}buygo_shipment_items WHERE order_item_id = %d",
+                $item->order_item_id
+            ));
+            $child_allocated = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                 FROM {$wpdb->prefix}fct_orders child_o
+                 INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                 WHERE child_o.parent_id = %d AND child_o.type = 'split' AND child_oi.object_id = %d",
+                $item->order_id,
+                (int) $item->object_id
+            ));
+
+            $already = max($child_allocated, (int) ($meta_data['_allocated_qty'] ?? 0), $actual_shipped);
+            $needed  = $quantity - $already;
+
+            if ($needed <= 0) {
+                $skipped_orders[] = ['order_id' => $item->order_id, 'reason' => '已全部分配'];
+                continue;
+            }
+
+            // 用訂單的實際 object_id 呼叫（確保多樣式商品正確）
+            $allocations[(int) $item->order_id] = $needed;
+        }
+
+        // 所有訂單已全部分配
+        if (empty($allocations)) {
+            return [
+                'total_allocated' => 0,
+                'child_orders'    => [],
+                'skipped_orders'  => $skipped_orders,
+            ];
+        }
+
+        // 統一走 updateOrderAllocations（建立子訂單 + 同步 meta）
+        $result = $this->updateOrderAllocations($product_id, $allocations);
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        return [
+            'total_allocated' => array_sum($allocations),
+            'child_orders'    => $result['child_orders'] ?? [],
+            'skipped_orders'  => $skipped_orders,
+        ];
+    }
 }
