@@ -13,10 +13,10 @@
 ## Group 3: products-api 遷移 [P]
 
 - [x] [P] 3.1 [Tool: sonnet] 依 design「D4: products-api allocate_all 遷移目標 — AllocationService」與「D1: 遷移策略 — Extract Method，保持行為不變」，將 class-products-api.php 第 1081-1204 行 6 段 $wpdb query 剪切至 AllocationService::allocateAllForCustomer()。API handler 改為一行呼叫。確認 spec「API handlers delegate business logic to service layer」— products-api 分配相關方法零個 $wpdb 查詢。
-- [ ] 3.2 [Tool: sonnet] 在 tests/Unit/Services/AllocationServiceTest.php 補充 allocateAllForCustomer() 的測試案例，確認分配邏輯全綠。執行 `composer test` 確認無回歸。
+- [x] 3.2 [Tool: sonnet] 在 tests/Unit/Services/AllocationServiceTest.php 補充 allocateAllForCustomer() 的測試案例，確認分配邏輯全綠。執行 `composer test` 確認無回歸。
 
 ## Group 4: seller-grant 遷移 [P]
 
 - [x] [P] 4.1 [Tool: sonnet] 依 design「D5: seller-grant-integration 遷移目標 — 新建 SellerGrantService」，分析 fluentcart-seller-grant-integration.php 第 172-689 行，識別商業邏輯邊界。建立 `includes/services/class-seller-grant-service.php` 骨架，定義方法簽名。確認 spec「Integration layer delegates data access to service layer」— 骨架建立完成。
 - [x] [P] 4.2 [Tool: sonnet] 在 `tests/Unit/Services/SellerGrantServiceTest.php` 撰寫測試案例，覆蓋賣家權限管理的主要場景。確認 spec「New service classes are unit-testable」— 測試此時應為紅燈。
-- [ ] 4.3 [Tool: sonnet] 依 design「D1: 遷移策略 — Extract Method，保持行為不變」，將 Integration 中的商業邏輯剪切至 SellerGrantService 對應方法。Integration 改為只做 hook 橋接 + 呼叫 SellerGrantService。確認 spec「Integration layer delegates data access to service layer」— Integration 零個 $wpdb 查詢。跑 `composer test` 確認全綠。
+- [x] 4.3 [Tool: sonnet] 依 design「D1: 遷移策略 — Extract Method，保持行為不變」，將 Integration 中的商業邏輯剪切至 SellerGrantService 對應方法。Integration 改為只做 hook 橋接 + 呼叫 SellerGrantService。確認 spec「Integration layer delegates data access to service layer」— Integration 零個 $wpdb 查詢。跑 `composer test` 確認全綠。

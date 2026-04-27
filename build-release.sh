@@ -6,7 +6,7 @@
 set -e
 
 PLUGIN_NAME="buygo-plus-one"
-VERSION="0.2.9"
+VERSION="1.7.2"
 BUILD_DIR="/tmp/${PLUGIN_NAME}-build"
 ZIP_NAME="${PLUGIN_NAME}-${VERSION}.zip"
 DESKTOP="$HOME/Desktop"

@@ -702,4 +702,228 @@ class AllocationServiceTest extends TestCase
         $this->assertIsArray($result);
         $this->assertTrue($result['success'] ?? false);
     }
+
+    // ─────────────────────────────────────────
+    // allocateAllForCustomer() 測試
+    // ─────────────────────────────────────────
+
+    /**
+     * @test
+     * 正常分配場景：依 order_item_id 精準找到訂單項目並完成分配
+     *
+     * 情境：
+     *   - product_id = 958（variation E）
+     *   - order_item_id = 88001（父訂單 #1405 的項目，object_id = 956）
+     *   - customer_id 不影響（order_item_id > 0 時走精準查詢分支）
+     *   - 該項目 quantity=1、無已出貨/已分配 → needed=1
+     *   - updateOrderAllocations 成功 → 回傳結構含 total_allocated=1
+     */
+    public function test_allocate_all_for_customer_success(): void
+    {
+        // ── Arrange ────────────────────────────────────────────────────
+        $GLOBALS['mock_product_variation_map'][self::PRODUCT_ID] = ['post_id' => self::POST_ID];
+        $GLOBALS['mock_get_post_meta_map'][self::POST_ID . '__buygo_purchased'] = 10;
+        $GLOBALS['mock_wpdb_insert_id_sequence'] = [self::CHILD_ORDER_ID, self::CHILD_ORDER_ID];
+
+        // 訂單項目（get_results 回傳格式為 object）
+        $orderItem = (object)[
+            'order_item_id' => 88001,
+            'order_id'      => self::ORDER_ID,
+            'object_id'     => self::ORDER_ITEM_OBJECT_ID, // 956
+            'quantity'      => 1,
+            'line_meta'     => '{}',
+        ];
+
+        $parentOrder = (object)[
+            'id'                   => self::ORDER_ID,
+            'parent_id'            => null,
+            'type'                 => 'normal',
+            'customer_id'          => 42,
+            'status'               => 'processing',
+            'payment_status'       => 'paid',
+            'shipping_status'      => 'unshipped',
+            'invoice_no'           => 'INV-1405',
+            'currency'             => 'TWD',
+            'payment_method'       => 'cash',
+            'payment_method_title' => '現金',
+        ];
+
+        $parentItem = (object)[
+            'id'         => 88001,
+            'order_id'   => self::ORDER_ID,
+            'post_id'    => self::POST_ID,
+            'object_id'  => self::ORDER_ITEM_OBJECT_ID, // 956
+            'quantity'   => 1,
+            'unit_price' => 50000.0,
+            'subtotal'   => 50000.0,
+            'title'      => '測試商品 - 規格C',
+            'post_title' => '測試商品 - 規格C',
+            'line_meta'  => '{}',
+        ];
+
+        $rules = [
+            // allocateAllForCustomer：取得 variation 958 的 post_id
+            ['method' => 'get_var', 'contains' => 'fct_product_variations WHERE id', 'return' => (string)self::POST_ID],
+            // allocateAllForCustomer：取得所有 active variation IDs
+            ['method' => 'get_col', 'contains' => 'fct_product_variations WHERE post_id', 'return' => ['954', '955', '956', '957', '958']],
+            // allocateAllForCustomer：查詢訂單項目（by order_item_id 分支）
+            ['method' => 'get_results', 'matches' => '/SELECT oi\\.id as order_item_id, oi\\.order_id, oi\\.object_id, oi\\.quantity, oi\\.line_meta/s', 'return' => [$orderItem]],
+            // allocateAllForCustomer：查詢已出貨數量（buygo_shipment_items）
+            ['method' => 'get_var', 'contains' => 'buygo_shipment_items', 'return' => '0'],
+            // allocateAllForCustomer：查詢子訂單已分配數量
+            ['method' => 'get_var', 'contains' => 'COALESCE(SUM', 'return' => '0'],
+            // updateOrderAllocations：查詢父訂單項目
+            ['method' => 'get_results', 'matches' => '/SELECT oi\\.\\* FROM .*fct_order_items oi/s', 'return' => [(array) $parentItem]],
+            // updateOrderAllocations → create_child_order：取得父訂單
+            ['method' => 'get_row', 'contains' => 'fct_orders WHERE id', 'return' => $parentOrder],
+            // updateOrderAllocations → create_child_order：取得父訂單項目
+            ['method' => 'get_row', 'contains' => 'fct_order_items', 'return' => $parentItem],
+            // updateOrderAllocations：子訂單數量
+            ['method' => 'get_var', 'contains' => 'COUNT(*)', 'return' => '0'],
+            // syncAllocatedQtyBatch：查詢目前已分配數量
+            ['method' => 'get_results', 'matches' => '/SELECT child_o\\.parent_id AS order_id, child_oi\\.object_id/s', 'return' => []],
+        ];
+
+        $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
+        $service = new AllocationService();
+
+        // ── Act ────────────────────────────────────────────────────────
+        $result = $service->allocateAllForCustomer(
+            product_id:    self::PRODUCT_ID,   // 958
+            order_item_id: 88001,
+            customer_id:   42
+        );
+
+        // ── Assert ─────────────────────────────────────────────────────
+        $this->assertNotInstanceOf(\WP_Error::class, $result, '正常場景不應回傳 WP_Error');
+        $this->assertIsArray($result, '成功時應回傳陣列');
+        $this->assertArrayHasKey('total_allocated', $result, '回傳結構應有 total_allocated 欄位');
+        $this->assertSame(1, $result['total_allocated'], '應分配 1 筆');
+        $this->assertArrayHasKey('child_orders', $result, '回傳結構應有 child_orders 欄位');
+        $this->assertArrayHasKey('skipped_orders', $result, '回傳結構應有 skipped_orders 欄位');
+    }
+
+    /**
+     * @test
+     * 客戶沒有待分配訂單：回傳 WP_Error('order_not_found')
+     *
+     * 情境：
+     *   - order_item_id = 0（走 customer_id 查詢分支）
+     *   - 查詢結果為空陣列 → 走 empty($order_items) 分支
+     *   - 應回傳 WP_Error code = 'order_not_found'
+     */
+    public function test_allocate_all_for_customer_no_orders(): void
+    {
+        // ── Arrange ────────────────────────────────────────────────────
+        $rules = [
+            // 取得 variation post_id
+            ['method' => 'get_var', 'contains' => 'fct_product_variations WHERE id', 'return' => (string)self::POST_ID],
+            // 取得所有 variation IDs
+            ['method' => 'get_col', 'contains' => 'fct_product_variations WHERE post_id', 'return' => ['954', '955', '956', '957', '958']],
+            // 查詢訂單項目（by customer_id 分支）→ 該客戶無訂單
+            ['method' => 'get_results', 'contains' => 'fct_order_items', 'return' => []],
+        ];
+
+        $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
+        $service = new AllocationService();
+
+        // ── Act ────────────────────────────────────────────────────────
+        $result = $service->allocateAllForCustomer(
+            product_id:    self::PRODUCT_ID,   // 958
+            order_item_id: 0,                   // 0 → 走 customer_id 查詢分支
+            customer_id:   99                   // 不存在的客戶
+        );
+
+        // ── Assert ─────────────────────────────────────────────────────
+        $this->assertInstanceOf(\WP_Error::class, $result, '無訂單時應回傳 WP_Error');
+        $this->assertSame('order_not_found', $result->get_error_code(), 'WP_Error code 應為 order_not_found');
+    }
+
+    /**
+     * @test
+     * 商品不存在（variation ID 查不到 post_id）：回傳 WP_Error('order_not_found')
+     *
+     * 情境：
+     *   - product_id = 9999（不存在的 variation）
+     *   - fct_product_variations WHERE id = 9999 → null（get_var 回傳 null）
+     *   - $post_id_for_alloc = 0，$allVarIds 維持 [9999]
+     *   - 後續查詢 fct_order_items WHERE object_id IN (9999) → 空陣列
+     *   - 應回傳 WP_Error code = 'order_not_found'
+     */
+    public function test_allocate_all_for_customer_invalid_product(): void
+    {
+        // ── Arrange ────────────────────────────────────────────────────
+        $invalidProductId = 9999;
+
+        $rules = [
+            // 不存在的 variation → get_var 回傳 null
+            ['method' => 'get_var', 'contains' => 'fct_product_variations WHERE id', 'return' => null],
+            // post_id = 0 → 不會查 get_col；$allVarIds 仍為 [9999]
+            // 查詢訂單項目：沒有任何訂單使用不存在的商品
+            ['method' => 'get_results', 'contains' => 'fct_order_items', 'return' => []],
+        ];
+
+        $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
+        $service = new AllocationService();
+
+        // ── Act ────────────────────────────────────────────────────────
+        $result = $service->allocateAllForCustomer(
+            product_id:    $invalidProductId,
+            order_item_id: 0,
+            customer_id:   42
+        );
+
+        // ── Assert ─────────────────────────────────────────────────────
+        $this->assertInstanceOf(\WP_Error::class, $result, '商品不存在時應回傳 WP_Error');
+        $this->assertSame('order_not_found', $result->get_error_code(), 'WP_Error code 應為 order_not_found');
+    }
+
+    /**
+     * @test
+     * 所有訂單已全部分配完畢：回傳 total_allocated=0、skipped_orders 有紀錄
+     *
+     * 情境：
+     *   - 訂單 #1405 的 quantity=1，但 _allocated_qty meta = 1（已分配完）
+     *   - needed = 1 - 1 = 0 → 跳過，加入 skipped_orders
+     *   - allocations 為空 → 走 empty($allocations) 分支
+     *   - 應回傳 total_allocated=0 且 skipped_orders 有一筆
+     */
+    public function test_allocate_all_for_customer_all_already_allocated(): void
+    {
+        // ── Arrange ────────────────────────────────────────────────────
+        $orderItem = (object)[
+            'order_item_id' => 88001,
+            'order_id'      => self::ORDER_ID,
+            'object_id'     => self::ORDER_ITEM_OBJECT_ID,
+            'quantity'      => 1,
+            'line_meta'     => json_encode(['_allocated_qty' => 1]), // 已全數分配
+        ];
+
+        $rules = [
+            ['method' => 'get_var', 'contains' => 'fct_product_variations WHERE id', 'return' => (string)self::POST_ID],
+            ['method' => 'get_col', 'contains' => 'fct_product_variations WHERE post_id', 'return' => ['954', '955', '956', '957', '958']],
+            ['method' => 'get_results', 'contains' => 'fct_order_items', 'return' => [$orderItem]],
+            // 已出貨數量 = 0
+            ['method' => 'get_var', 'contains' => 'buygo_shipment_items', 'return' => '0'],
+            // 子訂單已分配 = 0（meta 決定 already=1）
+            ['method' => 'get_var', 'contains' => 'COALESCE(SUM', 'return' => '0'],
+        ];
+
+        $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
+        $service = new AllocationService();
+
+        // ── Act ────────────────────────────────────────────────────────
+        $result = $service->allocateAllForCustomer(
+            product_id:    self::PRODUCT_ID,
+            order_item_id: 88001,
+            customer_id:   42
+        );
+
+        // ── Assert ─────────────────────────────────────────────────────
+        $this->assertNotInstanceOf(\WP_Error::class, $result, '已分配完時不應回傳 WP_Error，應回傳空結果陣列');
+        $this->assertIsArray($result);
+        $this->assertSame(0, $result['total_allocated'], '全部跳過時 total_allocated 應為 0');
+        $this->assertNotEmpty($result['skipped_orders'], 'skipped_orders 應有被跳過的紀錄');
+        $this->assertSame(self::ORDER_ID, $result['skipped_orders'][0]['order_id'], '跳過的訂單 ID 應正確');
+    }
 }

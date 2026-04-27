@@ -23,18 +23,59 @@ require_once BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/autoload.php';
 // 支援透過 $GLOBALS['mock_user_roles'] 控制 get_userdata 返回的角色
 // 格式：[ user_id => ['role1', 'role2', ...], ... ]
 $GLOBALS['mock_user_roles'] = [];
+$GLOBALS['mock_get_option_map'] = [];
+$GLOBALS['mock_wp_mail_log'] = [];
+
+if (!function_exists('buygo_test_get_mock_user')) {
+    function buygo_test_get_mock_user($user_id) {
+        if (!array_key_exists($user_id, $GLOBALS['mock_user_roles'])) {
+            return null;
+        }
+
+        return new class($user_id) {
+            public $ID;
+            public $roles;
+            public $display_name;
+            public $user_email;
+
+            public function __construct($user_id) {
+                $this->ID = $user_id;
+                $this->roles = $GLOBALS['mock_user_roles'][$user_id];
+                $this->display_name = 'User ' . $user_id;
+                $this->user_email = 'user' . $user_id . '@test.local';
+            }
+
+            public function add_role($role) {
+                if (!in_array($role, $this->roles, true)) {
+                    $this->roles[] = $role;
+                    $GLOBALS['mock_user_roles'][$this->ID] = $this->roles;
+                }
+            }
+
+            public function remove_role($role) {
+                $this->roles = array_values(array_filter(
+                    $this->roles,
+                    fn($existing_role) => $existing_role !== $role
+                ));
+                $GLOBALS['mock_user_roles'][$this->ID] = $this->roles;
+            }
+        };
+    }
+}
 
 if (!function_exists('get_userdata')) {
     function get_userdata($user_id) {
-        if (isset($GLOBALS['mock_user_roles'][$user_id])) {
-            $obj = new stdClass();
-            $obj->ID = $user_id;
-            $obj->roles = $GLOBALS['mock_user_roles'][$user_id];
-            $obj->display_name = 'User ' . $user_id;
-            $obj->user_email = 'user' . $user_id . '@test.local';
-            return $obj;
+        return buygo_test_get_mock_user($user_id);
+    }
+}
+
+if (!function_exists('get_user_by')) {
+    function get_user_by($field, $value) {
+        if ($field !== 'ID') {
+            return null;
         }
-        return null;
+
+        return buygo_test_get_mock_user((int) $value);
     }
 }
 
@@ -46,6 +87,10 @@ if (!function_exists('get_user_meta')) {
 
 if (!function_exists('get_option')) {
     function get_option($option, $default = false) {
+        if (array_key_exists($option, $GLOBALS['mock_get_option_map'])) {
+            return $GLOBALS['mock_get_option_map'][$option];
+        }
+
         return $default;
     }
 }
@@ -263,6 +308,20 @@ if (!function_exists('update_option')) {
 if (!function_exists('delete_option')) {
     function delete_option($option) {
         return true;
+    }
+}
+
+if (!function_exists('wp_mail')) {
+    function wp_mail($to, $subject, $message, $headers = '', $attachments = []) {
+        $GLOBALS['mock_wp_mail_log'][] = [
+            'to' => $to,
+            'subject' => $subject,
+            'message' => $message,
+            'headers' => $headers,
+            'attachments' => $attachments,
+        ];
+
+        return $GLOBALS['mock_wp_mail_return'] ?? true;
     }
 }
 

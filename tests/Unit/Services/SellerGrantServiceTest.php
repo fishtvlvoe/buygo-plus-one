@@ -23,6 +23,8 @@ use BuyGoPlus\Services\SellerGrantService;
 
 class SellerGrantServiceTest extends TestCase
 {
+    private $originalWpdb;
+
     // ────────────────────────────────────────
     // 測試常數
     // ────────────────────────────────────────
@@ -43,6 +45,7 @@ class SellerGrantServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->originalWpdb = $GLOBALS['wpdb'] ?? null;
 
         // 重置 GLOBALS mock 狀態，避免跨 test 汙染
         $GLOBALS['mock_wpdb_query_log']  = [];
@@ -55,7 +58,11 @@ class SellerGrantServiceTest extends TestCase
         unset($GLOBALS['mock_wpdb_query_log']);
         unset($GLOBALS['mock_wpdb_insert_log']);
         unset($GLOBALS['mock_get_option_map']);
-        unset($GLOBALS['wpdb']);
+        if ($this->originalWpdb !== null) {
+            $GLOBALS['wpdb'] = $this->originalWpdb;
+        } else {
+            unset($GLOBALS['wpdb']);
+        }
         parent::tearDown();
     }
 
@@ -263,6 +270,7 @@ class SellerGrantServiceTest extends TestCase
             'id'      => 10,
             'user_id' => self::USER_ID,
         ];
+        $GLOBALS['mock_user_roles'][self::USER_ID] = [];
 
         $mockWpdb = $this->makeMockWpdb([
             // is_order_processed：查無記錄 → 尚未處理
