@@ -1,18 +1,15 @@
 ---
-name: spectra-archive
-description: "Archive a completed change"
-effort: low
-license: MIT
-compatibility: Requires spectra CLI.
-metadata:
-  author: spectra
-  version: "1.0"
-  generatedBy: "Spectra"
+name: Spectra: Archive
+description: Archive a completed change
+category: Workflow
+tags: ["workflow", "archive"]
 ---
+
+<!-- SPECTRA:START v1.0.2 -->
 
 Archive a completed change.
 
-**Input**: Optionally specify a change name after `/spectra-archive` (e.g., `/spectra-archive add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+**Input**: Optionally specify a change name after `/spectra:archive` (e.g., `/spectra:archive add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Prerequisites**: This skill requires the `spectra` CLI. If any `spectra` command fails with "command not found" or similar, report the error and STOP.
 
@@ -173,3 +170,5 @@ Target archive directory already exists.
 - If sync is requested, use the Skill tool to invoke `spectra-sync-specs` (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
 - If **AskUserQuestion tool** is not available, ask the same questions as plain text and wait for the user's response
+
+<!-- SPECTRA:END -->
