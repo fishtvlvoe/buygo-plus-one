@@ -58,6 +58,6 @@
 
 ## 9. Spectra 收尾
 
-- [ ] 9.1 git commit 用 conventional：`fix(allocation): correct cross-variant child order object_id contamination` + 引用 change 名稱
-- [ ] 9.2 跑 `spectra validate fix-multi-variant-allocation-cross-contamination` 確認 0 警告
+- [x] 9.1 git commit 用 conventional：`fix(allocation): correct cross-variant child order object_id contamination` + 引用 change 名稱
+- [x] 9.2 跑 `spectra validate fix-multi-variant-allocation-cross-contamination` 確認 0 警告
 - [ ] 9.3 `spectra archive fix-multi-variant-allocation-cross-contamination`
