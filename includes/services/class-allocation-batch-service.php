@@ -115,7 +115,11 @@ class AllocationBatchService
                 $skipped_orders[] = ['order_id' => $item->order_id, 'reason' => '已全部分配'];
                 continue;
             }
-            $allocations[(int) $item->order_id] = $needed;
+            $allocations[] = [
+                'order_id' => (int) $item->order_id,
+                'object_id' => (int) $item->object_id,
+                'quantity' => $needed,
+            ];
         }
 
         if (empty($allocations)) {
@@ -128,7 +132,7 @@ class AllocationBatchService
         }
 
         return [
-            'total_allocated' => array_sum($allocations),
+            'total_allocated' => array_sum(array_column($allocations, 'quantity')),
             'child_orders' => $result['child_orders'] ?? [],
             'skipped_orders' => $skipped_orders,
         ];

@@ -1002,21 +1002,28 @@ class Products_API {
             }
 
             // 2. 轉換前端傳來的格式為 AllocationService 需要的格式
-            // AllocationService 需要：['order_id' => quantity, ...]
+            // 支援新格式：[{ order_id, object_id, allocated }] 與舊格式：{ "order_id": qty }
             $allocations = [];
             foreach ($raw_allocations as $key => $value) {
                 if (is_array($value)) {
-                    // 陣列格式：[{ order_id: 124, allocated: 1 }] 或 [{ order_id: 124, quantity: 1 }]
+                    // 陣列格式：[{ order_id: 124, object_id: 456, allocated: 1 }]
                     $order_id = (int)($value['order_id'] ?? 0);
+                    $object_id = (int)($value['object_id'] ?? 0);
                     $quantity = (int)($value['allocated'] ?? $value['quantity'] ?? 0);
+                    if ($order_id > 0 && $quantity > 0) {
+                        if ($object_id > 0) {
+                            $allocations[] = ['order_id' => $order_id, 'object_id' => $object_id, 'quantity' => $quantity];
+                        } else {
+                            $allocations[$order_id] = $quantity;
+                        }
+                    }
                 } else {
                     // 物件格式：{ "124": 1, "116": 1 }
                     $order_id = (int)$key;
                     $quantity = (int)$value;
-                }
-
-                if ($order_id > 0 && $quantity > 0) {
-                    $allocations[$order_id] = $quantity;
+                    if ($order_id > 0 && $quantity > 0) {
+                        $allocations[$order_id] = $quantity;
+                    }
                 }
             }
 
@@ -1040,7 +1047,9 @@ class Products_API {
             }
 
             // 5. 成功返回
-            $total_allocated = array_sum($allocations);
+            $total_allocated = is_array(reset($allocations))
+                ? array_sum(array_column($allocations, 'quantity'))
+                : array_sum($allocations);
             $child_orders = $result['child_orders'] ?? [];
 
             $message = "成功分配 {$total_allocated} 個配額";

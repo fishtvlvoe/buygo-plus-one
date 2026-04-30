@@ -27,15 +27,12 @@ class AllocationWriteService
     {
         global $wpdb;
 
-        $normalized = [];
-        foreach ($allocations as $order_id => $quantity) {
-            $normalized[(int) $order_id] = (int) $quantity;
-        }
-        $allocations = $normalized;
+        $is_per_item = !empty($allocations) && is_array(reset($allocations));
 
         $this->debugService->log('AllocationService', '開始更新訂單分配數量', [
             'product_id' => $product_id,
             'allocations' => $allocations,
+            'format' => $is_per_item ? 'per-item' : 'legacy',
         ]);
 
         $wpdb->query('START TRANSACTION');
@@ -49,16 +46,34 @@ class AllocationWriteService
 
             $variation_ids = $this->queryService->getAllVariationIds($product_id)['variation_ids'];
             $purchased = $this->getTotalPurchased((int) $product->post_id, $variation_ids);
-            $order_ids = array_keys($allocations);
 
-            if (empty($order_ids)) {
-                $wpdb->query('ROLLBACK');
-                return new WP_Error('NO_ORDER_IDS', '沒有提供訂單 ID');
+            // Normalize allocations to per-item format
+            $normalized = [];
+            if ($is_per_item) {
+                foreach ($allocations as $alloc) {
+                    $order_id = (int) ($alloc['order_id'] ?? 0);
+                    $object_id = (int) ($alloc['object_id'] ?? 0);
+                    $quantity = (int) ($alloc['quantity'] ?? 0);
+                    if ($order_id > 0 && $object_id > 0 && $quantity > 0) {
+                        $normalized[] = ['order_id' => $order_id, 'object_id' => $object_id, 'quantity' => $quantity];
+                    }
+                }
+            } else {
+                foreach ($allocations as $order_id => $quantity) {
+                    $normalized[] = ['order_id' => (int) $order_id, 'object_id' => 0, 'quantity' => (int) $quantity];
+                }
             }
+
+            if (empty($normalized)) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('NO_ORDER_ITEMS', $is_per_item ? '沒有提供有效的分配項目' : '沒有提供訂單 ID');
+            }
+
+            $order_ids = array_unique(array_column($normalized, 'order_id'));
 
             $order_placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
             $var_placeholders = implode(',', array_fill(0, count($variation_ids), '%d'));
-            $items = $wpdb->get_results($wpdb->prepare(
+            $db_items = $wpdb->get_results($wpdb->prepare(
                 "SELECT oi.* FROM {$wpdb->prefix}fct_order_items oi
                  INNER JOIN {$wpdb->prefix}fct_orders o ON o.id = oi.order_id
                  WHERE oi.object_id IN ($var_placeholders) AND oi.order_id IN ($order_placeholders)
@@ -66,17 +81,46 @@ class AllocationWriteService
                 array_merge($variation_ids, $order_ids)
             ), ARRAY_A);
 
-            if (empty($items)) {
+            if (empty($db_items)) {
                 $wpdb->query('ROLLBACK');
                 return new WP_Error('NO_ORDER_ITEMS', '找不到對應的訂單項目');
             }
 
-            foreach ($items as $item) {
-                $order_id = (int) $item['order_id'];
-                $new_allocation = (int) ($allocations[$order_id] ?? 0);
-                if ($new_allocation <= 0) {
-                    continue;
+            // Build lookup maps
+            $db_items_by_order = [];
+            $db_item_map = [];
+            foreach ($db_items as $db_item) {
+                $oid = (int) $db_item['order_id'];
+                $obj_id = (int) $db_item['object_id'];
+                $db_items_by_order[$oid][] = $db_item;
+                $db_item_map[$oid . ':' . $obj_id] = $db_item;
+            }
+
+            // Resolve object_ids for legacy format
+            foreach ($normalized as &$norm) {
+                if ($norm['object_id'] === 0) {
+                    $matches = $db_items_by_order[$norm['order_id']] ?? [];
+                    if (empty($matches)) {
+                        $wpdb->query('ROLLBACK');
+                        return new WP_Error('NO_ORDER_ITEMS', "找不到訂單 #{$norm['order_id']} 的項目");
+                    }
+                    $norm['object_id'] = (int) $matches[0]['object_id'];
                 }
+            }
+            unset($norm);
+
+            // Per-item validation
+            foreach ($normalized as $norm) {
+                $order_id = $norm['order_id'];
+                $object_id = $norm['object_id'];
+                $quantity = $norm['quantity'];
+
+                $db_item = $db_item_map[$order_id . ':' . $object_id] ?? null;
+                if (!$db_item) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('NO_ORDER_ITEMS', "找不到訂單 #{$order_id} 的項目 object_id={$object_id}");
+                }
+
                 $actual_child_allocated = (int) $wpdb->get_var($wpdb->prepare(
                     "SELECT COALESCE(SUM(child_oi.quantity), 0)
                      FROM {$wpdb->prefix}fct_orders child_o
@@ -86,12 +130,12 @@ class AllocationWriteService
                      AND child_o.status NOT IN ('cancelled', 'refunded')
                      AND child_oi.object_id = %d",
                     $order_id,
-                    (int) $item['object_id']
+                    $object_id
                 ));
-                $total_item_allocated = $actual_child_allocated + $new_allocation;
-                if ($total_item_allocated > (int) $item['quantity']) {
+                $total_item_allocated = $actual_child_allocated + $quantity;
+                if ($total_item_allocated > (int) $db_item['quantity']) {
                     $wpdb->query('ROLLBACK');
-                    return new WP_Error('INVALID_ALLOCATION', "訂單 #{$order_id} 的總分配數量 ({$total_item_allocated}) 超過需求數量 ({$item['quantity']})");
+                    return new WP_Error('INVALID_ALLOCATION', "訂單 #{$order_id} 的總分配數量 ({$total_item_allocated}) 超過需求數量 ({$db_item['quantity']})");
                 }
             }
 
@@ -104,7 +148,7 @@ class AllocationWriteService
                  AND child_oi.object_id IN ($var_placeholders)",
                 ...$variation_ids
             ));
-            $new_allocation_total = array_sum($allocations);
+            $new_allocation_total = array_sum(array_column($normalized, 'quantity'));
             $total_allocated = $current_child_allocated + $new_allocation_total;
 
             $this->debugService->log('AllocationService', '分配數量計算', [
@@ -120,19 +164,16 @@ class AllocationWriteService
             }
 
             $child_orders = [];
-            foreach ($allocations as $order_id => $allocated_qty) {
-                if ($allocated_qty <= 0) {
-                    continue;
-                }
-                $child_order = $this->createChildOrder($product_id, (int) $order_id, (int) $allocated_qty);
+            foreach ($normalized as $norm) {
+                $child_order = $this->createChildOrder($norm['order_id'], $norm['object_id'], $norm['quantity']);
                 if (is_wp_error($child_order)) {
                     $wpdb->query('ROLLBACK');
-                    return new WP_Error('CHILD_ORDER_FAILED', "建立訂單 #{$order_id} 的子訂單失敗：" . $child_order->get_error_message());
+                    return new WP_Error('CHILD_ORDER_FAILED', "建立訂單 #{$norm['order_id']} 的子訂單失敗：" . $child_order->get_error_message());
                 }
                 $child_orders[] = $child_order;
             }
 
-            $this->allocationService->syncAllocatedQtyBatch($items);
+            $this->allocationService->syncAllocatedQtyBatch($db_items);
             $recalc_allocated = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COALESCE(SUM(child_oi.quantity), 0)
                  FROM {$wpdb->prefix}fct_orders child_o
@@ -223,7 +264,7 @@ class AllocationWriteService
         return $total_from_meta > 0 ? $total_from_meta : (int) get_post_meta($post_id, '_buygo_purchased', true);
     }
 
-    private function createChildOrder(int $product_id, int $parent_order_id, int $quantity)
+    private function createChildOrder(int $parent_order_id, int $variation_id, int $quantity)
     {
         global $wpdb;
 
@@ -232,10 +273,10 @@ class AllocationWriteService
             if (!$parent_order) {
                 return new WP_Error('PARENT_ORDER_NOT_FOUND', '父訂單不存在');
             }
-            $var_ids = $this->queryService->getAllVariationIds($product_id)['variation_ids'];
             $parent_item = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}fct_order_items WHERE order_id = %d AND object_id IN (" . implode(',', array_fill(0, count($var_ids), '%d')) . ")",
-                array_merge([$parent_order_id], $var_ids)
+                "SELECT * FROM {$wpdb->prefix}fct_order_items WHERE order_id = %d AND object_id = %d",
+                $parent_order_id,
+                $variation_id
             ));
             if (!$parent_item) {
                 return new WP_Error('PARENT_ITEM_NOT_FOUND', '父訂單中找不到此商品項目');
