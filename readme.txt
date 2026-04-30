@@ -4,7 +4,7 @@
 需要 WordPress 最少版本：5.8
 測試至 WordPress 版本：6.4
 需要 PHP 版本：7.4
-穩定版本標籤：1.7.2
+穩定版本標籤：1.7.3
 授權條款：GPLv2 或更新版本
 授權條款網址：http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,13 @@ BuyGo+1 是完全獨立的 WordPress 外掛，提供 BuyGo 賣場後台管理功
 * buygo-line-notify 外掛（必須先安裝並啟用）
 
 == Changelog ==
+
+= 1.7.3 =
+* 修復：多變體商品分配時，BCD 變體訂單建出的子訂單 object_id 全變成 A 變體（致命：父訂單品項查詢用 IN 取第一筆）
+* 修復：一鍵分配多變體訂單時，後變體 needed 數量覆蓋前變體（allocations key 改用 per-item）
+* 改善：AllocationService 介面擴充支援 per-item 格式 `[{order_id, object_id, quantity}]`，向下相容舊格式
+* 新增：bin/fix-cross-variant-child-orders.php 修復腳本（dry-run + commit 兩階段，未來可重複用於其他多變體商品污染）
+* 測試：新增 AllocationCrossVariantTest 6 個 regression test，全套 311 tests 通過
 
 = 1.7.2 =
 * 重構：將 AllocationService 與 ProductService 拆分為較小的 facade-backed services
