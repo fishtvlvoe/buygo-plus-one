@@ -80,18 +80,17 @@
 
 - [ ] 9.6 執行 `composer test` 確認全綠，無 regression
 
-## 10. 雲端 DB 修復 + 部署
+## 10. Fish 驗收本機測試結果
 
-- [ ] 10.1 SSH 到雲端主機，將 status="canceled" 的子訂單統一更新為 "cancelled"：`UPDATE wp_fct_orders SET status='cancelled' WHERE status='canceled'`（先 SELECT 確認筆數再 UPDATE）
+- [ ] 10.1 Fish 確認本機所有測試全綠、CR 問題全修、整合測試場景正確
 
-- [ ] 10.2 用 `/deploy` skill 部署代碼到 buygo.instawp.xyz
+## 11. Spectra 收尾
 
-- [ ] 10.3 部署後 SSH 執行驗證：(1) 確認 cancel 拼寫已統一 (2) 重新觸發一次分配+出貨流程，檢查 `_buygo_allocated` 和 `_allocated_qty` 數字正確
+- [ ] 11.1 `spectra archive debug-allocation-quantity-mismatch`
 
-## 11. Fish 驗收
+---
 
-- [ ] 11.1 Fish 進入後台驗收多變體商品的分配流程，確認數量一致
-
-## 12. Spectra 收尾
-
-- [ ] 12.1 `spectra archive debug-allocation-quantity-mismatch`
+> **後續獨立任務（不在本 Change 範圍）：**
+> - SSH 雲端主機：`UPDATE wp_fct_orders SET status='cancelled' WHERE status='canceled'`
+> - 部署代碼到 buygo.instawp.xyz
+> - 部署後驗證分配+出貨流程數字正確
