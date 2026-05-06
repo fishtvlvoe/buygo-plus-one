@@ -3,10 +3,12 @@
 namespace BuyGoPlus\Tests\Unit\Services;
 
 use BuyGoPlus\Services\AllocationBatchService;
+use BuyGoPlus\Services\AllocationMetaSyncService;
 use BuyGoPlus\Services\AllocationQueryService;
 use BuyGoPlus\Services\AllocationService;
 use BuyGoPlus\Services\AllocationWriteService;
 use BuyGoPlus\Services\OrderService;
+use BuyGoPlus\Services\ShipmentService;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -463,6 +465,10 @@ class AllocationIntegrationTest extends TestCase
     /**
      * 驗證：lock 成功（GET_LOCK 回傳 '1'）時，流程繼續執行（不短路返回）。
      * 此測試確認 lock 機制不會誤判導致永遠鎖住。
+     *
+     * 注意：本測試使用 product_id=400 作為「無 parent 的 simple product」，
+     * 因此 mock_post_parent_map 不設 400，wp_get_post_parent_id 回傳 0，
+     * lock key 應使用 post_id 本身（400）。
      */
     public function test_scenario_d_lock_success_allows_execution_to_proceed(): void
     {
@@ -542,5 +548,546 @@ class AllocationIntegrationTest extends TestCase
         $allSql = implode("\n", $GLOBALS['wpdb']->queries);
         $this->assertStringContainsString('GET_LOCK(', $allSql,
             'GET_LOCK SQL 應被呼叫');
+    }
+
+    // ----------------------------------------------------------------
+    // 場景 E：Lock key 用 parent product ID（Wave 9 修復）
+    // ----------------------------------------------------------------
+
+    /**
+     * 情境：variation_id=401 和 402 都屬於 parent product_id=400。
+     * 驗證：對任一 variation 呼叫 updateOrderAllocations 時，
+     * GET_LOCK 的 key 使用 parent ID (400)，而非 variation 自身的 post_id。
+     * 這確保同一商品的不同規格共用同一把鎖，防止並發分配競爭。
+     */
+    public function test_scenario_e_lock_key_uses_parent_product_id_for_variation(): void
+    {
+        // 建立 FluentCart ProductVariation stub（若尚未建立）
+        if (!class_exists('FluentCart\App\Models\ProductVariation')) {
+            eval('
+                namespace FluentCart\App\Models;
+                class ProductVariation {
+                    public $post_id;
+                    private function __construct($post_id) { $this->post_id = $post_id; }
+                    public static function find($id) {
+                        $map = $GLOBALS["mock_product_variation_map"] ?? [];
+                        return isset($map[$id]) ? new self($map[$id]["post_id"]) : null;
+                    }
+                }
+            ');
+        }
+
+        // variation 401 → post_id=4010, variation 402 → post_id=4020
+        // 兩者的 parent post 都是 400
+        $GLOBALS['mock_product_variation_map'] = [
+            401 => ['post_id' => 4010],
+            402 => ['post_id' => 4020],
+        ];
+        $GLOBALS['mock_variation_map'] = $GLOBALS['mock_product_variation_map'];
+        $GLOBALS['mock_post_parent_map'] = [
+            4010 => 400,  // post_id=4010 的 parent 是 400
+            4020 => 400,  // post_id=4020 的 parent 是 400
+        ];
+
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public array $lockQueries = [];
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array) $arg as $v) {
+                        $query = preg_replace('/%[sd]/', is_numeric($v) ? (string)(int)$v : "'$v'", $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_var($sql): string
+            {
+                if (strpos($sql, 'GET_LOCK(') !== false) {
+                    $this->lockQueries[] = $sql;
+                    return '1'; // lock 成功
+                }
+                if (strpos($sql, 'RELEASE_LOCK(') !== false) { return '1'; }
+                return '0';
+            }
+
+            public function query($sql) { return true; }
+            public function get_results($sql, $output = OBJECT): array { return []; }
+        };
+
+        $allocationService = new class extends AllocationService { public function __construct() {} };
+        $queryService = new class extends AllocationQueryService {
+            public function __construct() {}
+            public function getAllVariationIds($product_id): array { return ['variation_ids' => [$product_id]]; }
+        };
+        $batchService = new class($allocationService, $queryService) extends AllocationBatchService {
+            public function __construct($a, $q) { parent::__construct($a, $q); }
+        };
+        $service = new AllocationWriteService($allocationService, $queryService, $batchService);
+
+        // 對 variation 401 和 402 各呼叫一次
+        $service->updateOrderAllocations(401, [1 => 1]);
+        $service->updateOrderAllocations(402, [1 => 1]);
+
+        // 驗證：GET_LOCK 被呼叫兩次
+        $this->assertCount(2, $GLOBALS['wpdb']->lockQueries,
+            'GET_LOCK 應被呼叫兩次（各一次 variation）');
+
+        // 驗證：兩次都用 parent ID (400) 作為 lock key
+        $this->assertStringContainsString('buygo_allocate_400', $GLOBALS['wpdb']->lockQueries[0],
+            'variation 401 的 lock key 應使用 parent product_id=400，而非 variation 的 post_id=4010');
+        $this->assertStringContainsString('buygo_allocate_400', $GLOBALS['wpdb']->lockQueries[1],
+            'variation 402 的 lock key 應使用 parent product_id=400，而非 variation 的 post_id=4020');
+    }
+
+    /**
+     * 情境：simple product（無 parent），product_id=500，post_id=500。
+     * 驗證：wp_get_post_parent_id 回傳 0 時，lock key 使用商品自身 ID，
+     * 不會因為沒有 parent 而出錯或使用錯誤 key。
+     */
+    public function test_scenario_e_lock_key_uses_own_id_for_simple_product(): void
+    {
+        if (!class_exists('FluentCart\App\Models\ProductVariation')) {
+            eval('
+                namespace FluentCart\App\Models;
+                class ProductVariation {
+                    public $post_id;
+                    private function __construct($post_id) { $this->post_id = $post_id; }
+                    public static function find($id) {
+                        $map = $GLOBALS["mock_product_variation_map"] ?? [];
+                        return isset($map[$id]) ? new self($map[$id]["post_id"]) : null;
+                    }
+                }
+            ');
+        }
+
+        // simple product：post_id 等於 product_id，沒有 parent
+        $GLOBALS['mock_product_variation_map'] = [500 => ['post_id' => 500]];
+        $GLOBALS['mock_variation_map']         = $GLOBALS['mock_product_variation_map'];
+        $GLOBALS['mock_post_parent_map']       = []; // 無 parent → wp_get_post_parent_id 回傳 0
+
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public array $lockQueries = [];
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array) $arg as $v) {
+                        $query = preg_replace('/%[sd]/', is_numeric($v) ? (string)(int)$v : "'$v'", $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_var($sql): string
+            {
+                if (strpos($sql, 'GET_LOCK(') !== false) {
+                    $this->lockQueries[] = $sql;
+                    return '1';
+                }
+                if (strpos($sql, 'RELEASE_LOCK(') !== false) { return '1'; }
+                return '0';
+            }
+
+            public function query($sql) { return true; }
+            public function get_results($sql, $output = OBJECT): array { return []; }
+        };
+
+        $allocationService = new class extends AllocationService { public function __construct() {} };
+        $queryService = new class extends AllocationQueryService {
+            public function __construct() {}
+            public function getAllVariationIds($product_id): array { return ['variation_ids' => [500]]; }
+        };
+        $batchService = new class($allocationService, $queryService) extends AllocationBatchService {
+            public function __construct($a, $q) { parent::__construct($a, $q); }
+        };
+        $service = new AllocationWriteService($allocationService, $queryService, $batchService);
+        $service->updateOrderAllocations(500, [1 => 1]);
+
+        $this->assertCount(1, $GLOBALS['wpdb']->lockQueries,
+            'GET_LOCK 應被呼叫一次');
+        $this->assertStringContainsString('buygo_allocate_500', $GLOBALS['wpdb']->lockQueries[0],
+            'simple product（無 parent）的 lock key 應使用自身 ID=500');
+        $this->assertStringNotContainsString('buygo_allocate_0', $GLOBALS['wpdb']->lockQueries[0],
+            'lock key 不應為 0（無 parent 應 fallback 到自身 ID）');
+    }
+
+    // ----------------------------------------------------------------
+    // 場景 F：splitOrder 任何 item insert 失敗全 ROLLBACK（Wave 9 修復）
+    // ----------------------------------------------------------------
+
+    /**
+     * 情境：splitOrder 有 2 個品項，第 1 個 insert 成功、第 2 個 insert 失敗。
+     * 驗證：整筆交易 ROLLBACK，不會只有部分品項被 insert（確保原子性）。
+     */
+    public function test_scenario_f_split_order_rollbacks_entire_transaction_on_partial_item_failure(): void
+    {
+        $GLOBALS['wpdb'] = new class {
+            public $prefix    = 'wp_';
+            public array $queries = [];
+            public int $insert_id = 8000;
+            public string $last_error = 'mock item insert fail';
+            private int $itemInsertCount = 0;
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array) $arg as $v) {
+                        $query = preg_replace('/%[sd]/', is_numeric($v) ? (string)(int)$v : "'$v'", $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function query($sql)
+            {
+                $this->queries[] = $sql;
+                return true;
+            }
+
+            public function get_row($sql, $output = OBJECT)
+            {
+                // 父訂單 id=6010
+                if (strpos($sql, 'fct_orders WHERE id = 6010') !== false) {
+                    return (object)['id' => 6010, 'customer_id' => 1, 'invoice_no' => 'INV-6010'];
+                }
+                return null;
+            }
+
+            public function get_results($sql, $output = OBJECT): array
+            {
+                // 父訂單有 2 個品項
+                if (strpos($sql, 'fct_order_items WHERE order_id = 6010') !== false) {
+                    return [
+                        ['id' => 9001, 'order_id' => 6010, 'post_id' => 1001, 'object_id' => 2001, 'quantity' => 3, 'unit_price' => 100, 'line_meta' => '{}'],
+                        ['id' => 9002, 'order_id' => 6010, 'post_id' => 1002, 'object_id' => 2002, 'quantity' => 3, 'unit_price' => 200, 'line_meta' => '{}'],
+                    ];
+                }
+                return [];
+            }
+
+            public function get_var($sql)
+            {
+                // 父訂單下的子訂單數量：0（尚未拆）
+                if (strpos($sql, 'COUNT(*) FROM wp_fct_orders') !== false) { return '0'; }
+                // 已拆分數量：0
+                if (strpos($sql, 'parent_id = 6010') !== false) { return '0'; }
+                return '0';
+            }
+
+            public function insert($table, $data, $format = null)
+            {
+                // 子訂單（fct_orders）本身 insert 成功
+                if (strpos($table, 'fct_orders') !== false && strpos($table, 'items') === false) {
+                    $this->insert_id = 7000 + $this->itemInsertCount + 1;
+                    return 1;
+                }
+                // 子訂單品項（fct_order_items）：第 1 個成功，第 2 個失敗
+                if (strpos($table, 'fct_order_items') !== false) {
+                    $this->itemInsertCount++;
+                    return $this->itemInsertCount === 1 ? 1 : false;
+                }
+                return 1;
+            }
+
+            public function update($table, $data, $where, $format = null, $where_format = null) { return 1; }
+        };
+
+        $service = new OrderService();
+        $result = $service->splitOrder(6010, [
+            'split_items' => [
+                ['order_item_id' => 9001, 'quantity' => 1],
+                ['order_item_id' => 9002, 'quantity' => 1],
+            ],
+        ]);
+
+        // 驗證：回傳 WP_Error（不應成功）
+        $this->assertInstanceOf(\WP_Error::class, $result,
+            '部分 item insert 失敗時，splitOrder 應回傳 WP_Error');
+
+        // 驗證：error code 為 CREATE_ORDER_ITEMS_FAILED
+        $this->assertSame('CREATE_ORDER_ITEMS_FAILED', $result->get_error_code(),
+            'error code 應為 CREATE_ORDER_ITEMS_FAILED');
+
+        $allSql = implode("\n", $GLOBALS['wpdb']->queries);
+
+        // 驗證：有 START TRANSACTION
+        $this->assertStringContainsString('START TRANSACTION', $allSql,
+            'splitOrder 應開啟交易');
+
+        // 驗證：有 ROLLBACK（任何 item 失敗都應回滾）
+        $this->assertStringContainsString('ROLLBACK', $allSql,
+            '第 2 個 item insert 失敗後，應觸發 ROLLBACK');
+
+        // 驗證：沒有 COMMIT（部分失敗不應提交）
+        $this->assertStringNotContainsString('COMMIT', $allSql,
+            '部分 item insert 失敗時，不應 COMMIT 任何資料');
+    }
+
+    // ----------------------------------------------------------------
+    // 場景 G：mark_shipped 觸發 AllocationMetaSyncService 重算（Wave 9 修復）
+    // ----------------------------------------------------------------
+
+    /**
+     * 情境：透過 ShipmentService::mark_shipped() 完成出貨。
+     * 驗證：
+     * 1. _buygo_allocated (post meta) 被重算並更新。
+     * 2. _allocated_qty (line meta) 被重算並寫回 order_items。
+     *
+     * mark_shipped 路徑：ShipmentService::mark_shipped()
+     *   → AllocationMetaSyncService::syncForShipment()
+     *   → syncParentLineMeta() + syncProductAllocatedMeta()
+     */
+    public function test_scenario_g_mark_shipped_triggers_allocation_meta_recalculation(): void
+    {
+        $GLOBALS['mock_update_post_meta_log'] = [];
+
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public array $updates = [];
+            public int $insert_id = 1;
+            public string $last_error = '';
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array) $arg as $v) {
+                        $query = preg_replace('/%[ds]/', is_numeric($v) ? (string)(int)$v : "'$v'", $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_row($sql, $output = OBJECT)
+            {
+                // 出貨單 id=77
+                if (strpos($sql, 'buygo_shipments WHERE id = 77') !== false) {
+                    return (object)['id' => 77, 'shipment_number' => 'SH-77', 'status' => 'pending'];
+                }
+                // 出貨品項的 order_item
+                if (strpos($sql, 'fct_order_items WHERE id = 8001') !== false) {
+                    return ['id' => 8001, 'object_id' => 3001, 'post_id' => 2001, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                // 子訂單 id=6001
+                if (strpos($sql, 'fct_orders WHERE id = 6001') !== false) {
+                    return (object)['id' => 6001, 'parent_id' => null, 'type' => 'parent', 'status' => 'pending'];
+                }
+                // 父訂單 item（用 object_id 查）
+                if (strpos($sql, 'fct_order_items WHERE order_id = 6001') !== false
+                    && strpos($sql, 'object_id = 3001') !== false) {
+                    return ['id' => 8001, 'object_id' => 3001, 'post_id' => 2001, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                return null;
+            }
+
+            public function get_results($sql, $output = OBJECT): array
+            {
+                // 出貨單 77 的品項
+                if (strpos($sql, 'buygo_shipment_items') !== false
+                    && strpos($sql, 'shipment_id = 77') !== false) {
+                    return [[
+                        'shipment_id' => 77,
+                        'order_id'    => 6001,
+                        'order_item_id' => 8001,
+                        'product_id'  => 2001,
+                        'quantity'    => 3,
+                    ]];
+                }
+                return [];
+            }
+
+            public function get_col($sql): array
+            {
+                if (strpos($sql, 'buygo_shipment_items') !== false) { return [6001]; }
+                return [];
+            }
+
+            public function get_var($sql)
+            {
+                // _allocated_qty 重算（子訂單 SUM）
+                if (strpos($sql, 'child_o.parent_id = 6001') !== false
+                    && strpos($sql, 'child_oi.object_id = 3001') !== false) {
+                    return '6'; // 模擬 2 筆剩餘 processing 各 qty=3
+                }
+                // _buygo_allocated 重算（post meta）
+                if (strpos($sql, 'child_oi.post_id = 2001') !== false) {
+                    return '6';
+                }
+                if (strpos($sql, 'COUNT(*)') !== false) { return '0'; }
+                return '0';
+            }
+
+            public function update($table, $data, $where, $format = null, $where_format = null)
+            {
+                $this->updates[] = ['table' => $table, 'data' => $data, 'where' => $where];
+                return 1;
+            }
+
+            public function insert($table, $data, $format = null) { return 1; }
+            public function query($sql) { return true; }
+        };
+
+        $service = new ShipmentService();
+        $result = $service->mark_shipped([77]);
+
+        // 驗證：mark_shipped 成功
+        $this->assertSame(1, $result,
+            'mark_shipped 應回傳 1（成功）');
+
+        // 驗證：update_post_meta 被呼叫，_buygo_allocated 更新為重算值 6
+        $postMetaLog = $GLOBALS['mock_update_post_meta_log'];
+        $this->assertNotEmpty($postMetaLog,
+            'mark_shipped 後應呼叫 update_post_meta 更新 _buygo_allocated');
+
+        $allocatedUpdate = array_filter($postMetaLog, fn($entry) => $entry['meta_key'] === '_buygo_allocated');
+        $this->assertNotEmpty($allocatedUpdate,
+            '_buygo_allocated post meta 應被更新');
+
+        $firstUpdate = array_values($allocatedUpdate)[0];
+        $this->assertSame(6, $firstUpdate['meta_value'],
+            '_buygo_allocated 應重算為 6（非累減）');
+        $this->assertSame(2001, $firstUpdate['post_id'],
+            '_buygo_allocated 應更新在 post_id=2001');
+
+        // 驗證：line meta _allocated_qty 被寫回 order_items
+        $lineMetaUpdates = array_filter(
+            $GLOBALS['wpdb']->updates,
+            fn($u) => $u['table'] === 'wp_fct_order_items'
+                   && ($u['where']['id'] ?? null) === 8001
+        );
+        $this->assertNotEmpty($lineMetaUpdates,
+            'mark_shipped 後應更新 order_item 的 line_meta');
+
+        $lineMeta = json_decode(array_values($lineMetaUpdates)[0]['data']['line_meta'], true);
+        $this->assertSame(6, $lineMeta['_allocated_qty'],
+            '_allocated_qty line meta 應重算為 6（非從 9 累減）');
+    }
+
+    // ----------------------------------------------------------------
+    // 場景 H：create_shipment 路徑觸發 meta 重算（Wave 9 修復）
+    // ----------------------------------------------------------------
+
+    /**
+     * 情境：透過 ShipmentService::create_shipment() 建立出貨單。
+     * 驗證：不經過 OrderService::shipOrder() 的直接出貨路徑，
+     * 也會觸發 AllocationMetaSyncService 重算 _buygo_allocated 和 _allocated_qty。
+     *
+     * create_shipment 路徑：
+     *   ShipmentService::create_shipment()
+     *     → AllocationMetaSyncService::syncForShipmentItems(items)
+     */
+    public function test_scenario_h_create_shipment_triggers_allocation_meta_recalculation_directly(): void
+    {
+        $GLOBALS['mock_update_post_meta_log'] = [];
+
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public int $insert_id = 9000;
+            public array $updates = [];
+            public string $last_error = '';
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array) $arg as $v) {
+                        $query = preg_replace('/%[ds]/', is_numeric($v) ? (string)(int)$v : "'$v'", $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_var($sql)
+            {
+                // shipment_number 不存在（0）
+                if (strpos($sql, 'shipment_number') !== false) { return '0'; }
+                // 子訂單 6002 狀態
+                if (strpos($sql, 'SELECT status FROM wp_fct_orders WHERE id = 6002') !== false) { return 'pending'; }
+                // _allocated_qty 重算（子訂單 SUM，過濾 cancelled/refunded/shipped）
+                if (strpos($sql, 'child_o.parent_id = 6002') !== false
+                    && strpos($sql, 'child_oi.object_id = 3002') !== false) {
+                    return '4'; // 出貨後剩餘 active qty
+                }
+                // _buygo_allocated 重算（post SUM）
+                if (strpos($sql, 'child_oi.post_id = 2002') !== false) {
+                    return '4';
+                }
+                return '0';
+            }
+
+            public function get_row($sql, $output = OBJECT)
+            {
+                // 出貨品項的 order_item（by id）
+                if (strpos($sql, 'fct_order_items WHERE id = 8002') !== false) {
+                    return ['id' => 8002, 'object_id' => 3002, 'post_id' => 2002, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                // 子訂單
+                if (strpos($sql, 'fct_orders WHERE id = 6002') !== false) {
+                    return (object)['id' => 6002, 'parent_id' => null, 'type' => 'parent'];
+                }
+                // 父訂單 item（用 object_id 查）
+                if (strpos($sql, 'fct_order_items WHERE order_id = 6002') !== false
+                    && strpos($sql, 'object_id = 3002') !== false) {
+                    return ['id' => 8002, 'object_id' => 3002, 'post_id' => 2002, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                return null;
+            }
+
+            public function insert($table, $data, $format = null)
+            {
+                if (strpos($table, 'buygo_shipments') !== false) {
+                    $this->insert_id = 9200;
+                }
+                return 1;
+            }
+
+            public function update($table, $data, $where, $format = null, $where_format = null)
+            {
+                $this->updates[] = ['table' => $table, 'data' => $data, 'where' => $where];
+                return 1;
+            }
+
+            public function delete($table, $where, $where_format = null) { return 1; }
+        };
+
+        // 呼叫 create_shipment（直接出貨路徑，不經過 shipOrder）
+        $service = new ShipmentService();
+        $result  = $service->create_shipment(88, 99, [[
+            'order_id'      => 6002,
+            'order_item_id' => 8002,
+            'product_id'    => 2002,
+            'quantity'      => 3,
+        ]]);
+
+        // 驗證：create_shipment 成功並回傳 shipment_id
+        $this->assertSame(9200, $result,
+            'create_shipment 應成功並回傳 shipment_id=9200');
+
+        // 驗證：update_post_meta 被呼叫，_buygo_allocated 重算為 4
+        $postMetaLog     = $GLOBALS['mock_update_post_meta_log'];
+        $allocatedUpdates = array_filter($postMetaLog, fn($e) => $e['meta_key'] === '_buygo_allocated');
+        $this->assertNotEmpty($allocatedUpdates,
+            'create_shipment 路徑應觸發 _buygo_allocated post meta 重算');
+
+        $update = array_values($allocatedUpdates)[0];
+        $this->assertSame(4, $update['meta_value'],
+            '_buygo_allocated 應重算為 4（而非從 9 累減）');
+        $this->assertSame(2002, $update['post_id'],
+            '_buygo_allocated 應更新在正確的 post_id=2002');
+
+        // 驗證：line meta _allocated_qty 也被寫回
+        $lineMetaUpdates = array_filter(
+            $GLOBALS['wpdb']->updates,
+            fn($u) => $u['table'] === 'wp_fct_order_items'
+                   && ($u['where']['id'] ?? null) === 8002
+        );
+        $this->assertNotEmpty($lineMetaUpdates,
+            'create_shipment 路徑應更新 order_item 的 line_meta');
+
+        $lineMeta = json_decode(array_values($lineMetaUpdates)[0]['data']['line_meta'], true);
+        $this->assertSame(4, $lineMeta['_allocated_qty'],
+            '_allocated_qty 應重算為 4（create_shipment 路徑）');
     }
 }

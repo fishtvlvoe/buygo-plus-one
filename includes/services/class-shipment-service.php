@@ -156,6 +156,7 @@ class ShipmentService
         
         // 【新增】建立出貨單後，自動更新相關訂單狀態為「處理中」
         $this->update_orders_status_to_processing($items);
+        (new AllocationMetaSyncService())->syncForShipmentItems($items);
 
         $this->debugService->log('ShipmentService', '出貨單建立成功', [
             'shipment_id' => $shipment_id,
@@ -467,6 +468,7 @@ class ShipmentService
 
                 // 【新增】自動檢查並完成父訂單
                 $this->check_parent_completion($shipment_id);
+                (new AllocationMetaSyncService())->syncForShipment((int)$shipment_id);
             } else {
                 $errors[] = "更新出貨單 #{$shipment_id} 失敗";
             }
@@ -662,4 +664,5 @@ class ShipmentService
             ], 'error');
         }
     }
+
 }

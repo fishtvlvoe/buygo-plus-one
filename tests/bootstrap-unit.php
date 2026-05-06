@@ -281,8 +281,23 @@ if (!function_exists('get_post_meta')) {
     }
 }
 
+if (!function_exists('wp_get_post_parent_id')) {
+    function wp_get_post_parent_id($post_id) {
+        return (int)($GLOBALS['mock_post_parent_map'][(int)$post_id] ?? 0);
+    }
+}
+
 if (!function_exists('update_post_meta')) {
     function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
+        if (!isset($GLOBALS['mock_update_post_meta_log'])) {
+            $GLOBALS['mock_update_post_meta_log'] = [];
+        }
+        $GLOBALS['mock_update_post_meta_log'][] = [
+            'post_id' => (int)$post_id,
+            'meta_key' => $meta_key,
+            'meta_value' => $meta_value,
+            'prev_value' => $prev_value,
+        ];
         return true;
     }
 }

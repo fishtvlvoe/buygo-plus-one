@@ -28,7 +28,7 @@ class AllocationWriteService
         global $wpdb;
 
         $is_per_item = !empty($allocations) && is_array(reset($allocations));
-        $lock_name = 'buygo_allocate_' . (int) $product_id;
+        $lock_name = 'buygo_allocate_' . $this->resolveAllocationLockId((int) $product_id);
         $lock_acquired = false;
 
         $this->debugService->log('AllocationService', '開始更新訂單分配數量', [
@@ -281,6 +281,32 @@ class AllocationWriteService
         ));
 
         return $total_from_meta > 0 ? $total_from_meta : (int) get_post_meta($post_id, '_buygo_purchased', true);
+    }
+
+    /**
+     * 取得 product_id 對應的 variation parent ID。
+     * 若為 simple product 或找不到 parent，直接回傳自身 ID。
+     * 設為 protected 讓測試可用匿名子類別 override。
+     */
+    protected function getVariationParentId(int $product_id): int
+    {
+        // 嘗試透過 FluentCart ORM 取得 variation 對應的 post_id
+        if (class_exists(\FluentCart\App\Models\ProductVariation::class)) {
+            $product = \FluentCart\App\Models\ProductVariation::find($product_id);
+            if ($product && !empty($product->post_id)) {
+                $post_id = (int)$product->post_id;
+                $parent_id = function_exists('wp_get_post_parent_id') ? (int) wp_get_post_parent_id($post_id) : 0;
+                return $parent_id > 0 ? $parent_id : $product_id;
+            }
+        }
+
+        // FluentCart 不可用或找不到 variation，視為 simple product，直接用自身 ID
+        return $product_id;
+    }
+
+    private function resolveAllocationLockId(int $product_id): int
+    {
+        return $this->getVariationParentId($product_id);
     }
 
     private function createChildOrder(int $parent_order_id, int $variation_id, int $quantity)

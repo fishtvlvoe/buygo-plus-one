@@ -2,6 +2,7 @@
 
 namespace BuyGoPlus\Tests\Unit\Services;
 
+use BuyGoPlus\Services\ShipmentService;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,12 @@ use PHPUnit\Framework\TestCase;
  */
 class ShipOrderMetaSyncTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $GLOBALS['mock_update_post_meta_log'] = [];
+    }
+
     // ----------------------------------------------------------------
     // 測試 1：_allocated_qty 應為 SUM 重算（非累減）
     // ----------------------------------------------------------------
@@ -163,5 +170,177 @@ class ShipOrderMetaSyncTest extends TestCase
             $source,
             "shipOrder SQL 應同時包含 'cancelled'、'canceled' 和 'refunded'"
         );
+    }
+
+    public function test_create_shipment_recalculates_allocation_meta_for_direct_shipment_path(): void
+    {
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public int $insert_id = 9000;
+            public array $updates = [];
+            public string $last_error = '';
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array)$arg as $value) {
+                        $replacement = is_numeric($value) ? (string)(int)$value : "'" . $value . "'";
+                        $query = preg_replace('/%[ds]/', $replacement, $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_var($sql)
+            {
+                if (strpos($sql, 'shipment_number') !== false) { return '0'; }
+                // 訂單狀態查詢（寬鬆比對：包含 fct_orders 且包含 5001）
+                if (strpos($sql, 'fct_orders') !== false && strpos($sql, '5001') !== false && strpos($sql, 'parent_id') === false) { return 'pending'; }
+                if (strpos($sql, 'child_o.parent_id = 5001') !== false && strpos($sql, 'child_oi.object_id = 2001') !== false) { return '6'; }
+                if (strpos($sql, 'child_oi.post_id = 1001') !== false) { return '6'; }
+                return '0';
+            }
+
+            public function get_row($sql, $output = OBJECT)
+            {
+                if (strpos($sql, 'FROM wp_fct_order_items WHERE id = 7001') !== false) {
+                    return ['id' => 7001, 'object_id' => 2001, 'post_id' => 1001, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                if (strpos($sql, 'FROM wp_fct_orders WHERE id = 5001') !== false) {
+                    return (object)['id' => 5001, 'parent_id' => null, 'type' => 'parent'];
+                }
+                if (strpos($sql, 'FROM wp_fct_order_items WHERE order_id = 5001') !== false && strpos($sql, 'object_id = 2001') !== false) {
+                    return ['id' => 7001, 'object_id' => 2001, 'post_id' => 1001, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                return null;
+            }
+
+            public function insert($table, $data, $format = null)
+            {
+                if (strpos($table, 'buygo_shipments') !== false) {
+                    $this->insert_id = 9100;
+                }
+                return 1;
+            }
+
+            public function update($table, $data, $where, $format = null, $where_format = null)
+            {
+                $this->updates[] = ['table' => $table, 'data' => $data, 'where' => $where];
+                return 1;
+            }
+
+            public function delete($table, $where, $where_format = null) { return 1; }
+        };
+
+        $service = new ShipmentService();
+        $result = $service->create_shipment(88, 99, [[
+            'order_id' => 5001,
+            'order_item_id' => 7001,
+            'product_id' => 1001,
+            'quantity' => 3,
+        ]]);
+
+        $this->assertSame(9100, $result);
+        $this->assertSame([
+            'post_id' => 1001,
+            'meta_key' => '_buygo_allocated',
+            'meta_value' => 6,
+            'prev_value' => '',
+        ], $GLOBALS['mock_update_post_meta_log'][0] ?? null);
+        $lineMetaUpdates = array_filter(
+            $GLOBALS['wpdb']->updates,
+            fn($update) => $update['table'] === 'wp_fct_order_items' && ($update['where']['id'] ?? null) === 7001
+        );
+        $this->assertNotEmpty($lineMetaUpdates);
+        $lineMeta = json_decode(array_values($lineMetaUpdates)[0]['data']['line_meta'], true);
+        $this->assertSame(6, $lineMeta['_allocated_qty']);
+    }
+
+    public function test_mark_shipped_recalculates_allocation_meta_after_order_becomes_shipped(): void
+    {
+        $GLOBALS['wpdb'] = new class {
+            public $prefix = 'wp_';
+            public array $updates = [];
+            public int $insert_id = 1;
+            public string $last_error = '';
+
+            public function prepare($query, ...$args): string
+            {
+                foreach ($args as $arg) {
+                    foreach ((array)$arg as $value) {
+                        $replacement = is_numeric($value) ? (string)(int)$value : "'" . $value . "'";
+                        $query = preg_replace('/%[ds]/', $replacement, $query, 1);
+                    }
+                }
+                return $query;
+            }
+
+            public function get_row($sql, $output = OBJECT)
+            {
+                if (strpos($sql, 'FROM wp_buygo_shipments WHERE id = 55') !== false) {
+                    return (object)['id' => 55, 'shipment_number' => 'SH-55', 'status' => 'pending'];
+                }
+                if (strpos($sql, 'FROM wp_fct_order_items WHERE id = 7002') !== false) {
+                    return ['id' => 7002, 'object_id' => 2002, 'post_id' => 1002, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                if (strpos($sql, 'FROM wp_fct_orders WHERE id = 5002') !== false) {
+                    return (object)['id' => 5002, 'parent_id' => null, 'type' => 'parent', 'status' => 'pending'];
+                }
+                if (strpos($sql, 'FROM wp_fct_order_items WHERE order_id = 5002') !== false && strpos($sql, 'object_id = 2002') !== false) {
+                    return ['id' => 7002, 'object_id' => 2002, 'post_id' => 1002, 'line_meta' => json_encode(['_allocated_qty' => 9])];
+                }
+                return null;
+            }
+
+            public function get_results($sql, $output = OBJECT): array
+            {
+                if (strpos($sql, 'FROM wp_buygo_shipment_items') !== false && strpos($sql, 'shipment_id = 55') !== false) {
+                    return [[
+                        'shipment_id' => 55,
+                        'order_id' => 5002,
+                        'order_item_id' => 7002,
+                        'product_id' => 1002,
+                        'quantity' => 3,
+                    ]];
+                }
+                return [];
+            }
+
+            public function get_col($sql): array
+            {
+                if (strpos($sql, 'FROM wp_buygo_shipment_items') !== false) {
+                    return [5002];
+                }
+                return [];
+            }
+
+            public function get_var($sql)
+            {
+                if (strpos($sql, 'child_o.parent_id = 5002') !== false && strpos($sql, 'child_oi.object_id = 2002') !== false) { return '6'; }
+                if (strpos($sql, 'child_oi.post_id = 1002') !== false) { return '6'; }
+                if (strpos($sql, 'COUNT(*)') !== false) { return '0'; }
+                return '0';
+            }
+
+            public function update($table, $data, $where, $format = null, $where_format = null)
+            {
+                $this->updates[] = ['table' => $table, 'data' => $data, 'where' => $where];
+                return 1;
+            }
+
+            public function insert($table, $data, $format = null) { return 1; }
+            public function query($sql) { return true; }
+        };
+
+        $service = new ShipmentService();
+        $result = $service->mark_shipped([55]);
+
+        $this->assertSame(1, $result);
+        $this->assertSame([
+            'post_id' => 1002,
+            'meta_key' => '_buygo_allocated',
+            'meta_value' => 6,
+            'prev_value' => '',
+        ], $GLOBALS['mock_update_post_meta_log'][0] ?? null);
     }
 }

@@ -12,6 +12,8 @@ The system SHALL allow an admin to cancel a child order whose `shipping_status` 
 Upon cancellation, the system SHALL set the child order `status` to `cancelled` and release the allocated inventory for that child order.
 The system SHALL NOT allow cancellation of child orders with `shipping_status` other than `unshipped`.
 
+When calculating split quantity in `OrderService::splitOrder()`, the system SHALL exclude child orders with status `cancelled` or `refunded` from the sum. This ensures that cancelled child orders do not consume allocation quota, allowing the freed quantity to be re-allocated.
+
 #### Scenario: Successful cancellation of unshipped child order
 
 - **WHEN** admin sends `DELETE /wp-json/buygo-plus-one/v1/child-orders/{child_order_id}` with valid admin credentials
@@ -19,6 +21,22 @@ The system SHALL NOT allow cancellation of child orders with `shipping_status` o
 - **THEN** the system SHALL update the child order `status` to `cancelled`
 - **AND** the system SHALL clear the `_allocated_qty` meta on the child order item
 - **AND** the system SHALL return HTTP 200 with `{ "success": true }`
+
+#### Scenario: Cancelled child order does not consume split quota
+
+- **WHEN** a parent order has quantity=5 for variation A
+- **AND** a child order with quantity=3 exists but has status `cancelled`
+- **THEN** `splitOrder()` SHALL calculate available_quantity as 5 (not 5-3=2)
+- **AND** the admin SHALL be able to create a new child order with up to quantity=5
+
+##### Example: Re-allocation after cancellation
+
+- **GIVEN** parent order item: product_id=100, variation A, quantity=5
+- **GIVEN** child order #1: quantity=3, status=cancelled
+- **GIVEN** child order #2: quantity=1, status=completed
+- **WHEN** admin requests split for quantity=4
+- **THEN** system calculates split_quantity = 1 (only non-cancelled child orders)
+- **THEN** available = 5 - 1 = 4, request is accepted
 
 #### Scenario: Cancellation rejected for shipped child order
 
@@ -39,26 +57,27 @@ The system SHALL NOT allow cancellation of child orders with `shipping_status` o
 - **AND** no child order with that ID exists
 - **THEN** the system SHALL return HTTP 404 with `{ "success": false, "code": "NOT_FOUND", "message": "..." }`
 
-#### Scenario: Cancellation rejected for non-admin user
-
-- **WHEN** a non-admin user sends `DELETE /wp-json/buygo-plus-one/v1/child-orders/{child_order_id}`
-- **THEN** the system SHALL return HTTP 403
-
 
 <!-- @trace
-source: cancel-child-order
-updated: 2026-04-17
+source: debug-allocation-quantity-mismatch
+updated: 2026-05-06
 code:
-  - includes/api/class-api.php
-  - tests/Unit/Services/OrderItemServiceTest.php
-  - tests/Unit/Services/OrderFormatterChildOrderIdTest.php
-  - includes/services/class-order-item-service.php
-  - buygo-plus-one.php
-  - includes/services/class-order-formatter.php
-  - components/order/order-detail-modal.php
-  - tests/bootstrap.php
-  - includes/api/class-order-items-api.php
+  - includes/services/class-order-service.php
+  - tests/Unit/Services/SplitOrderTransactionTest.php
+  - includes/services/class-allocation-batch-service.php
+  - tests/Unit/Services/CancelSpellingFilterTest.php
   - tests/bootstrap-unit.php
+  - includes/services/class-product-stats-calculator.php
+  - tests/Unit/Services/AllocationIntegrationTest.php
+  - includes/services/class-allocation-query-service.php
+  - tests/Unit/Services/AllocationLockTest.php
+  - tests/Unit/Services/AllocationServiceTest.php
+  - includes/services/class-allocation-calculator.php
+  - tests/Unit/Services/ShipOrderMetaSyncTest.php
+  - tests/Unit/Services/AllocationWriteServiceTest.php
+  - includes/services/class-allocation-write-service.php
+  - tests/Unit/Services/AllocationCrossVariantTest.php
+  - includes/services/class-shipment-service.php
 -->
 
 ---

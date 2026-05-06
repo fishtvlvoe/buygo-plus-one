@@ -62,4 +62,3 @@ class CancelSpellingFilterTest extends TestCase
         $this->assertStringContainsString("o.status NOT IN ('cancelled', 'canceled', 'refunded')", $sql);
     }
 }
-

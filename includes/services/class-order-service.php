@@ -882,9 +882,16 @@ class OrderService
                 ['%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
             );
 
-            if ($insert_result !== false) {
-                $items_inserted++;
+            if ($insert_result === false) {
+                $wpdb->query('ROLLBACK');
+                return new \WP_Error(
+                    'CREATE_ORDER_ITEMS_FAILED',
+                    '建立拆分訂單的商品項目失敗：' . $wpdb->last_error,
+                    ['status' => 500]
+                );
             }
+
+            $items_inserted++;
         }
 
         if ($items_inserted === 0 && !empty($shipment_items)) {
