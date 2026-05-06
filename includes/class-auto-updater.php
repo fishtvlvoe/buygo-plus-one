@@ -77,6 +77,12 @@ class Auto_Updater {
         // 提供外掛詳細資訊
         add_filter('plugins_api', [$this, 'plugin_info'], 10, 3);
 
+        // 外掛列表加入「檢查更新」連結
+        add_filter("plugin_action_links_{$this->plugin_file}", [$this, 'add_check_update_link']);
+
+        // 手動檢查更新入口
+        add_action('admin_init', [$this, 'handle_manual_update_check']);
+
         // 清除快取（開發用）
         if (defined('WP_DEBUG') && WP_DEBUG && isset($_GET['clear_update_cache'])) {
             delete_transient('buygo_plus_one_update_check');
@@ -270,6 +276,73 @@ class Auto_Updater {
             esc_html($version),
             esc_url($release_url)
         );
+    }
+
+    /**
+     * 在外掛列表加入手動檢查更新連結
+     *
+     * @param array $links 原本的 action links
+     * @return array
+     */
+    public function add_check_update_link($links) {
+        if (!current_user_can('update_plugins')) {
+            return $links;
+        }
+
+        $url = wp_nonce_url(
+            add_query_arg(
+                [
+                    'buygo_check_update' => '1',
+                    'plugin' => $this->plugin_file,
+                ],
+                admin_url('plugins.php')
+            ),
+            'buygo_check_update'
+        );
+
+        $links[] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url($url),
+            esc_html__('檢查更新', 'buygo-plus-one')
+        );
+
+        return $links;
+    }
+
+    /**
+     * 處理手動檢查更新請求
+     *
+     * 會清除 BuyGo 更新快取與 WordPress 更新 transient，並立即重新檢查。
+     */
+    public function handle_manual_update_check() {
+        if (!is_admin() || !current_user_can('update_plugins')) {
+            return;
+        }
+
+        if (!isset($_GET['buygo_check_update']) || $_GET['buygo_check_update'] !== '1') {
+            return;
+        }
+
+        if (empty($_GET['plugin']) || sanitize_text_field(wp_unslash($_GET['plugin'])) !== $this->plugin_file) {
+            return;
+        }
+
+        if (!isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'buygo_check_update')) {
+            return;
+        }
+
+        delete_transient('buygo_plus_one_update_check');
+        delete_site_transient('update_plugins');
+
+        wp_update_plugins();
+
+        wp_safe_redirect(
+            add_query_arg(
+                ['buygo_update_checked' => '1'],
+                admin_url('plugins.php')
+            )
+        );
+        exit;
     }
 
     /**
