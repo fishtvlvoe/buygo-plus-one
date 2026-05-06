@@ -84,6 +84,9 @@ class Database
 
         // 升級 fct_customers 資料表：新增 note 欄位
         self::upgrade_customers_table($wpdb);
+
+        // 統一 fct_orders 狀態拼字：canceled -> cancelled
+        self::normalize_fct_orders_cancelled_status($wpdb);
     }
 
     /**
@@ -661,6 +664,45 @@ class Database
         if (empty($column)) {
             $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN note TEXT NULL");
         }
+    }
+
+    /**
+     * 統一 fct_orders 訂單狀態拼字
+     *
+     * 將 canceled（單 L）統一為 cancelled（雙 L），避免狀態判斷不一致。
+     */
+    private static function normalize_fct_orders_cancelled_status($wpdb): void
+    {
+        if (get_option('buygo_fct_orders_status_spelling_migrated', false)) {
+            return;
+        }
+
+        $table_name = $wpdb->prefix . 'fct_orders';
+
+        // 檢查表格是否存在
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") !== $table_name) {
+            return;
+        }
+
+        $updated_rows = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$table_name} SET status = %s WHERE status = %s",
+                'cancelled',
+                'canceled'
+            )
+        );
+
+        if ($updated_rows === false) {
+            error_log('[BuyGo] Failed to normalize fct_orders status spelling: ' . $wpdb->last_error);
+            return;
+        }
+
+        update_option('buygo_fct_orders_status_spelling_migrated', true);
+
+        error_log(sprintf(
+            '[BuyGo] Normalized fct_orders status spelling, updated rows: %d',
+            (int) $updated_rows
+        ));
     }
 
     /**
