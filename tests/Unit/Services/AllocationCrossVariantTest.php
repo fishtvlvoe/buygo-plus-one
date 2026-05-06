@@ -120,6 +120,12 @@ class AllocationCrossVariantTest extends TestCase
 
             public function get_var(string $sql)
             {
+                if (strpos($sql, 'GET_LOCK(') !== false) {
+                    return '1';
+                }
+                if (strpos($sql, 'RELEASE_LOCK(') !== false) {
+                    return '1';
+                }
                 // fct_meta purchased total
                 if (strpos($sql, 'fct_meta') !== false && strpos($sql, '_buygo_purchased') !== false) {
                     return (string) ($this->config['purchased_total'] ?? 11);
@@ -130,7 +136,6 @@ class AllocationCrossVariantTest extends TestCase
                 }
                 // child allocated sum
                 if (strpos($sql, 'child_o.type = \'split\'') !== false) {
-                    $excludeCancelled = strpos($sql, "child_o.status NOT IN ('cancelled', 'refunded')") !== false;
                     $allocated = $this->config['existing_child_allocated'] ?? 0;
                     return (string) $allocated;
                 }

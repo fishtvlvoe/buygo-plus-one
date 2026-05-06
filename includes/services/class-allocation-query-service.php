@@ -130,7 +130,7 @@ class AllocationQueryService
                      INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                      WHERE child_o.parent_id = o.id
                      AND child_o.type = 'split'
-                     AND child_o.status NOT IN ('cancelled', 'refunded')
+                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                      AND child_oi.object_id = oi.object_id),
                     0
                 ) as allocated_to_child
@@ -140,7 +140,7 @@ class AllocationQueryService
              LEFT JOIN {$wpdb->prefix}fct_product_variations pv ON oi.object_id = pv.id
              WHERE oi.object_id IN ($placeholders)
              AND o.parent_id IS NULL
-             AND o.status NOT IN ('cancelled', 'refunded')
+             AND o.status NOT IN ('cancelled', 'canceled', 'refunded')
              AND (o.shipping_status IS NULL OR o.shipping_status NOT IN ('shipped', 'completed'))
              ORDER BY o.created_at DESC",
             ...$variation_ids

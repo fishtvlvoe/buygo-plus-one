@@ -51,7 +51,7 @@ class ProductStatsCalculator
                 FROM {$table_items} oi
                 INNER JOIN {$table_orders} o ON oi.order_id = o.id
                 WHERE oi.object_id IN ({$placeholders})
-                AND o.status NOT IN ('cancelled', 'refunded')
+                AND o.status NOT IN ('cancelled', 'canceled', 'refunded')
                 AND o.parent_id IS NULL
                 GROUP BY oi.object_id
             ", ...$productVariationIds);
@@ -164,7 +164,7 @@ class ProductStatsCalculator
                 WHERE oi.object_id IN ({$placeholders})
                 AND o.parent_id IS NOT NULL
                 AND o.type = 'split'
-                AND o.status NOT IN ('cancelled', 'refunded')
+                AND o.status NOT IN ('cancelled', 'canceled', 'refunded')
                 GROUP BY oi.object_id
             ", ...$productVariationIds);
 

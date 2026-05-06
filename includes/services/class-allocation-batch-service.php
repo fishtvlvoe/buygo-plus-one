@@ -39,7 +39,7 @@ class AllocationBatchService
             "SELECT child_o.parent_id AS order_id, child_oi.object_id, COALESCE(SUM(child_oi.quantity), 0) AS allocated_qty
              FROM {$wpdb->prefix}fct_orders child_o
              INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
-             WHERE child_o.type = 'split' AND child_o.status NOT IN ('cancelled', 'refunded')
+             WHERE child_o.type = 'split' AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
              AND (" . implode(' OR ', $conditions) . ")
              GROUP BY child_o.parent_id, child_oi.object_id",
             ...$values
@@ -74,7 +74,7 @@ class AllocationBatchService
                  FROM {$wpdb->prefix}fct_order_items oi
                  INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
                  WHERE oi.id = %d AND oi.object_id IN ($var_placeholders)
-                 AND o.parent_id IS NULL AND o.status NOT IN ('cancelled', 'refunded')",
+                 AND o.parent_id IS NULL AND o.status NOT IN ('cancelled', 'canceled', 'refunded')",
                 array_merge([$order_item_id], $variation_ids),
             ]
             : [
@@ -82,7 +82,7 @@ class AllocationBatchService
                  FROM {$wpdb->prefix}fct_order_items oi
                  INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
                  WHERE oi.object_id IN ($var_placeholders) AND o.customer_id = %d
-                 AND o.parent_id IS NULL AND o.status NOT IN ('cancelled', 'refunded')",
+                 AND o.parent_id IS NULL AND o.status NOT IN ('cancelled', 'canceled', 'refunded')",
                 array_merge($variation_ids, [$customer_id]),
             ];
         $order_items = $wpdb->get_results($wpdb->prepare($query[0], ...$query[1]));
@@ -104,12 +104,12 @@ class AllocationBatchService
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.parent_id = %d AND child_o.type = 'split'
-                 AND child_o.status NOT IN ('cancelled', 'refunded')
+                 AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND child_oi.object_id = %d",
                 $item->order_id,
                 (int) $item->object_id
             ));
-            $already = max($child_allocated, (int) ($meta_data['_allocated_qty'] ?? 0), $actual_shipped);
+            $already = max($child_allocated, $actual_shipped);
             $needed = (int) $item->quantity - $already;
             if ($needed <= 0) {
                 $skipped_orders[] = ['order_id' => $item->order_id, 'reason' => '已全部分配'];

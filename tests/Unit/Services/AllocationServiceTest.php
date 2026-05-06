@@ -883,7 +883,7 @@ class AllocationServiceTest extends TestCase
      * 所有訂單已全部分配完畢：回傳 total_allocated=0、skipped_orders 有紀錄
      *
      * 情境：
-     *   - 訂單 #1405 的 quantity=1，但 _allocated_qty meta = 1（已分配完）
+     *   - 訂單 #1405 的 quantity=1，且子訂單實際已分配 = 1（已分配完）
      *   - needed = 1 - 1 = 0 → 跳過，加入 skipped_orders
      *   - allocations 為空 → 走 empty($allocations) 分支
      *   - 應回傳 total_allocated=0 且 skipped_orders 有一筆
@@ -905,8 +905,8 @@ class AllocationServiceTest extends TestCase
             ['method' => 'get_results', 'contains' => 'fct_order_items', 'return' => [$orderItem]],
             // 已出貨數量 = 0
             ['method' => 'get_var', 'contains' => 'buygo_shipment_items', 'return' => '0'],
-            // 子訂單已分配 = 0（meta 決定 already=1）
-            ['method' => 'get_var', 'contains' => 'COALESCE(SUM', 'return' => '0'],
+            // 子訂單已分配 = 1（以實際子訂單/出貨為準，不依賴 _allocated_qty meta）
+            ['method' => 'get_var', 'contains' => 'COALESCE(SUM', 'return' => '1'],
         ];
 
         $GLOBALS['wpdb'] = $this->makeMockWpdb($rules);
