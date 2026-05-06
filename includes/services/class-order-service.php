@@ -562,7 +562,7 @@ class OrderService
                      FROM {$wpdb->prefix}fct_orders child_o
                      INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                      WHERE child_o.type = 'split'
-                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
+                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded', 'shipped')
                      AND child_oi.post_id = %d",
                     (int) $post_id
                 ));
@@ -955,6 +955,8 @@ class OrderService
                  FROM {$wpdb->prefix}fct_order_items oi
                  INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
                  WHERE o.parent_id = %d
+                 AND o.type = 'split'
+                 AND o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND oi.object_id = %d",
                 $order_id,
                 (int)($parent_order_item['object_id'] ?? 0)
