@@ -16,6 +16,12 @@ if (!defined('ABSPATH')) {
 
 class Auto_Updater {
     /**
+     * GitHub 最新版本 API
+     * @var string
+     */
+    private const GITHUB_LATEST_RELEASE_API = 'https://api.github.com/repos/fishtvlvoe/buygo-plus-one/releases/latest';
+
+    /**
      * 外掛 slug
      * @var string
      */
@@ -53,6 +59,9 @@ class Auto_Updater {
      */
     public function __construct($version, $api_url = '') {
         $this->version = $version;
+        $this->plugin_file = defined('BUYGO_PLUS_ONE_PLUGIN_FILE')
+            ? plugin_basename(BUYGO_PLUS_ONE_PLUGIN_FILE)
+            : $this->plugin_file;
 
         // 預設 API URL（部署後需要更新）
         $this->api_url = !empty($api_url)
@@ -112,38 +121,8 @@ class Auto_Updater {
             return $transient;
         }
 
-        // 呼叫 Cloudflare Workers API
-        $response = wp_remote_get(
-            add_query_arg([
-                'version' => $this->version,
-                'action' => 'update-check'
-            ], $this->api_url . '/update/' . $this->plugin_slug),
-            [
-                'timeout' => 10,
-                'headers' => [
-                    'Accept' => 'application/json'
-                ]
-            ]
-        );
-
-        // 處理錯誤
-        if (is_wp_error($response)) {
-            error_log('BuyGo Plus One 更新檢查失敗: ' . $response->get_error_message());
-            return $transient;
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-        if ($response_code !== 200) {
-            error_log('BuyGo Plus One 更新 API 回應錯誤: HTTP ' . $response_code);
-            return $transient;
-        }
-
-        // 解析回應
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
+        $data = $this->fetch_update_data();
         if (empty($data)) {
-            error_log('BuyGo Plus One 更新 API 回應格式錯誤');
             return $transient;
         }
 
@@ -190,6 +169,92 @@ class Auto_Updater {
         }
 
         return $transient;
+    }
+
+    /**
+     * 取得更新資料（先試 Worker，失敗時 fallback GitHub Releases）
+     *
+     * @return array|null
+     */
+    private function fetch_update_data() {
+        $response = wp_remote_get(
+            add_query_arg([
+                'version' => $this->version,
+                'action' => 'update-check'
+            ], $this->api_url . '/update/' . $this->plugin_slug),
+            [
+                'timeout' => 10,
+                'headers' => [
+                    'Accept' => 'application/json'
+                ]
+            ]
+        );
+
+        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+            $data = json_decode(wp_remote_retrieve_body($response), true);
+            if (!empty($data)) {
+                return $data;
+            }
+        } else {
+            error_log('BuyGo Plus One 更新 API 不可用，改用 GitHub Releases fallback');
+        }
+
+        return $this->fetch_update_data_from_github();
+    }
+
+    /**
+     * 從 GitHub Releases 取得更新資料（fallback）
+     *
+     * @return array|null
+     */
+    private function fetch_update_data_from_github() {
+        $response = wp_remote_get(
+            self::GITHUB_LATEST_RELEASE_API,
+            [
+                'timeout' => 10,
+                'headers' => [
+                    'Accept' => 'application/vnd.github+json',
+                    'User-Agent' => 'BuyGo-Plus-One-Updater'
+                ]
+            ]
+        );
+
+        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+            error_log('BuyGo Plus One GitHub fallback 更新檢查失敗');
+            return null;
+        }
+
+        $release = json_decode(wp_remote_retrieve_body($response), true);
+        if (empty($release['tag_name'])) {
+            return null;
+        }
+
+        $latest_version = ltrim((string) $release['tag_name'], 'v');
+        $download_url = '';
+        if (!empty($release['assets']) && is_array($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                $asset_name = (string) ($asset['name'] ?? '');
+                if (
+                    $asset_name !== '' &&
+                    substr($asset_name, -4) === '.zip' &&
+                    !empty($asset['browser_download_url'])
+                ) {
+                    $download_url = $asset['browser_download_url'];
+                    break;
+                }
+            }
+        }
+
+        return [
+            'version' => $latest_version,
+            'download_link' => $download_url,
+            'homepage' => 'https://github.com/fishtvlvoe/buygo-plus-one',
+            'url' => 'https://github.com/fishtvlvoe/buygo-plus-one/releases/tag/v' . $latest_version,
+            'tested' => '6.4',
+            'requires' => '5.8',
+            'requires_php' => '7.4',
+            'up_to_date' => !version_compare($this->version, $latest_version, '<'),
+        ];
     }
 
     /**
