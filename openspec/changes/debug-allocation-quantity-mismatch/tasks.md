@@ -58,26 +58,40 @@
 
 ## 8. 修復 Codex 遺漏項目
 
-- [ ] 8.1 在 `includes/services/class-allocation-calculator.php` 第 245 行和第 268 行，將 `NOT IN ('cancelled', 'refunded')` 改為 `NOT IN ('cancelled', 'canceled', 'refunded')` [Tool: sonnet]
+- [x] 8.1 在 `includes/services/class-allocation-calculator.php` 第 245 行和第 268 行，將 `NOT IN ('cancelled', 'refunded')` 改為 `NOT IN ('cancelled', 'canceled', 'refunded')` [Tool: sonnet]
 
-- [ ] 8.2 在 `includes/services/class-product-stats-calculator.php` 第 54 行和第 167 行，將 `NOT IN ('cancelled', 'refunded')` 改為 `NOT IN ('cancelled', 'canceled', 'refunded')` [Tool: sonnet]
+- [x] 8.2 在 `includes/services/class-product-stats-calculator.php` 第 54 行和第 167 行，將 `NOT IN ('cancelled', 'refunded')` 改為 `NOT IN ('cancelled', 'canceled', 'refunded')` [Tool: sonnet]
 
-- [ ] 8.3 重寫 `tests/Unit/Services/ShipOrderMetaSyncTest.php`：移除 file_get_contents() 靜態掃描，改用 mock/stub 行為測試。測試 shipOrder 後 `_buygo_allocated` 從 9 降為 6（3 筆子訂單各 qty=3，出貨 1 筆），以及 `_allocated_qty` 重算為 SUM 而非累減。參考 AllocationLockTest.php 的 mock 模式 [Tool: sonnet]
+- [x] 8.3 重寫 `tests/Unit/Services/ShipOrderMetaSyncTest.php`：移除 file_get_contents() 靜態掃描，改用 mock/stub 行為測試。測試 shipOrder 後 `_buygo_allocated` 從 9 降為 6（3 筆子訂單各 qty=3，出貨 1 筆），以及 `_allocated_qty` 重算為 SUM 而非累減。參考 AllocationLockTest.php 的 mock 模式 [Tool: sonnet]
 
-- [ ] 8.4 執行全域 grep 確認所有 `NOT IN.*cancelled.*refunded` 都包含 `canceled`，執行 `composer test` 確認全綠 [Tool: sonnet]
+- [x] 8.4 執行全域 grep 確認所有 `NOT IN.*cancelled.*refunded` 都包含 `canceled`，執行 `composer test` 確認全綠（319 tests, 0 failures）[Tool: sonnet]
 
-## 9. 雲端 DB 修復 + 部署
+## 9. CR 發現的 5 個問題修復
 
-- [ ] 9.1 SSH 到雲端主機，將 status="canceled" 的子訂單統一更新為 "cancelled"：`UPDATE wp_fct_orders SET status='cancelled' WHERE status='canceled'`（先 SELECT 確認筆數再 UPDATE）
+- [ ] 9.1 **[High] Lock key 改用 parent product ID**：`includes/services/class-allocation-write-service.php` 約第 31 行，目前 lock name 是 `buygo_allocate_{$product_id}`，但傳入的 `$product_id` 可能是 variation ID。後續 `getAllVariationIds()` 會對同商品所有 variations 做總量檢查，兩個不同 variation 同時分配會拿到不同鎖，仍可能 oversubscribe。修法：在取 lock 前，先用 `wp_get_post_parent_id($product_id)` 取得 parent post ID（如果是 variation 的話），確保同一商品的所有 variation 共用同一把鎖。若 `$product_id` 本身就是 parent（simple product），parent_id = 0，則用原值。lock name 改為 `buygo_allocate_{$parent_id}`
 
-- [ ] 9.2 用 `/deploy` skill 部署代碼到 buygo.instawp.xyz
+- [ ] 9.2 **[High] mark_shipped() 加 meta 重算**：`includes/services/class-shipment-service.php` 約第 157 行，`mark_shipped()` 將子訂單 status 改為 `shipped` 後，沒有觸發 `_allocated_qty` 和 `_buygo_allocated` 的重算。而 `shipOrder()` 的重算 SQL 用 `NOT IN (..., 'shipped')` 過濾，依賴的是子訂單已經是 shipped 狀態。但 `create_shipment()` 只設 `processing`，真正改 `shipped` 是 `mark_shipped()`。修法：在 `mark_shipped()` 成功將 status 改為 `shipped` 後，加入與 `shipOrder()` 相同的 `_allocated_qty` SUM 重算（排除 cancelled/canceled/refunded/shipped）和 `_buygo_allocated` post meta 重算。可抽成共用方法 `recalcAllocationMeta($parent_order_id, $product_id)` 避免重複代碼
 
-- [ ] 9.3 部署後 SSH 執行驗證：(1) 確認 cancel 拼寫已統一 (2) 重新觸發一次分配+出貨流程，檢查 `_buygo_allocated` 和 `_allocated_qty` 數字正確
+- [ ] 9.3 **[Medium] splitOrder() transaction 任何 item insert 失敗都 ROLLBACK**：`includes/services/class-order-service.php` 約第 879 行，目前邏輯是 `$items_inserted > 0` 就繼續 commit。應改為：遍歷所有品項 insert，任何一個失敗就 ROLLBACK 整筆交易。具體改法：在 item insert loop 內，若 `$wpdb->insert()` 回傳 false，立即 `$wpdb->query('ROLLBACK')` 並 return WP_Error。移除 `$items_inserted > 0` 的判斷，改為「全部品項都 insert 成功才 COMMIT」
 
-## 10. Fish 驗收
+- [ ] 9.4 **[Medium] 多個出貨路徑補 meta 重算**：目前 meta 重算只在 `OrderService::shipOrder()` 內。但 `Shipments_API::create_shipment()`（`includes/api/class-shipments-api.php` 約第 572 行）和 `Orders_API::prepare_order()`（`includes/api/class-orders-api.php` 約第 497 行）都直接呼叫 `ShipmentService::create_shipment()`，繞過 meta 重算。修法：在 `ShipmentService::create_shipment()` 完成後，呼叫 9.2 抽出的共用方法 `recalcAllocationMeta()` 做重算。或者用 WordPress action hook：在 `ShipmentService` 的出貨完成點 `do_action('buygo_shipment_created', $order_id, $product_id)`，然後在 `AllocationWriteService` 監聽這個 hook 觸發重算。建議用 hook 方式，維持 service 間解耦
 
-- [ ] 10.1 Fish 進入後台驗收多變體商品的分配流程，確認數量一致
+- [ ] 9.5 **[Low] 清除 trailing blank lines**：`tests/Unit/Services/CancelSpellingFilterTest.php` 和 `tests/Unit/Services/SplitOrderTransactionTest.php` 檔案末尾有多餘空行，用 `sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' <file>` 或手動移除
 
-## 11. Spectra 收尾
+- [ ] 9.6 執行 `composer test` 確認全綠，無 regression
 
-- [ ] 11.1 `spectra archive debug-allocation-quantity-mismatch`
+## 10. 雲端 DB 修復 + 部署
+
+- [ ] 10.1 SSH 到雲端主機，將 status="canceled" 的子訂單統一更新為 "cancelled"：`UPDATE wp_fct_orders SET status='cancelled' WHERE status='canceled'`（先 SELECT 確認筆數再 UPDATE）
+
+- [ ] 10.2 用 `/deploy` skill 部署代碼到 buygo.instawp.xyz
+
+- [ ] 10.3 部署後 SSH 執行驗證：(1) 確認 cancel 拼寫已統一 (2) 重新觸發一次分配+出貨流程，檢查 `_buygo_allocated` 和 `_allocated_qty` 數字正確
+
+## 11. Fish 驗收
+
+- [ ] 11.1 Fish 進入後台驗收多變體商品的分配流程，確認數量一致
+
+## 12. Spectra 收尾
+
+- [ ] 12.1 `spectra archive debug-allocation-quantity-mismatch`
