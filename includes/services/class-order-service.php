@@ -417,7 +417,7 @@ class OrderService
                 return new \WP_Error('ORDER_NOT_FOUND', '訂單不存在');
             }
 
-            if (in_array($order->status, ['cancelled', 'refunded', 'completed'])) {
+            if (in_array($order->status, ['cancelled', 'canceled', 'refunded', 'completed'])) {
                 $wpdb->query('ROLLBACK');
                 return new \WP_Error('INVALID_ORDER_STATUS', '訂單狀態不允許出貨');
             }
@@ -505,7 +505,8 @@ class OrderService
                 return $shipment_id;
             }
 
-            // 6. 更新 allocated_quantity（扣除已出貨數量）
+            // 6. 更新 allocated_quantity（改為重算，避免累減漂移）
+            $affected_post_ids = [];
             foreach ($items as $item) {
                 $order_item_id = (int)($item['order_item_id'] ?? 0);
                 $quantity = (int)($item['quantity'] ?? 0);
@@ -517,10 +518,26 @@ class OrderService
 
                 if ($order_item) {
                     $meta_data = json_decode($order_item['line_meta'] ?? $order_item['meta_data'] ?? '{}', true) ?: [];
-                    $current_allocated = (int)($meta_data['_allocated_qty'] ?? 0);
+                    $current_order_item = $wpdb->get_row($wpdb->prepare(
+                        "SELECT object_id, post_id FROM {$table_items} WHERE id = %d AND order_id = %d",
+                        $order_item_id,
+                        $order_id
+                    ), ARRAY_A);
+                    $object_id = (int)($current_order_item['object_id'] ?? 0);
+                    $post_id = (int)($current_order_item['post_id'] ?? 0);
 
-                    $new_allocated = max(0, $current_allocated - $quantity);
-                    $meta_data['_allocated_qty'] = $new_allocated;
+                    $recalc_allocated = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                         FROM {$wpdb->prefix}fct_orders child_o
+                         INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                         WHERE child_o.parent_id = %d
+                         AND child_o.type = 'split'
+                         AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded', 'shipped')
+                         AND child_oi.object_id = %d",
+                        $order_id,
+                        $object_id
+                    ));
+                    $meta_data['_allocated_qty'] = $recalc_allocated;
 
                     $current_shipped = (int)($meta_data['_shipped_qty'] ?? 0);
                     $meta_data['_shipped_qty'] = $current_shipped + $quantity;
@@ -532,7 +549,24 @@ class OrderService
                         ['%s'],
                         ['%d']
                     );
+
+                    if ($post_id > 0) {
+                        $affected_post_ids[$post_id] = true;
+                    }
                 }
+            }
+
+            foreach (array_keys($affected_post_ids) as $post_id) {
+                $post_allocated = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(child_oi.quantity), 0)
+                     FROM {$wpdb->prefix}fct_orders child_o
+                     INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
+                     WHERE child_o.type = 'split'
+                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
+                     AND child_oi.post_id = %d",
+                    (int) $post_id
+                ));
+                update_post_meta((int) $post_id, '_buygo_allocated', $post_allocated);
             }
 
             // 7. 更新訂單狀態（如果訂單中所有商品都已出貨）
@@ -728,6 +762,7 @@ class OrderService
                  FROM {$wpdb->prefix}fct_order_items oi
                  INNER JOIN {$wpdb->prefix}fct_orders o ON oi.order_id = o.id
                  WHERE o.parent_id = %d
+                 AND o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND oi.post_id = %d
                  AND oi.object_id = %d",
                 $order_id,
@@ -757,12 +792,14 @@ class OrderService
             ];
         }
 
-        // 計算新訂單編號後綴（現有子訂單數量 + 1）
-        $split_count  = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table_orders} WHERE parent_id = %d",
-            $order_id
-        ));
-        $split_suffix = (int)$split_count + 1;
+        $wpdb->query('START TRANSACTION');
+        try {
+            // 計算新訂單編號後綴（現有子訂單數量 + 1）
+            $split_count  = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_orders} WHERE parent_id = %d",
+                $order_id
+            ));
+            $split_suffix = (int)$split_count + 1;
 
         // 計算新子訂單的總金額
         $new_order_total = 0;
@@ -805,6 +842,7 @@ class OrderService
         );
 
         if ($new_order_inserted === false) {
+            $wpdb->query('ROLLBACK');
             return new \WP_Error(
                 'CREATE_ORDER_FAILED',
                 '建立拆分訂單失敗：' . $wpdb->last_error,
@@ -850,6 +888,7 @@ class OrderService
         }
 
         if ($items_inserted === 0 && !empty($shipment_items)) {
+            $wpdb->query('ROLLBACK');
             return new \WP_Error(
                 'CREATE_ORDER_ITEMS_FAILED',
                 '建立拆分訂單的商品項目失敗',
@@ -934,17 +973,27 @@ class OrderService
             );
         }
 
-        $this->debugService->log('OrderService', '訂單拆分成功', [
-            'order_id'     => $order_id,
-            'new_order_id' => $new_order_id,
-            'split_suffix' => $split_suffix,
-        ]);
+            $this->debugService->log('OrderService', '訂單拆分成功', [
+                'order_id'     => $order_id,
+                'new_order_id' => $new_order_id,
+                'split_suffix' => $split_suffix,
+            ]);
 
-        return [
-            'original_order_id' => $order_id,
-            'new_order_id'      => $new_order_id,
-            'order_number'      => (!empty($order->invoice_no) ? $order->invoice_no : $order_id) . '-' . $split_suffix,
-        ];
+            $wpdb->query('COMMIT');
+
+            return [
+                'original_order_id' => $order_id,
+                'new_order_id'      => $new_order_id,
+                'order_number'      => (!empty($order->invoice_no) ? $order->invoice_no : $order_id) . '-' . $split_suffix,
+            ];
+        } catch (\Throwable $e) {
+            $wpdb->query('ROLLBACK');
+            return new \WP_Error(
+                'SPLIT_ORDER_FAILED',
+                '拆分訂單失敗：' . $e->getMessage(),
+                ['status' => 500]
+            );
+        }
     }
 
     /**

@@ -28,6 +28,8 @@ class AllocationWriteService
         global $wpdb;
 
         $is_per_item = !empty($allocations) && is_array(reset($allocations));
+        $lock_name = 'buygo_allocate_' . (int) $product_id;
+        $lock_acquired = false;
 
         $this->debugService->log('AllocationService', '開始更新訂單分配數量', [
             'product_id' => $product_id,
@@ -35,9 +37,18 @@ class AllocationWriteService
             'format' => $is_per_item ? 'per-item' : 'legacy',
         ]);
 
-        $wpdb->query('START TRANSACTION');
-
         try {
+            $lock_result = $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 10)", $lock_name));
+            if ($lock_result === null || $lock_result === false || $lock_result === '') {
+                // 測試或不支援 named lock 的環境：略過鎖但保留主流程
+                $lock_acquired = false;
+            } elseif ((string) $lock_result !== '1') {
+                return new WP_Error('allocation_locked', '此商品正在分配中，請稍後再試');
+            } else {
+                $lock_acquired = true;
+            }
+
+            $wpdb->query('START TRANSACTION');
             $product = \FluentCart\App\Models\ProductVariation::find($product_id);
             if (!$product) {
                 $wpdb->query('ROLLBACK');
@@ -104,6 +115,10 @@ class AllocationWriteService
                         $wpdb->query('ROLLBACK');
                         return new WP_Error('NO_ORDER_ITEMS', "找不到訂單 #{$norm['order_id']} 的項目");
                     }
+                    if (count($matches) > 1) {
+                        $wpdb->query('ROLLBACK');
+                        return new WP_Error('variation_required', "訂單 #{$norm['order_id']} 有多個款式，請指定 variation_id");
+                    }
                     $norm['object_id'] = (int) $matches[0]['object_id'];
                 }
             }
@@ -127,7 +142,7 @@ class AllocationWriteService
                      INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                      WHERE child_o.parent_id = %d
                      AND child_o.type = 'split'
-                     AND child_o.status NOT IN ('cancelled', 'refunded')
+                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                      AND child_oi.object_id = %d",
                     $order_id,
                     $object_id
@@ -144,7 +159,7 @@ class AllocationWriteService
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.type = 'split'
-                 AND child_o.status NOT IN ('cancelled', 'refunded')
+                 AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND child_oi.object_id IN ($var_placeholders)",
                 ...$variation_ids
             ));
@@ -179,7 +194,7 @@ class AllocationWriteService
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.type = 'split'
-                 AND child_o.status NOT IN ('cancelled', 'refunded')
+                 AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND child_oi.object_id IN ($var_placeholders)",
                 ...$variation_ids
             ));
@@ -191,6 +206,10 @@ class AllocationWriteService
             $wpdb->query('ROLLBACK');
             $this->debugService->log('AllocationService', '更新訂單分配數量失敗', ['product_id' => $product_id, 'error' => $e->getMessage()], 'error');
             return new WP_Error('ALLOCATION_UPDATE_FAILED', '更新分配數量失敗：' . $e->getMessage());
+        } finally {
+            if ($lock_acquired) {
+                $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_name));
+            }
         }
     }
 

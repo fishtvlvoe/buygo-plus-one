@@ -71,6 +71,12 @@ class AllocationWriteServiceTest extends TestCase
 
             public function get_var(string $sql)
             {
+                if (strpos($sql, 'GET_LOCK(') !== false) {
+                    return '1';
+                }
+                if (strpos($sql, 'RELEASE_LOCK(') !== false) {
+                    return '1';
+                }
                 return strpos($sql, 'fct_meta') !== false ? '10' : '0';
             }
 
@@ -212,6 +218,12 @@ class AllocationWriteServiceTest extends TestCase
 
             public function get_var(string $sql)
             {
+                if (strpos($sql, 'GET_LOCK(') !== false) {
+                    return '1';
+                }
+                if (strpos($sql, 'RELEASE_LOCK(') !== false) {
+                    return '1';
+                }
                 if (strpos($sql, 'fct_meta') !== false) {
                     return '10';
                 }
@@ -221,11 +233,11 @@ class AllocationWriteServiceTest extends TestCase
                 }
 
                 if (strpos($sql, 'child_o.parent_id = 1405') !== false) {
-                    return strpos($sql, "child_o.status NOT IN ('cancelled', 'refunded')") !== false ? '0' : '3';
+                    return strpos($sql, "child_o.status NOT IN ('cancelled', 'canceled', 'refunded')") !== false ? '0' : '3';
                 }
 
                 if (strpos($sql, 'child_o.type = \'split\'') !== false) {
-                    return strpos($sql, "child_o.status NOT IN ('cancelled', 'refunded')") !== false ? '0' : '3';
+                    return strpos($sql, "child_o.status NOT IN ('cancelled', 'canceled', 'refunded')") !== false ? '0' : '3';
                 }
 
                 return '0';

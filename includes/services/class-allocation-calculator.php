@@ -242,7 +242,7 @@ class AllocationCalculator
                      INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                      WHERE child_o.parent_id = %d
                      AND child_o.type = 'split'
-                     AND child_o.status NOT IN ('cancelled', 'refunded')
+                     AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                      AND child_oi.object_id IN ($var_placeholders)",
                     array_merge([$order_id], $variation_ids)
                 ));
@@ -265,7 +265,7 @@ class AllocationCalculator
                  FROM {$wpdb->prefix}fct_orders child_o
                  INNER JOIN {$wpdb->prefix}fct_order_items child_oi ON child_o.id = child_oi.order_id
                  WHERE child_o.type = 'split'
-                 AND child_o.status NOT IN ('cancelled', 'refunded')
+                 AND child_o.status NOT IN ('cancelled', 'canceled', 'refunded')
                  AND child_oi.object_id IN ($var_placeholders)",
                 ...$variation_ids
             ));
