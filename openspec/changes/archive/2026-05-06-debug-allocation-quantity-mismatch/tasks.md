@@ -90,21 +90,21 @@
 
 ## 12. CR 二輪 — 修復驗證發現的 7 個問題
 
-- [ ] 12.1 **[Critical] resolveAllocationLockId() 移除 $GLOBALS mock**：`includes/services/class-allocation-write-service.php` 的 `resolveAllocationLockId()` 用 `$GLOBALS['mock_product_variation_map']` 和 `$GLOBALS['mock_variation_map']` 做測試 fallback，這滲入了生產代碼。改法：抽出 `protected function getVariationParentId(int $product_id): int` 方法，只放 FluentCart ORM 查詢 + `wp_get_post_parent_id` fallback。測試中用匿名子類別 override 這個方法，不用 $GLOBALS
+- [x] 12.1 **[Critical] resolveAllocationLockId() 移除 $GLOBALS mock**：`includes/services/class-allocation-write-service.php` 的 `resolveAllocationLockId()` 用 `$GLOBALS['mock_product_variation_map']` 和 `$GLOBALS['mock_variation_map']` 做測試 fallback，這滲入了生產代碼。改法：抽出 `protected function getVariationParentId(int $product_id): int` 方法，只放 FluentCart ORM 查詢 + `wp_get_post_parent_id` fallback。測試中用匿名子類別 override 這個方法，不用 $GLOBALS
 
-- [ ] 12.2 **[Critical] mark_shipped → syncForShipment() 測試 mock 修正**：`tests/Unit/Services/ShipOrderMetaSyncTest.php` 中測試 `mark_shipped` 的場景，mock 的 `get_results()` 沒有正確模擬 `buygo_shipment_items` 資料表查詢（用了 `fct_order_items`）。修正 mock 讓它回傳正確格式的 shipment items 資料
+- [x] 12.2 **[Critical] mark_shipped → syncForShipment() 測試 mock 修正**：`tests/Unit/Services/ShipOrderMetaSyncTest.php` 中測試 `mark_shipped` 的場景，mock 的 `get_results()` 沒有正確模擬 `buygo_shipment_items` 資料表查詢（用了 `fct_order_items`）。修正 mock 讓它回傳正確格式的 shipment items 資料
 
-- [ ] 12.3 **[Critical] 補 simple product lock key 測試**：`tests/Unit/Services/AllocationLockTest.php` 或 `AllocationIntegrationTest.php` 新增測試：simple product（`wp_get_post_parent_id` 回 0）時 lock key 用自身 product_id，不會出現 `buygo_allocate_0`
+- [x] 12.3 **[Critical] 補 simple product lock key 測試**：`tests/Unit/Services/AllocationLockTest.php` 或 `AllocationIntegrationTest.php` 新增測試：simple product（`wp_get_post_parent_id` 回 0）時 lock key 用自身 product_id，不會出現 `buygo_allocate_0`
 
-- [ ] 12.4 **[Warning] cancel filter SQL 狀態列表抽成常數**：在 `AllocationMetaSyncService` 或共用位置定義 `const INACTIVE_STATUSES = ['cancelled', 'canceled', 'refunded']` 和 `const NON_ALLOCATABLE_STATUSES = ['cancelled', 'canceled', 'refunded', 'shipped']`。shipOrder() 和 AllocationMetaSyncService 的 SQL 都引用這些常數，避免未來兩套不同步
+- [x] 12.4 **[Warning] cancel filter SQL 狀態列表抽成常數**：在 `AllocationMetaSyncService` 或共用位置定義 `const INACTIVE_STATUSES = ['cancelled', 'canceled', 'refunded']` 和 `const NON_ALLOCATABLE_STATUSES = ['cancelled', 'canceled', 'refunded', 'shipped']`。shipOrder() 和 AllocationMetaSyncService 的 SQL 都引用這些常數，避免未來兩套不同步
 
-- [ ] 12.5 **[Warning] AllocationMetaSyncService 加 class_exists 保護**：與其他 service 一致，檔案頂部加 `if (!defined('ABSPATH')) exit;` 保護
+- [x] 12.5 **[Warning] AllocationMetaSyncService 加 class_exists 保護**：與其他 service 一致，檔案頂部加 `if (!defined('ABSPATH')) exit;` 保護
 
-- [ ] 12.6 **[Warning] 測試 tearDown 清理 $GLOBALS['wpdb']**：`AllocationLockTest.php` 的 `tearDown()` 加 `unset($GLOBALS['wpdb'])` 或 restore 原值，避免測試間互相污染
+- [x] 12.6 **[Warning] 測試 tearDown 清理 $GLOBALS['wpdb']**：`AllocationLockTest.php` 的 `tearDown()` 加 `unset($GLOBALS['wpdb'])` 或 restore 原值，避免測試間互相污染
 
-- [ ] 12.7 **[Warning] ShipOrderMetaSyncTest mock SQL 比對改寬鬆**：將硬編碼 SQL 字串比對（如 `strpos($sql, 'SELECT status FROM wp_fct_orders WHERE id = 5001')`）改為正則或關鍵字比對（如 `strpos($sql, 'fct_orders') && strpos($sql, '5001')`），避免 SQL 格式微調就假通過
+- [x] 12.7 **[Warning] ShipOrderMetaSyncTest mock SQL 比對改寬鬆**：將硬編碼 SQL 字串比對（如 `strpos($sql, 'SELECT status FROM wp_fct_orders WHERE id = 5001')`）改為正則或關鍵字比對（如 `strpos($sql, 'fct_orders') && strpos($sql, '5001')`），避免 SQL 格式微調就假通過
 
-- [ ] 12.8 執行 `composer test` 確認全綠
+- [x] 12.8 執行 `composer test` 確認全綠
 
 ---
 
