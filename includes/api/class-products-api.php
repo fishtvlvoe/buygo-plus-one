@@ -335,13 +335,13 @@ class Products_API {
                     'ordered' => $product['ordered'] ?? 0,
                     'purchased' => $purchased,
                     'allocated' => $allocated,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - $purchased - $allocated),
+                    'reserved' => \BuyGoPlus\Services\ProductStatsCalculator::reserved((int)($product['ordered'] ?? 0), (int)$purchased, (int)$allocated),
                     'has_variations' => $hasVariations,
                     'variations' => $variations,
                     'default_variation' => $defaultVariation,
                     'post_id' => $product['post_id'] ?? null
                 ];
-                
+
                 return new \WP_REST_Response([
                     'success' => true,
                     'data' => [$formattedProduct],
@@ -352,16 +352,6 @@ class Products_API {
                 ], 200);
             }
             
-            // 建立 per-user 快取 key（包含查詢參數 hash，不同分頁/篩選各自快取）
-            $user_id   = get_current_user_id();
-            $cache_key = 'buygo_products_' . $user_id . '_' . md5(serialize($request->get_params()));
-
-            // 嘗試從 transient 讀取快取
-            $cached = get_transient($cache_key);
-            if ($cached !== false) {
-                return new \WP_REST_Response($cached, 200);
-            }
-
             $filters = [
                 'status' => $request->get_param('status') ?? 'all',
                 'search' => $request->get_param('search') ?? ''
@@ -437,7 +427,7 @@ class Products_API {
                     'allocated' => $allocated,
                     'shipped' => $product['shipped'] ?? 0,
                     'pending' => $product['pending'] ?? 0,
-                    'reserved' => max(0, ($product['ordered'] ?? 0) - ($product['purchased'] ?? 0)),
+                    'reserved' => \BuyGoPlus\Services\ProductStatsCalculator::reserved((int)($product['ordered'] ?? 0), (int)$purchased, (int)$allocated),
                     'has_variations' => $hasVariations,
                     'variations' => $variations,
                     'default_variation' => $defaultVariation,
@@ -472,9 +462,6 @@ class Products_API {
                 'per_page' => $per_page,
                 'pages'    => $total_pages
             ];
-
-            // 快取 30 秒（與前端 BuyGoCache.TTL 一致）
-            set_transient($cache_key, $response_data, 30);
 
             return new \WP_REST_Response($response_data, 200);
 
