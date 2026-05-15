@@ -40,10 +40,13 @@ class ProductBuyerQueryService
 
             // 「已分配」SSOT：batch 取得所有父訂單 × 商品變體的 allocated map
             // 取代舊的 line_meta._allocated_qty 讀取
-            $parentOrderIds = array_values(array_unique(array_filter(array_map(
-                static fn($item) => $item->order ? (int) $item->order->id : null,
-                $orderItems->toArray()
-            ))));
+            // 注意：直接 iterate collection 保持 model 物件存取，不用 toArray()
+            $parentOrderIds = $orderItems->pluck('order.id')
+                ->filter()
+                ->map(static fn($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->toArray();
             $allocatedMap = !empty($parentOrderIds) && !empty($variationIds)
                 ? $this->statsCalculator->calculateAllocatedPerParentOrder($parentOrderIds, $variationIds)
                 : [];
