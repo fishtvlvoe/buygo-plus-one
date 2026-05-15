@@ -13,11 +13,13 @@ class ProductBuyerQueryService
 {
     private $debugService;
     private $variationService;
+    private $statsCalculator;
 
     public function __construct()
     {
-        $this->debugService = DebugService::get_instance();
+        $this->debugService    = DebugService::get_instance();
         $this->variationService = new ProductVariationService();
+        $this->statsCalculator  = new ProductStatsCalculator($this->debugService);
     }
 
     public function getProductBuyers(int $productId): array
@@ -36,12 +38,22 @@ class ProductBuyerQueryService
             $purchasedMap = $this->buildPurchasedMap($postId, $variationIds);
             $actualShippedMap = $this->fetchActualShippedMap($orderItems->pluck('id')->toArray());
 
+            // 「已分配」SSOT：batch 取得所有父訂單 × 商品變體的 allocated map
+            // 取代舊的 line_meta._allocated_qty 讀取
+            $parentOrderIds = array_values(array_unique(array_filter(array_map(
+                static fn($item) => $item->order ? (int) $item->order->id : null,
+                $orderItems->toArray()
+            ))));
+            $allocatedMap = !empty($parentOrderIds) && !empty($variationIds)
+                ? $this->statsCalculator->calculateAllocatedPerParentOrder($parentOrderIds, $variationIds)
+                : [];
+
             $orders = [];
             foreach ($orderItems as $item) {
                 if (!$item->order || !$item->order->customer) {
                     continue;
                 }
-                $orders[] = $this->buildBuyerOrderEntry($item, $actualShippedMap, $purchasedMap, $variationTitles);
+                $orders[] = $this->buildBuyerOrderEntry($item, $actualShippedMap, $purchasedMap, $variationTitles, $allocatedMap);
             }
 
             usort($orders, static function($a, $b) {
@@ -168,12 +180,28 @@ class ProductBuyerQueryService
         return $map;
     }
 
-    private function buildBuyerOrderEntry(object $item, array $actualShippedMap, array $purchasedMap, array $variationTitles): array
+    /**
+     * 建立單筆 buyer order entry
+     *
+     * @param object $item              FluentCart OrderItem
+     * @param array  $actualShippedMap  [orderItemId => shippedQty]（出貨單加總）
+     * @param array  $purchasedMap      [variationId => purchasedQty]
+     * @param array  $variationTitles   [variationId => title]
+     * @param array  $allocatedMap      [parentOrderId => [variationId => allocatedQty]]（child orders SSOT）
+     */
+    private function buildBuyerOrderEntry(object $item, array $actualShippedMap, array $purchasedMap, array $variationTitles, array $allocatedMap = []): array
     {
         $metaData = is_array($item->line_meta) ? $item->line_meta : (is_string($item->line_meta) ? (json_decode($item->line_meta, true) ?: []) : []);
         $quantity = (int) $item->quantity;
         $shippedQty = max((int) ($metaData['_shipped_qty'] ?? 0), $actualShippedMap[(int) $item->id] ?? 0);
-        $allocatedQty = max((int) ($metaData['_allocated_qty'] ?? 0), $shippedQty);
+
+        // 「已分配」從 child orders SSOT 取值（$allocatedMap），廢除 $metaData['_allocated_qty'] 讀取
+        $parentOrderId = $item->order ? (int) $item->order->id : 0;
+        $objectId      = (int) $item->object_id;
+        $allocatedQty  = max(
+            $allocatedMap[$parentOrderId][$objectId] ?? 0,
+            $shippedQty  // 已出貨量是已分配的最低下界
+        );
         $pendingQty = max(0, $quantity - $allocatedQty);
         $status = $shippedQty >= $quantity ? 'shipped' : ($allocatedQty >= $quantity ? 'allocated' : (($shippedQty > 0 || $allocatedQty > 0) ? 'partial' : 'pending'));
         $createdAt = $item->order->created_at ?? null;

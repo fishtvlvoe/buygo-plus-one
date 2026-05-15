@@ -81,6 +81,11 @@ class AllocationCalculator
      * - 全撤（new_quantity=0），會刪除子訂單
      * - 不能低於已出貨數量（_shipped_qty）
      *
+     * @deprecated 本方法內部更新 line_meta._allocated_qty 與 _buygo_allocated post_meta
+     *             的寫入邏輯暫保留。讀取端已遷移至
+     *             ProductStatsCalculator::calculateAllocatedToChildOrders /
+     *             ::calculateAllocatedPerParentOrder。未來獨立 change 處理移除寫入。
+     *
      * @param int $product_id  商品 variation ID
      * @param int $order_id    父訂單 ID
      * @param int $new_quantity 新的分配數量（0 = 全撤）
