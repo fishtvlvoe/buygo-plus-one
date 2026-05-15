@@ -1,6 +1,6 @@
 {
   "name": "buygo-plus-one",
-  "version": "1.7.11",
+  "version": "1.7.12",
   "description": "A complete WordPress product and order management system integrated with LINE.",
   "main": "index.js",
   "directories": {
