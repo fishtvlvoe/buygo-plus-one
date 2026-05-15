@@ -1028,14 +1028,19 @@ class Shipments_API
                 return new WP_Error('shipment_not_found', '出貨單不存在', ['status' => 404]);
             }
 
-            // 取得出貨單商品項目
+            // 取得出貨單商品項目（含 variation 資訊供前端展開子品項）
+            $table_product_variations = $wpdb->prefix . 'fct_product_variations';
             $items = $wpdb->get_results($wpdb->prepare(
                 "SELECT si.*,
                         oi.title,
                         oi.post_title,
-                        oi.unit_price as price
+                        oi.unit_price as price,
+                        oi.object_id as variation_id,
+                        pv.variation_title,
+                        pv.variation_identifier
                  FROM {$table_shipment_items} si
                  LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
+                 LEFT JOIN {$table_product_variations} pv ON pv.id = oi.object_id
                  WHERE si.shipment_id = %d",
                 $shipment_id
             ), ARRAY_A);
