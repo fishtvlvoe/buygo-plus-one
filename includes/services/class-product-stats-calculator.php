@@ -146,6 +146,74 @@ class ProductStatsCalculator
     }
 
     /**
+     * 計算每個父訂單在各商品變體的已分配子訂單數量
+     *
+     * 供 ProductBuyerQueryService::buildBuyerOrderEntry() 使用，
+     * 取代讀取 parent order_items.line_meta._allocated_qty 的舊方式。
+     *
+     * @param array $parentOrderIds 父訂單 ID 陣列
+     * @param array $variationIds   商品變體 ID 陣列
+     * @return array [parentOrderId => [variationId => int]]，未出現的組合視為 0
+     */
+    public function calculateAllocatedPerParentOrder(array $parentOrderIds, array $variationIds): array
+    {
+        // 空輸入直接回 []，不打 SQL
+        if (empty($parentOrderIds) || empty($variationIds)) {
+            return [];
+        }
+
+        try {
+            global $wpdb;
+
+            $table_items  = $wpdb->prefix . 'fct_order_items';
+            $table_orders = $wpdb->prefix . 'fct_orders';
+
+            $parentPlaceholders    = implode(',', array_fill(0, count($parentOrderIds), '%d'));
+            $variationPlaceholders = implode(',', array_fill(0, count($variationIds), '%d'));
+
+            // SQL：以父訂單 + 商品變體分組，加總子訂單數量
+            // 子訂單特徵：parent_id IS NOT NULL AND type = 'split'
+            // 排除已取消 / 退款的子訂單
+            $sql = $wpdb->prepare("
+                SELECT
+                    parent.id AS parent_id,
+                    child_item.object_id AS variation_id,
+                    SUM(child_item.quantity) AS allocated_qty
+                FROM {$table_items} child_item
+                INNER JOIN {$table_orders} child  ON child.id  = child_item.order_id
+                INNER JOIN {$table_orders} parent ON parent.id = child.parent_id
+                WHERE parent.id IN ({$parentPlaceholders})
+                  AND child_item.object_id IN ({$variationPlaceholders})
+                  AND child.parent_id IS NOT NULL
+                  AND child.type = 'split'
+                  AND child.status NOT IN ('cancelled', 'refunded')
+                GROUP BY parent.id, child_item.object_id
+            ", ...[...$parentOrderIds, ...$variationIds]);
+
+            $results = $wpdb->get_results($sql, ARRAY_A);
+
+            // 組 nested map：[parentOrderId][variationId] => int
+            $map = [];
+            foreach ($results as $row) {
+                $pid = (int) $row['parent_id'];
+                $vid = (int) $row['variation_id'];
+                $map[$pid][$vid] = (int) $row['allocated_qty'];
+            }
+
+            return $map;
+
+        } catch (\Exception $e) {
+            $this->debugService->log('ProductStatsCalculator', '計算每父訂單已分配子訂單數量失敗', [
+                'error'            => $e->getMessage(),
+                'parent_order_ids' => $parentOrderIds,
+                'variation_ids'    => $variationIds,
+            ], 'error');
+
+            return [];
+        }
+    }
+
+    /**
      * 計算已分配到子訂單的數量
      *
      * 【重要】這個方法計算的是實際已建立子訂單的商品數量

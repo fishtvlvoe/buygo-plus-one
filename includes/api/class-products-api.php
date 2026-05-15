@@ -275,19 +275,21 @@ class Products_API {
     public function get_products($request) {
         try {
             $productService = new ProductService();
+            // 「已分配」SSOT 計算器（取代讀 post_meta / line_meta 的舊方式）
+            $statsCalculator = new \BuyGoPlus\Services\ProductStatsCalculator(\BuyGoPlus\Services\DebugService::get_instance());
 
             // 如果有 ID 參數，只取得單一商品（不走快取，確保即時）
             $productId = $request->get_param('id');
             if (!empty($productId)) {
                 $product = $productService->getProductById((int) $productId);
-                
+
                 if (!$product) {
                     return new \WP_REST_Response([
                         'success' => false,
                         'message' => '商品不存在'
                     ], 404);
                 }
-                
+
                 // 轉換 status：WordPress 使用 'publish'，前端需要 'published'
                 $status = 'private';
                 if ($product['status'] === 'publish') {
@@ -295,13 +297,12 @@ class Products_API {
                 } elseif ($product['status'] === 'private' || $product['status'] === 'draft') {
                     $status = 'private';
                 }
-                
-                // 取得已分配數量（ProductService 已經讀取並回傳，如果沒有則從 post meta 讀取）
-                $allocated = $product['allocated'] ?? 0;
-                if ($allocated === 0 && isset($product['post_id'])) {
-                    // 如果 ProductService 沒有回傳 allocated，則從 post meta 讀取
-                    $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
-                }
+
+                // 「已分配」從 child orders 即時計算（SSOT）
+                // 以 variation id（$product['id']）查詢，廢除舊的 post_meta fallback
+                $objectId   = (int) $product['id'];
+                $allocatedMap = $statsCalculator->calculateAllocatedToChildOrders([$objectId]);
+                $allocated    = $allocatedMap[$objectId] ?? 0;
                 
                 // 檢查是否為多樣式商品
                 $hasVariations = false;
@@ -375,6 +376,16 @@ class Products_API {
                 }
             }
 
+            // 「已分配」SSOT：在 foreach 前 batch 查詢所有商品的 allocated map
+            // variation id = $product['id']，無 variation 的商品也以此作 object_id
+            $allObjectIds = array_values(array_filter(array_map(
+                static fn($p) => isset($p['id']) ? (int) $p['id'] : null,
+                $uniqueProducts
+            )));
+            $batchAllocatedMap = !empty($allObjectIds)
+                ? $statsCalculator->calculateAllocatedToChildOrders($allObjectIds)
+                : [];
+
             // 轉換資料格式以符合前端需求
             $formattedProducts = [];
             foreach ($uniqueProducts as $product) {
@@ -385,13 +396,11 @@ class Products_API {
                 } elseif ($product['status'] === 'private' || $product['status'] === 'draft') {
                     $status = 'private';
                 }
-                
-                // 取得已分配數量（ProductService 已經讀取並回傳，如果沒有則從 post meta 讀取）
-                $allocated = $product['allocated'] ?? 0;
-                if ($allocated === 0 && isset($product['post_id'])) {
-                    // 如果 ProductService 沒有回傳 allocated，則從 post meta 讀取
-                    $allocated = (int)get_post_meta($product['post_id'], '_buygo_allocated', true);
-                }
+
+                // 「已分配」從 child orders batch 計算結果取值（SSOT）
+                // 廢除舊的 $product['allocated'] fallback 與 get_post_meta('_buygo_allocated') 讀取
+                $objectId  = (int) $product['id'];
+                $allocated = $batchAllocatedMap[$objectId] ?? 0;
                 
                 // 檢查是否為多樣式商品，並加入 variations 資料
                 $hasVariations = false;

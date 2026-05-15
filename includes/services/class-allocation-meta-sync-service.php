@@ -97,6 +97,11 @@ class AllocationMetaSyncService
         }
     }
 
+    /**
+     * @deprecated 讀取端已遷移至 ProductStatsCalculator::calculateAllocatedToChildOrders /
+     *             ::calculateAllocatedPerParentOrder。本方法的 line_meta._allocated_qty
+     *             寫入暫保留供向後相容，未來獨立 change 處理移除。
+     */
     private function syncParentLineMeta(string $table_orders, string $table_items, int $parent_order_id, int $object_id, array $parent_item): void
     {
         global $wpdb;
@@ -125,6 +130,11 @@ class AllocationMetaSyncService
         );
     }
 
+    /**
+     * @deprecated 讀取端已遷移至 ProductStatsCalculator::calculateAllocatedToChildOrders /
+     *             ::calculateAllocatedPerParentOrder。本方法的 _buygo_allocated post_meta
+     *             寫入暫保留供向後相容，未來獨立 change 處理移除。
+     */
     private function syncProductAllocatedMeta(string $table_orders, string $table_items, int $post_id): void
     {
         global $wpdb;
