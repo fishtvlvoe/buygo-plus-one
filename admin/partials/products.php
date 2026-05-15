@@ -1036,12 +1036,12 @@ $products_component_template .= <<<'HTML'
                                                     </div>
                                                     <div class="flex items-center gap-3 text-xs">
                                                         <span><span class="text-slate-400">下單</span> <span class="font-bold text-slate-700">{{ order.required || order.quantity }}</span></span>
-                                                        <span><span class="text-slate-400">已配</span> <span class="font-bold text-blue-600">{{ order.already_allocated || 0 }}</span></span>
-                                                        <span><span class="text-slate-400">待配</span> <span class="font-bold text-red-600">{{ order.pending || ((order.required || order.quantity) - (order.already_allocated || 0)) }}</span></span>
+                                                        <span><span class="text-slate-400">已配</span> <span class="font-bold text-blue-600">{{ order.already_allocated ?? 0 }}</span></span>
+                                                        <span><span class="text-slate-400">待配</span> <span class="font-bold text-red-600">{{ order.pending ?? ((order.required ?? order.quantity) - (order.already_allocated ?? 0)) }}</span></span>
                                                     </div>
                                                 </div>
                                                 <!-- 右側：輸入框 -->
-                                                <input type="number" v-model.number="order.allocated" min="0" :max="order.pending || (order.required - (order.already_allocated || 0))" class="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-center text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none shrink-0">
+                                                <input type="number" v-model.number="order.allocated" min="0" :max="order.pending ?? (order.required - (order.already_allocated ?? 0))" class="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-center text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none shrink-0">
                                             </div>
                                         </div>
                                     </div>
