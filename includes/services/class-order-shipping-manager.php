@@ -126,7 +126,7 @@ class OrderShippingManager
      *
      * @param int $parentId 父訂單 ID
      */
-    private function syncParentShippingStatus(int $parentId): void
+    public function syncParentShippingStatus(int $parentId): void
     {
         try {
             $parentOrder = Order::find($parentId);

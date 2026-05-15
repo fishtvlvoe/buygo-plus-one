@@ -468,6 +468,42 @@ class ShipmentService
 
                 // 【新增】自動檢查並完成父訂單
                 $this->check_parent_completion($shipment_id);
+
+                // 同步父訂單 shipping_status（失敗不阻斷出貨流程）
+                try {
+                    $parent_ids = [];
+
+                    foreach ($order_ids as $order_id) {
+                        $order = $wpdb->get_row($wpdb->prepare(
+                            "SELECT parent_id, type FROM {$table_orders} WHERE id = %d",
+                            $order_id
+                        ));
+
+                        if (!$order || empty($order->parent_id) || $order->type !== 'split') {
+                            continue;
+                        }
+
+                        $parent_ids[] = (int) $order->parent_id;
+                    }
+
+                    if (!empty($parent_ids)) {
+                        $shipping_manager = new OrderShippingManager(
+                            $this->debugService,
+                            new ShippingStatusService()
+                        );
+
+                        foreach (array_unique($parent_ids) as $parent_id) {
+                            $shipping_manager->syncParentShippingStatus((int) $parent_id);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $this->debugService->log('ShipmentService', '同步父訂單 shipping_status 失敗', [
+                        'shipment_id' => $shipment_id,
+                        'order_ids' => $order_ids,
+                        'error' => $e->getMessage()
+                    ], 'warning');
+                }
+
                 (new AllocationMetaSyncService())->syncForShipment((int)$shipment_id);
             } else {
                 $errors[] = "更新出貨單 #{$shipment_id} 失敗";
