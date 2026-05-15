@@ -21,6 +21,21 @@ class ProductStatsCalculator
 {
     private $debugService;
 
+    /**
+     * 計算「待分配」數量 — 列表端點與單品端點共用此公式。
+     *
+     * reserved = max(0, ordered - purchased - allocated)
+     *
+     * @param int $ordered   下單量
+     * @param int $purchased 已採購量
+     * @param int $allocated 已分配量
+     * @return int 待分配量（不低於 0）
+     */
+    public static function reserved(int $ordered, int $purchased, int $allocated): int
+    {
+        return max(0, $ordered - $purchased - $allocated);
+    }
+
     public function __construct(DebugService $debugService)
     {
         $this->debugService = $debugService;
