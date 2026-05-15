@@ -505,12 +505,22 @@ $shipment_details_template .= <<<'HTML'
                                 </div>
                             </td>
                         </tr>
-                        <tr v-for="item in mergedDetailItems" :key="item.product_id" class="hover:bg-slate-50">
-                            <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
-                        </tr>
+                        <template v-for="item in mergedDetailItems" :key="item.product_id">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
+                            </tr>
+                            <template v-if="mergeEnabled && item.subItems && item.subItems.length > 1">
+                                <tr v-for="sub in item.subItems" :key="sub.variation_id" class="bg-slate-50/50">
+                                    <td class="pl-8 text-xs text-slate-500">└ {{ sub.variation_title || '未命名 variation' }}</td>
+                                    <td class="px-4 py-2 text-xs text-slate-500 text-right">× {{ sub.quantity }}</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </template>
+                        </template>
                     </tbody>
                     <tfoot class="bg-slate-50">
                         <tr>
@@ -642,12 +652,22 @@ $shipment_details_template .= <<<'HTML'
                                 </div>
                             </td>
                         </tr>
-                        <tr v-for="item in mergedMarkShippedItems" :key="item.product_id" class="hover:bg-slate-50">
-                            <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
-                            <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
-                        </tr>
+                        <template v-for="item in mergedMarkShippedItems" :key="item.product_id">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-4 text-sm text-slate-900">{{ item.product_name }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ item.quantity }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right">{{ formatPrice(item.price) }}</td>
+                                <td class="px-4 py-4 text-sm text-slate-900 text-right font-medium">{{ formatPrice(item.quantity * item.price) }}</td>
+                            </tr>
+                            <template v-if="mergeEnabled && item.subItems && item.subItems.length > 1">
+                                <tr v-for="sub in item.subItems" :key="sub.variation_id" class="bg-slate-50/50">
+                                    <td class="pl-8 text-xs text-slate-500">└ {{ sub.variation_title || '未命名 variation' }}</td>
+                                    <td class="px-4 py-2 text-xs text-slate-500 text-right">× {{ sub.quantity }}</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </template>
+                        </template>
                     </tbody>
                     <tfoot class="bg-slate-50">
                         <tr>

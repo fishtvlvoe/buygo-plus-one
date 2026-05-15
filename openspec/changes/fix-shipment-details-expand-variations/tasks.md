@@ -50,8 +50,8 @@ Parallel（parallel_tasks=true）：同群組內 [P] 可並行；不同群組串
 
 ## 5. Cross-impact 驗證（A 壞 B 檢查，用戶要求）
 
-- [ ] 5.1 [Tool: sonnet] 派 Sonnet 子代理跑 cross-impact 分析：grep `mergeItemsByProduct`、`get_shipment_items`、`shipment_items`、`variation_title` 在整個 codebase 的所有 caller / consumer，確認本 change 改動的 4 個檔案外**沒有**第三方 code path 會被破壞。產出報告含：(a) 所有 caller 列表 (b) 每個 caller 受影響評估 (c) 潛在 A 壞 B 警告。若發現未列入本 change 範圍的 caller 會被破壞，**STOP 並要求新增任務或調整 design.md**，不可繼續往下。驗證：報告寫入 `/tmp/cross-impact-shipment.md`，主對話 review 後決定是否進任務 5.2。
-- [ ] 5.2 [Tool: claude] 主對話 review cross-impact 報告。若 OK 標記 5.1 完成；若有破壞風險，新增任務或開新 change 處理，不可硬上。
+- [x] 5.1 [Tool: sonnet] 派 Sonnet 子代理跑 cross-impact 分析：grep `mergeItemsByProduct`、`get_shipment_items`、`shipment_items`、`variation_title` 在整個 codebase 的所有 caller / consumer，確認本 change 改動的 4 個檔案外**沒有**第三方 code path 會被破壞。產出報告含：(a) 所有 caller 列表 (b) 每個 caller 受影響評估 (c) 潛在 A 壞 B 警告。若發現未列入本 change 範圍的 caller 會被破壞，**STOP 並要求新增任務或調整 design.md**，不可繼續往下。驗證：報告寫入 `/tmp/cross-impact-shipment.md`，主對話 review 後決定是否進任務 5.2。（主對話於 propose 階段已預跑，報告於 /tmp/cross-impact-shipment.md）
+- [x] 5.2 [Tool: claude] 主對話 review cross-impact 報告。若 OK 標記 5.1 完成；若有破壞風險，新增任務或開新 change 處理，不可硬上。（主對話於 propose 階段已確認 OK）
 
 ## 6. 線上驗收 + bump 版本 + PR
 

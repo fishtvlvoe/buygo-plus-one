@@ -433,10 +433,36 @@ function useShipmentDetails() {
         const map = {};
         items.forEach(item => {
             const pid = item.product_id;
-            if (map[pid]) {
-                map[pid].quantity += Number(item.quantity);
+            const qty = Number(item.quantity);
+
+            if (!map[pid]) {
+                // 第一次見到此 product_id：建立父商品物件，只保留 product 層級欄位
+                // 不複製 variation_* 到 parent，避免跨 variation 的欄位污染
+                map[pid] = {
+                    product_id:   item.product_id,
+                    product_name: item.product_name,
+                    quantity:     qty,
+                    price:        item.price,
+                    subtotal:     qty * Number(item.price),
+                    subItems:     [],
+                };
             } else {
-                map[pid] = { ...item, quantity: Number(item.quantity) };
+                // 已存在：累加數量與小計，不覆蓋 product_name / price
+                map[pid].quantity += qty;
+                map[pid].subtotal += qty * Number(item.price);
+            }
+
+            // 新增或合併 subItems（同 variation_id 累加 quantity）
+            const variationId = item.variation_id ?? null;
+            const existing = map[pid].subItems.find(s => s.variation_id === variationId);
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                map[pid].subItems.push({
+                    variation_id:    variationId,
+                    variation_title: item.variation_title ?? null,
+                    quantity:        qty,
+                });
             }
         });
         return Object.values(map);

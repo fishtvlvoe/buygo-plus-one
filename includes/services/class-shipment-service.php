@@ -192,9 +192,19 @@ class ShipmentService
     public function get_shipment_items($shipment_id)
     {
         global $wpdb;
-        
+
+        // LEFT JOIN fct_order_items + fct_product_variations
+        // 取得 variation_id、variation_title、variation_identifier
+        // LEFT JOIN 確保即使 shipment_item 沒對到 order_item 或 variation，仍回傳原始 row（variation 欄位為 null）
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}buygo_shipment_items WHERE shipment_id = %d",
+            "SELECT si.*,
+                    oi.object_id AS variation_id,
+                    pv.variation_title,
+                    pv.variation_identifier
+             FROM {$wpdb->prefix}buygo_shipment_items si
+             LEFT JOIN {$wpdb->prefix}fct_order_items oi ON oi.id = si.order_item_id
+             LEFT JOIN {$wpdb->prefix}fct_product_variations pv ON pv.id = oi.object_id
+             WHERE si.shipment_id = %d",
             $shipment_id
         ), ARRAY_A);
     }
