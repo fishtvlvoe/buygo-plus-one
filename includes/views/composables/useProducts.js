@@ -197,7 +197,7 @@ function useProducts() {
         const allocationPageStats = computed(() => {
             if (!allocationSelectedVariant.value) {
                 return {
-                    ordered:   productOrders.value.reduce((sum, o) => sum + (o.required || o.quantity || 0), 0),
+                    ordered:   productOrders.value.reduce((sum, o) => sum + (o.required ?? o.quantity ?? 0), 0),
                     purchased: selectedProduct.value?.purchased || 0,
                     allocated: productOrders.value.reduce((sum, o) => sum + (o.already_allocated ?? 0), 0),
                 };
@@ -205,7 +205,7 @@ function useProducts() {
             const varId = parseInt(allocationSelectedVariant.value);
             const rows  = productOrders.value.filter(o => parseInt(o.object_id) === varId);
             return {
-                ordered:   rows.reduce((sum, o) => sum + (o.required || o.quantity || 0), 0),
+                ordered:   rows.reduce((sum, o) => sum + (o.required ?? o.quantity ?? 0), 0),
                 purchased: allocationVariationStats.value.purchased || 0,
                 allocated: rows.reduce((sum, o) => sum + (o.already_allocated ?? 0), 0),
             };
