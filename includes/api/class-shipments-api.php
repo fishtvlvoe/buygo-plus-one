@@ -1375,9 +1375,8 @@ class Shipments_API
             return $product_name;
         }
 
-        $identifier = trim((string) ($item['variation_identifier'] ?? ''));
         $title = trim((string) ($item['variation_title'] ?? ''));
-        $variation_label = trim($identifier !== '' ? "({$identifier}) {$title}" : $title);
+        $variation_label = $title;
 
         if ($variation_label === '') {
             return $product_name;

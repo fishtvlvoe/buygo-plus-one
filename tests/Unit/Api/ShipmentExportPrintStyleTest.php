@@ -40,12 +40,14 @@ final class ShipmentExportPrintStyleTest extends TestCase
 
         $withVariation = $method->invoke($api, [
             'product_name' => '產品測試',
-            'variation_identifier' => 'A',
-            'variation_title' => '漢頓',
+            'variation_id' => '16',
+            'variation_identifier' => 'BUYGO-2683-A',
+            'variation_title' => '(A) 漢頓',
         ]);
 
         $withoutVariation = $method->invoke($api, [
             'product_name' => '一般商品',
+            'variation_id' => null,
             'variation_identifier' => '',
             'variation_title' => '',
         ]);
