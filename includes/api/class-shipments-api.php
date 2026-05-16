@@ -1124,6 +1124,7 @@ class Shipments_API
             $table_customers = $wpdb->prefix . 'fct_customers';
             $table_customer_addresses = $wpdb->prefix . 'fct_customer_addresses';
             $table_order_items = $wpdb->prefix . 'fct_order_items';
+            $table_product_variations = $wpdb->prefix . 'fct_product_variations';
 
             // 生成檔名
             $filename = 'shipments_' . date('Ymd_His') . '.csv';
@@ -1218,11 +1219,14 @@ class Shipments_API
                     $shipment['taiwan_id_number'] = '';
                 }
 
-                // 取得出貨單商品項目（合併相同商品）
-                // 使用 GROUP BY 合併同一商品，計算總數量和來源訂單數
+                // 取得出貨單商品項目（variation 分行）
+                // 同一 product + variation 會聚合為單行，避免混淆不同子品項
                 $items = $wpdb->get_results($wpdb->prepare(
                     "SELECT
                             si.product_id,
+                            oi.object_id as variation_id,
+                            pv.variation_title,
+                            pv.variation_identifier,
                             SUM(si.quantity) as total_quantity,
                             COUNT(DISTINCT si.order_id) as order_count,
                             oi.title,
@@ -1230,8 +1234,16 @@ class Shipments_API
                             oi.unit_price as price
                      FROM {$table_shipment_items} si
                      LEFT JOIN {$table_order_items} oi ON si.order_item_id = oi.id
+                     LEFT JOIN {$table_product_variations} pv ON pv.id = oi.object_id
                      WHERE si.shipment_id = %d
-                     GROUP BY si.product_id",
+                     GROUP BY
+                        si.product_id,
+                        oi.object_id,
+                        pv.variation_title,
+                        pv.variation_identifier,
+                        oi.title,
+                        oi.post_title,
+                        oi.unit_price",
                     $shipment_id
                 ), ARRAY_A);
 
@@ -1256,7 +1268,12 @@ class Shipments_API
                         }
                     }
 
-                    $item['product_name'] = $product_name ?: '未知商品';
+                    $item['product_name'] = $this->format_export_product_name([
+                        'product_name' => $product_name ?: '未知商品',
+                        'variation_id' => $item['variation_id'] ?? null,
+                        'variation_identifier' => $item['variation_identifier'] ?? '',
+                        'variation_title' => $item['variation_title'] ?? '',
+                    ]);
 
                     // 使用合併後的總數量
                     $item['quantity'] = intval($item['total_quantity']);
@@ -1270,7 +1287,15 @@ class Shipments_API
                     }
 
                     // 移除不需要的欄位
-                    unset($item['title'], $item['post_title'], $item['total_quantity'], $item['order_count']);
+                    unset(
+                        $item['title'],
+                        $item['post_title'],
+                        $item['total_quantity'],
+                        $item['order_count'],
+                        $item['variation_id'],
+                        $item['variation_title'],
+                        $item['variation_identifier']
+                    );
                 }
                 unset($item);
 
@@ -1334,6 +1359,31 @@ class Shipments_API
             echo json_encode(['success' => false, 'message' => '匯出失敗：' . $e->getMessage()]);
             exit;
         }
+    }
+
+    /**
+     * 格式化匯出商品名稱（variation 與一般商品共用）
+     *
+     * @param array<string, mixed> $item
+     */
+    private function format_export_product_name(array $item): string
+    {
+        $product_name = trim((string) ($item['product_name'] ?? '未知商品'));
+        $has_variation = !empty($item['variation_id']) || !empty($item['variation_identifier']) || !empty($item['variation_title']);
+
+        if (!$has_variation) {
+            return $product_name;
+        }
+
+        $identifier = trim((string) ($item['variation_identifier'] ?? ''));
+        $title = trim((string) ($item['variation_title'] ?? ''));
+        $variation_label = trim($identifier !== '' ? "({$identifier}) {$title}" : $title);
+
+        if ($variation_label === '') {
+            return $product_name;
+        }
+
+        return "{$product_name} - {$variation_label}";
     }
 
     /**

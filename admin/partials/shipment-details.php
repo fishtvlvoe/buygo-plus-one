@@ -405,24 +405,24 @@ $shipment_details_template .= <<<'HTML'
     <!-- 結束：列表檢視 -->
 
     <!-- 詳情檢視 -->
-    <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full" style="min-height: 100vh;">
+    <div v-show="currentView !== 'list'" class="absolute inset-0 bg-slate-50 z-30 overflow-y-auto w-full shipment-print-root" style="min-height: 100vh;">
         <!-- Sticky Header -->
-        <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm">
+        <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shadow-sm shipment-print-header">
             <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
-                <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0">
+                <button @click="navigateTo('list')" class="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex items-center gap-1 group shrink-0 shipment-print-hide">
                     <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
                     <span class="text-sm font-medium">返回</span>
                 </button>
-                <div class="h-5 w-px bg-slate-200 hidden md:block"></div>
+                <div class="h-5 w-px bg-slate-200 hidden md:block shipment-print-hide"></div>
                 <div class="truncate">
                     <h2 class="text-base md:text-xl font-bold text-slate-900 truncate">
                         出貨明細 - {{ detailModal.shipment?.shipment_number }}
                     </h2>
                 </div>
             </div>
-            <div class="flex gap-2 shrink-0">
+            <div class="flex gap-2 shrink-0 shipment-print-hide">
                 <button
                     @click="exportShipment(detailModal.shipment?.id)"
                     class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition text-xs md:text-sm font-medium"
@@ -478,14 +478,14 @@ $shipment_details_template .= <<<'HTML'
                 <div class="p-4 md:p-6 border-b border-slate-200 flex items-center justify-between">
                     <h4 class="text-sm font-bold text-slate-900 border-l-4 border-orange-500 pl-3">商品明細</h4>
                     <button @click="mergeEnabled = !mergeEnabled"
-                        class="text-xs px-3 py-1.5 rounded-full transition-colors"
+                        class="text-xs px-3 py-1.5 rounded-full transition-colors shipment-print-hide"
                         :class="mergeEnabled
                             ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
                         {{ mergeEnabled ? '合併顯示中' : '展開顯示中' }}
                     </button>
                 </div>
-                <table class="min-w-full divide-y divide-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 shipment-print-table">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-slate-500">商品名稱</th>
@@ -805,7 +805,7 @@ $shipment_details_template .= <<<'HTML'
     <!-- 確認 Modal -->
     <div
         v-if="confirmModal.show"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 shipment-print-hide"
         @click.self="closeConfirmModal"
     >
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
@@ -835,7 +835,7 @@ $shipment_details_template .= <<<'HTML'
     <!-- Toast 通知 -->
     <div
         v-if="toastMessage.show"
-        class="fixed top-4 right-4 z-50 animate-slide-in"
+        class="fixed top-4 right-4 z-50 animate-slide-in shipment-print-hide"
     >
         <div :class="[
             'px-6 py-4 rounded-lg shadow-lg flex items-center gap-3',
@@ -860,6 +860,55 @@ HTML;
 <!-- Flatpickr CSS 本地載入 -->
 <link rel="stylesheet" href="<?php echo plugins_url('assets/css/flatpickr.min.css', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>">
 
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .shipment-print-root,
+    .shipment-print-root * {
+        visibility: visible;
+    }
+
+    .shipment-print-root {
+        position: absolute;
+        inset: 0;
+        z-index: 9999;
+        background: #fff;
+        overflow: visible !important;
+    }
+
+    .shipment-print-hide,
+    .shipment-print-hide * {
+        display: none !important;
+    }
+
+    .shipment-print-header {
+        position: static !important;
+        box-shadow: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        margin-bottom: 12px !important;
+    }
+
+    .shipment-print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 10pt;
+    }
+
+    .shipment-print-table th,
+    .shipment-print-table td {
+        border: 1px solid #cbd5e1 !important;
+        padding: 6pt 8pt !important;
+    }
+
+    .shipment-print-table tfoot td {
+        font-weight: 700;
+    }
+}
+</style>
+
 <!-- Shipment Details Page Template -->
 <script type="text/x-template" id="shipment-details-page-template">
     <?php echo $shipment_details_template; ?>
@@ -874,4 +923,3 @@ window.buygoWpNonce = '<?php echo wp_create_nonce("wp_rest"); ?>';
 <script src="<?php echo plugins_url('assets/js/flatpickr-zh-tw.js', BUYGO_PLUS_ONE_PLUGIN_FILE); ?>"></script>
 <script><?php include BUYGO_PLUS_ONE_PLUGIN_DIR . 'includes/views/composables/useShipmentDetails.js'; ?></script>
 <script><?php include plugin_dir_path(dirname(__FILE__)) . 'js/components/ShipmentDetailsPage.js'; ?></script>
-
